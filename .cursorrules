@@ -1,0 +1,113 @@
+Cursor Rules
+You are an expert in Flutter, Dart, Riverpod, Bloc, Freezed, Flutter Hooks, Supabase, and Firebase. Generate code, corrections, and refactorings that adhere to the following unified guidelines.
+ 
+1. Core Principles
+Clarity & Precision: Write concise, technical Dart code with accurate examples.
+Functional & Declarative: Use functional and declarative programming patterns where applicable.
+Composition over Inheritance: Favor composing small, reusable parts instead of deep inheritance hierarchies.
+English Only: All code and documentation must be in English.
+Explicit Typing: Always declare types for variables, function parameters, and return values. Avoid using any; create necessary types.
+Descriptive Naming: Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError) and start functions with a verb.
+Clean Code: Write functions and methods that have a single purpose, with fewer than 20 instructions if possible. Avoid unnecessary blank lines within functions.
+One Export per File: Structure your files to export only one primary entity.
+2. Dart & Flutter Guidelines
+Dart Language & Code Style
+Const Constructors: Use const constructors for immutable widgets.
+Arrow Syntax: Use arrow syntax for simple functions and methods (less than three instructions).
+Expression Bodies: Prefer expression bodies for one-line getters and setters.
+Trailing Commas: Use trailing commas to improve formatting and diffs.
+Line Length: Keep lines under 80 characters where possible.
+File & Directory Structure
+File Naming: Use underscores for file and directory names (e.g., my_widget.dart).
+Naming Conventions:
+Classes: Use PascalCase.
+Variables & Functions: Use camelCase.
+Environment Variables: Use UPPERCASE (e.g., API_URL).
+Constants: Avoid magic numbers; define and use constants.
+3. State Management
+Riverpod Guidelines
+Provider Annotations: Use @riverpod to generate providers.
+Preferred Providers: Favor AsyncNotifierProvider and NotifierProvider over StateProvider.
+Avoid: StateProvider, StateNotifierProvider, and ChangeNotifierProvider.
+Async Operations: Ensure proper cancellation of asynchronous operations when widgets are disposed.
+Error & Loading States: Use AsyncValue for handling errors and loading states in your views.
+Bloc Guidelines
+When to Use: Use Cubit for simple state management and Bloc for complex, event-driven scenarios.
+Immutability: Leverage Freezed for immutable state classes and unions.
+Events & States: Use descriptive and meaningful event names. Manage state transitions and side effects in Bloc’s mapEventToState.
+Widget Integration: Use BlocBuilder for widgets that depend on Bloc/Cubit state and BlocListener for handling side effects (e.g., navigation or dialogs).
+Flutter Hooks
+Use Flutter Hooks when combining with Riverpod for cleaner, more concise widget logic.
+4. Error Handling & Validation
+Error Display: In views, use SelectableText.rich to display errors (with red color for visibility) instead of SnackBars.
+Empty States: Always handle empty states within the UI.
+Validation: Use internal validation within classes rather than inline data validation in functions.
+Exception Handling:
+Use exceptions only for unexpected errors.
+When catching exceptions, add context or fix expected problems.
+Logging: Use log (or a logging framework) instead of print for debugging.
+Error Tracking:
+Important: Create and maintain a file named knowledge-base.md in the project root.
+Log every encountered error and your solution to that file.
+For all subsequent errors, check knowledge-base.md before proceeding.
+5. Performance Optimization
+Const Widgets: Use const widgets wherever possible to optimize rebuilds.
+List Views: Optimize lists with ListView.builder and other efficient builders.
+Image Handling: Use AssetImage for local assets and cached_network_image for remote images.
+Query Optimization: For Supabase and Firebase, optimize queries by limiting results and using indexes where needed.
+Widget Structure:
+Avoid deeply nested widget trees; break down large widgets into smaller, reusable components to reduce build complexity.
+Keep the widget tree as flat as possible for better performance and easier state management.
+6. UI, Styling & Navigation
+Responsive Design: Implement responsive layouts using LayoutBuilder or MediaQuery.
+Themes: Use Flutter’s theming system &#40;e.g., ThemeData and Theme.of(context&#41;.textTheme) for consistent styling.
+Custom Widgets: Build custom widgets when necessary. When a widget tree becomes too deep, break it into smaller private widget classes.
+Navigation:
+Use GoRouter or AutoRoute for navigation and deep linking.
+When using AutoRoute, pass data between pages using extras.
+7. Data Models & Database Conventions
+Database Fields:
+For Supabase: Include createdAt, updatedAt, and isDeleted in tables.
+For Firestore (Firebase): Include createdAt, updatedAt, and isDeleted in documents.
+Serialization:
+Use @JsonSerializable(fieldRename: FieldRename.snake) for model classes.
+Use @JsonKey(includeFromJson: true, includeToJson: false) for read-only fields.
+Enums: Use @JsonValue(int) for enums that map to database values.
+8. Architecture & Dependency Injection
+Clean Architecture: Organize code using modules, controllers, services, repositories, and entities.
+Repository Pattern: Use repositories for data persistence, including caching where appropriate.
+Controller Pattern: Implement business logic within controllers that update UI state.
+Dependency Injection:
+Use getIt for managing dependencies.
+Register services and repositories as singletons, use factories for use cases, and lazy singletons for controllers.
+9. Testing
+Test Types:
+Write unit tests for every public function using the Arrange-Act-Assert convention.
+Create widget tests for UI components.
+Implement integration tests for API modules (e.g., Supabase or Firebase interactions).
+Test Naming: Clearly name test variables (e.g., inputValue, mockService, expectedResult).
+10. Code Generation & Documentation
+Build Runner: Utilize build_runner for generating code from annotations (Freezed, JSON serialization, Riverpod).
+After modifying annotated classes, run:
+bash
+Kopyala
+Düzenle
+flutter pub run build_runner build --delete-conflicting-outputs
+Documentation:
+Document complex logic and non-obvious decisions.
+Follow official documentation for Flutter, Riverpod, Bloc, Supabase, and Firebase.
+Ensure inline comments and file-level documentation are clear and concise.
+11. Miscellaneous Conventions
+Higher-Order Functions: Use functions like map, filter, and reduce to avoid deep nesting.
+Default Parameters: Use default values instead of null checks where appropriate.
+Abstraction Level: Keep functions and classes at a single level of abstraction.
+Error Builders: Always include an errorBuilder when using widgets like Image.network.
+Observer Tools:
+For Bloc, use BlocObserver to monitor state transitions.
+For debugging, always refer to your logging system.
+Code Formatting: Use trailing commas for multi-parameter functions and adhere to an 80-character line limit.
+12. Knowledge-Base Requirement
+Central Error Log:
+Create a file named knowledge-base.md in the project’s root directory.
+For every error you encounter, log the error message, context, and detailed steps on how you resolved it in this file.
+For all future errors, consult knowledge-base.md before making changes to ensure previously encountered issues are resolved consistently.
