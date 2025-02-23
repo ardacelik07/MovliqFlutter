@@ -4,6 +4,8 @@ import '../widgets/background_widget.dart';
 import '../widgets/social_login_button.dart';
 import '../widgets/tagline_widget.dart';
 import '../widgets/footer_widget.dart';
+import '../screens/register_screen.dart';
+import '../screens/login_input_screen.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -27,6 +29,60 @@ class LoginScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   const TaglineWidget(),
                   const SizedBox(height: 48),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginInputScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('Login'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: const BorderSide(color: Colors.white),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const RegisterScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('Register'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'Or continue with',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 24),
                   SocialLoginButton.google(
                     onPressed: () {
                       // TODO: Implement Google login
@@ -35,13 +91,13 @@ class LoginScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   SocialLoginButton.facebook(
                     onPressed: () {
-                      // TODO: Implement Facebook login
+                      
                     },
                   ),
                   const SizedBox(height: 16),
                   SocialLoginButton.microsoft(
                     onPressed: () {
-                      // TODO: Implement Microsoft login
+                      
                     },
                   ),
                   const Spacer(flex: 3),
