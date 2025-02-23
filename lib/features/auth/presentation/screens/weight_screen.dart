@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'active_screen.dart';
+import '../providers/user_profile_provider.dart';
 
 class WeightScreen extends ConsumerStatefulWidget {
   const WeightScreen({super.key});
@@ -64,7 +65,8 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.black, width: 2),
+                      borderSide:
+                          const BorderSide(color: Colors.black, width: 2),
                     ),
                   ),
                   validator: (value) {
@@ -115,11 +117,25 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                   ),
                   onPressed: () {
                     if (_formKey.currentState?.validate() ?? false) {
+                      double weightInKg;
+
+                      if (_isLbs) {
+                        // lbs'den kg'ye dönüşüm
+                        final lbs = double.parse(_weightController.text);
+                        weightInKg = lbs * 0.453592; // 1 lbs = 0.453592 kg
+                      } else {
+                        // Zaten kg olarak girilmiş
+                        weightInKg = double.parse(_weightController.text);
+                      }
+
+                      ref.read(userProfileProvider.notifier).updateProfile(
+                            weight: weightInKg,
+                          );
+
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ActiveScreen(),
-                        ),
+                            builder: (context) => const ActiveScreen()),
                       );
                     }
                   },
@@ -132,4 +148,4 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
       ),
     );
   }
-} 
+}

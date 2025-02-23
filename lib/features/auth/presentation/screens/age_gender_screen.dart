@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'height_screen.dart';
+import '../providers/user_profile_provider.dart';
 
 class AgeGenderScreen extends ConsumerStatefulWidget {
   const AgeGenderScreen({super.key});
@@ -106,12 +107,15 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                     ),
                   ),
                   onPressed: () {
-                    if (_formKey.currentState?.validate() ?? false) {
+                    if (selectedDate != null && selectedGender != null) {
+                      ref.read(userProfileProvider.notifier).updateProfile(
+                            birthDate: selectedDate,
+                            gender: selectedGender,
+                          );
+                      
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const HeightScreen(),
-                        ),
+                        MaterialPageRoute(builder: (context) => const HeightScreen()),
                       );
                     }
                   },

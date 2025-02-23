@@ -12,6 +12,6 @@ import 'package:my_flutter_project/main.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(const MovliqApp());
+    await tester.pumpWidget(const MyApp());
   });
 }

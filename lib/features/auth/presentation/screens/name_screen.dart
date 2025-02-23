@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/auth_text_field.dart';
+import '../providers/user_profile_provider.dart';
 
 import 'age_gender_screen.dart';
 
@@ -119,6 +120,13 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                       ),
                       onPressed: () {
                         if (_formKey.currentState?.validate() ?? false) {
+                          // Update user profile
+                          ref.read(userProfileProvider.notifier).updateProfile(
+                                name: _nameController.text,
+                                username: _usernameController.text,
+                              );
+
+                          // Navigate to next screen
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(

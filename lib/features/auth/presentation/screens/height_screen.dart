@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'weight_screen.dart';
+import '../providers/user_profile_provider.dart';
 
 class HeightScreen extends ConsumerStatefulWidget {
   const HeightScreen({super.key});
@@ -151,11 +152,27 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                   ),
                   onPressed: () {
                     if (_formKey.currentState?.validate() ?? false) {
+                      double heightInCm;
+
+                      if (_isFtIn) {
+                        // ft/in'den cm'ye dönüşüm
+                        final feet = double.parse(_ftController.text);
+                        final inches = double.parse(_inController.text);
+                        final totalInches = (feet * 12) + inches;
+                        heightInCm = totalInches * 2.54; // inch to cm
+                      } else {
+                        // Zaten cm olarak girilmiş
+                        heightInCm = double.parse(_ftController.text);
+                      }
+
+                      ref.read(userProfileProvider.notifier).updateProfile(
+                            height: heightInCm,
+                          );
+
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const WeightScreen(),
-                        ),
+                            builder: (context) => const WeightScreen()),
                       );
                     }
                   },

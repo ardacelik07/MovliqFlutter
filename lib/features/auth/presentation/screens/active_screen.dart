@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'finish_screen.dart';
+import '../providers/user_profile_provider.dart';
 
 class ActiveScreen extends ConsumerStatefulWidget {
   const ActiveScreen({super.key});
@@ -69,16 +70,16 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: _selectedLevel != null
-                    ? () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const FinishScreen(),
-                          ),
-                        );
-                      }
-                    : null,
+                onPressed: _selectedLevel != null ? () {
+                  ref.read(userProfileProvider.notifier).updateProfile(
+                        activityLevel: _selectedLevel,
+                      );
+
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const FinishScreen()),
+                  );
+                } : null,
                 child: const Text('Continue'),
               ),
             ],

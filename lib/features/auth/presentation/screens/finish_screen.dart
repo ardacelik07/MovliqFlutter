@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_page.dart';
 
+import '../providers/user_profile_provider.dart';
+
 class FinishScreen extends ConsumerStatefulWidget {
   const FinishScreen({super.key});
 
@@ -11,9 +13,32 @@ class FinishScreen extends ConsumerStatefulWidget {
 
 class _FinishScreenState extends ConsumerState<FinishScreen> {
   String? _selectedPreference;
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
+    // Provider'ı dinle
+    ref.listen(userProfileProvider, (previous, next) {
+      next.whenOrNull(
+        loading: () {
+          setState(() => _isLoading = true);
+        },
+        error: (error, stack) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${error.toString()}')),
+          );
+        },
+        data: (_) {
+          setState(() => _isLoading = false);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomePage()),
+          );
+        },
+      );
+    });
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -68,17 +93,12 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: _selectedPreference != null
-                    ? () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const HomePage(),
-                          ),
-                        );
-                      }
-                    : null,
-                child: const Text('Complete'),
+                onPressed: _isLoading || _selectedPreference == null
+                    ? null
+                    : _handleComplete,
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Complete'),
               ),
             ],
           ),
@@ -130,5 +150,39 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleComplete() async {
+    try {
+      // Önce mevcut state'i kontrol et
+      final currentProfile = ref.read(userProfileProvider).value;
+      if (currentProfile == null) {
+        throw Exception('Profile data is missing');
+      }
+
+      // Eksik zorunlu alanları kontrol et
+      if (currentProfile.name.isEmpty ||
+          currentProfile.username.isEmpty ||
+          currentProfile.gender.isEmpty ||
+          currentProfile.height <= 0 ||
+          currentProfile.weight <= 0 ||
+          currentProfile.activityLevel.isEmpty) {
+        throw Exception('Please complete all required fields');
+      }
+
+      // Son tercihi güncelle
+      ref.read(userProfileProvider.notifier).updateProfile(
+            runningPreference: _selectedPreference,
+          );
+
+      // Profili kaydet
+      await ref.read(userProfileProvider.notifier).saveProfile();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    }
   }
 }
