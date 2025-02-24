@@ -60,7 +60,7 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                         Text(
                           selectedDate != null
                               ? "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}"
-                              : "When is your Birthday?",
+                              : "When is your Birthday??",
                           style: const TextStyle(color: Colors.black),
                         ),
                         const Icon(Icons.calendar_today, color: Colors.black),
