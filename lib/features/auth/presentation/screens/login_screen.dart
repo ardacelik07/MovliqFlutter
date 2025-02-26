@@ -23,7 +23,7 @@ class LoginScreen extends ConsumerWidget {
                 children: [
                   const Spacer(flex: 2),
                   Image.asset(
-                    'assets/images/movliq_beyaz.png',
+                    'assets/images/Movliq_beyaz.png',
                     height: 60,
                   ),
                   const SizedBox(height: 24),
@@ -90,15 +90,11 @@ class LoginScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   SocialLoginButton.facebook(
-                    onPressed: () {
-                      
-                    },
+                    onPressed: () {},
                   ),
                   const SizedBox(height: 16),
                   SocialLoginButton.microsoft(
-                    onPressed: () {
-                      
-                    },
+                    onPressed: () {},
                   ),
                   const Spacer(flex: 3),
                   const FooterWidget(),

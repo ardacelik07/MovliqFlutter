@@ -1,8 +1,8 @@
 class AppConstants {
   static const String appName = 'Movliq';
-  static const String tagline = 'Run Faster. Compete Smarter.\nStart Now.';
+  static const String tagline = 'Burn More, Earn More';
   static const String subTagline =
-      'Join a global running community and challenge yourself every day.';
+      'Challenge yourself, run daily, and turn miles into rewards';
 
   // API Endpoints
 }

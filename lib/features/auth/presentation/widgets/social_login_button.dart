@@ -16,7 +16,7 @@ class SocialLoginButton extends StatelessWidget {
 
   factory SocialLoginButton.google({required VoidCallback onPressed}) {
     return SocialLoginButton._(
-      text: 'Continue with Google',
+      text: 'Continue with Google     ',
       iconPath: 'assets/icons/google.svg',
       color: const Color.fromARGB(26, 0, 0, 0),
       onPressed: onPressed,
@@ -49,7 +49,7 @@ class SocialLoginButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: color == Colors.white ? Colors.black : Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),

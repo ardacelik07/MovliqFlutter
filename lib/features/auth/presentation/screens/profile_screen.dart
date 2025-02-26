@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -44,7 +45,14 @@ class ProfileScreen extends ConsumerWidget {
                     right: 16,
                     child: IconButton(
                       icon: const Icon(Icons.settings, color: Colors.white),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   Positioned(
@@ -377,7 +385,7 @@ class ProfileScreen extends ConsumerWidget {
               shape: BoxShape.circle,
             ),
             child: Image.asset(
-              'assets/images/movliq_beyaz.png',
+              'assets/images/Movliq_beyaz.png',
               color: Colors.blue,
             ),
           ),
