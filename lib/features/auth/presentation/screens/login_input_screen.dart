@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/background_widget.dart';
 import '../widgets/auth_text_field.dart';
 import '../providers/auth_provider.dart';
-import '../screens/home_page.dart';
+import '../screens/tabs.dart';
 
 class LoginInputScreen extends ConsumerStatefulWidget {
   const LoginInputScreen({super.key});
@@ -44,7 +44,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => const HomePage(),
+                builder: (context) => const TabsScreen(),
               ),
             );
           }
@@ -145,4 +145,4 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
       ),
     );
   }
-} 
+}
