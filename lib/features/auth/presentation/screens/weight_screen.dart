@@ -86,6 +86,7 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                   children: [
                     ChoiceChip(
                       label: const Text('lbs'),
+                      selectedColor: Color(0xFFC4FF62),
                       selected: _isLbs,
                       onSelected: (bool selected) {
                         setState(() {
@@ -96,6 +97,7 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                     const SizedBox(width: 16),
                     ChoiceChip(
                       label: const Text('kg'),
+                      selectedColor: Color(0xFFC4FF62),
                       selected: !_isLbs,
                       onSelected: (bool selected) {
                         setState(() {
@@ -108,8 +110,8 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                 const SizedBox(height: 32),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xFFC4FF62),
+                    foregroundColor: const Color.fromARGB(255, 0, 0, 0),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),

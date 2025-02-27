@@ -63,23 +63,26 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
               const SizedBox(height: 32),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Color(0xFFC4FF62),
+                  foregroundColor: const Color.fromARGB(255, 0, 0, 0),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: _selectedLevel != null ? () {
-                  ref.read(userProfileProvider.notifier).updateProfile(
-                        activityLevel: _selectedLevel,
-                      );
+                onPressed: _selectedLevel != null
+                    ? () {
+                        ref.read(userProfileProvider.notifier).updateProfile(
+                              activityLevel: _selectedLevel,
+                            );
 
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const FinishScreen()),
-                  );
-                } : null,
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const FinishScreen()),
+                        );
+                      }
+                    : null,
                 child: const Text('Continue'),
               ),
             ],
@@ -105,10 +108,10 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.grey[100],
+          color: isSelected ? Color(0xFFC4FF62) : Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
+            color: isSelected ? Colors.black : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -116,7 +119,7 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.blue : Colors.grey,
+              color: isSelected ? Colors.black : Colors.grey,
               size: 24,
             ),
             const SizedBox(width: 16),
@@ -129,14 +132,14 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.blue : Colors.black,
+                      color: isSelected ? Colors.black : Colors.black,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isSelected ? Colors.blue.shade700 : Colors.grey,
+                      color: isSelected ? Colors.black : Colors.grey,
                     ),
                   ),
                 ],
@@ -145,7 +148,7 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
             if (isSelected)
               const Icon(
                 Icons.check_circle,
-                color: Colors.blue,
+                color: Colors.black,
                 size: 24,
               ),
           ],

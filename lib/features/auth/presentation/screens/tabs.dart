@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'profile_screen.dart';
+import 'store_screen.dart';
 
 class TabsScreen extends StatefulWidget {
   const TabsScreen({super.key});
@@ -14,7 +15,7 @@ class _TabsScreenState extends State<TabsScreen> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    const Center(child: Text('Store')),
+    const StoreScreen(),
     const Center(child: Text('Record')),
     const Center(child: Text('Leaderboard')),
     const ProfileScreen(),
@@ -31,17 +32,9 @@ class _TabsScreenState extends State<TabsScreen> {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Colors.grey.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-        ),
         child: BottomNavigationBar(
           backgroundColor: Colors.black,
-          selectedItemColor: Colors.green,
+          selectedItemColor: Color(0xFFC4FF62),
           unselectedItemColor: Colors.grey,
           type: BottomNavigationBarType.fixed,
           currentIndex: _selectedIndex,

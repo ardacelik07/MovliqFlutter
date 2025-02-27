@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_page.dart';
+import '../screens/tabs.dart';
 
 import '../providers/user_profile_provider.dart';
 
@@ -33,7 +34,9 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
           setState(() => _isLoading = false);
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
+            MaterialPageRoute(
+              builder: (context) => const TabsScreen(),
+            ),
           );
         },
       );
@@ -86,8 +89,8 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
               const SizedBox(height: 32),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Color(0xFFC4FF62),
+                  foregroundColor: const Color.fromARGB(255, 0, 0, 0),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -122,10 +125,10 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.grey[100],
+          color: isSelected ? Color(0xFFC4FF62) : Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
+            color: isSelected ? Color(0xFFC4FF62) : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -134,7 +137,7 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.blue : Colors.grey,
+              color: isSelected ? Colors.black : Colors.grey,
               size: 32,
             ),
             const SizedBox(height: 12),
@@ -143,7 +146,7 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.blue : Colors.black,
+                color: isSelected ? Colors.black : Colors.grey,
               ),
             ),
           ],

@@ -88,7 +88,7 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                           ),
                           validator: (value) {
                             if (value?.isEmpty ?? true) {
-                              return 'Required';
+                              return 'Please enter your height correctly';
                             }
                             return null;
                           },
@@ -109,7 +109,7 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                     ),
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Required';
+                        return 'Please enter your height correctly';
                       }
                       return null;
                     },
@@ -120,6 +120,7 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ChoiceChip(
+                      selectedColor: Color(0xFFC4FF62),
                       label: const Text('ft/in'),
                       selected: _isFtIn,
                       onSelected: (bool selected) {
@@ -131,6 +132,7 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                     const SizedBox(width: 16),
                     ChoiceChip(
                       label: const Text('cm'),
+                      selectedColor: Color(0xFFC4FF62),
                       selected: !_isFtIn,
                       onSelected: (bool selected) {
                         setState(() {
@@ -143,8 +145,8 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                 const SizedBox(height: 32),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xFFC4FF62),
+                    foregroundColor: const Color.fromARGB(255, 0, 0, 0),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
