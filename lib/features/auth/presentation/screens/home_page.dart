@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -271,7 +272,14 @@ class _HomePageState extends ConsumerState<HomePage>
                       // 3D Animasyonlu Movliq Butonu
                       GestureDetector(
                         onTapDown: (_) => setState(() => _isPressed = true),
-                        onTapUp: (_) => setState(() => _isPressed = false),
+                        onTapUp: (_) {
+                          setState(() => _isPressed = false);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const FilterScreen()),
+                          );
+                        },
                         onTapCancel: () => setState(() => _isPressed = false),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
@@ -286,7 +294,6 @@ class _HomePageState extends ConsumerState<HomePage>
                                 Color.fromARGB(255, 2, 59, 12),
                                 Color.fromARGB(255, 118, 162, 47),
                               ],
-                              stops: [0.2, 0.9],
                             ),
                             boxShadow: [
                               // Alt gölge (3D efekti için)
