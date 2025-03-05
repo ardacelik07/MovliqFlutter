@@ -7,11 +7,13 @@ import '../screens/tabs.dart';
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
   final String? myUsername;
+  final int? raceDuration; // Minutes
 
   const RaceScreen({
     super.key,
     required this.roomId,
     this.myUsername,
+    this.raceDuration,
   });
 
   @override
@@ -26,6 +28,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   int _mySteps = 0;
   String? _myEmail;
   Timer? _locationUpdateTimer;
+  Timer? _raceTimerTimer;
+  Duration _remainingRaceTime =
+      const Duration(minutes: 10); // Default to 10 minutes
+  bool _isTimerInitialized = false;
 
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
@@ -35,6 +41,46 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     super.initState();
     _setupSignalR();
     _startLocationUpdates();
+    _initializeRaceTimer();
+  }
+
+  void _initializeRaceTimer() {
+    // Use the race duration from the widget, or default to 10 minutes
+    final raceDurationMinutes = widget.raceDuration ?? 10;
+
+    setState(() {
+      _remainingRaceTime = Duration(minutes: raceDurationMinutes);
+      _isTimerInitialized = true;
+    });
+
+    _raceTimerTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (_remainingRaceTime.inSeconds > 0) {
+        setState(() {
+          _remainingRaceTime = _remainingRaceTime - const Duration(seconds: 1);
+        });
+      } else {
+        // Race time is over, but we'll wait for the server to tell us it's over
+        timer.cancel();
+        _raceTimerTimer = null;
+
+        // If the server hasn't already told us the race is over, we'll show a message
+        if (_isRaceActive) {
+          debugPrint('Race timer ended, waiting for server confirmation...');
+        }
+      }
+    });
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String minutes = twoDigits(duration.inMinutes.remainder(60));
+    String seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 
   Future<void> _setupSignalR() async {
@@ -231,6 +277,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     // Zamanlayıcıyı iptal et
     _stopLocationUpdates();
 
+    // Race timer'ı iptal et
+    _raceTimerTimer?.cancel();
+    _raceTimerTimer = null;
+
     // Stream aboneliklerini iptal et
     for (var subscription in _subscriptions) {
       subscription.cancel();
@@ -247,6 +297,78 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Race Room #${widget.roomId}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            Text(
+              _isRaceActive ? 'Race in progress' : 'Race ended',
+              style: TextStyle(
+                fontSize: 12,
+                color: _isRaceActive ? Colors.green : Colors.red,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: _isConnected ? Colors.green : Colors.red,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              _isConnected ? 'Connected' : 'Disconnected',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Exit Race?'),
+                content:
+                    const Text('Are you sure you want to leave this race?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const TabsScreen()),
+                        (route) => false,
+                      );
+                    },
+                    child:
+                        const Text('Exit', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -264,38 +386,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Race Room #${widget.roomId}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _isConnected ? Colors.green : Colors.red,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _isConnected ? 'Connected' : 'Disconnected',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const SizedBox(height: 8),
               // İlerleme bilgisi
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -314,6 +405,16 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
+                    // Timer display
+                    _buildStatItem(
+                      icon: Icons.timer,
+                      value: _isTimerInitialized
+                          ? _formatDuration(_remainingRaceTime)
+                          : '00:00',
+                      label: 'Time Left',
+                      valueColor:
+                          _remainingRaceTime.inSeconds < 60 ? Colors.red : null,
+                    ),
                     _buildStatItem(
                       icon: Icons.directions_run,
                       value: _myDistance.toStringAsFixed(1),
@@ -379,6 +480,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     required IconData icon,
     required String value,
     required String label,
+    Color? valueColor,
   }) {
     return Column(
       children: [
@@ -386,9 +488,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: valueColor ?? Colors.black87,
           ),
         ),
         Text(

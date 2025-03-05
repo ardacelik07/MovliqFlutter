@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/race_screen.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/services/storage_service.dart';
+import '../providers/race_settings_provider.dart';
 import 'dart:convert';
 import 'dart:async'; // StreamSubscription için import ekliyorum
 
@@ -212,6 +213,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           builder: (context) => RaceScreen(
             roomId: widget.roomId,
             myUsername: _myUsername,
+            raceDuration: ref.read(raceSettingsProvider).duration,
           ),
         ),
       );
