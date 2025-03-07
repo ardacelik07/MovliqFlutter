@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../screens/tabs.dart';
 import '../../../../core/services/storage_service.dart';
+import 'finish_race_screen.dart';
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
@@ -169,7 +170,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   void _startLocationUpdates() {
     // Gerçek uygulamada, konum servisinden gerçek konum alınır
     // Bu örnek için simüle edilmiş veriler kullanıyoruz
-    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!_isRaceActive) {
         _stopLocationUpdates();
         return;
@@ -208,41 +209,13 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 
     if (!mounted) return;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Yarış Sona Erdi'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Yarış tamamlandı! Sonuçlar:'),
-            const SizedBox(height: 16),
-            if (_leaderboard.isNotEmpty)
-              Text(
-                '${_leaderboard.first.userName} kazandı!\n'
-                'Mesafe: ${_leaderboard.first.distance} m\n'
-                'Adım: ${_leaderboard.first.steps}',
-                textAlign: TextAlign.center,
-              )
-            else
-              const Text(
-                'Sonuçlar henüz yüklenemedi.',
-                textAlign: TextAlign.center,
-              ),
-          ],
+    // Popup yerine yeni ekrana yönlendir
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => FinishRaceScreen(
+          leaderboard: _leaderboard,
+          myEmail: _myEmail,
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const TabsScreen()),
-                (route) => false,
-              );
-            },
-            child: const Text('Ana Sayfaya Dön'),
-          ),
-        ],
       ),
     );
   }
@@ -435,11 +408,39 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Leaderboard',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              // Leaderboard başlığı
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFC4FF62), Colors.green],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.emoji_events, color: Colors.black87),
+                    SizedBox(width: 8),
+                    Text(
+                      'Yarış Sıralaması',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 10),
@@ -481,9 +482,38 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     required String label,
     Color? valueColor,
   }) {
+    // İkon renklerini belirle
+    Color iconColor;
+    if (icon == Icons.timer) {
+      iconColor = Colors.red;
+    } else if (icon == Icons.directions_run) {
+      iconColor = Colors.blue;
+    } else if (icon == Icons.directions_walk) {
+      iconColor = Colors.green;
+    } else if (icon == Icons.speed) {
+      iconColor = Colors.orange;
+    } else {
+      iconColor = Colors.black87;
+    }
+
     return Column(
       children: [
-        Icon(icon, size: 24, color: Colors.black87),
+        // 3D efekti ile ikon
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: iconColor.withOpacity(0.2),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, size: 24, color: iconColor),
+        ),
         const SizedBox(height: 8),
         Text(
           value,
@@ -517,33 +547,80 @@ class ParticipantTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sıralamaya göre renkleri belirle
+    Color rankColor;
+    if (participant.rank == 1) {
+      rankColor = const Color(0xFFFFD700); // Altın
+    } else if (participant.rank == 2) {
+      rankColor = const Color(0xFFC0C0C0); // Gümüş
+    } else if (participant.rank == 3) {
+      rankColor = const Color(0xFFCD7F32); // Bronz
+    } else {
+      rankColor = Colors.grey[300]!;
+    }
+
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 8),
       color: isMe ? const Color(0xFFC4FF62).withOpacity(0.2) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: participant.rank <= 3
+            ? BorderSide(color: rankColor, width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: participant.rank <= 3
-                    ? const Color(0xFFC4FF62)
-                    : Colors.grey[300],
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  participant.rank.toString(),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color:
-                        participant.rank <= 3 ? Colors.black : Colors.black54,
+            // Profil fotoğrafı ve sıralama
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Avatar (profil fotoğrafı)
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: rankColor,
+                  child: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      participant.userName[0].toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            participant.rank <= 3 ? rankColor : Colors.black54,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+
+                // Sıralama rozeti
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: rankColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        participant.rank.toString(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -554,16 +631,18 @@ class ParticipantTile extends StatelessWidget {
                     children: [
                       Text(
                         participant.userName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          color:
+                              participant.rank <= 3 ? rankColor : Colors.black,
                         ),
                       ),
                       if (isMe)
                         const Padding(
                           padding: EdgeInsets.only(left: 8.0),
                           child: Text(
-                            '(You)',
+                            '(Ben)',
                             style: TextStyle(
                               fontStyle: FontStyle.italic,
                               fontSize: 14,
@@ -575,7 +654,7 @@ class ParticipantTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Distance: ${participant.distance.toStringAsFixed(2)} m • Steps: ${participant.steps}',
+                    'Mesafe: ${participant.distance.toStringAsFixed(2)} m • Adım: ${participant.steps}',
                     style: const TextStyle(
                       color: Colors.black54,
                     ),

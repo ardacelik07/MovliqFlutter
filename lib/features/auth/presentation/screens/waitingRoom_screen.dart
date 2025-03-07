@@ -435,10 +435,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
-            stops: [0.0, 0.95],
             end: Alignment.bottomCenter,
             colors: [
-              Color.fromARGB(255, 255, 255, 255),
+              Color(0xFFC4FF62),
               Color(0xFFC4FF62),
             ],
           ),
@@ -446,192 +445,134 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         child: SafeArea(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('30 minutes'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4FF62),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Outdoors'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4FF62),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 60),
-              Image.asset(
-                'assets/images/waitingman.png',
-                height: 300,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                _isRaceStarting ? "Yarış başlıyor!" : "Yarış Odası",
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              // Geri sayım yerine sabit bilgi metni
-              const Text(
-                "Yarışa istediğiniz zaman katılabilirsiniz",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Are you ready to win?",
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.black,
-                ),
-                textAlign: TextAlign.center,
-              ),
               const SizedBox(height: 40),
+              // Outdoor Koşu Circle
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Room ID: ${widget.roomId}",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _isConnected ? Colors.green : Colors.red,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _isConnected ? 'Connected' : 'Disconnected',
-                        style: const TextStyle(
-                          color: Colors.white,
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.directions_run, size: 30, color: Colors.black),
+                      SizedBox(height: 4),
+                      Text(
+                        'Outdoor Koşu',
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              // 30 Dakika Circle
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.timer, size: 30, color: Colors.black),
+                      SizedBox(height: 4),
+                      Text(
+                        '30 Dakika',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              // Koşucular Bekleniyor Circle
+              Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people, size: 40, color: Colors.black),
+                      SizedBox(height: 8),
+                      Text(
+                        'Koşucular\nBekleniyor',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              // Kullanıcı Profil Fotoğrafları
+              SizedBox(
+                height: 50,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _participants.length + 3, // 3 tane boş yer ekledik
+                  itemBuilder: (context, index) {
+                    if (index < _participants.length) {
+                      // Mevcut katılımcılar için
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: CircleAvatar(
+                          radius: 25,
+                          backgroundColor: Colors.white,
+                          child: Text(
+                            _participants[index][0].toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    } else {
+                      // Boş yerler için
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: CircleAvatar(
+                          radius: 25,
+                          backgroundColor: Colors.white.withOpacity(0.3),
+                        ),
+                      );
+                    }
+                  },
                 ),
               ),
               const SizedBox(height: 20),
-              // Katılımcılar bölümü
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Katılımcılar (${_participants.length})",
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (_participants.isEmpty)
-                      const Text(
-                        "Henüz katılımcı yok...",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                        textAlign: TextAlign.center,
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFFC4FF62),
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              alignment: WrapAlignment.center,
-                              children: _participants
-                                  .map((p) => _buildParticipantChip(p))
-                                  .toList(),
-                            ),
-                            if (_participants.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                'Debug: ${_participants.length} katılımcı',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                  ],
+              // Alt bilgi metni
+              const Text(
+                'Oda dolduğunda yarış otomatik\nolarak başlayacak',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
                 ),
               ),
-              if (_isRaceStarting)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green)),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.timer, color: Colors.green),
-                        SizedBox(width: 8),
-                        Text(
-                          "Yarış başlıyor... Otomatik olarak geçiş yapılacak",
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
