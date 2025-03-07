@@ -80,11 +80,11 @@ flutter:
     - assets/icons/google.svg
     - assets/icons/facebook.svg
     - assets/icons/microsoft.svg
-    - assets\images\movliqonlylogo.png
+    - assets/images/movliqonlylogo.png
     - assets/images/runningman.png
-    - assets\images\runningwomen.png
-    - assets\images\runningclock.png
-    - assets\images\waitingman.png
+    - assets/images/runningwomen.png
+    - assets/images/runningclock.png
+    - assets/images/waitingman.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

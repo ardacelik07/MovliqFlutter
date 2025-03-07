@@ -10,11 +10,15 @@ import 'dart:async'; // StreamSubscription için import ekliyorum
 class WaitingRoomScreen extends ConsumerStatefulWidget {
   final int roomId;
   final DateTime? startTime;
+  final String? activityType;
+  final String? duration;
 
   const WaitingRoomScreen({
     super.key,
     required this.roomId,
     this.startTime,
+    this.activityType,
+    this.duration,
   });
 
   @override
@@ -111,6 +115,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     try {
       // SignalR bağlantısını başlat
       await signalRService.connect();
+      await signalRService.joinRaceRoom(widget.roomId);
 
       setState(() {
         _isConnected = signalRService.isConnected;
@@ -118,7 +123,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
       // Liderlik tablosu güncellemelerini dinle (katılımcıların odaya katıldığını gösterir)
       _subscriptions.add(signalRService.leaderboardStream.listen((leaderboard) {
-        if (!mounted) return;
+        if (!mounted || _isRaceStarting)
+          return; // Eğer yarış başlama süreci başladıysa çıkış yap
 
         debugPrint(
             '📊 Liderlik tablosu güncellendi! Katılımcı sayısı: ${leaderboard.length}');
@@ -128,12 +134,22 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             leaderboard.map((participant) => participant.userName).toList();
         debugPrint('📋 Liderlik tablosundaki kullanıcılar: $leaderboardUsers');
         debugPrint('👤 Benim kullanıcı adım: $_myUsername');
+
+        // Oda maksimum katılımcı sayısına ulaştı mı kontrol edelim (3 kişi)
+        const int maxParticipants = 3;
+        if (leaderboard.length >= maxParticipants) {
+          debugPrint(
+              '🔄 Oda doldu (${leaderboard.length} kişi)! Otomatik yarış başlatılıyor...');
+          // Standart yarış başlama süreci - tüm telefonlarda aynı süre
+          _startRaceCountdown(4); // Tüm telefonlarda 4 saniye bekle
+        }
       }));
 
       // Mevcut oda katılımcılarını dinle
       _subscriptions
           .add(signalRService.roomParticipantsStream.listen((participants) {
-        if (!mounted) return;
+        if (!mounted || _isRaceStarting)
+          return; // Eğer yarış başlama süreci başladıysa çıkış yap
 
         debugPrint('🏠 WaitingRoom - Katılımcı Listesi Alındı');
         debugPrint('📋 Gelen Katılımcılar: ${participants.join(", ")}');
@@ -156,51 +172,50 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             }
           });
         }
+
+        // Oda maksimum katılımcı sayısına ulaştı mı kontrol edelim - Burada 3 kişi olarak değiştirildi
+        const int maxParticipants = 3;
+        if (participants.length >= maxParticipants) {
+          debugPrint(
+              '🔄 Oda doldu (${participants.length} kişi)! Otomatik yarış başlatılıyor...');
+
+          // Standart yarış başlama süreci - tüm telefonlarda aynı süre
+          _startRaceCountdown(10); // Tüm telefonlarda 4 saniye bekle
+        }
       }));
 
       // Yarış başlama olayını dinle ve geri sayım süresi sonunda otomatik geçiş yap
       _subscriptions.add(signalRService.raceStartingStream.listen((data) {
-        if (!mounted) return; // Mounted kontrolü
+        if (!mounted || _isRaceStarting)
+          return; // Eğer yarış başlama süreci başladıysa çıkış yap
 
         debugPrint('Yarış başlama olayı alındı: $data');
         final int roomId = data['roomId'];
         final int countdownSeconds =
-            data['countdownSeconds'] ?? 10; // Varsayılan 10 saniye
+            data['countdownSeconds'] ?? 10; // Varsayılan 4 saniye
 
         if (roomId == widget.roomId) {
           debugPrint(
               'Yarış başlıyor: Oda $roomId, $countdownSeconds saniye sonra');
-          setState(() {
-            _isRaceStarting = true;
-          });
 
-          // Geri sayım süresi kadar bekleyip otomatik geçiş yap
-          Future.delayed(Duration(seconds: countdownSeconds), () {
-            if (mounted && _isRaceStarting) {
-              _navigateToRaceScreen();
-            }
-          });
+          // Standart yarış başlama süreci - tüm telefonlarda aynı süre
+          _startRaceCountdown(countdownSeconds);
         } else {
           debugPrint(
               'Başka bir oda için yarış başlıyor: $roomId (bizim oda: ${widget.roomId})');
         }
       }));
 
-      // Doğrudan yarış başladı eventi - hemen otomatik geçiş
+      // Doğrudan yarış başladı eventi
       _subscriptions.add(signalRService.raceStartedStream.listen((_) {
-        if (!mounted) return; // Mounted kontrolü
+        if (!mounted || _isRaceStarting)
+          return; // Eğer yarış başlama süreci başladıysa çıkış yap
 
-        debugPrint('Yarış başladı eventi alındı! Yarış ekranına geçiliyor...');
-        setState(() {
-          _isRaceStarting = true;
-        });
+        debugPrint(
+            '🏁 Yarış başladı eventi alındı! Yarış ekranına geçiliyor...');
 
-        // Otomatik geçiş yap (küçük bir gecikme ile)
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _navigateToRaceScreen();
-          }
-        });
+        // Standart yarış başlama süreci - tüm telefonlarda aynı süre
+        _startRaceCountdown(4); // Tüm telefonlarda 4 saniye bekle
       }));
 
       // Kullanıcı katılma/ayrılma olaylarını dinle
@@ -214,7 +229,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             _lastJoinedUser = username; // Son katılan kullanıcıyı kaydet
 
             // 3 saniye sonra vurguyu kaldır
-            Future.delayed(const Duration(seconds: 3), () {
+            Future.delayed(const Duration(seconds: 5), () {
               if (mounted) {
                 setState(() {
                   _lastJoinedUser = null;
@@ -223,7 +238,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             });
           }
         });
-        _showInfoMessage('$username odaya katıldı');
       }));
 
       _subscriptions.add(signalRService.userLeftStream.listen((username) {
@@ -239,6 +253,32 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       debugPrint('SignalR bağlantı hatası: $e');
       _showErrorMessage('SignalR bağlantı hatası: $e');
     }
+  }
+
+  // Standardize edilmiş yarış başlatma fonksiyonu
+  void _startRaceCountdown(int seconds) {
+    // Eğer yarış başlatma süreci zaten başladıysa, tekrar başlatma
+    if (_isRaceStarting) {
+      debugPrint('⚠️ Yarış başlatma süreci zaten aktif, tekrar başlatılmadı');
+      return;
+    }
+
+    debugPrint(
+        '🕒 Yarış başlatma süreci başladı, $seconds saniye sonra başlayacak');
+
+    setState(() {
+      _isRaceStarting = true;
+      _showInfoMessage('Yarış başlıyor! $seconds saniye içinde hazır olun.');
+    });
+
+    // Standart süre sonunda yarış ekranına geçiş yap
+    Future.delayed(Duration(seconds: seconds), () {
+      if (mounted && _isRaceStarting) {
+        debugPrint(
+            '⏱️ Geri sayım süresi doldu, RaceScreen\'e geçiş yapılıyor...');
+        _navigateToRaceScreen();
+      }
+    });
   }
 
   void _showInfoMessage(String message) {
@@ -264,39 +304,47 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   }
 
   void _navigateToRaceScreen() async {
-    print('1. WaitingRoom -> RaceScreen geçişi başlıyor');
-    print('2. Mevcut _myUsername değeri: $_myUsername');
+    debugPrint('🚀 1. WaitingRoom -> RaceScreen geçişi başlıyor');
+    debugPrint('🚀 2. Mevcut _myUsername değeri: $_myUsername');
+
+    // Eğer zaten RaceScreen'e geçiş başladıysa tekrar başlatma
+    if (!mounted || _isRaceStarting == false) {
+      debugPrint(
+          '🚫 Geçiş zaten başlamış veya widget artık mounted değil. Geçiş iptal edildi.');
+      return;
+    }
 
     // Kullanıcı adı null ise, yüklemeyi deneyelim
     if (_myUsername == null) {
-      print('3. _myUsername null olduğu için yükleme başlıyor');
+      debugPrint('🚀 3. _myUsername null olduğu için yükleme başlıyor');
       await _loadUsername();
-      print('4. _loadUsername çağrısı tamamlandı, yeni değer: $_myUsername');
+      debugPrint(
+          '🚀 4. _loadUsername çağrısı tamamlandı, yeni değer: $_myUsername');
 
       // Yükleme sonrası hala null ise, son çare olarak token'dan doğrudan okuyalım
       if (_myUsername == null) {
-        print('5. Hala null, token\'dan okuma deneniyor');
+        debugPrint('🚀 5. Hala null, token\'dan okuma deneniyor');
         final tokenJson = await StorageService.getToken();
-        print('6. Token değeri: $tokenJson');
+        debugPrint('🚀 6. Token değeri: $tokenJson');
 
         if (tokenJson != null) {
           final Map<String, dynamic> userData = jsonDecode(tokenJson);
-          print('7. Token içeriği: $userData');
+          debugPrint('🚀 7. Token içeriği: $userData');
 
           if (userData.containsKey('username')) {
             setState(() {
               _myUsername = userData['username'];
             });
-            print('8. Token\'dan username alındı: $_myUsername');
+            debugPrint('🚀 8. Token\'dan username alındı: $_myUsername');
           } else if (userData.containsKey('email')) {
             final email = userData['email'];
             setState(() {
               _myUsername = email.contains('@') ? email.split('@')[0] : email;
             });
-            print('9. Email\'den username oluşturuldu: $_myUsername');
+            debugPrint('🚀 9. Email\'den username oluşturuldu: $_myUsername');
           }
         } else {
-          print('10. Token null geldi! Kullanıcı adı alınamadı');
+          debugPrint('🚀 10. Token null geldi! Kullanıcı adı alınamadı');
           _showErrorMessage('Kullanıcı bilgileri alınamadı!');
           return; // Kullanıcı adı olmadan devam etmeyelim
         }
@@ -305,26 +353,67 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
     // Son bir kontrol yapalım
     if (_myUsername == null) {
-      print('11. Tüm denemelere rağmen kullanıcı adı alınamadı!');
+      debugPrint('🚀 11. Tüm denemelere rağmen kullanıcı adı alınamadı!');
       _showErrorMessage('Kullanıcı adı alınamadı, lütfen tekrar giriş yapın');
       return;
     }
 
-    print('12. RaceScreen\'e geçiş yapılıyor, kullanıcı adı: $_myUsername');
+    // Geçiş sırasında hata oluşmaması için bir kontrol daha ekleyelim
+    if (!mounted) {
+      debugPrint('🚫 Widget artık mounted değil. Geçiş iptal edildi.');
+      return;
+    }
 
+    debugPrint(
+        '🚀 12. RaceScreen\'e geçiş yapılıyor, kullanıcı adı: $_myUsername');
+
+    // Mevcut bildirimleri temizle
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => RaceScreen(
-            roomId: widget.roomId,
-            myUsername: _myUsername,
-            raceDuration: ref.read(raceSettingsProvider).duration,
+      ScaffoldMessenger.of(context).clearSnackBars();
+    }
+
+    // Geçiş işlemine başladıysak bir flag ile kontrol et
+    bool navigationStarted = false;
+
+    if (mounted && !navigationStarted) {
+      navigationStarted = true;
+
+      try {
+        debugPrint('🚀 13. Navigator.pushReplacement çağrılıyor...');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => RaceScreen(
+              roomId: widget.roomId,
+              myUsername: _myUsername,
+              raceDuration: ref.read(raceSettingsProvider).duration,
+            ),
           ),
-        ),
-      );
-      print('13. RaceScreen\'e geçiş tamamlandı');
+        );
+        debugPrint('🚀 14. RaceScreen\'e geçiş tamamlandı');
+      } catch (e) {
+        debugPrint('🚨 RaceScreen\'e geçiş sırasında hata: $e');
+        // Tekrar deneme mekanizması
+        if (mounted) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && !Navigator.of(context).canPop()) {
+              debugPrint('🔄 RaceScreen\'e geçiş tekrar deneniyor...');
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => RaceScreen(
+                    roomId: widget.roomId,
+                    myUsername: _myUsername,
+                    raceDuration: ref.read(raceSettingsProvider).duration,
+                  ),
+                ),
+                (route) => false,
+              );
+            }
+          });
+        }
+      }
     } else {
-      print('14. Widget mounted değil, geçiş yapılamadı');
+      debugPrint(
+          '🚫 14. Widget mounted değil veya navigasyon zaten başladı, geçiş yapılamadı');
     }
   }
 
@@ -428,6 +517,10 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Default values if not provided
+    final String displayActivityType = widget.activityType ?? 'Outdoor Koşu';
+    final String displayDuration = widget.duration ?? '30 Dakika';
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -443,135 +536,269 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
             children: [
-              const SizedBox(height: 40),
-              // Outdoor Koşu Circle
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.directions_run, size: 30, color: Colors.black),
-                      SizedBox(height: 4),
-                      Text(
-                        'Outdoor Koşu',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+              Positioned(
+                left: 42.0, // Rastgele x değeri
+                top: 75.0, // Rastgele y değeri
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(25, 0, 0, 0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color.fromARGB(0, 0, 0, 0),
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
-              // 30 Dakika Circle
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.timer, size: 30, color: Colors.black),
-                      SizedBox(height: 4),
-                      Text(
-                        '30 Dakika',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+              Positioned(
+                left: 110.0, // Rastgele x değeri
+                top: 180.0, // Rastgele y değeri
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(25, 0, 0, 0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color.fromARGB(0, 0, 0, 0),
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
-              // Koşucular Bekleniyor Circle
-              Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.people, size: 40, color: Colors.black),
-                      SizedBox(height: 8),
-                      Text(
-                        'Koşucular\nBekleniyor',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+              Positioned(
+                left: 65.0, // Rastgele x değeri
+                top: 285.0, // Rastgele y değeri
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(25, 0, 0, 0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color.fromARGB(0, 0, 0, 0),
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
-              // Kullanıcı Profil Fotoğrafları
-              SizedBox(
-                height: 50,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: _participants.length + 3, // 3 tane boş yer ekledik
-                  itemBuilder: (context, index) {
-                    if (index < _participants.length) {
-                      // Mevcut katılımcılar için
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: CircleAvatar(
-                          radius: 25,
-                          backgroundColor: Colors.white,
-                          child: Text(
-                            _participants[index][0].toUpperCase(),
+              Positioned(
+                left: 175.0, // Rastgele x değeri
+                top: 370.0, // Rastgele y değeri
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(25, 0, 0, 0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color.fromARGB(0, 0, 0, 0),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 30.0, // Rastgele x değeri
+                top: 470.0, // Rastgele y değeri
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(25, 0, 0, 0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color.fromARGB(0, 0, 0, 0),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 135.0, // Rastgele x değeri
+                top: 575.0, // Rastgele y değeri
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(25, 0, 0, 0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color.fromARGB(0, 0, 0, 0),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 210.0, // Rastgele x değeri
+                top: 680.0, // Rastgele y değeri
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(25, 0, 0, 0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color.fromARGB(0, 0, 0, 0),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              // Main content in vertical layout (original Column)
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 40),
+                  // Activity Type Circle - Display the selected activity type
+                  Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Icon based on activity type
+                          Icon(
+                              displayActivityType
+                                      .toLowerCase()
+                                      .contains('outdoor')
+                                  ? Icons.directions_run
+                                  : displayActivityType
+                                          .toLowerCase()
+                                          .contains('indoor')
+                                      ? Icons.fitness_center
+                                      : Icons.directions_run,
+                              size: 30,
+                              color: Colors.black),
+                          const SizedBox(height: 4),
+                          Text(
+                            displayActivityType,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
-                              color: Colors.black,
+                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      );
-                    } else {
-                      // Boş yerler için
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: CircleAvatar(
-                          radius: 25,
-                          backgroundColor: Colors.white.withOpacity(0.3),
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Alt bilgi metni
-              const Text(
-                'Oda dolduğunda yarış otomatik\nolarak başlayacak',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Duration Circle - Display the selected duration
+                  Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.timer,
+                              size: 30, color: Colors.black),
+                          const SizedBox(height: 4),
+                          Text(
+                            displayDuration,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  // Koşucular Bekleniyor Circle
+                  Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.people, size: 40, color: Colors.black),
+                          SizedBox(height: 8),
+                          Text(
+                            'Koşucular\nBekleniyor',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  // Kullanıcı Profil Fotoğrafları
+                  SizedBox(
+                    height: 50,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount:
+                          _participants.length + 3, // 3 tane boş yer ekledik
+                      itemBuilder: (context, index) {
+                        if (index < _participants.length) {
+                          // Mevcut katılımcılar için
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: CircleAvatar(
+                              radius: 25,
+                              backgroundColor: Colors.white,
+                              child: Text(
+                                _participants[index][0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        } else {
+                          // Boş yerler için
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: CircleAvatar(
+                              radius: 25,
+                              backgroundColor: Colors.white.withOpacity(0.3),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Alt bilgi metni
+                  const Text(
+                    'Oda dolduğunda yarış otomatik\nolarak başlayacak',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

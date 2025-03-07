@@ -48,53 +48,58 @@ class FinishRaceScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              // Üst başlık
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFC4FF62), Colors.green],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                // Üst başlık
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Colors.green, Color(0xFFC4FF62)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
                     ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.emoji_events, color: Colors.black87, size: 28),
-                    SizedBox(width: 8),
-                    Text(
-                      'Yarış Tamamlandı!',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.emoji_events,
+                        color: Colors.amber,
+                        size: 28,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Race Ended!',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Kutlama konfetileri
-              const SizedBox(height: 10),
-              const Icon(Icons.celebration, color: Colors.amber, size: 40),
+                // Kutlama konfetileri
+                const SizedBox(height: 10),
+                const Icon(Icons.celebration, color: Colors.amber, size: 40),
 
-              // Kupa Platformu
-              Expanded(
-                flex: 3,
-                child: Padding(
+                // Kupa Platformu
+                Container(
+                  height: 300, // Fixed height for the podium
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: winners.isEmpty
                       ? const Center(
@@ -105,19 +110,16 @@ class FinishRaceScreen extends ConsumerWidget {
                         )
                       : _buildWinnersPodium(winners),
                 ),
-              ),
 
-              // Divider
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 32),
-                child: Divider(thickness: 2),
-              ),
+                // Divider
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 32),
+                  child: Divider(thickness: 2),
+                ),
 
-              // Kendi sonucun
-              if (myResult != null) ...[
-                Expanded(
-                  flex: 2,
-                  child: Padding(
+                // Kendi sonucun
+                if (myResult != null) ...[
+                  Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -218,41 +220,41 @@ class FinishRaceScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                  ),
-                )
-              ],
+                  )
+                ],
 
-              // Ana sayfaya dön butonu
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const TabsScreen()),
-                      (route) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC4FF62),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 14,
+                // Ana sayfaya dön butonu
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const TabsScreen()),
+                        (route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFC4FF62),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'Ana Sayfaya Dön',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                    child: const Text(
+                      'Ana Sayfaya Dön',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

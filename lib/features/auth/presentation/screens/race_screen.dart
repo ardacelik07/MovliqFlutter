@@ -45,6 +45,14 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Bildirimleri temizleyen kodu kaldırıyorum
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (mounted) {
+    //     ScaffoldMessenger.of(context).clearSnackBars();
+    //   }
+    // });
+
     _setupSignalR();
     _startLocationUpdates();
     _initializeRaceTimer();
@@ -136,8 +144,15 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
             'Konum güncellendi: ${data['email']}, ${data['distance']} m, ${data['steps']} adım');
       }));
 
-      // Kullanıcı katılma/ayrılma olaylarını dinle
+      // Kullanıcı katılma olayını dinle ama bildirim gösterme
+      _subscriptions.add(signalRService.userJoinedStream.listen((username) {
+        if (!mounted) return;
+        // Sadece log yazdıralım, bildirim göstermeyelim
+        debugPrint(
+            'Kullanıcı yarışa katıldı (bildirim gösterilmedi): $username');
+      }));
 
+      // Kullanıcı ayrılma olayını dinle
       _subscriptions.add(signalRService.userLeftStream.listen((username) {
         if (!mounted) return;
         _showInfoMessage('$username odadan ayrıldı');
@@ -430,7 +445,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.emoji_events, color: Colors.black87),
+                    Icon(Icons.emoji_events, color: Colors.amber),
                     SizedBox(width: 8),
                     Text(
                       'Yarış Sıralaması',
@@ -652,12 +667,62 @@ class ParticipantTile extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Mesafe: ${participant.distance.toStringAsFixed(2)} m • Adım: ${participant.steps}',
-                    style: const TextStyle(
-                      color: Colors.black54,
-                    ),
+                  const SizedBox(height: 8),
+                  // Bilgi kartları satırı
+                  Row(
+                    children: [
+                      // Mesafe bilgisi
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.directions_run,
+                                size: 14, color: Colors.blue),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${participant.distance.toStringAsFixed(2)} m',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Adım bilgisi
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.directions_walk,
+                                size: 14, color: Colors.green),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Adım: ${participant.steps}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

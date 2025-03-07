@@ -108,6 +108,15 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                 // API cevabını işle
                                 if (!mounted) return;
 
+                                // Get formatted display values for the selections
+                                final roomType = settings.roomType ?? 'outdoor';
+                                final activityType =
+                                    roomType.toLowerCase() == 'outdoor'
+                                        ? 'Outdoor Koşu'
+                                        : 'Indoor Koşu';
+
+                                final durationText = '$duration Dakika';
+
                                 // WaitingRoom'a yönlendir ve oda bilgilerini aktar
                                 Navigator.pushReplacement(
                                   context,
@@ -117,6 +126,8 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                       startTime: result['startTime'] != null
                                           ? DateTime.parse(result['startTime'])
                                           : null,
+                                      activityType: activityType,
+                                      duration: durationText,
                                     ),
                                   ),
                                 );
