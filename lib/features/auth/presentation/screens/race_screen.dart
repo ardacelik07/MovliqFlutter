@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:convert' show jsonDecode;
+import 'dart:convert' show utf8;
+import 'dart:convert' show base64Url;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../screens/tabs.dart';
+import '../../../../core/services/storage_service.dart';
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
@@ -103,23 +108,21 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
           _leaderboard = leaderboard;
 
           // Kendi email'imi al ve konumumu güncelle
-          if (_myEmail == null && leaderboard.isNotEmpty) {
-            // Widget'ten gelen kullanıcı adını kullan veya
-            // İlk kişiyi kendimiz olarak kabul et (test için)
-            if (widget.myUsername != null) {
-              // Kullanıcı adı bilgisini kullanarak kendimizi tanıyalım
-              final me = leaderboard.firstWhere(
-                (p) => p.userName == widget.myUsername,
-                orElse: () => leaderboard.first,
-              );
-              _myEmail = me.email;
-              debugPrint('Kendimi buldum: ${me.userName} (${me.email})');
-            } else {
-              // Fallback: ilk kullanıcıyı kendim kabul et
-              _myEmail = leaderboard.first.email;
-              debugPrint(
-                  'Varsayılan olarak ilk kullanıcıyı kendim kabul ediyorum: ${leaderboard.first.userName}');
-            }
+          if (_myEmail == null &&
+              leaderboard.isNotEmpty &&
+              widget.myUsername != null) {
+            // Kullanıcı adı bilgisini kullanarak kendimizi tanıyalım
+            final me = leaderboard.firstWhere(
+              (p) =>
+                  p.userName.toLowerCase() == widget.myUsername!.toLowerCase(),
+              orElse: () {
+                debugPrint(
+                    'Kullanıcı "${widget.myUsername}" leaderboard içinde bulunamadı, ilk kullanıcı seçiliyor.');
+                return leaderboard.first;
+              },
+            );
+            _myEmail = me.email;
+            debugPrint('Kullanıcı bulundu: ${me.userName} (${me.email})');
           }
         });
       }));
@@ -133,10 +136,6 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
       }));
 
       // Kullanıcı katılma/ayrılma olaylarını dinle
-      _subscriptions.add(signalRService.userJoinedStream.listen((username) {
-        if (!mounted) return;
-        _showInfoMessage('$username odaya katıldı');
-      }));
 
       _subscriptions.add(signalRService.userLeftStream.listen((username) {
         if (!mounted) return;
@@ -170,7 +169,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   void _startLocationUpdates() {
     // Gerçek uygulamada, konum servisinden gerçek konum alınır
     // Bu örnek için simüle edilmiş veriler kullanıyoruz
-    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!_isRaceActive) {
         _stopLocationUpdates();
         return;

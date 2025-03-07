@@ -55,6 +55,8 @@ class SignalRService {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<Map<String, dynamic>> _raceStartingController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<List<String>> _roomParticipantsController =
+      StreamController<List<String>>.broadcast();
 
   // Stream getters
   Stream<List<RaceParticipant>> get leaderboardStream =>
@@ -67,6 +69,8 @@ class SignalRService {
       _locationUpdatedController.stream;
   Stream<Map<String, dynamic>> get raceStartingStream =>
       _raceStartingController.stream;
+  Stream<List<String>> get roomParticipantsStream =>
+      _roomParticipantsController.stream;
 
   bool get isConnected => _isConnected;
 
@@ -101,6 +105,7 @@ class SignalRService {
       _hubConnection!.on('UserJoined', _handleUserJoined);
       _hubConnection!.on('UserLeft', _handleUserLeft);
       _hubConnection!.on('LocationUpdated', _handleLocationUpdated);
+      _hubConnection!.on('RoomParticipants', _handleRoomParticipants);
 
       // Hub bağlantısını başlat
       await _hubConnection!.start();
@@ -129,10 +134,11 @@ class SignalRService {
     }
 
     try {
+      debugPrint('📡 SignalR: JoinRoom çağrısı yapılıyor - roomId: $roomId');
       await _hubConnection!.invoke('JoinRoom', args: [roomId]);
-      debugPrint('Yarış odasına katılındı: $roomId');
+      debugPrint('✅ SignalR: JoinRoom çağrısı başarılı - roomId: $roomId');
     } catch (e) {
-      debugPrint('Yarış odasına katılma hatası: $e');
+      debugPrint('❌ SignalR: JoinRoom çağrısı başarısız - hata: $e');
       rethrow;
     }
   }
@@ -271,6 +277,39 @@ class SignalRService {
     }
   }
 
+  // Yeni eklenen metod - Oda katılımcılarını işleyen metod
+  void _handleRoomParticipants(List<Object?>? arguments) {
+    debugPrint('🔍 SignalR RoomParticipants - Olay Tetiklendi');
+    debugPrint('📝 Gelen Raw Arguments: $arguments');
+
+    if (arguments == null || arguments.isEmpty) {
+      debugPrint(
+          '⚠️ HATA: RoomParticipants boş veya null arguments ile geldi!');
+      _roomParticipantsController.add([]); // Boş liste gönder
+      return;
+    }
+
+    try {
+      debugPrint('🔄 Arguments[0] Tipi: ${arguments[0].runtimeType}');
+      final List<dynamic> participantsList = arguments[0] as List<dynamic>;
+      debugPrint('📋 Ham Katılımcı Listesi: $participantsList');
+
+      final List<String> participants =
+          participantsList.map((p) => p.toString()).toList();
+      debugPrint('👥 İşlenmiş Katılımcılar: ${participants.join(", ")}');
+      debugPrint('📊 Toplam Katılımcı Sayısı: ${participants.length}');
+
+      _roomParticipantsController.add(participants);
+      debugPrint('✅ RoomParticipants Stream başarıyla güncellendi!');
+    } catch (e, stackTrace) {
+      debugPrint('❌ RoomParticipants İşleme HATASI: $e');
+      debugPrint(
+          '📍 Hata Detayı - Arguments[0] Tipi: ${arguments[0].runtimeType}');
+      debugPrint('🔍 Stack Trace: $stackTrace');
+      _roomParticipantsController.add([]); // Hata durumunda boş liste gönder
+    }
+  }
+
   // Servis dispose edildiğinde kaynakları temizle
   void dispose() {
     disconnect();
@@ -281,5 +320,6 @@ class SignalRService {
     _userLeftController.close();
     _locationUpdatedController.close();
     _raceStartingController.close();
+    _roomParticipantsController.close();
   }
 }
