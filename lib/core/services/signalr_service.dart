@@ -87,7 +87,8 @@ class SignalRService {
 
     try {
       // Hub URL oluşturma - API_Config'deki baseUrl'i kullanarak SignalR hub URL'ini oluştur
-      final hubUrl = 'http://10.0.2.2:5041/racehub';
+      final hubUrl =
+          'https://4076dd9b-ccf2-4e43-89ba-13fb8b19e757-00-sokk3788skfw.kirk.replit.dev/racehub';
 
       // Hub bağlantısını başlat
       _hubConnection = HubConnectionBuilder()

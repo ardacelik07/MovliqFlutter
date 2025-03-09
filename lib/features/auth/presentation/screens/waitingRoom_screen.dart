@@ -122,28 +122,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       });
 
       // Liderlik tablosu güncellemelerini dinle (katılımcıların odaya katıldığını gösterir)
-      _subscriptions.add(signalRService.leaderboardStream.listen((leaderboard) {
-        if (!mounted || _isRaceStarting)
-          return; // Eğer yarış başlama süreci başladıysa çıkış yap
-
-        debugPrint(
-            '📊 Liderlik tablosu güncellendi! Katılımcı sayısı: ${leaderboard.length}');
-
-        // Artık burada _participants'ı güncellemeyelim, sadece debug için yazdıralım
-        final leaderboardUsers =
-            leaderboard.map((participant) => participant.userName).toList();
-        debugPrint('📋 Liderlik tablosundaki kullanıcılar: $leaderboardUsers');
-        debugPrint('👤 Benim kullanıcı adım: $_myUsername');
-
-        // Oda maksimum katılımcı sayısına ulaştı mı kontrol edelim (3 kişi)
-        const int maxParticipants = 3;
-        if (leaderboard.length >= maxParticipants) {
-          debugPrint(
-              '🔄 Oda doldu (${leaderboard.length} kişi)! Otomatik yarış başlatılıyor...');
-          // Standart yarış başlama süreci - tüm telefonlarda aynı süre
-          _startRaceCountdown(4); // Tüm telefonlarda 4 saniye bekle
-        }
-      }));
 
       // Mevcut oda katılımcılarını dinle
       _subscriptions
@@ -207,16 +185,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       }));
 
       // Doğrudan yarış başladı eventi
-      _subscriptions.add(signalRService.raceStartedStream.listen((_) {
-        if (!mounted || _isRaceStarting)
-          return; // Eğer yarış başlama süreci başladıysa çıkış yap
-
-        debugPrint(
-            '🏁 Yarış başladı eventi alındı! Yarış ekranına geçiliyor...');
-
-        // Standart yarış başlama süreci - tüm telefonlarda aynı süre
-        _startRaceCountdown(4); // Tüm telefonlarda 4 saniye bekle
-      }));
 
       // Kullanıcı katılma/ayrılma olaylarını dinle
       _subscriptions.add(signalRService.userJoinedStream.listen((username) {
