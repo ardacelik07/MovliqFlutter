@@ -39,6 +39,9 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  google_maps_flutter: ^2.10.1
+  geolocator: ^13.0.2
+  permission_handler: ^11.4.0
 
 dev_dependencies:
   flutter_test:
@@ -85,6 +88,7 @@ flutter:
     - assets/images/runningwomen.png
     - assets/images/runningclock.png
     - assets/images/waitingman.png
+    - assets/images/record.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

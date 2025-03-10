@@ -152,14 +152,14 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         }
 
         // Oda maksimum katılımcı sayısına ulaştı mı kontrol edelim - Burada 3 kişi olarak değiştirildi
-        const int maxParticipants = 3;
-        if (participants.length >= maxParticipants) {
-          debugPrint(
-              '🔄 Oda doldu (${participants.length} kişi)! Otomatik yarış başlatılıyor...');
+        //const int maxParticipants = 3;
+        //if (participants.length >= maxParticipants) {
+        //debugPrint(
+        //'🔄 Oda doldu (${participants.length} kişi)! Otomatik yarış başlatılıyor...');
 
-          // Standart yarış başlama süreci - tüm telefonlarda aynı süre
-          _startRaceCountdown(10); // Tüm telefonlarda 4 saniye bekle
-        }
+        // Standart yarış başlama süreci - tüm telefonlarda aynı süre
+        //_startRaceCountdown(10); // Tüm telefonlarda 4 saniye bekle
+        //}
       }));
 
       // Yarış başlama olayını dinle ve geri sayım süresi sonunda otomatik geçiş yap

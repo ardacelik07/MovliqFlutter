@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'profile_screen.dart';
 import 'store_screen.dart';
+import 'record_screen.dart';
 
 class TabsScreen extends StatefulWidget {
   const TabsScreen({super.key});
@@ -16,7 +17,7 @@ class _TabsScreenState extends State<TabsScreen> {
   final List<Widget> _pages = [
     const HomePage(),
     const StoreScreen(),
-    const Center(child: Text('Record')),
+    const RecordScreen(),
     const Center(child: Text('Leaderboard')),
     const ProfileScreen(),
   ];
