@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
+import 'dart:io';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pedometer/pedometer.dart';
+import 'package:flutter/foundation.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -106,12 +108,23 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   // Aktivite izinlerini kontrol eden fonksiyon
   Future<void> _checkActivityPermission() async {
-    // Android'de adım sayar iznini kontrol et
-    if (await Permission.activityRecognition.request().isGranted) {
-      setState(() {
-        _hasPedometerPermission = true;
-      });
-      _initPedometer();
+    // Platform-specific permission checks
+    if (Platform.isAndroid) {
+      // Android'de adım sayar iznini kontrol et
+      if (await Permission.activityRecognition.request().isGranted) {
+        setState(() {
+          _hasPedometerPermission = true;
+        });
+        _initPedometer();
+      }
+    } else if (Platform.isIOS) {
+      // iOS'ta motion sensörü izni için
+      if (await Permission.sensors.request().isGranted) {
+        setState(() {
+          _hasPedometerPermission = true;
+        });
+        _initPedometer();
+      }
     }
   }
 
