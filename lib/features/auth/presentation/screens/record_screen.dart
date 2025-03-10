@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:pedometer/pedometer.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -37,6 +38,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   bool _hasLocationPermission = false;
   StreamSubscription<Position>? _positionStreamSubscription;
 
+  // Pedometer related properties
+  int _steps = 0;
+  int _initialSteps = 0;
+  StreamSubscription<StepCount>? _stepCountSubscription;
+  bool _hasPedometerPermission = false;
+
   static const CameraPosition _initialCameraPosition = CameraPosition(
     target: LatLng(41.0082, 28.9784), // İstanbul koordinatları (varsayılan)
     zoom: 15,
@@ -60,7 +67,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }
       });
 
-    _checkLocationPermission();
+    // Önce konum iznini kontrol et, sonra adım sayar iznini kontrol et
+    _initPermissions();
   }
 
   @override
@@ -68,40 +76,85 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     _pulseController.dispose();
     _timer?.cancel();
     _positionStreamSubscription?.cancel();
+    _stepCountSubscription?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
 
-  // Konum izinlerini kontrol eden fonksiyon
-  Future<void> _checkLocationPermission() async {
-    final LocationPermission permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      final LocationPermission requestedPermission =
-          await Geolocator.requestPermission();
-
-      setState(() {
-        _hasLocationPermission =
-            requestedPermission != LocationPermission.denied &&
-                requestedPermission != LocationPermission.deniedForever;
-      });
-    } else {
-      setState(() {
-        _hasLocationPermission = permission != LocationPermission.denied &&
-            permission != LocationPermission.deniedForever;
-      });
+  // Tüm izinleri başlatan fonksiyon
+  Future<void> _initPermissions() async {
+    // Konum servislerinin açık olup olmadığını kontrol et
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Konum servisleri kapalıysa, kullanıcıyı uyar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lütfen konum servislerini açın'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      // Konum servislerini açma isteği göster
+      await Geolocator.openLocationSettings();
+      return;
     }
 
-    if (_hasLocationPermission) {
-      _getCurrentLocation();
+    await _checkLocationPermission();
+    await _checkActivityPermission();
+  }
+
+  // Aktivite izinlerini kontrol eden fonksiyon
+  Future<void> _checkActivityPermission() async {
+    // Android'de adım sayar iznini kontrol et
+    if (await Permission.activityRecognition.request().isGranted) {
+      setState(() {
+        _hasPedometerPermission = true;
+      });
+      _initPedometer();
+    }
+  }
+
+  // Konum izinlerini kontrol eden fonksiyon
+  Future<void> _checkLocationPermission() async {
+    try {
+      final LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        final LocationPermission requestedPermission =
+            await Geolocator.requestPermission();
+
+        setState(() {
+          _hasLocationPermission =
+              requestedPermission != LocationPermission.denied &&
+                  requestedPermission != LocationPermission.deniedForever;
+        });
+      } else {
+        setState(() {
+          _hasLocationPermission = permission != LocationPermission.denied &&
+              permission != LocationPermission.deniedForever;
+        });
+      }
+
+      print('Konum izin durumu: $_hasLocationPermission');
+
+      if (_hasLocationPermission) {
+        // İzin varsa konumu al
+        await _getCurrentLocation();
+      }
+    } catch (e) {
+      print('Konum izni hatası: $e');
     }
   }
 
   // Mevcut konumu al ve haritayı oraya taşı
   Future<void> _getCurrentLocation() async {
     try {
+      print('Konum alınıyor...');
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
+
+      print('Konum alındı: ${position.latitude}, ${position.longitude}');
 
       setState(() {
         _currentPosition = position;
@@ -136,60 +189,68 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       return;
     }
 
-    // En az 10 metrede bir konum güncellemesi al
-    _positionStreamSubscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // metre cinsinden minimum mesafe değişikliği
-      ),
-    ).listen((Position position) {
-      if (mounted) {
-        setState(() {
-          // Eski konum varsa, iki nokta arasındaki mesafeyi hesapla
-          if (_currentPosition != null) {
-            double newDistance = Geolocator.distanceBetween(
-              _currentPosition!.latitude,
-              _currentPosition!.longitude,
-              position.latitude,
-              position.longitude,
-            );
+    try {
+      print('Konum takibi başlatılıyor...');
+      // En az 5 metrede bir konum güncellemesi al
+      _positionStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5, // metre cinsinden minimum mesafe değişikliği
+        ),
+      ).listen((Position position) {
+        print('Konum güncellendi: ${position.latitude}, ${position.longitude}');
+        if (mounted) {
+          setState(() {
+            // Eski konum varsa, iki nokta arasındaki mesafeyi hesapla
+            if (_currentPosition != null) {
+              double newDistance = Geolocator.distanceBetween(
+                _currentPosition!.latitude,
+                _currentPosition!.longitude,
+                position.latitude,
+                position.longitude,
+              );
 
-            // Kilometre cinsine çevirip toplam mesafeye ekle
-            _distance += newDistance / 1000;
-          }
+              // Kilometre cinsine çevirip toplam mesafeye ekle
+              _distance += newDistance / 1000;
+            }
 
-          _currentPosition = position;
+            _currentPosition = position;
 
-          // Rota listesine yeni konum ekle
-          LatLng newPosition = LatLng(position.latitude, position.longitude);
-          _routeCoordinates.add(newPosition);
+            // Rota listesine yeni konum ekle
+            LatLng newPosition = LatLng(position.latitude, position.longitude);
+            _routeCoordinates.add(newPosition);
 
-          // Marker pozisyonunu güncelle
-          _markers = {
-            Marker(
-              markerId: const MarkerId('currentLocation'),
-              position: newPosition,
-              infoWindow: const InfoWindow(title: 'Konumunuz'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueGreen),
-            )
-          };
+            // Marker pozisyonunu güncelle
+            _markers = {
+              Marker(
+                markerId: const MarkerId('currentLocation'),
+                position: newPosition,
+                infoWindow: const InfoWindow(title: 'Konumunuz'),
+                icon: BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueGreen),
+              )
+            };
 
-          // Polyline'ı güncelle
-          _polylines = {
-            Polyline(
-              polylineId: const PolylineId('route'),
-              points: _routeCoordinates,
-              color: const Color(0xFFC4FF62),
-              width: 5,
-            )
-          };
+            // Polyline'ı güncelle
+            _polylines = {
+              Polyline(
+                polylineId: const PolylineId('route'),
+                points: _routeCoordinates,
+                color: const Color(0xFFC4FF62),
+                width: 5,
+              )
+            };
 
-          // Harita varsa kamerayı kullanıcının konumuna getir
-          _mapController?.animateCamera(CameraUpdate.newLatLng(newPosition));
-        });
-      }
-    });
+            // Harita varsa kamerayı kullanıcının konumuna getir
+            _mapController?.animateCamera(CameraUpdate.newLatLng(newPosition));
+          });
+        }
+      }, onError: (e) {
+        print('Konum takibi hatası: $e');
+      });
+    } catch (e) {
+      print('Konum takibi başlatma hatası: $e');
+    }
   }
 
   // Konum takibini durdur
@@ -204,6 +265,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
       if (_isRecording) {
         _pulseController.forward();
+        _initialSteps = 0; // Adım sayacını sıfırla
 
         // Start timer
         _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -338,6 +400,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                         _buildStatColumn('$_calories', 'Calories'),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    // Adım sayısı göstergesi
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildStatColumn('$_steps', 'Steps'),
+                      ],
+                    ),
                     if (_isRecording) ...[
                       const Divider(height: 24, color: Colors.grey),
                       Row(
@@ -375,19 +445,35 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16.0),
                     child: _hasLocationPermission
-                        ? GoogleMap(
-                            mapType: MapType.normal,
-                            initialCameraPosition: _initialCameraPosition,
-                            myLocationEnabled: true,
-                            myLocationButtonEnabled: false,
-                            zoomControlsEnabled: false,
-                            markers: _markers,
-                            polylines: _polylines,
-                            onMapCreated: (GoogleMapController controller) {
-                              _mapController = controller;
-                              // Harita oluşturulduktan sonra mevcut konumu al
-                              _getCurrentLocation();
-                            },
+                        ? Stack(
+                            children: [
+                              GoogleMap(
+                                mapType: MapType.normal,
+                                initialCameraPosition: _initialCameraPosition,
+                                myLocationEnabled: true,
+                                myLocationButtonEnabled: false,
+                                zoomControlsEnabled: false,
+                                markers: _markers,
+                                polylines: _polylines,
+                                onMapCreated: (GoogleMapController controller) {
+                                  _mapController = controller;
+                                  // Harita oluşturulduktan sonra mevcut konumu al
+                                  _getCurrentLocation();
+                                },
+                              ),
+                              // Yeniden konum alma düğmesi
+                              Positioned(
+                                right: 16,
+                                bottom: 16,
+                                child: FloatingActionButton(
+                                  mini: true,
+                                  backgroundColor: const Color(0xFFC4FF62),
+                                  foregroundColor: Colors.black,
+                                  onPressed: _getCurrentLocation,
+                                  child: const Icon(Icons.my_location),
+                                ),
+                              ),
+                            ],
                           )
                         : Center(
                             child: Column(
@@ -406,7 +492,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                 ),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
-                                  onPressed: _checkLocationPermission,
+                                  onPressed: _initPermissions,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFC4FF62),
                                     foregroundColor: Colors.black,
@@ -553,5 +639,22 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         ],
       ),
     );
+  }
+
+  // Adım sayar başlatma fonksiyonu
+  void _initPedometer() {
+    _stepCountSubscription =
+        Pedometer.stepCountStream.listen((StepCount event) {
+      setState(() {
+        if (_isRecording && _initialSteps == 0) {
+          _initialSteps = event.steps;
+          _steps = 0;
+        } else if (_isRecording) {
+          _steps = event.steps - _initialSteps;
+        }
+      });
+    }, onError: (error) {
+      print('Adım sayar hatası: $error');
+    });
   }
 }
