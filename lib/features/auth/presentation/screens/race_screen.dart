@@ -3,8 +3,12 @@ import 'dart:convert';
 import 'dart:convert' show jsonDecode;
 import 'dart:convert' show utf8;
 import 'dart:convert' show base64Url;
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:pedometer/pedometer.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../screens/tabs.dart';
 import '../../../../core/services/storage_service.dart';
@@ -42,6 +46,18 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
 
+  // Konum takibi için gerekli özellikler
+  Position? _currentPosition;
+  Position?
+      _previousPosition; // Bu değişkeni kullanmayacağız, RecordScreen'deki gibi
+  bool _hasLocationPermission = false;
+  StreamSubscription<Position>? _positionStreamSubscription;
+
+  // Adım sayar için gerekli özellikler
+  int _initialSteps = 0;
+  bool _hasPedometerPermission = false;
+  StreamSubscription<StepCount>? _stepCountSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -54,8 +70,107 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     // });
 
     _setupSignalR();
-    _startLocationUpdates();
+    _initPermissions(); // Konum ve adım izinlerini başlat
     _initializeRaceTimer();
+  }
+
+  // Tüm izinleri başlatan fonksiyon
+  Future<void> _initPermissions() async {
+    // Konum servislerinin açık olup olmadığını kontrol et
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Konum servisleri kapalıysa, kullanıcıyı uyar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lütfen konum servislerini açın'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      // Konum servislerini açma isteği göster
+      await Geolocator.openLocationSettings();
+      return;
+    }
+
+    await _checkLocationPermission();
+    await _checkActivityPermission();
+  }
+
+  // Aktivite izinlerini kontrol eden fonksiyon
+  Future<void> _checkActivityPermission() async {
+    // Platform-specific permission checks
+    if (Platform.isAndroid) {
+      // Android'de adım sayar iznini kontrol et
+      if (await Permission.activityRecognition.request().isGranted) {
+        setState(() {
+          _hasPedometerPermission = true;
+        });
+        _initPedometer();
+      }
+    } else if (Platform.isIOS) {
+      // iOS'ta motion sensörü izni için
+      if (await Permission.sensors.request().isGranted) {
+        setState(() {
+          _hasPedometerPermission = true;
+        });
+        _initPedometer();
+      }
+    }
+  }
+
+  // Konum izinlerini kontrol eden fonksiyon
+  Future<void> _checkLocationPermission() async {
+    try {
+      final LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        final LocationPermission requestedPermission =
+            await Geolocator.requestPermission();
+
+        setState(() {
+          _hasLocationPermission =
+              requestedPermission != LocationPermission.denied &&
+                  requestedPermission != LocationPermission.deniedForever;
+        });
+      } else {
+        setState(() {
+          _hasLocationPermission = permission != LocationPermission.denied &&
+              permission != LocationPermission.deniedForever;
+        });
+      }
+
+      debugPrint('Konum izin durumu: $_hasLocationPermission');
+
+      if (_hasLocationPermission) {
+        // İzin varsa ilk konumu al
+        await _getCurrentLocation();
+        // Eğer yarış aktifse konum takibini başlat
+        if (_isRaceActive) {
+          _startLocationUpdates();
+        }
+      }
+    } catch (e) {
+      debugPrint('Konum izni hatası: $e');
+    }
+  }
+
+  // Mevcut konumu alan fonksiyon
+  Future<void> _getCurrentLocation() async {
+    try {
+      debugPrint('Konum alınıyor...');
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high); // RecordScreen ile aynı
+
+      debugPrint('Konum alındı: ${position.latitude}, ${position.longitude}');
+
+      setState(() {
+        // Sadece mevcut konumu ayarla, RecordScreen gibi
+        _currentPosition = position;
+      });
+    } catch (e) {
+      debugPrint('Konum alınamadı: $e');
+    }
   }
 
   void _initializeRaceTimer() {
@@ -182,29 +297,89 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     }
   }
 
-  void _startLocationUpdates() {
-    // Gerçek uygulamada, konum servisinden gerçek konum alınır
-    // Bu örnek için simüle edilmiş veriler kullanıyoruz
-    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!_isRaceActive) {
-        _stopLocationUpdates();
-        return;
-      }
+  // Adım sayar başlatma fonksiyonu
+  void _initPedometer() {
+    _stepCountSubscription =
+        Pedometer.stepCountStream.listen((StepCount event) {
+      if (!mounted) return;
 
-      // Simüle edilmiş konum güncellemesi
       setState(() {
-        _myDistance += 5.0; // Her güncellemede 5 metre ekle
-        _mySteps += 10; // Her güncellemede 10 adım ekle
-      });
+        if (_isRaceActive && _initialSteps == 0) {
+          _initialSteps = event.steps;
+          _mySteps = 0;
+          debugPrint('Başlangıç adım sayısı ayarlandı: $_initialSteps');
+        } else if (_isRaceActive) {
+          int newSteps = event.steps - _initialSteps;
+          // Adım sayısı azalmadıysa güncelle (mantık hatası kontrolü)
+          if (newSteps >= _mySteps) {
+            _mySteps = newSteps;
+            debugPrint('Adım sayısı güncellendi: $_mySteps');
 
-      // SignalR üzerinden konum güncellemesi gönder
-      _updateLocation();
+            // Adım güncellemesini sunucuya gönder
+            _updateLocation();
+          }
+        }
+      });
+    }, onError: (error) {
+      debugPrint('Adım sayar hatası: $error');
     });
   }
 
+  void _startLocationUpdates() {
+    if (!_hasLocationPermission) {
+      _checkLocationPermission();
+      return;
+    }
+
+    try {
+      debugPrint('Konum takibi başlatılıyor...');
+
+      // RecordScreen ile tamamen aynı:
+      _positionStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5, // RecordScreen ile birebir aynı
+        ),
+      ).listen((Position position) {
+        if (!mounted || !_isRaceActive) return;
+
+        debugPrint(
+            'Konum güncellendi: ${position.latitude}, ${position.longitude}');
+
+        setState(() {
+          // Eski konum varsa, iki nokta arasındaki mesafeyi hesapla
+          // RecordScreen ile aynı mantık:
+          if (_currentPosition != null) {
+            double newDistance = Geolocator.distanceBetween(
+              _currentPosition!.latitude,
+              _currentPosition!.longitude,
+              position.latitude,
+              position.longitude,
+            );
+
+            // ÖNEMLİ DEĞİŞİKLİK: RecordScreen'deki gibi kilometre cinsine çevirip ekle
+            _myDistance += newDistance / 1000;
+            debugPrint(
+                'Mesafe eklendi: ${newDistance / 1000} km. Toplam: $_myDistance km');
+          }
+
+          // RecordScreen'de olduğu gibi doğrudan güncelle
+          _currentPosition = position;
+
+          // Konum güncellemesi gönder
+          _updateLocation();
+        });
+      }, onError: (e) {
+        debugPrint('Konum takibi hatası: $e');
+      });
+    } catch (e) {
+      debugPrint('Konum takibi başlatma hatası: $e');
+    }
+  }
+
   void _stopLocationUpdates() {
-    _locationUpdateTimer?.cancel();
-    _locationUpdateTimer = null;
+    _positionStreamSubscription?.cancel();
+    _positionStreamSubscription = null;
   }
 
   Future<void> _updateLocation() async {
@@ -261,8 +436,11 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   void dispose() {
     debugPrint('RaceScreen dispose ediliyor...');
 
-    // Zamanlayıcıyı iptal et
+    // Konum takibini durdur
     _stopLocationUpdates();
+
+    // Adım sayar aboneliğini iptal et
+    _stepCountSubscription?.cancel();
 
     // Race timer'ı iptal et
     _raceTimerTimer?.cancel();
@@ -404,8 +582,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                     ),
                     _buildStatItem(
                       icon: Icons.directions_run,
-                      value: _myDistance.toStringAsFixed(1),
-                      label: 'Mesafe (m)',
+                      value: _myDistance.toStringAsFixed(2),
+                      label: 'Mesafe (km)',
                     ),
                     _buildStatItem(
                       icon: Icons.directions_walk,
@@ -415,9 +593,9 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                     _buildStatItem(
                       icon: Icons.speed,
                       value: _mySteps > 0
-                          ? (_myDistance / _mySteps * 2).toStringAsFixed(1)
+                          ? (_myDistance / _mySteps).toStringAsFixed(1)
                           : '0.0',
-                      label: 'Hız (m/adım)',
+                      label: 'Hız (km/adım)',
                     ),
                   ],
                 ),
@@ -686,7 +864,7 @@ class ParticipantTile extends StatelessWidget {
                                 size: 14, color: Colors.blue),
                             const SizedBox(width: 4),
                             Text(
-                              '${participant.distance.toStringAsFixed(2)} m',
+                              '${participant.distance.toStringAsFixed(2)} km',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,

@@ -203,7 +203,7 @@ class FinishRaceScreen extends ConsumerWidget {
                                   _buildStatItem(
                                     icon: Icons.directions_run,
                                     value:
-                                        '${myResult.distance.toStringAsFixed(2)} m',
+                                        '${myResult.distance.toStringAsFixed(2)} km',
                                     label: 'Mesafe',
                                     color: Colors.blue,
                                   ),
@@ -421,7 +421,7 @@ class FinishRaceScreen extends ConsumerWidget {
 
         // Bilgi
         Text(
-          '${winner.distance.toStringAsFixed(1)} m',
+          '${winner.distance.toStringAsFixed(2)} km',
           style: TextStyle(
             fontSize: position == 1 ? 14 : 12,
             color: Colors.black54,
@@ -494,7 +494,7 @@ class FinishRaceScreen extends ConsumerWidget {
 
         // Boş bilgi
         Text(
-          '0.0 m',
+          '0.00 km',
           style: TextStyle(
             fontSize: position == 1 ? 14 : 12,
             color: Colors.black54,

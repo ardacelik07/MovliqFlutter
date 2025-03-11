@@ -1,6 +1,6 @@
 class ApiConfig {
   static const String baseUrl =
-      'https://4076dd9b-ccf2-4e43-89ba-13fb8b19e757-00-sokk3788skfw.kirk.replit.dev/api';
+      'https://9fa01592-3c70-4909-a300-563d3a7c8103-00-3761b1o31qp21.sisko.replit.dev/api';
 
   static const String registerEndpoint = '$baseUrl/User/register';
   static const String loginEndpoint = '$baseUrl/User/login';
