@@ -39,6 +39,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   String? _myEmail; // Email adresi
   String? _lastJoinedUser; // Son katılan kullanıcı
 
+  // Fotoğraf önbelleği için harita ekliyoruz
+  final Map<String, String?> _profilePictureCache = {};
+
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
 
@@ -529,6 +532,14 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     debugPrint('📋 Mevcut liste: $_participants');
     debugPrint('📋 Yeni liste: $newParticipants');
 
+    // Öncelikle tüm gelen katılımcıların profil fotoğraflarını önbelleğe alalım
+    for (var participant in newParticipants) {
+      if (participant.profilePictureUrl != null) {
+        _profilePictureCache[participant.userName] =
+            participant.profilePictureUrl;
+      }
+    }
+
     setState(() {
       if (newParticipants.isEmpty && _myUsername != null) {
         // Eğer liste boşsa ve kullanıcı adı varsa, kendimizi ekleyelim
@@ -536,7 +547,18 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         debugPrint('👤 İlk kullanıcı olarak kendimi ekliyorum: $_myUsername');
       } else {
         // Liste boş değilse veya kullanıcı adı yoksa, gelen listeyi kullan
-        _participants = List<RoomParticipant>.from(newParticipants);
+        // Ancak önbellekteki fotoğrafları yeni listeye dahil edelim
+        _participants = newParticipants.map((participant) {
+          // Eğer katılımcının profil fotoğrafı yoksa ama önbellekte varsa
+          if (participant.profilePictureUrl == null &&
+              _profilePictureCache.containsKey(participant.userName)) {
+            // Önbellekten profil fotoğrafını alalım
+            return RoomParticipant(
+                userName: participant.userName,
+                profilePictureUrl: _profilePictureCache[participant.userName]);
+          }
+          return participant;
+        }).toList();
       }
       debugPrint('✅ Katılımcı listesi güncellendi: $_participants');
     });
@@ -632,197 +654,208 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         ),
         centerTitle: true,
       ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFC4FF62),
-              Color(0xFFC4FF62),
-            ],
+      // WillPopScope ekleyerek fiziksel geri tuşunu da kontrol edelim
+      body: WillPopScope(
+        onWillPop: () async {
+          await _leaveRoom(showConfirmation: true);
+          return false; // Gerçek pop işlemini biz ele alıyoruz
+        },
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFFC4FF62),
+                Color(0xFFC4FF62),
+              ],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Arka plan daireleri
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: CirclePatternPainter(),
-                ),
-              ),
-
-              // Ana içerik
-              SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 20),
-                      // Activity Type Circle - Display the selected activity type
-                      Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Icon based on activity type
-                              Icon(
-                                  displayActivityType
-                                          .toLowerCase()
-                                          .contains('outdoor')
-                                      ? Icons.directions_run
-                                      : displayActivityType
-                                              .toLowerCase()
-                                              .contains('indoor')
-                                          ? Icons.fitness_center
-                                          : Icons.directions_run,
-                                  size: 30,
-                                  color: Colors.black),
-                              const SizedBox(height: 4),
-                              Text(
-                                displayActivityType,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Duration Circle - Display the selected duration
-                      Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.timer,
-                                  size: 30, color: Colors.black),
-                              const SizedBox(height: 4),
-                              Text(
-                                displayDurationFromNow,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Koşucular Bekleniyor Circle
-                      Container(
-                        width: 180,
-                        height: 180,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.people, size: 40, color: Colors.black),
-                              SizedBox(height: 8),
-                              Text(
-                                'Koşucular\nBekleniyor',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Kullanıcı Profil Fotoğrafları
-                      SizedBox(
-                        height: 60,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: _participants.length,
-                          itemBuilder: (context, index) {
-                            final participant = _participants[index];
-                            final isCurrentUser =
-                                participant.userName == _myUsername ||
-                                    (participant.userName.contains('@') &&
-                                        participant.userName.split('@')[0] ==
-                                            _myUsername);
-
-                            return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 4),
-                              child: CircleAvatar(
-                                radius: 25,
-                                backgroundColor: isCurrentUser
-                                    ? const Color(0xFFC4FF62)
-                                    : Colors.white,
-                                backgroundImage:
-                                    participant.profilePictureUrl != null
-                                        ? NetworkImage(
-                                            participant.profilePictureUrl!)
-                                        : null,
-                                child: participant.profilePictureUrl == null
-                                    ? Text(
-                                        participant.userName.isNotEmpty
-                                            ? participant.userName[0]
-                                                .toUpperCase()
-                                            : '?',
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: isCurrentUser
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Alt bilgi metni
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Text(
-                          'Oda dolduğunda yarış otomatik\nolarak başlayacak',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ],
+          child: SafeArea(
+            child: Stack(
+              children: [
+                // Arka plan daireleri
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: CirclePatternPainter(),
                   ),
                 ),
-              ),
-            ],
+
+                // Ana içerik
+                SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 20),
+                        // Activity Type Circle - Display the selected activity type
+                        Container(
+                          width: 150,
+                          height: 150,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Icon based on activity type
+                                Icon(
+                                    displayActivityType
+                                            .toLowerCase()
+                                            .contains('outdoor')
+                                        ? Icons.directions_run
+                                        : displayActivityType
+                                                .toLowerCase()
+                                                .contains('indoor')
+                                            ? Icons.fitness_center
+                                            : Icons.directions_run,
+                                    size: 30,
+                                    color: Colors.black),
+                                const SizedBox(height: 4),
+                                Text(
+                                  displayActivityType,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Duration Circle - Display the selected duration
+                        Container(
+                          width: 150,
+                          height: 150,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.timer,
+                                    size: 30, color: Colors.black),
+                                const SizedBox(height: 4),
+                                Text(
+                                  displayDurationFromNow,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Koşucular Bekleniyor Circle
+                        Container(
+                          width: 180,
+                          height: 180,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.people,
+                                    size: 40, color: Colors.black),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Koşucular\nBekleniyor',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Kullanıcı Profil Fotoğrafları
+                        SizedBox(
+                          height: 60,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: _participants.length,
+                            itemBuilder: (context, index) {
+                              final participant = _participants[index];
+                              final isCurrentUser =
+                                  participant.userName == _myUsername ||
+                                      (participant.userName.contains('@') &&
+                                          participant.userName.split('@')[0] ==
+                                              _myUsername);
+
+                              // Önbellekten kullanıcının fotoğraf URL'sini al
+                              final profileUrl = participant
+                                      .profilePictureUrl ??
+                                  _profilePictureCache[participant.userName];
+
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 4),
+                                child: CircleAvatar(
+                                  radius: 25,
+                                  backgroundColor: isCurrentUser
+                                      ? const Color(0xFFC4FF62)
+                                      : Colors.white,
+                                  backgroundImage: profileUrl != null
+                                      ? NetworkImage(profileUrl)
+                                      : null,
+                                  child: profileUrl == null
+                                      ? Text(
+                                          participant.userName.isNotEmpty
+                                              ? participant.userName[0]
+                                                  .toUpperCase()
+                                              : '?',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontWeight: isCurrentUser
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Alt bilgi metni
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 20.0),
+                          child: Text(
+                            'Oda dolduğunda yarış otomatik\nolarak başlayacak',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
