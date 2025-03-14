@@ -5,6 +5,7 @@ import 'package:signalr_netcore/signalr_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/api_config.dart';
 import 'storage_service.dart';
+import '../../features/auth/domain/models/room_participant.dart';
 
 final signalRServiceProvider = Provider<SignalRService>((ref) {
   return SignalRService();
@@ -55,8 +56,8 @@ class SignalRService {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<Map<String, dynamic>> _raceStartingController =
       StreamController<Map<String, dynamic>>.broadcast();
-  final StreamController<List<String>> _roomParticipantsController =
-      StreamController<List<String>>.broadcast();
+  final StreamController<List<RoomParticipant>> _roomParticipantsController =
+      StreamController<List<RoomParticipant>>.broadcast();
 
   // Stream getters
   Stream<List<RaceParticipant>> get leaderboardStream =>
@@ -69,7 +70,7 @@ class SignalRService {
       _locationUpdatedController.stream;
   Stream<Map<String, dynamic>> get raceStartingStream =>
       _raceStartingController.stream;
-  Stream<List<String>> get roomParticipantsStream =>
+  Stream<List<RoomParticipant>> get roomParticipantsStream =>
       _roomParticipantsController.stream;
 
   bool get isConnected => _isConnected;
@@ -153,6 +154,19 @@ class SignalRService {
       debugPrint('Yarış odasından ayrılındı: $roomId');
     } catch (e) {
       debugPrint('Yarış odasından ayrılma hatası: $e');
+    }
+  }
+
+  // Yarış esnasında odadan ayrılmak için metod (kullanıcının istatistiklerini sıfırlar)
+  Future<void> leaveRoomDuringRace(int roomId) async {
+    if (_hubConnection == null || !_isConnected) return;
+
+    try {
+      await _hubConnection!.invoke('LeaveRoomDuringRace', args: [roomId]);
+      debugPrint(
+          'Yarış esnasında odadan ayrılındı: $roomId (istatistikler sıfırlandı)');
+    } catch (e) {
+      debugPrint('Yarış esnasında odadan ayrılma hatası: $e');
     }
   }
 
@@ -291,13 +305,28 @@ class SignalRService {
     }
 
     try {
-      debugPrint('🔄 Arguments[0] Tipi: ${arguments[0].runtimeType}');
-      final List<dynamic> participantsList = arguments[0] as List<dynamic>;
-      debugPrint('📋 Ham Katılımcı Listesi: $participantsList');
+      final List<dynamic> participantsData = arguments[0] as List<dynamic>;
+      debugPrint('📋 Ham Katılımcı Verisi: $participantsData');
 
-      final List<String> participants =
-          participantsList.map((p) => p.toString()).toList();
-      debugPrint('👥 İşlenmiş Katılımcılar: ${participants.join(", ")}');
+      final List<RoomParticipant> participants = [];
+
+      for (final item in participantsData) {
+        // Veri bir map ise (DTO formatında), RoomParticipant'a dönüştür
+        if (item is Map<String, dynamic>) {
+          participants.add(RoomParticipant.fromJson(item));
+        }
+        // Geriye dönük uyumluluk: Eğer sadece string ise, sadece userName içeren bir RoomParticipant oluştur
+        else if (item is String) {
+          participants.add(RoomParticipant(userName: item));
+        }
+        // Diğer durumlar için en azından toString() dönüşümünü dene
+        else {
+          participants.add(RoomParticipant(userName: item.toString()));
+        }
+      }
+
+      debugPrint(
+          '👥 İşlenmiş Katılımcılar: ${participants.map((p) => p.userName).join(", ")}');
       debugPrint('📊 Toplam Katılımcı Sayısı: ${participants.length}');
 
       _roomParticipantsController.add(participants);
@@ -305,7 +334,7 @@ class SignalRService {
     } catch (e, stackTrace) {
       debugPrint('❌ RoomParticipants İşleme HATASI: $e');
       debugPrint(
-          '📍 Hata Detayı - Arguments[0] Tipi: ${arguments[0].runtimeType}');
+          '📍 Hata Detayı - Arguments[0] Tipi: ${arguments[0]?.runtimeType}');
       debugPrint('🔍 Stack Trace: $stackTrace');
       _roomParticipantsController.add([]); // Hata durumunda boş liste gönder
     }

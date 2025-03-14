@@ -433,236 +433,192 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   }
 
   @override
-  void dispose() {
-    debugPrint('RaceScreen dispose ediliyor...');
-
-    // Konum takibini durdur
-    _stopLocationUpdates();
-
-    // Adım sayar aboneliğini iptal et
-    _stepCountSubscription?.cancel();
-
-    // Race timer'ı iptal et
-    _raceTimerTimer?.cancel();
-    _raceTimerTimer = null;
-
-    // Stream aboneliklerini iptal et
-    for (var subscription in _subscriptions) {
-      subscription.cancel();
-    }
-    _subscriptions.clear();
-
-    final signalRService = ref.read(signalRServiceProvider);
-    signalRService.leaveRaceRoom(widget.roomId);
-
-    debugPrint('RaceScreen dispose edildi - tüm dinleyiciler kapatıldı');
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Race Room #${widget.roomId}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+    return WillPopScope(
+      onWillPop: () async {
+        // Fiziksel geri tuşuna basıldığında doğrudan odadan ayrılma diyalogunu göster
+        return await _showLeaveConfirmationDialog();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {
+              _showLeaveConfirmationDialog();
+            },
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Race Room #${widget.roomId}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
               ),
-            ),
-            Text(
-              _isRaceActive ? 'Race in progress' : 'Race ended',
-              style: TextStyle(
-                fontSize: 12,
-                color: _isRaceActive ? Colors.green : Colors.red,
+              Text(
+                _isRaceActive ? 'Race in progress' : 'Race ended',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _isRaceActive ? Colors.green : Colors.red,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                color: _isConnected ? Colors.green : Colors.red,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _isConnected ? 'Connected' : 'Disconnected',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
               ),
             ),
           ],
         ),
-        actions: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              color: _isConnected ? Colors.green : Colors.red,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              _isConnected ? 'Connected' : 'Disconnected',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              stops: [0.0, 0.95],
+              end: Alignment.bottomCenter,
+              colors: [
+                Color.fromARGB(255, 255, 255, 255),
+                Color(0xFFC4FF62),
+              ],
             ),
           ),
-        ],
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Exit Race?'),
-                content:
-                    const Text('Are you sure you want to leave this race?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const TabsScreen()),
-                        (route) => false,
-                      );
-                    },
-                    child:
-                        const Text('Exit', style: TextStyle(color: Colors.red)),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            stops: [0.0, 0.95],
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 255, 255, 255),
-              Color(0xFFC4FF62),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              // İlerleme bilgisi
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    // Timer display
-                    _buildStatItem(
-                      icon: Icons.timer,
-                      value: _isTimerInitialized
-                          ? _formatDuration(_remainingRaceTime)
-                          : '00:00',
-                      label: 'Time Left',
-                      valueColor:
-                          _remainingRaceTime.inSeconds < 60 ? Colors.red : null,
-                    ),
-                    _buildStatItem(
-                      icon: Icons.directions_run,
-                      value: _myDistance.toStringAsFixed(2),
-                      label: 'Mesafe (km)',
-                    ),
-                    _buildStatItem(
-                      icon: Icons.directions_walk,
-                      value: _mySteps.toString(),
-                      label: 'Adım',
-                    ),
-                    _buildStatItem(
-                      icon: Icons.speed,
-                      value: _mySteps > 0
-                          ? (_myDistance / _mySteps).toStringAsFixed(1)
-                          : '0.0',
-                      label: 'Hız (km/adım)',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Leaderboard başlığı
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFC4FF62), Colors.green],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.emoji_events, color: Colors.amber),
-                    SizedBox(width: 8),
-                    Text(
-                      'Yarış Sıralaması',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+          child: SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                // İlerleme bilgisi
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      // Timer display
+                      _buildStatItem(
+                        icon: Icons.timer,
+                        value: _isTimerInitialized
+                            ? _formatDuration(_remainingRaceTime)
+                            : '00:00',
+                        label: 'Time Left',
+                        valueColor: _remainingRaceTime.inSeconds < 60
+                            ? Colors.red
+                            : null,
+                      ),
+                      _buildStatItem(
+                        icon: Icons.directions_run,
+                        value: _myDistance.toStringAsFixed(2),
+                        label: 'Mesafe (km)',
+                      ),
+                      _buildStatItem(
+                        icon: Icons.directions_walk,
+                        value: _mySteps.toString(),
+                        label: 'Adım',
+                      ),
+                      _buildStatItem(
+                        icon: Icons.speed,
+                        value: _mySteps > 0
+                            ? (_myDistance / _mySteps).toStringAsFixed(1)
+                            : '0.0',
+                        label: 'Hız (km/adım)',
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: _leaderboard.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Waiting for participants...',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.black54,
-                          ),
+                const SizedBox(height: 20),
+                // Leaderboard başlığı
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFC4FF62), Colors.green],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.emoji_events, color: Colors.amber),
+                      SizedBox(width: 8),
+                      Text(
+                        'Yarış Sıralaması',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: _leaderboard.length,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemBuilder: (context, index) {
-                          final participant = _leaderboard[index];
-                          final bool isMe = participant.email == _myEmail;
-
-                          return ParticipantTile(
-                            participant: participant,
-                            isMe: isMe,
-                          );
-                        },
                       ),
-              ),
-            ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: _leaderboard.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Waiting for participants...',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _leaderboard.length,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemBuilder: (context, index) {
+                            final participant = _leaderboard[index];
+                            final bool isMe = participant.email == _myEmail;
+
+                            return ParticipantTile(
+                              participant: participant,
+                              isMe: isMe,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -725,6 +681,127 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
         ),
       ],
     );
+  }
+
+  // Kullanıcının yarış esnasında odadan ayrılmasını onaylatan dialog
+  Future<bool> _showLeaveConfirmationDialog() async {
+    bool? result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Yarıştan Ayrıl'),
+        content: const Text(
+            'Yarış devam ediyor. Ayrılmak istediğinize emin misiniz? İstatistikleriniz sıfırlanacak ve liderlik tablosundan çıkarılacaksınız.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Hayır'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(true);
+            },
+            child: const Text('Evet, Ayrıl'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _leaveRaceRoom();
+      return true;
+    }
+
+    return false;
+  }
+
+  // Yarış esnasında odadan ayrılma işlemini yapan metod
+  Future<void> _leaveRaceRoom() async {
+    try {
+      // Konum güncellemelerini durdur
+      _stopLocationUpdates();
+
+      // Adım sayacı aboneliğini iptal et
+      _stepCountSubscription?.cancel();
+
+      // SignalR bağlantısını kur ve LeaveRoomDuringRace metodunu çağır
+      final signalRService = ref.read(signalRServiceProvider);
+
+      if (signalRService.isConnected) {
+        // Yarış esnasında ayrılma özel metodunu çağır
+        await signalRService.leaveRoomDuringRace(widget.roomId);
+        debugPrint(
+            'SignalR: Yarış esnasında odadan ayrılma başarılı - Oda ID: ${widget.roomId}');
+      } else {
+        debugPrint('SignalR bağlantısı yok, önce bağlantı kuruluyor...');
+        await signalRService.connect();
+        await signalRService.leaveRoomDuringRace(widget.roomId);
+      }
+
+      // Stream aboneliklerini iptal et
+      for (var subscription in _subscriptions) {
+        subscription.cancel();
+      }
+      _subscriptions.clear();
+
+      if (mounted) {
+        // Ana sayfaya yönlendir
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const TabsScreen()),
+          (route) => false, // Tüm geçmiş sayfaları temizle
+        );
+      }
+    } catch (e) {
+      debugPrint('Yarış esnasında odadan ayrılma hatası: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Odadan ayrılırken bir hata oluştu: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    debugPrint('RaceScreen dispose ediliyor...');
+
+    // Konum takibini durdur
+    _stopLocationUpdates();
+
+    // Adım sayar aboneliğini iptal et
+    _stepCountSubscription?.cancel();
+
+    // Race timer'ı iptal et
+    _raceTimerTimer?.cancel();
+    _raceTimerTimer = null;
+
+    // Stream aboneliklerini iptal et
+    for (var subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
+
+    // Yeni kod: dispose sırasında normal LeaveRaceRoom yerine normale dönüyoruz
+    // böylece dispose edildiğinde ikinci kez _leaveRaceRoom çağrılmayacak
+    final signalRService = ref.read(signalRServiceProvider);
+    if (_isRaceActive) {
+      // Eğer kullanıcı uygulama kapatma gibi bir yolla çıkış yaparsa yine de istatistikleri sıfırlanmalı
+      try {
+        if (signalRService.isConnected) {
+          signalRService.leaveRoomDuringRace(widget.roomId);
+        }
+      } catch (e) {
+        debugPrint('Dispose sırasında odadan ayrılma hatası: $e');
+      }
+    } else {
+      signalRService.leaveRaceRoom(widget.roomId);
+    }
+
+    debugPrint('RaceScreen dispose edildi - tüm dinleyiciler kapatıldı');
+    super.dispose();
   }
 }
 

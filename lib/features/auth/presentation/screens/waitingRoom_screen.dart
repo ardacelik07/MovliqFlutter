@@ -6,6 +6,11 @@ import '../../../../core/services/storage_service.dart';
 import '../providers/race_settings_provider.dart';
 import 'dart:convert';
 import 'dart:async'; // StreamSubscription için import ekliyorum
+import 'package:http/http.dart' as http;
+import 'package:my_flutter_project/features/auth/domain/models/leave_room_request.dart';
+import '../../../../core/config/api_config.dart';
+import '../screens/tabs.dart';
+import 'package:my_flutter_project/features/auth/domain/models/room_participant.dart';
 
 class WaitingRoomScreen extends ConsumerStatefulWidget {
   final int roomId;
@@ -29,13 +34,130 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   late bool _hasStartTime;
   bool _isConnected = false;
   bool _isRaceStarting = false;
-  List<String> _participants = [];
+  List<RoomParticipant> _participants = [];
   String? _myUsername; // Kullanıcı adı
   String? _myEmail; // Email adresi
   String? _lastJoinedUser; // Son katılan kullanıcı
 
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
+
+  // Odadan çıkış işlemi için yeni metot
+  Future<void> _leaveRoom({bool showConfirmation = true}) async {
+    // Kullanıcıdan onay al
+    if (showConfirmation) {
+      final bool confirm = await _showLeaveConfirmationDialog();
+      if (!confirm) return;
+    }
+
+    try {
+      setState(() {
+        _isLoading = true; // Eğer varsa, bir loading state kullanılabilir
+      });
+
+      // 1. API üzerinden çıkış yap
+      final bool apiSuccess = await _callLeaveRoomApi();
+
+      // 2. SignalR üzerinden çıkış yap
+      if (apiSuccess) {
+        try {
+          final signalRService = ref.read(signalRServiceProvider);
+          await signalRService.leaveRaceRoom(widget.roomId);
+        } catch (e) {
+          debugPrint('❌ SignalR üzerinden odadan çıkarken hata: $e');
+          // API başarılı olduğu için devam ediyoruz
+        }
+      }
+
+      // 3. Stream aboneliklerini temizle
+      for (var subscription in _subscriptions) {
+        subscription.cancel();
+      }
+      _subscriptions.clear();
+
+      // 4. Ana sayfaya yönlendir
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const TabsScreen()),
+          (route) => false, // Tüm geçmiş sayfaları temizle
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Odadan çıkış sırasında hata: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Odadan çıkış sırasında bir hata oluştu: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Onay dialogu göster
+  Future<bool> _showLeaveConfirmationDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Odadan Çıkış'),
+        content:
+            const Text('Yarış odasından çıkmak istediğinize emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Çıkış Yap'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  // LeaveRoom API isteği
+  Future<bool> _callLeaveRoomApi() async {
+    try {
+      // Token al
+      final tokenJson = await StorageService.getToken();
+      if (tokenJson == null) {
+        throw Exception('Kimlik doğrulama tokeni bulunamadı');
+      }
+
+      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+      final String token = tokenData['token'];
+
+      // İstek gövdesi oluştur
+      final leaveRequest = LeaveRoomRequest(raceRoomId: widget.roomId);
+
+      // API isteği yap
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/RaceRoom/leaveRoom'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(leaveRequest.toJson()),
+      );
+
+      debugPrint('📤 LeaveRoom API cevabı: ${response.statusCode}');
+      debugPrint('📄 API cevap body: ${response.body}');
+
+      return response.statusCode == 200; // Başarılı mı?
+    } catch (e) {
+      debugPrint('❌ LeaveRoom API hatası: $e');
+      throw e; // Üst metoda hatayı ilet
+    }
+  }
 
   @override
   void initState() {
@@ -121,8 +243,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         _isConnected = signalRService.isConnected;
       });
 
-      // Liderlik tablosu güncellemelerini dinle (katılımcıların odaya katıldığını gösterir)
-
       // Mevcut oda katılımcılarını dinle
       _subscriptions
           .add(signalRService.roomParticipantsStream.listen((participants) {
@@ -130,15 +250,17 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           return; // Eğer yarış başlama süreci başladıysa çıkış yap
 
         debugPrint('🏠 WaitingRoom - Katılımcı Listesi Alındı');
-        debugPrint('📋 Gelen Katılımcılar: ${participants.join(", ")}');
+        debugPrint(
+            '📋 Gelen Katılımcılar: ${participants.map((p) => p.userName).join(", ")}');
         debugPrint('📊 Toplam Katılımcı Sayısı: ${participants.length}');
 
         _updateParticipantsList(participants);
 
         // Yeni katılan kullanıcıyı belirle
-        if (participants.isNotEmpty && participants.last != _lastJoinedUser) {
+        if (participants.isNotEmpty &&
+            participants.last.userName != _lastJoinedUser) {
           setState(() {
-            _lastJoinedUser = participants.last;
+            _lastJoinedUser = participants.last.userName;
           });
 
           // 3 saniye sonra yeni katılan kullanıcı vurgusunu kaldır
@@ -185,38 +307,37 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       }));
 
       // Doğrudan yarış başladı eventi
+      // _subscriptions.add(signalRService.userJoinedStream.listen((username) {
+      //   if (!mounted) return; // Mounted kontrolü
 
+      //   debugPrint('Kullanıcı katıldı: $username');
+      //   setState(() {
+      //    if (!_participants.contains(username)) {
+      //      _participants.add(username);
+      //     _lastJoinedUser = username; // Son katılan kullanıcıyı kaydet
+
+      // 3 saniye sonra vurguyu kaldır
+      //     Future.delayed(const Duration(seconds: 5), () {
+      //       if (mounted) {
+      //         setState(() {
+      //           _lastJoinedUser = null;
+      //         });
+      //       }
+      //     });
+      //   }
+      // });
+      //}));
       // Kullanıcı katılma/ayrılma olaylarını dinle
-      _subscriptions.add(signalRService.userJoinedStream.listen((username) {
-        if (!mounted) return; // Mounted kontrolü
 
-        debugPrint('Kullanıcı katıldı: $username');
-        setState(() {
-          if (!_participants.contains(username)) {
-            _participants.add(username);
-            _lastJoinedUser = username; // Son katılan kullanıcıyı kaydet
+      //  _subscriptions.add(signalRService.userLeftStream.listen((username) {
+      //    if (!mounted) return; // Mounted kontrolü
 
-            // 3 saniye sonra vurguyu kaldır
-            Future.delayed(const Duration(seconds: 5), () {
-              if (mounted) {
-                setState(() {
-                  _lastJoinedUser = null;
-                });
-              }
-            });
-          }
-        });
-      }));
-
-      _subscriptions.add(signalRService.userLeftStream.listen((username) {
-        if (!mounted) return; // Mounted kontrolü
-
-        debugPrint('Kullanıcı ayrıldı: $username');
-        setState(() {
-          _participants.remove(username);
-        });
-        _showInfoMessage('$username odadan ayrıldı');
-      }));
+      //    debugPrint('Kullanıcı ayrıldı: $username');
+      //    setState(() {
+      //     _participants.remove(username);
+      //   });
+      //  _showInfoMessage('$username odadan ayrıldı');
+      // }));
     } catch (e) {
       debugPrint('SignalR bağlantı hatası: $e');
       _showErrorMessage('SignalR bağlantı hatası: $e');
@@ -401,7 +522,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   }
 
   // Katılımcı listesini güncelleyen yardımcı metod
-  void _updateParticipantsList(List<String> newParticipants) {
+  void _updateParticipantsList(List<RoomParticipant> newParticipants) {
     if (!mounted) return;
 
     debugPrint('🔄 Katılımcı listesi güncelleniyor...');
@@ -411,11 +532,11 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     setState(() {
       if (newParticipants.isEmpty && _myUsername != null) {
         // Eğer liste boşsa ve kullanıcı adı varsa, kendimizi ekleyelim
-        _participants = [_myUsername!];
+        _participants = [RoomParticipant(userName: _myUsername!)];
         debugPrint('👤 İlk kullanıcı olarak kendimi ekliyorum: $_myUsername');
       } else {
         // Liste boş değilse veya kullanıcı adı yoksa, gelen listeyi kullan
-        _participants = List<String>.from(newParticipants);
+        _participants = List<RoomParticipant>.from(newParticipants);
       }
       debugPrint('✅ Katılımcı listesi güncellendi: $_participants');
     });
@@ -485,11 +606,32 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Default values if not provided
-    final String displayActivityType = widget.activityType ?? 'Outdoor Koşu';
-    final String displayDuration = widget.duration ?? '30 Dakika';
+    // Race Settings Provider'ı izle
+    final raceSettings = ref.watch(raceSettingsProvider);
+
+    // Aktivite tipi ve süre bilgilerini al
+    final String displayActivityType = widget.activityType ??
+        (raceSettings.roomType?.contains('indoor') == true
+            ? 'Indoor Koşu'
+            : 'Outdoor Koşu');
+    final String displayDurationFromNow = widget.duration ??
+        (raceSettings.duration != null
+            ? '${raceSettings.duration} Dakika'
+            : '30 Dakika');
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => _leaveRoom(showConfirmation: true),
+        ),
+        title: Text(
+          'Yarış Odası #${widget.roomId}',
+          style: const TextStyle(color: Colors.white),
+        ),
+        centerTitle: true,
+      ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -506,267 +648,179 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         child: SafeArea(
           child: Stack(
             children: [
-              Positioned(
-                left: 42.0, // Rastgele x değeri
-                top: 75.0, // Rastgele y değeri
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(25, 0, 0, 0),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color.fromARGB(0, 0, 0, 0),
-                      width: 2,
-                    ),
-                  ),
+              // Arka plan daireleri
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: CirclePatternPainter(),
                 ),
               ),
-              Positioned(
-                left: 110.0, // Rastgele x değeri
-                top: 180.0, // Rastgele y değeri
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(25, 0, 0, 0),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color.fromARGB(0, 0, 0, 0),
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 65.0, // Rastgele x değeri
-                top: 285.0, // Rastgele y değeri
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(25, 0, 0, 0),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color.fromARGB(0, 0, 0, 0),
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 175.0, // Rastgele x değeri
-                top: 370.0, // Rastgele y değeri
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(25, 0, 0, 0),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color.fromARGB(0, 0, 0, 0),
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 30.0, // Rastgele x değeri
-                top: 470.0, // Rastgele y değeri
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(25, 0, 0, 0),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color.fromARGB(0, 0, 0, 0),
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 135.0, // Rastgele x değeri
-                top: 575.0, // Rastgele y değeri
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(25, 0, 0, 0),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color.fromARGB(0, 0, 0, 0),
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 210.0, // Rastgele x değeri
-                top: 680.0, // Rastgele y değeri
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(25, 0, 0, 0),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color.fromARGB(0, 0, 0, 0),
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              // Main content in vertical layout (original Column)
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 40),
-                  // Activity Type Circle - Display the selected activity type
-                  Container(
-                    width: 150,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Icon based on activity type
-                          Icon(
-                              displayActivityType
-                                      .toLowerCase()
-                                      .contains('outdoor')
-                                  ? Icons.directions_run
-                                  : displayActivityType
+
+              // Ana içerik
+              SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 20.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 20),
+                      // Activity Type Circle - Display the selected activity type
+                      Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Icon based on activity type
+                              Icon(
+                                  displayActivityType
                                           .toLowerCase()
-                                          .contains('indoor')
-                                      ? Icons.fitness_center
-                                      : Icons.directions_run,
-                              size: 30,
-                              color: Colors.black),
-                          const SizedBox(height: 4),
-                          Text(
-                            displayActivityType,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Duration Circle - Display the selected duration
-                  Container(
-                    width: 150,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.timer,
-                              size: 30, color: Colors.black),
-                          const SizedBox(height: 4),
-                          Text(
-                            displayDuration,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  // Koşucular Bekleniyor Circle
-                  Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.people, size: 40, color: Colors.black),
-                          SizedBox(height: 8),
-                          Text(
-                            'Koşucular\nBekleniyor',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  // Kullanıcı Profil Fotoğrafları
-                  SizedBox(
-                    height: 50,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount:
-                          _participants.length + 3, // 3 tane boş yer ekledik
-                      itemBuilder: (context, index) {
-                        if (index < _participants.length) {
-                          // Mevcut katılımcılar için
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: CircleAvatar(
-                              radius: 25,
-                              backgroundColor: Colors.white,
-                              child: Text(
-                                _participants[index][0].toUpperCase(),
+                                          .contains('outdoor')
+                                      ? Icons.directions_run
+                                      : displayActivityType
+                                              .toLowerCase()
+                                              .contains('indoor')
+                                          ? Icons.fitness_center
+                                          : Icons.directions_run,
+                                  size: 30,
+                                  color: Colors.black),
+                              const SizedBox(height: 4),
+                              Text(
+                                displayActivityType,
+                                textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                  color: Colors.black,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          );
-                        } else {
-                          // Boş yerler için
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: CircleAvatar(
-                              radius: 25,
-                              backgroundColor: Colors.white.withOpacity(0.3),
-                            ),
-                          );
-                        }
-                      },
-                    ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Duration Circle - Display the selected duration
+                      Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.timer,
+                                  size: 30, color: Colors.black),
+                              const SizedBox(height: 4),
+                              Text(
+                                displayDurationFromNow,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Koşucular Bekleniyor Circle
+                      Container(
+                        width: 180,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.people, size: 40, color: Colors.black),
+                              SizedBox(height: 8),
+                              Text(
+                                'Koşucular\nBekleniyor',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Kullanıcı Profil Fotoğrafları
+                      SizedBox(
+                        height: 60,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: _participants.length,
+                          itemBuilder: (context, index) {
+                            final participant = _participants[index];
+                            final isCurrentUser =
+                                participant.userName == _myUsername ||
+                                    (participant.userName.contains('@') &&
+                                        participant.userName.split('@')[0] ==
+                                            _myUsername);
+
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              child: CircleAvatar(
+                                radius: 25,
+                                backgroundColor: isCurrentUser
+                                    ? const Color(0xFFC4FF62)
+                                    : Colors.white,
+                                backgroundImage:
+                                    participant.profilePictureUrl != null
+                                        ? NetworkImage(
+                                            participant.profilePictureUrl!)
+                                        : null,
+                                child: participant.profilePictureUrl == null
+                                    ? Text(
+                                        participant.userName.isNotEmpty
+                                            ? participant.userName[0]
+                                                .toUpperCase()
+                                            : '?',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: isCurrentUser
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Alt bilgi metni
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Text(
+                          'Oda dolduğunda yarış otomatik\nolarak başlayacak',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  // Alt bilgi metni
-                  const Text(
-                    'Oda dolduğunda yarış otomatik\nolarak başlayacak',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -774,4 +828,40 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       ),
     );
   }
+
+  // Diğer değişkenler
+  bool _isLoading = false;
+}
+
+// Daire desenleri çizen custom painter sınıfı
+class CirclePatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color.fromARGB(25, 0, 0, 0)
+      ..style = PaintingStyle.fill;
+
+    // Ekran boyutuna göre dairelerin konumlarını belirleyelim
+    final width = size.width;
+    final height = size.height;
+
+    // Rastgele konumlarda daireler çizelim
+    final circles = [
+      Offset(width * 0.2, height * 0.1),
+      Offset(width * 0.6, height * 0.2),
+      Offset(width * 0.3, height * 0.3),
+      Offset(width * 0.7, height * 0.4),
+      Offset(width * 0.1, height * 0.5),
+      Offset(width * 0.5, height * 0.6),
+      Offset(width * 0.8, height * 0.7),
+    ];
+
+    // Daireleri çiz
+    for (var center in circles) {
+      canvas.drawCircle(center, 75, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
