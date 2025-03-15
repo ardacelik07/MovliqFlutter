@@ -7,6 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:flutter/foundation.dart';
+import '../../domain/models/record_request_model.dart';
+import '../providers/record_provider.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -28,6 +30,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   double _distance = 0.0;
   int _calories = 0;
   double _pace = 0.0;
+  DateTime? _startTime;
 
   // Selected activity type
   String _activityType = 'Running';
@@ -274,73 +277,163 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _toggleRecording() {
+    if (_isRecording) {
+      // Finishing recording
+      _finishRecording();
+    } else {
+      // Starting recording
+      _startRecording();
+    }
+  }
+
+  void _startRecording() {
     setState(() {
-      _isRecording = !_isRecording;
-      _isPaused = false; // Reset pause state when toggling recording
+      _isRecording = true;
+      _isPaused = false;
+      _startTime = DateTime.now();
 
-      if (_isRecording) {
-        _pulseController.forward();
-        _initialSteps = 0; // Adım sayacını sıfırla
+      _pulseController.forward();
+      _initialSteps = 0;
 
-        // Start timer
-        _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          setState(() {
-            _seconds++;
+      // Start timer
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _seconds++;
 
-            // Kalori hesaplamasını basitleştirilmiş şekilde yap
-            // Gerçek uygulamada kullanıcının ağırlığı, hızı vb. faktörlere dayalı olmalı
-            if (_seconds % 10 == 0) {
-              _calories = (_distance * 60).toInt(); // Basit bir formül
+          // Simple calorie calculation (in a real app, this should be based on user weight, speed, etc.)
+          if (_seconds % 10 == 0) {
+            _calories = (_distance * 60).toInt();
 
-              // Hız hesapla (km/sa)
-              _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
-            }
-          });
+            // Calculate pace (km/h)
+            _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
+          }
         });
+      });
 
-        // GPS takibi başlat
-        _startLocationTracking();
-      } else {
-        _pulseController.stop();
-        _pulseController.reset();
-
-        // Stop timer
-        _timer?.cancel();
-
-        // GPS takibini durdur
-        _stopLocationTracking();
-
-        // Aktivite verileri sıfırla
-        _seconds = 0;
-        _distance = 0.0;
-        _calories = 0;
-        _pace = 0.0;
-        _steps = 0;
-
-        // Harita rota verilerini temizle
-        _routeCoordinates = [];
-        _polylines = {};
-
-        // Mevcut konum marker'ı dışındaki marker'ları temizle
-        if (_currentPosition != null) {
-          _markers = {
-            Marker(
-              markerId: const MarkerId('currentLocation'),
-              position: LatLng(
-                  _currentPosition!.latitude, _currentPosition!.longitude),
-              infoWindow: const InfoWindow(title: 'Konumunuz'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueGreen),
-            )
-          };
-        } else {
-          _markers = {};
-        }
-
-        // Güncel konumu tekrar alarak haritayı mevcut konuma getir
-        _getCurrentLocation();
-      }
+      // Start GPS tracking
+      _startLocationTracking();
     });
+  }
+
+  void _finishRecording() {
+    // Save final values before resetting
+    final int finalDuration = _seconds;
+    final double finalDistance = _distance;
+    final int finalCalories = _calories;
+    final int finalSteps = _steps;
+    final int averageSpeed = _pace.toInt();
+    final DateTime recordStartTime = _startTime ?? DateTime.now();
+
+    // Create and submit the record request
+    _submitRecordData(
+      duration: finalDuration,
+      distance: finalDistance,
+      calories: finalCalories,
+      steps: finalSteps.toDouble(),
+      averageSpeed: averageSpeed,
+      startTime: recordStartTime,
+    );
+
+    setState(() {
+      _isRecording = false;
+      _pulseController.stop();
+      _pulseController.reset();
+
+      // Stop timer
+      _timer?.cancel();
+
+      // Stop GPS tracking
+      _stopLocationTracking();
+
+      // Reset activity data
+      _seconds = 0;
+      _distance = 0.0;
+      _calories = 0;
+      _pace = 0.0;
+      _steps = 0;
+      _startTime = null;
+
+      // Clear map route data
+      _routeCoordinates = [];
+      _polylines = {};
+
+      // Clear markers except current location
+      if (_currentPosition != null) {
+        _markers = {
+          Marker(
+            markerId: const MarkerId('currentLocation'),
+            position:
+                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+            infoWindow: const InfoWindow(title: 'Konumunuz'),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueGreen),
+          )
+        };
+      } else {
+        _markers = {};
+      }
+
+      // Get current location again and center map on it
+      _getCurrentLocation();
+    });
+  }
+
+  void _submitRecordData({
+    required int duration,
+    required double distance,
+    required int calories,
+    required double steps,
+    required int averageSpeed,
+    required DateTime startTime,
+  }) {
+    final recordRequest = RecordRequestModel(
+      duration: duration,
+      distance: distance,
+      calories: calories,
+      steps: steps,
+      averageSpeed: averageSpeed,
+      startTime: startTime,
+    );
+
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saving your activity...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Submit data to backend
+      ref.read(recordSubmissionProvider(recordRequest).future).then(
+        (response) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Activity saved successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
+        onError: (error) {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save activity: ${error.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // Duraklatma/devam etme fonksiyonu

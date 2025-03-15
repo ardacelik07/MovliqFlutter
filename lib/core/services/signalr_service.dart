@@ -88,7 +88,8 @@ class SignalRService {
 
     try {
       // Hub URL oluşturma - API_Config'deki baseUrl'i kullanarak SignalR hub URL'ini oluştur
-      final hubUrl = 'http://movliq.mehmetalicakir.tr:5000/racehub';
+      final hubUrl =
+          'https://23c703a9-aeb4-4a19-bcd9-1bb5a82788de-00-35bgx6xr95c1e.sisko.replit.dev/racehub';
 
       // Hub bağlantısını başlat
       _hubConnection = HubConnectionBuilder()
