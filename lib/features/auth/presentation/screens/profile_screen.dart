@@ -9,6 +9,7 @@ import '../../../../core/services/storage_service.dart';
 import 'dart:convert';
 import '../../../../features/auth/domain/models/user_data_model.dart';
 import '../../../../features/auth/presentation/providers/user_data_provider.dart';
+import 'package:flutter/painting.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -18,177 +19,11 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  String? _profileImageUrl;
-  bool _isUploading = false;
-
   @override
   void initState() {
     super.initState();
-    // Profil fotoğrafını yükle
-    _loadProfileImage();
-  }
-
-  // Profil fotoğrafını yükle
-  Future<void> _loadProfileImage() async {
-    try {
-      // Token al
-      final tokenJson = await StorageService.getToken();
-      if (tokenJson == null) return;
-
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
-
-      // API'den kullanıcı bilgilerini al
-      final response = await http.get(
-        Uri.parse('http://movliq.mehmetalicakir.tr:5000/api/User/profile'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final userData = jsonDecode(response.body);
-        if (userData != null && userData['profilePictureUrl'] != null) {
-          setState(() {
-            _profileImageUrl = userData['profilePictureUrl'];
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Profil fotoğrafı yüklenirken hata: $e');
-    }
-  }
-
-  // Profil fotoğrafı seçme ve yükleme işlemi
-  Future<void> _selectAndUploadProfileImage() async {
-    try {
-      // Fotoğraf kaynağını seçme iletişim kutusu göster
-      final source = await showDialog<ImageSource>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Profil Fotoğrafı'),
-          content: const Text('Fotoğraf kaynağını seçin'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, ImageSource.gallery),
-              child: const Text('Galeri'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, ImageSource.camera),
-              child: const Text('Kamera'),
-            ),
-          ],
-        ),
-      );
-
-      if (source == null) return;
-
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
-
-      if (image == null) return;
-
-      setState(() {
-        _isUploading = true;
-      });
-
-      // Token al
-      final tokenJson = await StorageService.getToken();
-      if (tokenJson == null) {
-        _showErrorMessage(
-            'Oturum bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
-        setState(() {
-          _isUploading = false;
-        });
-        return;
-      }
-
-      // API'ye fotoğrafı yükle
-      final response = await _uploadProfileImage(image.path, tokenJson);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        // Profil verilerini yenile
-        await ref.read(userDataProvider.notifier).fetchUserData();
-
-        _showSuccessMessage('Profil fotoğrafı başarıyla güncellendi');
-
-        // Başarılı olduğunda da _isUploading değişkenini false yap
-        if (mounted) {
-          setState(() {
-            _isUploading = false;
-          });
-        }
-      } else {
-        _showErrorMessage('Profil fotoğrafı yüklenirken bir hata oluştu');
-        setState(() {
-          _isUploading = false;
-        });
-      }
-    } catch (e) {
-      _showErrorMessage('Hata: $e');
-      setState(() {
-        _isUploading = false;
-      });
-    } finally {
-      // Herhangi bir hata durumunda veya işlem bittiğinde _isUploading'i false yap
-      if (mounted) {
-        setState(() {
-          _isUploading = false;
-        });
-      }
-    }
-  }
-
-  // Profil fotoğrafını API'ye yükle
-  Future<http.Response> _uploadProfileImage(
-      String imagePath, String tokenJson) async {
-    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-    final String token = tokenData['token'];
-
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse(
-          'http://movliq.mehmetalicakir.tr:5000/api/User/upload-profile-picture'),
-    );
-
-    request.headers.addAll({
-      'Authorization': 'Bearer $token',
-    });
-
-    request.files.add(
-      await http.MultipartFile.fromPath('profilePicture', imagePath),
-    );
-
-    var streamedResponse = await request.send();
-    return await http.Response.fromStream(streamedResponse);
-  }
-
-  void _showErrorMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  void _showSuccessMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
-    );
+    // Profil verisini yükleme işlemi başlatılıyor
+    Future.microtask(() => ref.read(userDataProvider.notifier).fetchUserData());
   }
 
   @override
@@ -204,8 +39,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             stops: [0.0, 1.0],
             end: Alignment.bottomCenter,
             colors: [
-              Color.fromARGB(255, 230, 231, 228),
               Color(0xFFC4FF62),
+              Color.fromARGB(255, 72, 108, 14),
             ],
           ),
         ),
@@ -219,18 +54,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // Veri başarıyla yüklendiyse, yükleme göstergesini kapat
-              if (_isUploading) {
-                Future.microtask(() {
-                  if (mounted) {
-                    setState(() {
-                      _isUploading = false;
-                    });
-                  }
-                });
-              }
-
-              // Provider'dan alınan verilerle UI'ı oluştur
+              // Veri başarıyla yüklendiyse UI'ı oluştur
               return SingleChildScrollView(
                 child: Column(
                   children: [
@@ -284,74 +108,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           left: 20,
                           child: Row(
                             children: [
-                              // Profil fotoğrafı
-                              GestureDetector(
-                                onTap: _selectAndUploadProfileImage,
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      width: 80,
-                                      height: 80,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 3,
-                                        ),
-                                        image:
-                                            userData.profilePictureUrl != null
-                                                ? DecorationImage(
-                                                    image: NetworkImage(userData
-                                                        .profilePictureUrl!),
-                                                    fit: BoxFit.cover,
-                                                  )
-                                                : const DecorationImage(
-                                                    image: AssetImage(
-                                                        'assets/images/runningman.png'),
-                                                    fit: BoxFit.cover,
-                                                  ),
-                                      ),
-                                      child: _isUploading
-                                          ? Container(
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: Colors.black
-                                                    .withOpacity(0.5),
-                                              ),
-                                              child: const Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  color: Colors.white,
-                                                  strokeWidth: 3,
-                                                ),
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                    Positioned(
-                                      right: 0,
-                                      bottom: 0,
-                                      child: Container(
-                                        width: 28,
-                                        height: 28,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFC4FF62),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.camera_alt,
-                                          color: Colors.black,
-                                          size: 16,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              // Profil fotoğrafı - artık kendi widget'ını kullanıyoruz
+                              ProfilePictureWidget(userData: userData),
                               const SizedBox(width: 16),
                               // İsim ve kullanıcı adı
                               Column(
@@ -518,7 +276,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       FlSpot(6, 4),
                                     ],
                                     isCurved: true,
-                                    color: Colors.green,
+                                    color: const Color.fromARGB(
+                                        255, 255, 255, 255),
                                     barWidth: 3,
                                     dotData: const FlDotData(show: true),
                                   ),
@@ -770,6 +529,293 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const Icon(Icons.chevron_right, color: Colors.grey),
         ],
       ),
+    );
+  }
+}
+
+class ProfilePictureWidget extends StatefulWidget {
+  final UserDataModel userData;
+
+  const ProfilePictureWidget({
+    super.key,
+    required this.userData,
+  });
+
+  @override
+  State<ProfilePictureWidget> createState() => _ProfilePictureWidgetState();
+}
+
+class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
+  bool _isUploading = false;
+  File? _localImageFile;
+  Key _imageKey = UniqueKey();
+
+  Future<void> _selectAndUploadProfileImage(
+      BuildContext context, WidgetRef ref) async {
+    try {
+      final source = await showDialog<ImageSource>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Profil Fotoğrafı'),
+          content: const Text('Fotoğraf kaynağını seçin'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, ImageSource.gallery),
+              child: const Text('Galeri'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, ImageSource.camera),
+              child: const Text('Kamera'),
+            ),
+          ],
+        ),
+      );
+
+      if (source == null) return;
+
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      _localImageFile = File(image.path);
+
+      setState(() {
+        _isUploading = true;
+        _imageKey = UniqueKey();
+      });
+
+      final tokenJson = await StorageService.getToken();
+      if (tokenJson == null) {
+        _showErrorMessage(
+            context, 'Oturum bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
+        setState(() {
+          _isUploading = false;
+          _localImageFile = null;
+        });
+        return;
+      }
+
+      final response = await _uploadProfileImage(image.path, tokenJson);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+
+        final userData = ref.read(userDataProvider).value;
+        if (userData != null) {
+          final updatedUserData = UserDataModel(
+              id: userData.id,
+              name: userData.name,
+              surname: userData.surname,
+              userName: userData.userName,
+              email: userData.email,
+              phoneNumber: userData.phoneNumber,
+              address: userData.address,
+              age: userData.age,
+              height: userData.height,
+              weight: userData.weight,
+              gender: userData.gender,
+              profilePicturePath:
+                  data['profilePictureUrl'] ?? userData.profilePicturePath,
+              runprefer: userData.runprefer,
+              active: userData.active,
+              isActive: userData.isActive,
+              distancekm: userData.distancekm,
+              steps: userData.steps,
+              rank: userData.rank,
+              generalRank: userData.generalRank,
+              birthday: userData.birthday,
+              createdAt: userData.createdAt);
+
+          ref.read(userDataProvider.notifier).updateUserData(updatedUserData);
+        }
+
+        _showSuccessMessage(context, 'Profil fotoğrafı başarıyla güncellendi');
+
+        setState(() {
+          _imageKey = UniqueKey();
+        });
+      } else {
+        _showErrorMessage(
+            context, 'Profil fotoğrafı yüklenirken bir hata oluştu');
+        _localImageFile = null;
+      }
+    } catch (e) {
+      _showErrorMessage(context, 'Hata: $e');
+      _localImageFile = null;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  Future<http.Response> _uploadProfileImage(
+      String imagePath, String tokenJson) async {
+    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+    final String token = tokenData['token'];
+
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse(
+          'http://movliq.mehmetalicakir.tr:5000/api/User/upload-profile-picture'),
+    );
+
+    request.headers.addAll({
+      'Authorization': 'Bearer $token',
+    });
+
+    request.files.add(
+      await http.MultipartFile.fromPath('profilePicture', imagePath),
+    );
+
+    var streamedResponse = await request.send();
+    return await http.Response.fromStream(streamedResponse);
+  }
+
+  void _showErrorMessage(BuildContext context, String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _showSuccessMessage(BuildContext context, String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final userDataAsync = ref.watch(userDataProvider);
+
+        final UserDataModel currentUserData = userDataAsync.maybeWhen(
+          data: (userData) => userData ?? widget.userData,
+          orElse: () => widget.userData,
+        );
+
+        final profileUrl = currentUserData.profilePictureUrl;
+
+        final imageProvider = _localImageFile != null
+            ? FileImage(_localImageFile!) as ImageProvider
+            : (profileUrl != null
+                ? NetworkImage(
+                    "$profileUrl?nocache=${DateTime.now().millisecondsSinceEpoch}_${UniqueKey().toString()}")
+                : const AssetImage('assets/images/runningman.png')
+                    as ImageProvider);
+
+        return GestureDetector(
+          onTap: () => _selectAndUploadProfileImage(context, ref),
+          child: Stack(
+            children: [
+              Container(
+                key: _imageKey,
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 3,
+                  ),
+                ),
+                child: _isUploading
+                    ? Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withOpacity(0.5),
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                      )
+                    : ClipOval(
+                        child: Image(
+                          key: ValueKey(profileUrl),
+                          image: imageProvider,
+                          fit: BoxFit.cover,
+                          width: 80,
+                          height: 80,
+                          gaplessPlayback: true,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey[300],
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 80,
+                              height: 80,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                image: DecorationImage(
+                                  image: AssetImage(
+                                      'assets/images/runningman.png'),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC4FF62),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: Colors.black,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

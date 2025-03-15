@@ -478,7 +478,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                 MaterialPageRoute(
                   builder: (context) => RaceScreen(
                     roomId: widget.roomId,
-                    myUsername: _myUsername,        
+                    myUsername: _myUsername,
                     raceDuration: ref.read(raceSettingsProvider).duration,
                     profilePictureCache: Map<String, String?>.from(
                         _profilePictureCache), // Cache'i burada da ekliyoruz

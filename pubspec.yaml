@@ -91,6 +91,8 @@ flutter:
     - assets/images/runningclock.png
     - assets/images/waitingman.png
     - assets/images/record.png
+    - assets/images/indoorfilterbckgrnd.jpg
+    - assets/images/outdoorfilterbckgrnd.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
