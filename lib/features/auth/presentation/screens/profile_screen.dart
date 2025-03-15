@@ -40,8 +40,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       // API'den kullanıcı bilgilerini al
       final response = await http.get(
-        Uri.parse(
-            'https://9fa01592-3c70-4909-a300-563d3a7c8103-00-3761b1o31qp21.sisko.replit.dev/api/User/profile'),
+        Uri.parse('http://movliq.mehmetalicakir.tr:5000/api/User/profile'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -120,6 +119,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         await ref.read(userDataProvider.notifier).fetchUserData();
 
         _showSuccessMessage('Profil fotoğrafı başarıyla güncellendi');
+
+        // Başarılı olduğunda da _isUploading değişkenini false yap
+        if (mounted) {
+          setState(() {
+            _isUploading = false;
+          });
+        }
       } else {
         _showErrorMessage('Profil fotoğrafı yüklenirken bir hata oluştu');
         setState(() {
@@ -131,6 +137,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       setState(() {
         _isUploading = false;
       });
+    } finally {
+      // Herhangi bir hata durumunda veya işlem bittiğinde _isUploading'i false yap
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 
@@ -143,7 +156,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     var request = http.MultipartRequest(
       'POST',
       Uri.parse(
-          'https://9fa01592-3c70-4909-a300-563d3a7c8103-00-3761b1o31qp21.sisko.replit.dev/api/User/upload-profile-picture'),
+          'http://movliq.mehmetalicakir.tr:5000/api/User/upload-profile-picture'),
     );
 
     request.headers.addAll({
@@ -204,6 +217,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Future.microtask(
                     () => ref.read(userDataProvider.notifier).fetchUserData());
                 return const Center(child: CircularProgressIndicator());
+              }
+
+              // Veri başarıyla yüklendiyse, yükleme göstergesini kapat
+              if (_isUploading) {
+                Future.microtask(() {
+                  if (mounted) {
+                    setState(() {
+                      _isUploading = false;
+                    });
+                  }
+                });
               }
 
               // Provider'dan alınan verilerle UI'ı oluştur

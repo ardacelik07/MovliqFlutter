@@ -18,12 +18,14 @@ class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
   final String? myUsername;
   final int? raceDuration; // Minutes
+  final Map<String, String?> profilePictureCache; // Cache parametresini ekledik
 
   const RaceScreen({
     super.key,
     required this.roomId,
     this.myUsername,
     this.raceDuration,
+    required this.profilePictureCache, // Constructor'a ekledik
   });
 
   @override
@@ -608,11 +610,14 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemBuilder: (context, index) {
                             final participant = _leaderboard[index];
-                            final bool isMe = participant.email == _myEmail;
+                            final isMe = participant.email == _myEmail;
 
                             return ParticipantTile(
                               participant: participant,
                               isMe: isMe,
+                              profilePictureUrl: widget.profilePictureCache[
+                                  participant
+                                      .userName], // Cache'den profil fotoğrafını al
                             );
                           },
                         ),
@@ -808,11 +813,13 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 class ParticipantTile extends StatelessWidget {
   final RaceParticipant participant;
   final bool isMe;
+  final String? profilePictureUrl; // Profil fotoğrafı URL'i ekledik
 
   const ParticipantTile({
     super.key,
     required this.participant,
     this.isMe = false,
+    this.profilePictureUrl, // Constructor'a ekledik
   });
 
   @override
@@ -854,15 +861,21 @@ class ParticipantTile extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 22,
                     backgroundColor: Colors.white,
-                    child: Text(
-                      participant.userName[0].toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            participant.rank <= 3 ? rankColor : Colors.black54,
-                      ),
-                    ),
+                    backgroundImage: profilePictureUrl != null
+                        ? NetworkImage(profilePictureUrl!)
+                        : null,
+                    child: profilePictureUrl == null
+                        ? Text(
+                            participant.userName[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: participant.rank <= 3
+                                  ? rankColor
+                                  : Colors.black54,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
 
