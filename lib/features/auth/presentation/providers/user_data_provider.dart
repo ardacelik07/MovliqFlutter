@@ -16,6 +16,7 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
       final tokenJson = await StorageService.getToken();
       if (tokenJson == null) {
         state = AsyncValue.error("Token bulunamadı", StackTrace.current);
+        print("❌ UserDataProvider: Token bulunamadı");
         return;
       }
 
@@ -30,16 +31,26 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
         },
       );
 
+      print("📊 UserDataProvider: API yanıtı - Status ${response.statusCode}");
+
       if (response.statusCode == 200) {
         final userData = jsonDecode(response.body);
+        print(
+            "✅ UserDataProvider: Veri başarıyla alındı ${userData['userName']}");
+
         final userDataModel = UserDataModel.fromJson(userData);
         state = AsyncValue.data(userDataModel);
+        print("✅ UserDataProvider: State güncellendi, yeni veri ile");
       } else {
+        print(
+            "❌ UserDataProvider: Profil verileri alınamadı - HTTP ${response.statusCode}");
+        print("❌ Yanıt: ${response.body}");
         state = AsyncValue.error(
             "Profil bilgileri alınamadı: ${response.statusCode}",
             StackTrace.current);
       }
     } catch (e, stackTrace) {
+      print("❌ UserDataProvider: Hata: $e");
       state = AsyncValue.error(e, stackTrace);
     }
   }

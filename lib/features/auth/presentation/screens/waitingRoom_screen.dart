@@ -246,18 +246,49 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         _isConnected = signalRService.isConnected;
       });
 
+      // Kullanıcı ayrılma olayını dinle
+      _subscriptions.add(signalRService.userLeftStream.listen((leftUserName) {
+        if (!mounted || _isRaceStarting) return;
+
+        debugPrint('👋 Kullanıcı ayrıldı: $leftUserName');
+
+        setState(() {
+          // Katılımcı listesinden kullanıcıyı kaldır
+          _participants =
+              _participants.where((p) => p.userName != leftUserName).toList();
+          // Önbellekten de profil fotoğrafını kaldır
+          _profilePictureCache.remove(leftUserName);
+        });
+
+        _showInfoMessage('$leftUserName odadan ayrıldı');
+      }));
+
       // Mevcut oda katılımcılarını dinle
       _subscriptions
           .add(signalRService.roomParticipantsStream.listen((participants) {
-        if (!mounted || _isRaceStarting)
-          return; // Eğer yarış başlama süreci başladıysa çıkış yap
+        if (!mounted || _isRaceStarting) return;
 
         debugPrint('🏠 WaitingRoom - Katılımcı Listesi Alındı');
         debugPrint(
             '📋 Gelen Katılımcılar: ${participants.map((p) => p.userName).join(", ")}');
         debugPrint('📊 Toplam Katılımcı Sayısı: ${participants.length}');
 
-        _updateParticipantsList(participants);
+        setState(() {
+          _participants = List<RoomParticipant>.from(participants);
+
+          // Önbellekteki eski kullanıcıları temizle
+          final currentUsernames = participants.map((p) => p.userName).toSet();
+          _profilePictureCache.removeWhere(
+              (username, _) => !currentUsernames.contains(username));
+
+          // Yeni kullanıcıların fotoğraflarını önbelleğe al
+          for (var participant in participants) {
+            if (participant.profilePictureUrl != null) {
+              _profilePictureCache[participant.userName] =
+                  participant.profilePictureUrl;
+            }
+          }
+        });
 
         // Yeni katılan kullanıcıyı belirle
         if (participants.isNotEmpty &&
@@ -266,7 +297,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             _lastJoinedUser = participants.last.userName;
           });
 
-          // 3 saniye sonra yeni katılan kullanıcı vurgusunu kaldır
           Future.delayed(const Duration(seconds: 3), () {
             if (mounted) {
               setState(() {
@@ -275,16 +305,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             }
           });
         }
-
-        // Oda maksimum katılımcı sayısına ulaştı mı kontrol edelim - Burada 3 kişi olarak değiştirildi
-        //const int maxParticipants = 3;
-        //if (participants.length >= maxParticipants) {
-        //debugPrint(
-        //'🔄 Oda doldu (${participants.length} kişi)! Otomatik yarış başlatılıyor...');
-
-        // Standart yarış başlama süreci - tüm telefonlarda aynı süre
-        //_startRaceCountdown(10); // Tüm telefonlarda 4 saniye bekle
-        //}
       }));
 
       // Yarış başlama olayını dinle ve geri sayım süresi sonunda otomatik geçiş yap
@@ -330,17 +350,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       //   }
       // });
       //}));
-      // Kullanıcı katılma/ayrılma olaylarını dinle
-
-      //  _subscriptions.add(signalRService.userLeftStream.listen((username) {
-      //    if (!mounted) return; // Mounted kontrolü
-
-      //    debugPrint('Kullanıcı ayrıldı: $username');
-      //    setState(() {
-      //     _participants.remove(username);
-      //   });
-      //  _showInfoMessage('$username odadan ayrıldı');
-      // }));
     } catch (e) {
       debugPrint('SignalR bağlantı hatası: $e');
       _showErrorMessage('SignalR bağlantı hatası: $e');
@@ -443,45 +452,21 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       }
     }
 
-    // Son bir kontrol yapalım
-    if (_myUsername == null) {
-      debugPrint('🚀 11. Tüm denemelere rağmen kullanıcı adı alınamadı!');
-      _showErrorMessage('Kullanıcı adı alınamadı, lütfen tekrar giriş yapın');
-      return;
-    }
-
-    // Geçiş sırasında hata oluşmaması için bir kontrol daha ekleyelim
-    if (!mounted) {
-      debugPrint('🚫 Widget artık mounted değil. Geçiş iptal edildi.');
-      return;
-    }
-
-    debugPrint(
-        '🚀 12. RaceScreen\'e geçiş yapılıyor, kullanıcı adı: $_myUsername');
-
-    // Mevcut bildirimleri temizle
-    if (mounted) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-    }
-
-    // Geçiş işlemine başladıysak bir flag ile kontrol et
-    bool navigationStarted = false;
-
-    if (mounted && !navigationStarted) {
-      navigationStarted = true;
-
+    if (mounted && _isRaceStarting) {
+      debugPrint('🚀 11. RaceScreen\'e geçiş yapılıyor');
       try {
-        debugPrint('🚀 13. Navigator.pushReplacement çağrılıyor...');
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (context) => RaceScreen(
               roomId: widget.roomId,
               myUsername: _myUsername,
               raceDuration: ref.read(raceSettingsProvider).duration,
+              profilePictureCache: Map<String, String?>.from(
+                  _profilePictureCache), // Cache'i burada da ekliyoruz
             ),
           ),
+          (route) => false,
         );
-        debugPrint('🚀 14. RaceScreen\'e geçiş tamamlandı');
       } catch (e) {
         debugPrint('🚨 RaceScreen\'e geçiş sırasında hata: $e');
         // Tekrar deneme mekanizması
@@ -495,6 +480,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                     roomId: widget.roomId,
                     myUsername: _myUsername,
                     raceDuration: ref.read(raceSettingsProvider).duration,
+                    profilePictureCache: Map<String, String?>.from(
+                        _profilePictureCache), // Cache'i burada da ekliyoruz
                   ),
                 ),
                 (route) => false,

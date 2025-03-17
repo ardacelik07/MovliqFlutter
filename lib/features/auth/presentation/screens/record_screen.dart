@@ -7,6 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:flutter/foundation.dart';
+import '../../domain/models/record_request_model.dart';
+import '../providers/record_provider.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -18,6 +20,7 @@ class RecordScreen extends ConsumerStatefulWidget {
 class _RecordScreenState extends ConsumerState<RecordScreen>
     with SingleTickerProviderStateMixin {
   bool _isRecording = false;
+  bool _isPaused = false;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -27,6 +30,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   double _distance = 0.0;
   int _calories = 0;
   double _pace = 0.0;
+  DateTime? _startTime;
 
   // Selected activity type
   String _activityType = 'Running';
@@ -273,40 +277,198 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _toggleRecording() {
+    if (_isRecording) {
+      // Finishing recording
+      _finishRecording();
+    } else {
+      // Starting recording
+      _startRecording();
+    }
+  }
+
+  void _startRecording() {
     setState(() {
-      _isRecording = !_isRecording;
+      _isRecording = true;
+      _isPaused = false;
+      _startTime = DateTime.now();
 
-      if (_isRecording) {
+      _pulseController.forward();
+      _initialSteps = 0;
+
+      // Start timer
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _seconds++;
+
+          // Simple calorie calculation (in a real app, this should be based on user weight, speed, etc.)
+          if (_seconds % 10 == 0) {
+            _calories = (_distance * 60).toInt();
+
+            // Calculate pace (km/h)
+            _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
+          }
+        });
+      });
+
+      // Start GPS tracking
+      _startLocationTracking();
+    });
+  }
+
+  void _finishRecording() {
+    // Save final values before resetting
+    final int finalDuration = _seconds;
+    final double finalDistance = _distance;
+    final int finalCalories = _calories;
+    final int finalSteps = _steps;
+    final int averageSpeed = _pace.toInt();
+    final DateTime recordStartTime = _startTime ?? DateTime.now();
+
+    // Create and submit the record request
+    _submitRecordData(
+      duration: finalDuration,
+      distance: finalDistance,
+      calories: finalCalories,
+      steps: finalSteps.toDouble(),
+      averageSpeed: averageSpeed,
+      startTime: recordStartTime,
+    );
+
+    setState(() {
+      _isRecording = false;
+      _pulseController.stop();
+      _pulseController.reset();
+
+      // Stop timer
+      _timer?.cancel();
+
+      // Stop GPS tracking
+      _stopLocationTracking();
+
+      // Reset activity data
+      _seconds = 0;
+      _distance = 0.0;
+      _calories = 0;
+      _pace = 0.0;
+      _steps = 0;
+      _startTime = null;
+
+      // Clear map route data
+      _routeCoordinates = [];
+      _polylines = {};
+
+      // Clear markers except current location
+      if (_currentPosition != null) {
+        _markers = {
+          Marker(
+            markerId: const MarkerId('currentLocation'),
+            position:
+                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+            infoWindow: const InfoWindow(title: 'Konumunuz'),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueGreen),
+          )
+        };
+      } else {
+        _markers = {};
+      }
+
+      // Get current location again and center map on it
+      _getCurrentLocation();
+    });
+  }
+
+  void _submitRecordData({
+    required int duration,
+    required double distance,
+    required int calories,
+    required double steps,
+    required int averageSpeed,
+    required DateTime startTime,
+  }) {
+    final recordRequest = RecordRequestModel(
+      duration: duration,
+      distance: distance,
+      calories: calories,
+      steps: steps,
+      averageSpeed: averageSpeed,
+      startTime: startTime,
+    );
+
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saving your activity...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Submit data to backend
+      ref.read(recordSubmissionProvider(recordRequest).future).then(
+        (response) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Activity saved successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
+        onError: (error) {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save activity: ${error.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Duraklatma/devam etme fonksiyonu
+  void _togglePause() {
+    setState(() {
+      _isPaused = !_isPaused;
+
+      if (_isPaused) {
+        // Pause recording
+        _pulseController.stop();
+
+        // Pause timer
+        _timer?.cancel();
+
+        // Pause location tracking
+        _stopLocationTracking();
+      } else {
+        // Resume recording
         _pulseController.forward();
-        _initialSteps = 0; // Adım sayacını sıfırla
 
-        // Start timer
+        // Resume timer
         _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
           setState(() {
             _seconds++;
 
-            // Kalori hesaplamasını basitleştirilmiş şekilde yap
-            // Gerçek uygulamada kullanıcının ağırlığı, hızı vb. faktörlere dayalı olmalı
+            // Kalori ve hız güncelleme
             if (_seconds % 10 == 0) {
-              _calories = (_distance * 60).toInt(); // Basit bir formül
-
-              // Hız hesapla (km/sa)
+              _calories = (_distance * 60).toInt();
               _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
             }
           });
         });
 
-        // GPS takibi başlat
+        // Resume location tracking
         _startLocationTracking();
-      } else {
-        _pulseController.stop();
-        _pulseController.reset();
-
-        // Stop timer
-        _timer?.cancel();
-
-        // GPS takibini durdur
-        _stopLocationTracking();
       }
     });
   }
@@ -355,14 +517,15 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       '$_activityType Activity',
                       style: const TextStyle(
-                        fontSize: 28,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
@@ -378,72 +541,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                 ),
               ),
 
-              // Activity Stats Preview
-              Container(
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(16.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Current Session',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatColumn(_formatTime(_seconds), 'Time'),
-                        _buildStatColumn(
-                            _distance.toStringAsFixed(2), 'Distance (km)'),
-                        _buildStatColumn('$_calories', 'Calories'),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Adım sayısı göstergesi
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildStatColumn('$_steps', 'Steps'),
-                      ],
-                    ),
-                    if (_isRecording) ...[
-                      const Divider(height: 24, color: Colors.grey),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildStatColumn(
-                              '${_pace.toStringAsFixed(1)} km/h', 'AVG PACE'),
-                          _buildStatColumn(
-                              _distance > 0
-                                  ? '${(_calories / _distance).toStringAsFixed(0)}'
-                                  : '0',
-                              'Cal/km'),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              // Google Maps instead of static image
+              // Google Maps with Stats Overlay
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
                   decoration: BoxDecoration(
                     color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(16.0),
@@ -460,12 +562,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                     child: _hasLocationPermission
                         ? Stack(
                             children: [
+                              // Map Layer
                               GoogleMap(
                                 mapType: MapType.normal,
                                 initialCameraPosition: _initialCameraPosition,
                                 myLocationEnabled: true,
                                 myLocationButtonEnabled: false,
                                 zoomControlsEnabled: false,
+                                compassEnabled: true,
                                 markers: _markers,
                                 polylines: _polylines,
                                 onMapCreated: (GoogleMapController controller) {
@@ -474,10 +578,86 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                   _getCurrentLocation();
                                 },
                               ),
+
+                              // Stats Overlay
+                              Positioned(
+                                top: 0,
+                                left: 12,
+                                right: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12.0, vertical: 8.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.85),
+                                    borderRadius: BorderRadius.circular(12.0),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Current Session',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceAround,
+                                        children: [
+                                          _buildStatColumn('$_steps', 'Steps'),
+                                          _buildStatColumn(
+                                              _distance.toStringAsFixed(2),
+                                              'Distance (km)'),
+                                          _buildStatColumn(
+                                              '$_calories', 'Calories'),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Adım sayısı göstergesi
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          _buildStatColumn(
+                                              _formatTime(_seconds), 'Time'),
+                                        ],
+                                      ),
+                                      if (_isRecording) ...[
+                                        const Divider(
+                                            height: 12, color: Colors.grey),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            _buildStatColumn(
+                                                '${_pace.toStringAsFixed(1)} km/h',
+                                                'AVG PACE'),
+                                            _buildStatColumn(
+                                                _distance > 0
+                                                    ? '${(_calories / _distance).toStringAsFixed(0)}'
+                                                    : '0',
+                                                'Cal/km'),
+                                          ],
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+
                               // Yeniden konum alma düğmesi
                               Positioned(
-                                right: 16,
-                                bottom: 16,
+                                right: 12,
+                                bottom: 12,
                                 child: FloatingActionButton(
                                   mini: true,
                                   backgroundColor: const Color(0xFFC4FF62),
@@ -519,55 +699,127 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                 ),
               ),
 
-              // Record Button
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: GestureDetector(
-                  onTap: _toggleRecording,
-                  child: AnimatedBuilder(
-                    animation: _pulseAnimation,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _isRecording ? _pulseAnimation.value : 1.0,
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _isRecording
-                                ? Colors.red
-                                : const Color(0xFFC4FF62),
-                            boxShadow: [
-                              BoxShadow(
-                                color: (_isRecording
+              // Record Button and Pause Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Record Button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16.0, horizontal: 8.0),
+                    child: GestureDetector(
+                      onTap: _toggleRecording,
+                      child: AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _isRecording && !_isPaused
+                                ? _pulseAnimation.value
+                                : 1.0,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 70,
+                                  height: 70,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _isRecording
                                         ? Colors.red
-                                        : const Color(0xFFC4FF62))
-                                    .withOpacity(0.5),
-                                blurRadius: _isRecording ? 20 : 10,
-                                spreadRadius: _isRecording ? 5 : 0,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            _isRecording
-                                ? Icons.stop
-                                : Icons.fiber_manual_record,
-                            color: Colors.black,
-                            size: 40,
-                          ),
-                        ),
-                      );
-                    },
+                                        : const Color(0xFFC4FF62),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: (_isRecording
+                                                ? Colors.red
+                                                : const Color(0xFFC4FF62))
+                                            .withOpacity(0.5),
+                                        blurRadius: _isRecording ? 20 : 10,
+                                        spreadRadius: _isRecording ? 5 : 0,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    _isRecording
+                                        ? Icons.stop
+                                        : Icons.fiber_manual_record,
+                                    color: Colors.black,
+                                    size: 35,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _isRecording ? 'Finish' : 'Record',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                ),
+
+                  // Pause Button - only visible when recording
+                  if (_isRecording)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 16.0, horizontal: 8.0),
+                      child: GestureDetector(
+                        onTap: _togglePause,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 70,
+                              height: 70,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _isPaused
+                                    ? const Color(0xFF4CAF50)
+                                    : Colors.amber,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: (_isPaused
+                                            ? const Color(0xFF4CAF50)
+                                            : Colors.amber)
+                                        .withOpacity(0.5),
+                                    blurRadius: 10,
+                                    spreadRadius: 0,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                _isPaused ? Icons.play_arrow : Icons.pause,
+                                color: Colors.black,
+                                size: 35,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _isPaused ? 'Resume' : 'Pause',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
 
               // Activity Type Selection
               Container(
                 margin: const EdgeInsets.only(
-                    bottom: 20.0, left: 16.0, right: 16.0),
+                    bottom: 16.0, left: 16.0, right: 16.0),
                 padding:
-                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(16.0),
@@ -606,14 +858,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         Text(
           value,
           style: const TextStyle(
-            fontSize: 24,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 10,
             color: Colors.grey,
           ),
         ),

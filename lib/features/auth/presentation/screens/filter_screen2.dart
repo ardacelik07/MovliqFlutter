@@ -15,7 +15,7 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
   String? _selectedLevel;
   bool _isLoading = false;
 
-  // Duration value map
+  // Duration value map - updated to match the UI in the image
   final Map<String, int> _durationMap = {
     'beginner': 1,
     'intermediate': 20,
@@ -25,63 +25,71 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 40),
-              Image.asset(
-                'assets/images/runningclock.png',
-                height: 200,
-              ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
               const Text(
-                "How many minutes you would like to run?",
+                "Koşu Süresi",
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Colors.white,
                 ),
-                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Hedef sürenizi seçin",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
               ),
               const SizedBox(height: 32),
-              _buildActivityOption(
-                '1',
-                'Just getting started',
-                Icons.directions_walk,
-                'beginner',
+              _buildDurationCard(
+                duration: "1",
+                description: "Hızlı antrenman",
+                value: 'beginner',
+                isPopular: false,
               ),
               const SizedBox(height: 16),
-              _buildActivityOption(
-                '20',
-                'Regular exercise',
-                Icons.favorite,
-                'intermediate',
+              _buildDurationCard(
+                duration: "20",
+                description: "Orta seviye antrenman",
+                value: 'intermediate',
+                isPopular: true,
               ),
               const SizedBox(height: 16),
-              _buildActivityOption(
-                '30',
-                'Consistent training',
-                Icons.fitness_center,
-                'advanced',
+              _buildDurationCard(
+                duration: "30",
+                description: "Uzun antrenman",
+                value: 'advanced',
+                isPopular: false,
               ),
-              const SizedBox(height: 32),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC4FF62),
-                        foregroundColor: const Color.fromARGB(255, 0, 0, 0),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: _selectedLevel != null
-                          ? () async {
+              const Spacer(),
+              if (_selectedLevel != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                                color: Color(0xFFC4FF62)))
+                        : ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFC4FF62),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () async {
                               try {
                                 setState(() {
                                   _isLoading = true;
@@ -142,10 +150,17 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                   _isLoading = false;
                                 });
                               }
-                            }
-                          : null,
-                      child: const Text('Next'),
-                    ),
+                            },
+                            child: const Text(
+                              'Devam',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -153,64 +168,100 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
     );
   }
 
-  Widget _buildActivityOption(
-    String title,
-    String subtitle,
-    IconData icon,
-    String value,
-  ) {
-    final isSelected = _selectedLevel == value;
-    return InkWell(
+  Widget _buildDurationCard({
+    required String duration,
+    required String description,
+    required String value,
+    required bool isPopular,
+  }) {
+    final bool isSelected = _selectedLevel == value;
+
+    return GestureDetector(
       onTap: () {
         setState(() {
           _selectedLevel = value;
         });
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        height: 100,
+        width: double.infinity,
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFC4FF62) : Colors.grey[100],
+          color: const Color(0xFF1F2922),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.black : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
+          border: isSelected
+              ? Border.all(color: const Color(0xFFC4FF62), width: 2.5)
+              : null,
         ),
-        child: Row(
+        child: Stack(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.black : Colors.grey,
-              size: 24,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Left side - Duration
                   Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
+                    duration,
+                    style: const TextStyle(
+                      color: Color(0xFFC4FF62),
+                      fontSize: 40,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.black : Colors.black,
                     ),
                   ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isSelected ? Colors.black : Colors.grey,
+                  const SizedBox(width: 8),
+                  // Middle - dakika & description
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "dakika",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          description,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  // Right side - Running icon
+                  const Icon(
+                    Icons.directions_run,
+                    color: Color(0xFFC4FF62),
+                    size: 24,
                   ),
                 ],
               ),
             ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: Colors.black,
-                size: 24,
+            if (isPopular)
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC4FF62).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    "Popüler",
+                    style: TextStyle(
+                      color: Color(0xFFC4FF62),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
           ],
         ),

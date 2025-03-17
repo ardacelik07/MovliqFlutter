@@ -16,91 +16,84 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 80),
-              Row(
-                children: [
-                  Expanded(
-                    child: Image.asset(
-                      'assets/images/runningman.png',
-                      height: 200,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Image.asset(
-                      'assets/images/runningwomen.png',
-                      height: 200,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
               const Text(
-                "Where do you prefer to run?",
+                "Koşu Türünü Seç",
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Colors.white,
                 ),
-                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Tercihini istediğin zaman değiştirebilirsin",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
               ),
               const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: _buildOptionButton(
-                      'Outdoor',
-                      Icons.landscape_outlined,
-                      'outdoor',
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildOptionButton(
-                      'Indoor',
-                      Icons.fitness_center_outlined,
-                      'indoor',
-                    ),
-                  ),
-                ],
+              _buildRunningOptionCard(
+                title: "İç Mekan Koşusu",
+                description: "Koşu bandında antrenman",
+                iconData: Icons.directions_run,
+                backgroundImage: "assets/images/indoorfilterbckgrnd.jpg",
+                value: "indoor",
               ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC4FF62),
-                  foregroundColor: const Color.fromARGB(255, 0, 0, 0),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                onPressed: _selectedPreference != null
-                    ? () {
-                        // Seçilen odayı provider'a kaydet
+              const SizedBox(height: 16),
+              _buildRunningOptionCard(
+                title: "Dış Mekan Koşusu",
+                description: "Açık havada koşu deneyimi",
+                iconData: Icons.terrain,
+                backgroundImage: "assets/images/outdoorfilterbckgrnd.jpg",
+                value: "outdoor",
+              ),
+              const Spacer(),
+              if (_selectedPreference != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC4FF62),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () {
+                        // Save the selected room type to provider
                         ref
                             .read(raceSettingsProvider.notifier)
                             .setRoomType(_selectedPreference!);
 
-                        // Sonraki ekrana geç
+                        // Navigate to the next screen
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
                               builder: (context) => const FilterScreen2()),
                         );
-                      }
-                    : null,
-                child: const Text('Next'),
-              ),
+                      },
+                      child: const Text(
+                        'Devam',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -108,46 +101,90 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
     );
   }
 
-  Widget _buildOptionButton(
-    String title,
-    IconData icon,
-    String value,
-  ) {
-    final isSelected = _selectedPreference == value;
-    return InkWell(
+  Widget _buildRunningOptionCard({
+    required String title,
+    required String description,
+    required IconData iconData,
+    required String backgroundImage,
+    required String value,
+  }) {
+    final bool isSelected = _selectedPreference == value;
+
+    return GestureDetector(
       onTap: () {
         setState(() {
           _selectedPreference = value;
         });
       },
       child: Container(
-        padding: const EdgeInsets.all(24),
+        height: 150,
+        width: double.infinity,
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFC4FF62) : Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFC4FF62) : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
+          border: isSelected
+              ? Border.all(color: const Color(0xFFC4FF62), width: 2.5)
+              : null,
+          image: DecorationImage(
+            image: AssetImage(backgroundImage),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              Colors.black.withOpacity(0.6),
+              BlendMode.darken,
+            ),
           ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.black : Colors.grey,
-              size: 32,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.black : Colors.grey,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Row(
+            children: [
+              // Left side - Icon
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC4FF62)
+                      .withOpacity(isSelected ? 0.4 : 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  iconData,
+                  color: const Color(0xFFC4FF62),
+                  size: 24,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 16),
+              // Middle - Title and Description
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Color(0xFFC4FF62),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Right side - Arrow
+              Icon(
+                Icons.arrow_forward,
+                color: const Color(0xFFC4FF62),
+                size: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );
