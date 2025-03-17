@@ -6,6 +6,7 @@ final leaderboardServiceProvider = Provider<LeaderboardService>((ref) {
   return LeaderboardService();
 });
 
+// Normal, non-auto-dispose sürümleri
 final indoorLeaderboardProvider =
     FutureProvider<List<LeaderboardIndoorDto>>((ref) async {
   final leaderboardService = ref.watch(leaderboardServiceProvider);

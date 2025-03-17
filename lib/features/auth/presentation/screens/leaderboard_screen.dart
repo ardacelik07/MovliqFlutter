@@ -3,11 +3,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/leaderboard_provider.dart';
 import '../../domain/models/leaderboard_model.dart';
 
-class LeaderboardScreen extends ConsumerWidget {
+class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LeaderboardScreen> createState() => _LeaderboardScreenState();
+}
+
+class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Ekran ilk açıldığında veriyi yükle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshCurrentLeaderboard();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  // Mevcut tab'a göre leaderboard'ı yenile
+  void _refreshCurrentLeaderboard() {
+    final isOutdoor = ref.read(isOutdoorSelectedProvider);
+
+    // Provider'ları yenilemek için invalidate yerine refresh kullanalım
+    if (isOutdoor) {
+      ref.refresh(outdoorLeaderboardProvider);
+    } else {
+      ref.refresh(indoorLeaderboardProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isOutdoorSelected = ref.watch(isOutdoorSelectedProvider);
 
     return Scaffold(
@@ -53,8 +84,13 @@ class LeaderboardScreen extends ConsumerWidget {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        ref.read(isOutdoorSelectedProvider.notifier).state =
-                            true;
+                        if (!isOutdoorSelected) {
+                          // Sadece tab değiştiğinde yeni istek at
+                          ref.read(isOutdoorSelectedProvider.notifier).state =
+                              true;
+                          // invalidate yerine refresh kullanalım
+                          ref.refresh(outdoorLeaderboardProvider);
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -81,8 +117,13 @@ class LeaderboardScreen extends ConsumerWidget {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        ref.read(isOutdoorSelectedProvider.notifier).state =
-                            false;
+                        if (isOutdoorSelected) {
+                          // Sadece tab değiştiğinde yeni istek at
+                          ref.read(isOutdoorSelectedProvider.notifier).state =
+                              false;
+                          // invalidate yerine refresh kullanalım
+                          ref.refresh(indoorLeaderboardProvider);
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -115,8 +156,8 @@ class LeaderboardScreen extends ConsumerWidget {
             // Leaderboard Content
             Expanded(
               child: isOutdoorSelected
-                  ? _buildOutdoorLeaderboard(ref)
-                  : _buildIndoorLeaderboard(ref),
+                  ? _buildOutdoorLeaderboard()
+                  : _buildIndoorLeaderboard(),
             ),
           ],
         ),
@@ -124,7 +165,7 @@ class LeaderboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOutdoorLeaderboard(WidgetRef ref) {
+  Widget _buildOutdoorLeaderboard() {
     final outdoorLeaderboardAsync = ref.watch(outdoorLeaderboardProvider);
 
     return outdoorLeaderboardAsync.when(
@@ -276,7 +317,7 @@ class LeaderboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildIndoorLeaderboard(WidgetRef ref) {
+  Widget _buildIndoorLeaderboard() {
     final indoorLeaderboardAsync = ref.watch(indoorLeaderboardProvider);
 
     return indoorLeaderboardAsync.when(

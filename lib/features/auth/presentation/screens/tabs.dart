@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_page.dart';
 import 'profile_screen.dart';
 import 'store_screen.dart';
 import 'record_screen.dart';
 import 'leaderboard_screen.dart';
+import '../providers/leaderboard_provider.dart';
 
-class TabsScreen extends StatefulWidget {
+class TabsScreen extends ConsumerStatefulWidget {
   const TabsScreen({super.key});
 
   @override
-  State<TabsScreen> createState() => _TabsScreenState();
+  ConsumerState<TabsScreen> createState() => _TabsScreenState();
 }
 
-class _TabsScreenState extends State<TabsScreen> {
+class _TabsScreenState extends ConsumerState<TabsScreen> {
   int _selectedIndex = 0;
+  int _previousIndex = 0;
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -24,7 +28,34 @@ class _TabsScreenState extends State<TabsScreen> {
   ];
 
   void _onItemTapped(int index) {
+    // Leaderboard tab'ine geçiş yapılıyorsa provider'ları temizle
+    if (index == 3 && _selectedIndex != 3) {
+      // Leaderboard ekranına geçildiğinde verileri yeniden yükle
+      // Önce state'i güncelle, sonra Future.microtask ile provider'ları yenile
+      setState(() {
+        _previousIndex = _selectedIndex;
+        _selectedIndex = index;
+      });
+
+      // Microtask ile widget ağacının güncellenmesinden sonra çalıştır
+      Future.microtask(() {
+        try {
+          final isOutdoor = ref.read(isOutdoorSelectedProvider);
+          if (isOutdoor) {
+            ref.refresh(outdoorLeaderboardProvider);
+          } else {
+            ref.refresh(indoorLeaderboardProvider);
+          }
+        } catch (e) {
+          debugPrint("Hata: $e");
+        }
+      });
+
+      return; // Aşağıdaki setState'i çalıştırma
+    }
+
     setState(() {
+      _previousIndex = _selectedIndex;
       _selectedIndex = index;
     });
   }
