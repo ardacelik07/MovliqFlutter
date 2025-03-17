@@ -8,6 +8,8 @@ class ApiConfig {
   static const String matchRoomEndpoint = '$baseUrl/User/match-room';
   static const String addUserRecordEndpoint =
       '$baseUrl/UserResults/add-user-record';
+  static const String leaderboardEndpoint =
+      '$baseUrl/LeaderBoard/GetAllLeaderboard';
 
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',

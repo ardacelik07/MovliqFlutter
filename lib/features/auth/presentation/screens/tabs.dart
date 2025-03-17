@@ -3,6 +3,7 @@ import 'home_page.dart';
 import 'profile_screen.dart';
 import 'store_screen.dart';
 import 'record_screen.dart';
+import 'leaderboard_screen.dart';
 
 class TabsScreen extends StatefulWidget {
   const TabsScreen({super.key});
@@ -18,7 +19,7 @@ class _TabsScreenState extends State<TabsScreen> {
     const HomePage(),
     const StoreScreen(),
     const RecordScreen(),
-    const Center(child: Text('Leaderboard')),
+    const LeaderboardScreen(),
     const ProfileScreen(),
   ];
 
