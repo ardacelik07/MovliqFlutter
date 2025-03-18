@@ -454,6 +454,13 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
     if (mounted && _isRaceStarting) {
       debugPrint('🚀 11. RaceScreen\'e geçiş yapılıyor');
+
+      // Yarış tipini belirle (indoor/outdoor)
+      final raceSettings = ref.read(raceSettingsProvider);
+      final bool isIndoorRace =
+          raceSettings.roomType?.toLowerCase().contains('indoor') ?? false;
+      debugPrint('🚀 Yarış tipi: ${isIndoorRace ? "Indoor" : "Outdoor"}');
+
       try {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
@@ -463,6 +470,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
               raceDuration: ref.read(raceSettingsProvider).duration,
               profilePictureCache: Map<String, String?>.from(
                   _profilePictureCache), // Cache'i burada da ekliyoruz
+              isIndoorRace: isIndoorRace, // Indoor/Outdoor tipini iletiyoruz
             ),
           ),
           (route) => false,
@@ -482,6 +490,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                     raceDuration: ref.read(raceSettingsProvider).duration,
                     profilePictureCache: Map<String, String?>.from(
                         _profilePictureCache), // Cache'i burada da ekliyoruz
+                    isIndoorRace:
+                        isIndoorRace, // Indoor/Outdoor tipini iletiyoruz
                   ),
                 ),
                 (route) => false,

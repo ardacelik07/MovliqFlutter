@@ -19,13 +19,15 @@ class RaceScreen extends ConsumerStatefulWidget {
   final String? myUsername;
   final int? raceDuration; // Minutes
   final Map<String, String?> profilePictureCache; // Cache parametresini ekledik
+  final bool isIndoorRace; // Indoor yarış tipini belirlemek için yeni parametre
 
   const RaceScreen({
     super.key,
     required this.roomId,
     this.myUsername,
     this.raceDuration,
-    required this.profilePictureCache, // Constructor'a ekledik
+    required this.profilePictureCache,
+    required this.isIndoorRace, // Constructor'a ekledik
   });
 
   @override
@@ -78,7 +80,13 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 
   // Tüm izinleri başlatan fonksiyon
   Future<void> _initPermissions() async {
-    // Konum servislerinin açık olup olmadığını kontrol et
+    // Indoor yarış ise sadece adım sayar izni al, GPS izni alma
+    if (widget.isIndoorRace) {
+      await _checkActivityPermission();
+      return;
+    }
+
+    // Outdoor yarış: konum servislerinin açık olup olmadığını kontrol et
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       // Konum servisleri kapalıysa, kullanıcıyı uyar
@@ -328,11 +336,21 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   }
 
   void _startLocationUpdates() {
+    // Indoor yarış ise konum takibini kesinlikle engelle
+    if (widget.isIndoorRace) {
+      debugPrint('🚫 Indoor yarış - GPS konum takibi tamamen devre dışı');
+      // Eğer bir şekilde başlatılmış olan konum takibi varsa durdur
+      _stopLocationUpdates();
+      return;
+    }
+
+    // Bundan sonraki kod sadece outdoor yarışlarda çalışacak
     if (!_hasLocationPermission) {
       _checkLocationPermission();
       return;
     }
 
+    // Normal konum takibi kodu...
     try {
       debugPrint('Konum takibi başlatılıyor...');
 
@@ -349,9 +367,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
             'Konum güncellendi: ${position.latitude}, ${position.longitude}');
 
         setState(() {
-          // Eski konum varsa, iki nokta arasındaki mesafeyi hesapla
-          // RecordScreen ile aynı mantık:
-          if (_currentPosition != null) {
+          // Indoor yarış değilse mesafe hesapla
+          if (!widget.isIndoorRace && _currentPosition != null) {
             double newDistance = Geolocator.distanceBetween(
               _currentPosition!.latitude,
               _currentPosition!.longitude,
@@ -359,13 +376,11 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               position.longitude,
             );
 
-            // ÖNEMLİ DEĞİŞİKLİK: RecordScreen'deki gibi kilometre cinsine çevirip ekle
             _myDistance += newDistance / 1000;
             debugPrint(
                 'Mesafe eklendi: ${newDistance / 1000} km. Toplam: $_myDistance km');
           }
 
-          // RecordScreen'de olduğu gibi doğrudan güncelle
           _currentPosition = position;
 
           // Konum güncellemesi gönder
@@ -388,11 +403,24 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     if (!_isConnected || !_isRaceActive) return;
 
     try {
+      double distanceToSend = 0.0; // Varsayılan değer her zaman 0
+
+      // Sadece outdoor yarışlarda gerçek mesafe değerini gönder
+      if (!widget.isIndoorRace) {
+        distanceToSend = _myDistance;
+      } else {
+        // Indoor yarışta mesafe değerini zorla 0 yap ve değişkeni de sıfırla
+        _myDistance = 0.0;
+      }
+
+      debugPrint(
+          '📊 Sunucuya gönderilen mesafe: $distanceToSend km (Indoor: ${widget.isIndoorRace})');
+
       await ref
           .read(signalRServiceProvider)
-          .updateLocation(widget.roomId, _myDistance, _mySteps);
+          .updateLocation(widget.roomId, distanceToSend, _mySteps);
     } catch (e) {
-      debugPrint('Konum güncellemesi gönderilirken hata: $e');
+      debugPrint('❌ Konum güncellemesi gönderilirken hata: $e');
     }
   }
 
@@ -407,6 +435,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
         builder: (context) => FinishRaceScreen(
           leaderboard: _leaderboard,
           myEmail: _myEmail,
+          isIndoorRace: widget.isIndoorRace, // Indoor yarış parametresini geçir
         ),
       ),
     );
@@ -537,23 +566,27 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                             ? Colors.red
                             : null,
                       ),
-                      _buildStatItem(
-                        icon: Icons.directions_run,
-                        value: _myDistance.toStringAsFixed(2),
-                        label: 'Mesafe (km)',
-                      ),
+                      // Indoor yarış tipinde mesafe (km) gösterme
+                      if (!widget.isIndoorRace)
+                        _buildStatItem(
+                          icon: Icons.directions_run,
+                          value: _myDistance.toStringAsFixed(2),
+                          label: 'Mesafe (km)',
+                        ),
                       _buildStatItem(
                         icon: Icons.directions_walk,
                         value: _mySteps.toString(),
                         label: 'Adım',
                       ),
-                      _buildStatItem(
-                        icon: Icons.speed,
-                        value: _mySteps > 0
-                            ? (_myDistance / _mySteps).toStringAsFixed(1)
-                            : '0.0',
-                        label: 'Hız (km/adım)',
-                      ),
+                      // Indoor yarış tipinde hız metriğini (km/adım) gösterme
+                      if (!widget.isIndoorRace)
+                        _buildStatItem(
+                          icon: Icons.speed,
+                          value: _mySteps > 0
+                              ? (_myDistance / _mySteps).toStringAsFixed(1)
+                              : '0.0',
+                          label: 'Hız (km/adım)',
+                        ),
                     ],
                   ),
                 ),
@@ -618,6 +651,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                               profilePictureUrl: widget.profilePictureCache[
                                   participant
                                       .userName], // Cache'den profil fotoğrafını al
+                              isIndoorRace: widget
+                                  .isIndoorRace, // Indoor yarış parametresini geçir
                             );
                           },
                         ),
@@ -813,13 +848,15 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 class ParticipantTile extends StatelessWidget {
   final RaceParticipant participant;
   final bool isMe;
-  final String? profilePictureUrl; // Profil fotoğrafı URL'i ekledik
+  final String? profilePictureUrl;
+  final bool isIndoorRace; // Indoor yarış tipini belirleyen parametre ekledik
 
   const ParticipantTile({
     super.key,
     required this.participant,
     this.isMe = false,
-    this.profilePictureUrl, // Constructor'a ekledik
+    this.profilePictureUrl,
+    required this.isIndoorRace, // Constructor'a ekledik
   });
 
   @override
@@ -939,32 +976,33 @@ class ParticipantTile extends StatelessWidget {
                   // Bilgi kartları satırı
                   Row(
                     children: [
-                      // Mesafe bilgisi
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.directions_run,
-                                size: 14, color: Colors.blue),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${participant.distance.toStringAsFixed(2)} km',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.blue,
+                      // Indoor yarışta mesafe gösterme, sadece adım sayısı göster
+                      if (!isIndoorRace)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.directions_run,
+                                  size: 14, color: Colors.blue),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${participant.distance.toStringAsFixed(2)} km',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.blue,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
+                      if (!isIndoorRace) const SizedBox(width: 8),
                       // Adım bilgisi
                       Container(
                         padding: const EdgeInsets.symmetric(
