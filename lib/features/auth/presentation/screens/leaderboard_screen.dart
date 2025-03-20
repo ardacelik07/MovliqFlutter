@@ -188,10 +188,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           data: (userData) => userData?.userName,
         );
 
-        // Sort by outdoor steps in descending order
-        final sortedUsers = [
-          ...leaderboardUsers
-        ]..sort((a, b) => (b.outdoorSteps ?? 0).compareTo(a.outdoorSteps ?? 0));
+        // Sort by generalDistance in descending order
+        final sortedUsers = [...leaderboardUsers]..sort((a, b) =>
+            (b.generalDistance ?? 0).compareTo(a.generalDistance ?? 0));
 
         // Add ranks based on the sorted order
         final rankedUsers = sortedUsers.asMap().entries.map((entry) {

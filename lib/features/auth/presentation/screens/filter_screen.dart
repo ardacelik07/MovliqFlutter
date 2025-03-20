@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen2.dart';
 import '../providers/race_settings_provider.dart';
+import 'verification_screen.dart';
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -77,12 +78,22 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                             .read(raceSettingsProvider.notifier)
                             .setRoomType(_selectedPreference!);
 
-                        // Navigate to the next screen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const FilterScreen2()),
-                        );
+                        // İç mekan seçilirse doğrulama ekranına yönlendir
+                        if (_selectedPreference == 'indoor') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const VerificationScreen(),
+                            ),
+                          );
+                        } else {
+                          // Dış mekan seçilirse direkt süre seçimi ekranına git
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const FilterScreen2()),
+                          );
+                        }
                       },
                       child: const Text(
                         'Devam',
