@@ -43,9 +43,15 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   String? _myEmail;
   Timer? _locationUpdateTimer;
   Timer? _raceTimerTimer;
+  Timer? _antiCheatTimer; // Anti-cheat timer ekledik
   Duration _remainingRaceTime =
       const Duration(minutes: 10); // Default to 10 minutes
   bool _isTimerInitialized = false;
+
+  // Hile kontrolü için gerekli değişkenler
+  double _lastCheckDistance = 0.0;
+  int _lastCheckSteps = 0;
+  DateTime? _lastCheckTime;
 
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
@@ -76,6 +82,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     _setupSignalR();
     _initPermissions(); // Konum ve adım izinlerini başlat
     _initializeRaceTimer();
+    _initializeAntiCheatSystem(); // Hile kontrol sistemini başlat
   }
 
   // Tüm izinleri başlatan fonksiyon
@@ -463,6 +470,104 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     );
   }
 
+  // Hile kontrol sistemini başlatan fonksiyon
+  void _initializeAntiCheatSystem() {
+    // İndoor yarışlarda hile kontrolü yapma (mesafe takibi olmadığı için)
+    if (widget.isIndoorRace) {
+      debugPrint('Indoor yarış - Hile kontrolü devre dışı');
+      return;
+    }
+
+    // İlk kontrol için başlangıç değerlerini kaydet
+    _lastCheckDistance = _myDistance;
+    _lastCheckSteps = _mySteps;
+    _lastCheckTime = DateTime.now();
+
+    // Her 30 saniyede bir hile kontrolü yap
+    _antiCheatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (!mounted || !_isRaceActive) {
+        timer.cancel();
+        return;
+      }
+
+      _checkForCheating();
+    });
+  }
+
+  // Hile kontrolü yapan fonksiyon
+  void _checkForCheating() {
+    // Eğer ilk kontrolse veya yarış aktif değilse kontrol yapma
+    if (_lastCheckTime == null || !_isRaceActive) return;
+
+    final now = DateTime.now();
+    final elapsedSeconds = now.difference(_lastCheckTime!).inSeconds;
+
+    // 30 saniye geçmediyse kontrol yapma (Timer hassasiyeti için ek kontrol)
+    if (elapsedSeconds < 25) return;
+
+    final currentDistance = _myDistance;
+    final currentSteps = _mySteps;
+
+    // Son kontrolden bu yana kat edilen mesafe (km'den metreye çevir)
+    final distanceDifference = (currentDistance - _lastCheckDistance) * 1000;
+    final stepsDifference = currentSteps - _lastCheckSteps;
+
+    debugPrint(
+        '🔍 Hile kontrol: $elapsedSeconds saniyede $distanceDifference metre, $stepsDifference adım');
+
+    // Hile kontrolü: 30 saniyede maksimum 250 metre
+    if (distanceDifference > 250) {
+      _showCheatWarningDialog('Anormal hız tespit edildi',
+          'Son 30 saniyede $distanceDifference metre mesafe kaydedildi. Maksimum limit 250 metredir.');
+    }
+    // Hile kontrolü: Her metre için minimum 0.5 adım
+    else if (distanceDifference > 0) {
+      final requiredMinSteps = distanceDifference * 0.5;
+      if (stepsDifference < requiredMinSteps) {
+        _showCheatWarningDialog('Anormal adım-mesafe oranı tespit edildi',
+            'Son 30 saniyede $distanceDifference metre için en az ${requiredMinSteps.toInt()} adım atılması gerekirken, $stepsDifference adım kaydedildi.');
+      }
+    }
+
+    // Yeni kontrol için değerleri güncelle
+    _lastCheckDistance = currentDistance;
+    _lastCheckSteps = currentSteps;
+    _lastCheckTime = now;
+  }
+
+  // Hile uyarı dialogu gösteren fonksiyon
+  void _showCheatWarningDialog(String title, String message) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(title, style: const TextStyle(color: Colors.red)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 16),
+            const Text(
+              'Lütfen gerçek koşu hızınızla devam edin. Tekrarlanan ihlaller hesabınızın askıya alınmasına neden olabilir.',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Anladım'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -807,6 +912,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   @override
   void dispose() {
     debugPrint('RaceScreen dispose ediliyor...');
+
+    // Anti-cheat timer'ı iptal et
+    _antiCheatTimer?.cancel();
+    _antiCheatTimer = null;
 
     // Konum takibini durdur
     _stopLocationUpdates();
