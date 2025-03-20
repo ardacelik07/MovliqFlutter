@@ -52,6 +52,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   double _lastCheckDistance = 0.0;
   int _lastCheckSteps = 0;
   DateTime? _lastCheckTime;
+  int _violationCount = 0; // İhlal sayısını takip etmek için eklendi
 
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
@@ -515,17 +516,39 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     debugPrint(
         '🔍 Hile kontrol: $elapsedSeconds saniyede $distanceDifference metre, $stepsDifference adım');
 
+    bool violation = false;
+    String title = '';
+    String message = '';
+
     // Hile kontrolü: 30 saniyede maksimum 250 metre
     if (distanceDifference > 250) {
-      _showCheatWarningDialog('Anormal hız tespit edildi',
-          'Son 30 saniyede $distanceDifference metre mesafe kaydedildi. Maksimum limit 250 metredir.');
+      violation = true;
+      title = 'Anormal hız tespit edildi';
+      message =
+          'Son 30 saniyede $distanceDifference metre mesafe kaydedildi. Maksimum limit 250 metredir.';
     }
     // Hile kontrolü: Her metre için minimum 0.5 adım
     else if (distanceDifference > 0) {
       final requiredMinSteps = distanceDifference * 0.5;
       if (stepsDifference < requiredMinSteps) {
-        _showCheatWarningDialog('Anormal adım-mesafe oranı tespit edildi',
-            'Son 30 saniyede $distanceDifference metre için en az ${requiredMinSteps.toInt()} adım atılması gerekirken, $stepsDifference adım kaydedildi.');
+        violation = true;
+        title = 'Anormal adım-mesafe oranı tespit edildi';
+        message =
+            'Son 30 saniyede $distanceDifference metre için en az ${requiredMinSteps.toInt()} adım atılması gerekirken, $stepsDifference adım kaydedildi.';
+      }
+    }
+
+    // İhlal tespit edildiyse işlem yap
+    if (violation) {
+      _violationCount++;
+      debugPrint('❌ İhlal tespit edildi: $_violationCount. ihlal');
+
+      if (_violationCount >= 2) {
+        // İkinci ihlalde kullanıcıyı yarıştan at
+        _showViolationLimitExceededDialog(title, message);
+      } else {
+        // İlk ihlalde sadece uyarı ver
+        _showCheatWarningDialog(title, message);
       }
     }
 
@@ -561,6 +584,42 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
             child: const Text('Anladım'),
             onPressed: () {
               Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // İhlal limitinin aşıldığını gösteren dialog
+  void _showViolationLimitExceededDialog(String title, String message) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('$title - Yarış Sonlandırılıyor',
+            style: const TextStyle(color: Colors.red)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 16),
+            const Text(
+              'İhlal sayınız limiti aştığı için yarıştan çıkarılıyorsunuz.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Anladım'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Kullanıcıyı yarış odasından çıkar
+              _leaveRaceRoom(wasKicked: true);
             },
           ),
         ],
@@ -860,7 +919,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   }
 
   // Yarış esnasında odadan ayrılma işlemini yapan metod
-  Future<void> _leaveRaceRoom() async {
+  Future<void> _leaveRaceRoom({bool wasKicked = false}) async {
     try {
       // Konum güncellemelerini durdur
       _stopLocationUpdates();
@@ -889,6 +948,18 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
       _subscriptions.clear();
 
       if (mounted) {
+        // Eğer kullanıcı atıldıysa bir mesaj göster
+        if (wasKicked) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('Kurallara uymadığınız için yarıştan çıkarıldınız.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+
         // Ana sayfaya yönlendir
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const TabsScreen()),
