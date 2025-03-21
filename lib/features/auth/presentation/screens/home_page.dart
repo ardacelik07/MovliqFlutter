@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
+import '../providers/user_data_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -37,6 +38,11 @@ class _HomePageState extends ConsumerState<HomePage>
       parent: _controller,
       curve: Curves.easeInOut,
     ));
+
+    // Kullanıcı verilerini yükle
+    Future.microtask(() {
+      ref.read(userDataProvider.notifier).fetchUserData();
+    });
   }
 
   @override
@@ -47,6 +53,9 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    // userDataProvider'dan kullanıcı verilerini al
+    final userDataAsync = ref.watch(userDataProvider);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -68,9 +77,40 @@ class _HomePageState extends ConsumerState<HomePage>
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 25,
-                      backgroundImage: AssetImage('assets/images/nike.png'),
+                    // Profil fotoğrafı - userDataProvider'dan alınan veri ile
+                    userDataAsync.when(
+                      data: (userData) {
+                        return CircleAvatar(
+                          radius: 25,
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage:
+                              userData?.profilePictureUrl != null &&
+                                      userData!.profilePictureUrl!.isNotEmpty
+                                  ? NetworkImage(userData.profilePictureUrl!)
+                                  : const AssetImage('assets/images/nike.png')
+                                      as ImageProvider,
+                          child: userData?.profilePictureUrl == null ||
+                                  userData!.profilePictureUrl!.isEmpty
+                              ? (userData?.userName != null &&
+                                      userData!.userName!.isNotEmpty)
+                                  ? Text(userData.userName![0].toUpperCase())
+                                  : const Icon(Icons.person)
+                              : null,
+                        );
+                      },
+                      loading: () => const CircleAvatar(
+                        radius: 25,
+                        backgroundColor: Colors.grey,
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFC4FF62),
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      error: (_, __) => const CircleAvatar(
+                        radius: 25,
+                        backgroundColor: Colors.grey,
+                        child: Icon(Icons.error, color: Colors.red),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -83,11 +123,28 @@ class _HomePageState extends ConsumerState<HomePage>
                             color: Colors.grey[600],
                           ),
                         ),
-                        const Text(
-                          'John Doe',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                        // Kullanıcı adı - userDataProvider'dan alınan veri ile
+                        userDataAsync.when(
+                          data: (userData) => Text(
+                            userData?.userName ?? 'Runner',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          loading: () => const Text(
+                            'Loading...',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          error: (_, __) => const Text(
+                            'Welcome',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],

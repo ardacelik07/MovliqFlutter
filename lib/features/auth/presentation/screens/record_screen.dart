@@ -9,6 +9,7 @@ import 'package:pedometer/pedometer.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/record_request_model.dart';
 import '../providers/record_provider.dart';
+import '../providers/user_data_provider.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -50,6 +51,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   StreamSubscription<StepCount>? _stepCountSubscription;
   bool _hasPedometerPermission = false;
 
+  // Hareketsiz durumdaki kalori hesaplaması için değişkenler
+  double _lastDistance = 0.0;
+  int _lastSteps = 0;
+  DateTime? _lastCalorieCalculationTime;
+
   static const CameraPosition _initialCameraPosition = CameraPosition(
     target: LatLng(41.0082, 28.9784), // İstanbul koordinatları (varsayılan)
     zoom: 15,
@@ -72,6 +78,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           _pulseController.forward();
         }
       });
+
+    // Kullanıcı verilerini de yükle
+    Future.microtask(() {
+      ref.read(userDataProvider.notifier).fetchUserData();
+    });
 
     // Önce konum iznini kontrol et, sonra adım sayar iznini kontrol et
     _initPermissions();
@@ -300,9 +311,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         setState(() {
           _seconds++;
 
-          // Simple calorie calculation (in a real app, this should be based on user weight, speed, etc.)
+          // Her 10 saniyede bir kalori hesapla
           if (_seconds % 10 == 0) {
-            _calories = (_distance * 60).toInt();
+            _calculateCalories();
 
             // Calculate pace (km/h)
             _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
@@ -459,9 +470,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           setState(() {
             _seconds++;
 
-            // Kalori ve hız güncelleme
+            // Kalori hesaplama
             if (_seconds % 10 == 0) {
-              _calories = (_distance * 60).toInt();
+              _calculateCalories();
               _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
             }
           });
@@ -921,5 +932,169 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }, onError: (error) {
       print('Adım sayar hatası: $error');
     });
+  }
+
+  // Yeni kalori hesaplama metodu
+  void _calculateCalories() {
+    final now = DateTime.now();
+
+    // İlk kalori hesaplaması ise, başlangıç değerlerini kaydet
+    if (_lastCalorieCalculationTime == null) {
+      _lastDistance = _distance;
+      _lastSteps = _steps;
+      _lastCalorieCalculationTime = now;
+      // İlk hesaplamada kalori değeri 0 olmalı
+      setState(() {
+        _calories = 0;
+      });
+      return;
+    }
+
+    // Son hesaplamadan bu yana geçen süre (saniye)
+    final elapsedSeconds =
+        now.difference(_lastCalorieCalculationTime!).inSeconds;
+    if (elapsedSeconds < 1)
+      return; // Çok kısa sürede tekrar hesaplama yapılmasını engelle
+
+    // Son hesaplamadan bu yana kat edilen mesafe ve adım farkı
+    final distanceDifference = _distance - _lastDistance;
+    final stepsDifference = _steps - _lastSteps;
+
+    // Hareket tespiti - eğer mesafe veya adım artışı yoksa hareket yok kabul et
+    final bool isMoving = distanceDifference > 0.001 || stepsDifference > 0;
+
+    debugPrint(
+        '📊 Hareket kontrolü: Mesafe farkı=${distanceDifference.toStringAsFixed(4)} km, Adım farkı=$stepsDifference, Hareket=${isMoving ? "VAR" : "YOK"}');
+
+    // UserDataProvider'dan kullanıcı verilerini al
+    final userDataAsync = ref.read(userDataProvider);
+
+    userDataAsync.whenOrNull(
+      data: (userData) {
+        // Kullanıcı verileri varsa kalori hesapla
+        if (userData != null) {
+          final weight = userData.weight ?? 70.0; // Varsayılan kilo: 70 kg
+          final height = userData.height ?? 170.0; // Varsayılan boy: 170 cm
+
+          // Aktivite tipine göre MET değeri belirle
+          // MET değerleri: https://sites.google.com/site/compendiumofphysicalactivities/
+          double metValue;
+
+          if (!isMoving) {
+            // Hareketsiz durumda çok düşük bir MET değeri kullan (durağan oturma)
+            metValue = 1.0;
+          } else {
+            // Hareket varsa, aktivite tipine ve hıza göre MET değeri belirle
+            switch (_activityType) {
+              case 'Running':
+                // Koşu hızına göre MET değeri ayarla (hız km/saat cinsinden)
+                if (_pace < 8.0) {
+                  // Yavaş koşu
+                  metValue = 7.0;
+                } else if (_pace < 12.0) {
+                  // Orta tempo koşu
+                  metValue = 9.8;
+                } else {
+                  // Hızlı koşu
+                  metValue = 12.3;
+                }
+                break;
+              case 'Walking':
+                // Yürüyüş hızına göre MET değeri ayarla
+                if (_pace < 4.0) {
+                  // Yavaş yürüyüş
+                  metValue = 3.0;
+                } else if (_pace < 6.5) {
+                  // Normal yürüyüş
+                  metValue = 3.5;
+                } else {
+                  // Hızlı yürüyüş
+                  metValue = 5.0;
+                }
+                break;
+              case 'Cycling':
+                // Bisiklet hızına göre MET değeri ayarla
+                if (_pace < 16.0) {
+                  // Yavaş bisiklet
+                  metValue = 6.0;
+                } else if (_pace < 22.0) {
+                  // Normal bisiklet
+                  metValue = 8.0;
+                } else {
+                  // Hızlı bisiklet
+                  metValue = 10.0;
+                }
+                break;
+              default:
+                metValue = 7.0; // Varsayılan değer (koşu)
+            }
+          }
+
+          // Kalori hesaplama formülü:
+          // Kalori = Ağırlık (kg) × MET değeri × Süre (saat)
+          double hours = elapsedSeconds / 3600.0; // Saniyeyi saate çevir
+          int newCalories = (weight * metValue * hours).round();
+
+          // BMI faktörünü ekleyerek hafif bir düzeltme yap
+          // BMI = Ağırlık (kg) / (Boy (m) * Boy (m))
+          double heightInMeters = height / 100.0;
+          double bmi = weight / (heightInMeters * heightInMeters);
+
+          // BMI 25'ten yüksekse kalori yakımını biraz arttır
+          if (bmi > 25) {
+            double bmiFactor = 1.0 + ((bmi - 25) * 0.01); // %1'lik artış
+            newCalories = (newCalories * bmiFactor).round();
+          }
+
+          // Minimum değer kontrolü
+          if (newCalories < 0) newCalories = 0;
+
+          setState(() {
+            // Yeni kalorileri mevcut değere ekle
+            _calories += newCalories;
+          });
+
+          debugPrint(
+              'Kalori hesaplandı: +$newCalories kal eklendi (Toplam: $_calories) - Hareket: ${isMoving ? "VAR" : "YOK"}, MET: $metValue, Süre: $hours saat');
+        } else {
+          // Kullanıcı verileri yoksa eski basit hesaplamayı kullan
+          // Ama sadece hareket varsa
+          if (isMoving) {
+            setState(() {
+              _calories += (distanceDifference * 60).toInt();
+            });
+            debugPrint(
+                'Kullanıcı verileri yok, basit hesaplama: +${(distanceDifference * 60).toInt()} kal eklendi (Toplam: $_calories)');
+          }
+        }
+      },
+      loading: () {
+        // Veriler yüklenirken basit hesaplama kullan
+        // Ama sadece hareket varsa
+        if (isMoving) {
+          setState(() {
+            _calories += (distanceDifference * 60).toInt();
+          });
+          debugPrint(
+              'Kullanıcı verileri yükleniyor, basit hesaplama: +${(distanceDifference * 60).toInt()} kal eklendi (Toplam: $_calories)');
+        }
+      },
+      error: (_, __) {
+        // Hata durumunda basit hesaplama kullan
+        // Ama sadece hareket varsa
+        if (isMoving) {
+          setState(() {
+            _calories += (distanceDifference * 60).toInt();
+          });
+          debugPrint(
+              'Kullanıcı verileri alınamadı, basit hesaplama: +${(distanceDifference * 60).toInt()} kal eklendi (Toplam: $_calories)');
+        }
+      },
+    );
+
+    // Son değerleri güncelle
+    _lastDistance = _distance;
+    _lastSteps = _steps;
+    _lastCalorieCalculationTime = now;
   }
 }
