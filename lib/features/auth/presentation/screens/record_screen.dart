@@ -508,6 +508,66 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
+  // Helper method for building stat columns
+  Widget _buildStatColumn(String value, String label) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper method for building stat displays with icon
+  Widget _buildStat({
+    required IconData icon,
+    required String value,
+    required String unit,
+    required Color iconColor,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: iconColor,
+          size: 26,
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              unit,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -608,11 +668,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                 Container(
                   margin: const EdgeInsets.symmetric(
                       horizontal: 8.0, vertical: 4.0),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0, vertical: 8.0),
+                  padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(12.0),
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(16.0),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
@@ -624,46 +683,73 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Current Session',
-                        style: TextStyle(
-                          fontSize: 14,
+                      // Title row with optional pause button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Running time',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Large time display
+                      Text(
+                        _formatTime(_seconds),
+                        style: const TextStyle(
+                          fontSize: 32,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 6),
+
+                      const SizedBox(height: 16),
+
+                      // Statistics row
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildStatColumn('$_steps', 'Steps'),
-                          _buildStatColumn(
-                              _distance.toStringAsFixed(2), 'Distance (km)'),
-                          _buildStatColumn('$_calories', 'Calories'),
+                          // Distance
+                          _buildStat(
+                            icon: Icons.directions_run,
+                            value: _distance.toStringAsFixed(2),
+                            unit: 'km',
+                            iconColor: Colors.orange,
+                          ),
+
+                          // Calories
+                          _buildStat(
+                            icon: Icons.local_fire_department,
+                            value: _calories.toString(),
+                            unit: 'kcal',
+                            iconColor: Colors.red,
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Steps
+                          _buildStat(
+                            icon: Icons.do_not_step_outlined,
+                            value: _steps.toString(),
+                            unit: 'steps',
+                            iconColor: Colors.green,
+                          ),
+
+                          // Pace
+                          _buildStat(
+                            icon: Icons.bolt,
+                            value: _pace.toStringAsFixed(1),
+                            unit: 'km/hr',
+                            iconColor: Colors.blue,
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      // Adım sayısı göstergesi
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildStatColumn(_formatTime(_seconds), 'Time'),
-                        ],
-                      ),
-                      if (_isRecording) ...[
-                        const Divider(height: 12, color: Colors.grey),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildStatColumn(
-                                '${_pace.toStringAsFixed(1)} km/h', 'AVG PACE'),
-                            _buildStatColumn(
-                                _distance > 0
-                                    ? '${(_calories / _distance).toStringAsFixed(0)}'
-                                    : '0',
-                                'Cal/km'),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -872,27 +958,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     );
   }
 
-  Widget _buildStatColumn(String value, String label) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Colors.grey,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildActivityTypeButton(
       String label, IconData icon, bool isSelected, VoidCallback onTap) {
     return GestureDetector(
@@ -999,7 +1064,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                 // Koşu hızına göre MET değeri ayarla (hız km/saat cinsinden)
                 if (_pace < 8.0) {
                   // Yavaş koşu
-                  metValue = 7.0;
+                  metValue = 6.0;
                 } else if (_pace < 12.0) {
                   // Orta tempo koşu
                   metValue = 9.8;
@@ -1012,7 +1077,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                 // Yürüyüş hızına göre MET değeri ayarla
                 if (_pace < 4.0) {
                   // Yavaş yürüyüş
-                  metValue = 3.0;
+                  metValue = 2.5;
                 } else if (_pace < 6.5) {
                   // Normal yürüyüş
                   metValue = 3.5;
@@ -1025,7 +1090,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                 // Bisiklet hızına göre MET değeri ayarla
                 if (_pace < 16.0) {
                   // Yavaş bisiklet
-                  metValue = 6.0;
+                  metValue = 4.5;
                 } else if (_pace < 22.0) {
                   // Normal bisiklet
                   metValue = 8.0;
@@ -1035,7 +1100,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                 }
                 break;
               default:
-                metValue = 7.0; // Varsayılan değer (koşu)
+                metValue = 6.0;
             }
           }
 
