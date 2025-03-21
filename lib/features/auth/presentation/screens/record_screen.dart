@@ -511,354 +511,363 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFC4FF62),
-              Colors.black,
-            ],
-            stops: [0.0, 0.85],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '$_activityType Activity',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+      body: Stack(
+        children: [
+          // Harita - artık tam ekran
+          _hasLocationPermission
+              ? GoogleMap(
+                  mapType: MapType.normal,
+                  initialCameraPosition: _initialCameraPosition,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  compassEnabled: true,
+                  markers: _markers,
+                  polylines: _polylines,
+                  onMapCreated: (GoogleMapController controller) {
+                    _mapController = controller;
+                    // Harita oluşturulduktan sonra mevcut konumu al
+                    _getCurrentLocation();
+                  },
+                )
+              : Container(
+                  color: Colors.grey[300],
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.location_off,
+                            size: 48, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Konum izni gerekiyor',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                          onPressed: _initPermissions,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFC4FF62),
+                            foregroundColor: Colors.black,
+                          ),
+                          child: const Text('İzin Ver'),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined,
-                          color: Colors.black),
-                      onPressed: () {
-                        // Show settings dialog
-                      },
-                    ),
-                  ],
+                  ),
                 ),
-              ),
 
-              // Google Maps with Stats Overlay
-              Expanded(
-                child: Container(
+          // UI Elementleri
+          SafeArea(
+            child: Column(
+              children: [
+                // Header - şeffaf arka plan ile
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   margin: const EdgeInsets.symmetric(
                       horizontal: 8.0, vertical: 4.0),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: Colors.white.withOpacity(0.85),
                     borderRadius: BorderRadius.circular(16.0),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
                         blurRadius: 8,
-                        offset: const Offset(0, 4),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16.0),
-                    child: _hasLocationPermission
-                        ? Stack(
-                            children: [
-                              // Map Layer
-                              GoogleMap(
-                                mapType: MapType.normal,
-                                initialCameraPosition: _initialCameraPosition,
-                                myLocationEnabled: true,
-                                myLocationButtonEnabled: false,
-                                zoomControlsEnabled: false,
-                                compassEnabled: true,
-                                markers: _markers,
-                                polylines: _polylines,
-                                onMapCreated: (GoogleMapController controller) {
-                                  _mapController = controller;
-                                  // Harita oluşturulduktan sonra mevcut konumu al
-                                  _getCurrentLocation();
-                                },
-                              ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '$_activityType Activity',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.settings_outlined,
+                            color: Colors.black),
+                        onPressed: () {
+                          // Show settings dialog
+                        },
+                      ),
+                    ],
+                  ),
+                ),
 
-                              // Stats Overlay
-                              Positioned(
-                                top: 0,
-                                left: 12,
-                                right: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12.0, vertical: 8.0),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.85),
-                                    borderRadius: BorderRadius.circular(12.0),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
+                // Stats Overlay
+                Container(
+                  margin: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 8.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.85),
+                    borderRadius: BorderRadius.circular(12.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Current Session',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatColumn('$_steps', 'Steps'),
+                          _buildStatColumn(
+                              _distance.toStringAsFixed(2), 'Distance (km)'),
+                          _buildStatColumn('$_calories', 'Calories'),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // Adım sayısı göstergesi
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildStatColumn(_formatTime(_seconds), 'Time'),
+                        ],
+                      ),
+                      if (_isRecording) ...[
+                        const Divider(height: 12, color: Colors.grey),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatColumn(
+                                '${_pace.toStringAsFixed(1)} km/h', 'AVG PACE'),
+                            _buildStatColumn(
+                                _distance > 0
+                                    ? '${(_calories / _distance).toStringAsFixed(0)}'
+                                    : '0',
+                                'Cal/km'),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Boş alan
+                const Spacer(),
+
+                // Butonlar ve Aktivite Seçimi
+                Column(
+                  children: [
+                    // Record Button and Pause Button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Record Button
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8.0, horizontal: 8.0),
+                          child: GestureDetector(
+                            onTap: _toggleRecording,
+                            child: AnimatedBuilder(
+                              animation: _pulseAnimation,
+                              builder: (context, child) {
+                                return Transform.scale(
+                                  scale: _isRecording && !_isPaused
+                                      ? _pulseAnimation.value
+                                      : 1.0,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Text(
-                                        'Current Session',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceAround,
-                                        children: [
-                                          _buildStatColumn('$_steps', 'Steps'),
-                                          _buildStatColumn(
-                                              _distance.toStringAsFixed(2),
-                                              'Distance (km)'),
-                                          _buildStatColumn(
-                                              '$_calories', 'Calories'),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      // Adım sayısı göstergesi
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          _buildStatColumn(
-                                              _formatTime(_seconds), 'Time'),
-                                        ],
-                                      ),
-                                      if (_isRecording) ...[
-                                        const Divider(
-                                            height: 12, color: Colors.grey),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceAround,
-                                          children: [
-                                            _buildStatColumn(
-                                                '${_pace.toStringAsFixed(1)} km/h',
-                                                'AVG PACE'),
-                                            _buildStatColumn(
-                                                _distance > 0
-                                                    ? '${(_calories / _distance).toStringAsFixed(0)}'
-                                                    : '0',
-                                                'Cal/km'),
+                                      Container(
+                                        width: 70,
+                                        height: 70,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _isRecording
+                                              ? Colors.red
+                                              : const Color(0xFFC4FF62),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: (_isRecording
+                                                      ? Colors.red
+                                                      : const Color(0xFFC4FF62))
+                                                  .withOpacity(0.5),
+                                              blurRadius:
+                                                  _isRecording ? 20 : 10,
+                                              spreadRadius:
+                                                  _isRecording ? 5 : 0,
+                                            ),
                                           ],
                                         ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-
-                              // Yeniden konum alma düğmesi
-                              Positioned(
-                                right: 12,
-                                bottom: 12,
-                                child: FloatingActionButton(
-                                  mini: true,
-                                  backgroundColor: const Color(0xFFC4FF62),
-                                  foregroundColor: Colors.black,
-                                  onPressed: _getCurrentLocation,
-                                  child: const Icon(Icons.my_location),
-                                ),
-                              ),
-                            ],
-                          )
-                        : Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.location_off,
-                                    size: 48, color: Colors.grey),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'Konum izni gerekiyor',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                ElevatedButton(
-                                  onPressed: _initPermissions,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFC4FF62),
-                                    foregroundColor: Colors.black,
-                                  ),
-                                  child: const Text('İzin Ver'),
-                                ),
-                              ],
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-
-              // Record Button and Pause Button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Record Button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16.0, horizontal: 8.0),
-                    child: GestureDetector(
-                      onTap: _toggleRecording,
-                      child: AnimatedBuilder(
-                        animation: _pulseAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _isRecording && !_isPaused
-                                ? _pulseAnimation.value
-                                : 1.0,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 70,
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _isRecording
-                                        ? Colors.red
-                                        : const Color(0xFFC4FF62),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: (_isRecording
-                                                ? Colors.red
-                                                : const Color(0xFFC4FF62))
-                                            .withOpacity(0.5),
-                                        blurRadius: _isRecording ? 20 : 10,
-                                        spreadRadius: _isRecording ? 5 : 0,
+                                        child: Icon(
+                                          _isRecording
+                                              ? Icons.stop
+                                              : Icons.fiber_manual_record,
+                                          color: Colors.black,
+                                          size: 35,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.6),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          _isRecording ? 'Finish' : 'Record',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  child: Icon(
-                                    _isRecording
-                                        ? Icons.stop
-                                        : Icons.fiber_manual_record,
-                                    color: Colors.black,
-                                    size: 35,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  _isRecording ? 'Finish' : 'Record',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                          ),
+                        ),
 
-                  // Pause Button - only visible when recording
-                  if (_isRecording)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16.0, horizontal: 8.0),
-                      child: GestureDetector(
-                        onTap: _togglePause,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _isPaused
-                                    ? const Color(0xFF4CAF50)
-                                    : Colors.amber,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (_isPaused
-                                            ? const Color(0xFF4CAF50)
-                                            : Colors.amber)
-                                        .withOpacity(0.5),
-                                    blurRadius: 10,
-                                    spreadRadius: 0,
+                        // Pause Button - only visible when recording
+                        if (_isRecording)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8.0, horizontal: 8.0),
+                            child: GestureDetector(
+                              onTap: _togglePause,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 70,
+                                    height: 70,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _isPaused
+                                          ? const Color(0xFF4CAF50)
+                                          : Colors.amber,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: (_isPaused
+                                                  ? const Color(0xFF4CAF50)
+                                                  : Colors.amber)
+                                              .withOpacity(0.5),
+                                          blurRadius: 10,
+                                          spreadRadius: 0,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      _isPaused
+                                          ? Icons.play_arrow
+                                          : Icons.pause,
+                                      color: Colors.black,
+                                      size: 35,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      _isPaused ? 'Resume' : 'Pause',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                              child: Icon(
-                                _isPaused ? Icons.play_arrow : Icons.pause,
-                                color: Colors.black,
-                                size: 35,
-                              ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _isPaused ? 'Resume' : 'Pause',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                      ],
+                    ),
+
+                    // Activity Type Selection
+                    Container(
+                      margin: const EdgeInsets.only(
+                          bottom: 16.0, left: 16.0, right: 16.0, top: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 6.0, horizontal: 12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(16.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildActivityTypeButton(
+                              'Running',
+                              Icons.directions_run,
+                              _activityType == 'Running',
+                              () => _selectActivityType('Running')),
+                          _buildActivityTypeButton(
+                              'Walking',
+                              Icons.directions_walk,
+                              _activityType == 'Walking',
+                              () => _selectActivityType('Walking')),
+                          _buildActivityTypeButton(
+                              'Cycling',
+                              Icons.directions_bike,
+                              _activityType == 'Cycling',
+                              () => _selectActivityType('Cycling')),
+                        ],
                       ),
                     ),
-                ],
-              ),
-
-              // Activity Type Selection
-              Container(
-                margin: const EdgeInsets.only(
-                    bottom: 16.0, left: 16.0, right: 16.0),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(16.0),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildActivityTypeButton(
-                        'Running',
-                        Icons.directions_run,
-                        _activityType == 'Running',
-                        () => _selectActivityType('Running')),
-                    _buildActivityTypeButton(
-                        'Walking',
-                        Icons.directions_walk,
-                        _activityType == 'Walking',
-                        () => _selectActivityType('Walking')),
-                    _buildActivityTypeButton(
-                        'Cycling',
-                        Icons.directions_bike,
-                        _activityType == 'Cycling',
-                        () => _selectActivityType('Cycling')),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+
+          // Konum butonu
+          if (_hasLocationPermission)
+            Positioned(
+              right: 16,
+              bottom: 140,
+              child: FloatingActionButton(
+                mini: true,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                onPressed: _getCurrentLocation,
+                child: const Icon(Icons.my_location),
+              ),
+            ),
+        ],
       ),
     );
   }
