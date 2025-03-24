@@ -71,3 +71,36 @@ final userDataProvider =
     StateNotifierProvider<UserDataNotifier, AsyncValue<UserDataModel?>>((ref) {
   return UserDataNotifier();
 });
+
+// Kullanıcı streak sayısını getiren provider
+final userStreakProvider = FutureProvider<int>((ref) async {
+  try {
+    final tokenJson = await StorageService.getToken();
+    if (tokenJson == null) {
+      throw Exception('Token bulunamadı');
+    }
+
+    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+    final String token = tokenData['token'];
+
+    final response = await http.get(
+      Uri.parse(ApiConfig.userStreakTrackEndpoint),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final streakCount = int.tryParse(response.body) ?? 0;
+      return streakCount;
+    } else {
+      print(
+          "❌ UserStreakProvider: Streak verisi alınamadı - HTTP ${response.statusCode}");
+      return 0;
+    }
+  } catch (e) {
+    print("❌ UserStreakProvider: Hata: $e");
+    return 0;
+  }
+});
