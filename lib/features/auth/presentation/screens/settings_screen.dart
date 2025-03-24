@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
+import '../providers/user_data_provider.dart';
+import '../../../../core/services/storage_service.dart';
+import '../screens/login_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -126,7 +131,60 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      // Çıkış onayı iste
+                      bool? shouldLogout = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Çıkış Yap'),
+                          content: const Text(
+                              'Hesabınızdan çıkış yapmak istediğinizden emin misiniz?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('İptal'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text('Çıkış Yap'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      // Kullanıcı iptal ettiyse işlemi durdur
+                      if (shouldLogout != true) {
+                        return;
+                      }
+
+                      try {
+                        // AuthProvider kullanarak çıkış yap
+                        await ref.read(authProvider.notifier).logout();
+
+                        // UserDataProvider'ı temizle
+                        ref.read(userDataProvider.notifier).clearUserData();
+
+                        print("✅ Çıkış başarılı, tüm veriler temizlendi");
+
+                        // Yeni navigasyon yöntemini kullan
+                        if (context.mounted) {
+                          ref
+                              .read(authProvider.notifier)
+                              .navigateToLoginScreen(context);
+                        }
+                      } catch (e) {
+                        print("❌ Çıkış yapılırken hata: $e");
+
+                        // Hata olsa bile token'ı sil ve login ekranına yönlendir
+                        await StorageService.deleteToken();
+
+                        if (context.mounted) {
+                          ref
+                              .read(authProvider.notifier)
+                              .navigateToLoginScreen(context);
+                        }
+                      }
+                    },
                     child: const Text(
                       'Sign Out',
                       style: TextStyle(

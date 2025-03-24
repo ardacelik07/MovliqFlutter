@@ -46,12 +46,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
         data: (token) {
           if (token != null) {
             print('Login successful! Token: $token');
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const TabsScreen(),
-              ),
-            );
+            ref.read(authProvider.notifier).navigateToTabsScreen(context);
           }
         },
       );

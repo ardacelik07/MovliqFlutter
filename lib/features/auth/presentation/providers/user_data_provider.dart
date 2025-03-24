@@ -20,9 +20,30 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
         return;
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
+      print("📝 UserDataProvider: İşlenen ham token: $tokenJson");
 
+      String token;
+      try {
+        final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+
+        if (!tokenData.containsKey('token')) {
+          print(
+              "⚠️ UserDataProvider: Token JSON formatında ancak 'token' alanı yok");
+          print("⚠️ Token verileri: $tokenData");
+          state =
+              AsyncValue.error("Token formatı geçersiz", StackTrace.current);
+          return;
+        }
+
+        token = tokenData['token'];
+        print("✅ UserDataProvider: Token başarıyla ayrıştırıldı: $token");
+      } catch (e) {
+        print(
+            "⚠️ UserDataProvider: Token JSON formatında değil, ham string olarak kullanılacak");
+        token = tokenJson;
+      }
+
+      print("🔄 UserDataProvider: Profil verisi isteniyor...");
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/User/profile'),
         headers: {
@@ -41,6 +62,14 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
         final userDataModel = UserDataModel.fromJson(userData);
         state = AsyncValue.data(userDataModel);
         print("✅ UserDataProvider: State güncellendi, yeni veri ile");
+      } else if (response.statusCode == 401) {
+        print("⚠️ UserDataProvider: Oturum geçersiz veya süresi dolmuş");
+        state = AsyncValue.error(
+            "Oturum süresi dolmuş, lütfen tekrar giriş yapın",
+            StackTrace.current);
+
+        // Oturum geçersiz ise tokeni sil
+        await StorageService.deleteToken();
       } else {
         print(
             "❌ UserDataProvider: Profil verileri alınamadı - HTTP ${response.statusCode}");
@@ -77,11 +106,23 @@ final userStreakProvider = FutureProvider<int>((ref) async {
   try {
     final tokenJson = await StorageService.getToken();
     if (tokenJson == null) {
+      print("❌ UserStreakProvider: Token bulunamadı");
       throw Exception('Token bulunamadı');
     }
 
-    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-    final String token = tokenData['token'];
+    String token;
+    try {
+      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+      if (!tokenData.containsKey('token')) {
+        print("⚠️ UserStreakProvider: Token formatı geçersiz");
+        throw Exception('Token formatı geçersiz');
+      }
+      token = tokenData['token'];
+    } catch (e) {
+      print(
+          "⚠️ UserStreakProvider: Token JSON formatında değil, ham string olarak kullanılacak");
+      token = tokenJson;
+    }
 
     final response = await http.get(
       Uri.parse(ApiConfig.userStreakTrackEndpoint),
@@ -94,13 +135,18 @@ final userStreakProvider = FutureProvider<int>((ref) async {
     if (response.statusCode == 200) {
       final streakCount = int.tryParse(response.body) ?? 0;
       return streakCount;
+    } else if (response.statusCode == 401) {
+      print("⚠️ UserStreakProvider: Oturum geçersiz veya süresi dolmuş");
+      // Oturum geçersiz ise tokeni sil
+      await StorageService.deleteToken();
+      return 0;
     } else {
       print(
           "❌ UserStreakProvider: Streak verisi alınamadı - HTTP ${response.statusCode}");
-      return 0;
+      return 1;
     }
   } catch (e) {
     print("❌ UserStreakProvider: Hata: $e");
-    return 0;
+    return 2;
   }
 });

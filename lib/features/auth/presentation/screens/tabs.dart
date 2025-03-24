@@ -62,43 +62,58 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: Container(
-        child: BottomNavigationBar(
-          backgroundColor: Colors.black,
-          selectedItemColor: Color(0xFFC4FF62),
-          unselectedItemColor: Colors.grey,
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.store_outlined),
-              activeIcon: Icon(Icons.store),
-              label: 'Store',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.fiber_manual_record_outlined),
-              activeIcon: Icon(Icons.fiber_manual_record),
-              label: 'Record',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.leaderboard_outlined),
-              activeIcon: Icon(Icons.leaderboard),
-              label: 'Leaderboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+    return WillPopScope(
+      onWillPop: () async {
+        // Eğer ana sayfada değilsek, ana sayfaya dön ve geri tuşunu engelle
+        if (_selectedIndex != 0) {
+          setState(() {
+            _previousIndex = _selectedIndex;
+            _selectedIndex = 0;
+          });
+          return false; // Geri tuşunu engelle
+        }
+
+        // Ana sayfadaysak direkt çıkışa izin ver
+        return true;
+      },
+      child: Scaffold(
+        body: _pages[_selectedIndex],
+        bottomNavigationBar: Container(
+          child: BottomNavigationBar(
+            backgroundColor: Colors.black,
+            selectedItemColor: Color(0xFFC4FF62),
+            unselectedItemColor: Colors.grey,
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.store_outlined),
+                activeIcon: Icon(Icons.store),
+                label: 'Store',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.fiber_manual_record_outlined),
+                activeIcon: Icon(Icons.fiber_manual_record),
+                label: 'Record',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.leaderboard_outlined),
+                activeIcon: Icon(Icons.leaderboard),
+                label: 'Leaderboard',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
+          ),
         ),
       ),
     );

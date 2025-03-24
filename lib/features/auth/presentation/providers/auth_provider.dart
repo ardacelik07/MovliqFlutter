@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../../../core/services/storage_service.dart';
+import '../screens/tabs.dart';
+import '../screens/login_screen.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
@@ -60,4 +63,24 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
       state = AsyncValue.error(e, stack);
     }
   }
+
+  // Navigation stack'i temizleyerek TabsScreen'e yönlendir
+  void navigateToTabsScreen(BuildContext context) {
+    // Navigation stack'i tamamen temizler ve TabsScreen'e yönlendirir
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const TabsScreen()),
+      (route) => false, // Tüm navigation stack'i temizle
+    );
+  }
+
+  // Login ekranına yönlendir (logout sonrası)
+  void navigateToLoginScreen(BuildContext context) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false, // Tüm navigation stack'i temizle
+    );
+  }
+
+  // Kullanıcının giriş durumunu kontrol et
+  bool get isLoggedIn => state.value != null;
 }

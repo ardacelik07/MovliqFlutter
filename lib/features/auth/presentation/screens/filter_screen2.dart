@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:my_flutter_project/features/auth/presentation/screens/waitingRoom_screen.dart';
 import '../providers/race_settings_provider.dart';
+import 'filter_screen.dart';
 
 class FilterScreen2 extends ConsumerStatefulWidget {
   const FilterScreen2({super.key});
@@ -25,151 +26,180 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-              const Text(
-                "Koşu Süresi",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Hedef sürenizi seçin",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildDurationCard(
-                duration: "1",
-                description: "Hızlı antrenman",
-                value: 'beginner',
-                isPopular: false,
-              ),
-              const SizedBox(height: 16),
-              _buildDurationCard(
-                duration: "5",
-                description: "Orta seviye antrenman",
-                value: 'intermediate',
-                isPopular: false,
-              ),
-              const SizedBox(height: 16),
-              _buildDurationCard(
-                duration: "10",
-                description: "Orta seviye antrenman",
-                value: 'preintermediate',
-                isPopular: true,
-              ),
-              const SizedBox(height: 16),
-              _buildDurationCard(
-                duration: "20",
-                description: "Uzun antrenman",
-                value: 'advanced',
-                isPopular: false,
-              ),
-              const Spacer(),
-              if (_selectedLevel != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                                color: Color(0xFFC4FF62)))
-                        : ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFC4FF62),
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () async {
-                              try {
-                                setState(() {
-                                  _isLoading = true;
-                                });
-
-                                // Seçilen süreyi provider'a kaydet
-                                final duration =
-                                    _durationMap[_selectedLevel!] ?? 10;
-                                ref
-                                    .read(raceSettingsProvider.notifier)
-                                    .setDuration(duration);
-
-                                // Tüm seçimleri al ve API'ye gönder
-                                final settings = ref.read(raceSettingsProvider);
-                                if (!settings.isComplete) {
-                                  throw Exception(
-                                      'Please complete all selections');
-                                }
-
-                                final request = settings.toRequest();
-                                final result = await ref
-                                    .read(raceJoinProvider(request).future);
-
-                                // API cevabını işle
-                                if (!mounted) return;
-
-                                // Get formatted display values for the selections
-                                final roomType = settings.roomType ?? 'outdoor';
-                                final activityType =
-                                    roomType.toLowerCase() == 'outdoor'
-                                        ? 'Outdoor Koşu'
-                                        : 'Indoor Koşu';
-
-                                final durationText = '$duration Dakika';
-
-                                // WaitingRoom'a yönlendir ve oda bilgilerini aktar
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => WaitingRoomScreen(
-                                      roomId: result['roomId'],
-                                      startTime: result['startTime'] != null
-                                          ? DateTime.parse(result['startTime'])
-                                          : null,
-                                      activityType: activityType,
-                                      duration: durationText,
-                                    ),
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!mounted) return;
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(e.toString())),
-                                );
-
-                                setState(() {
-                                  _isLoading = false;
-                                });
-                              }
-                            },
-                            child: const Text(
-                              'Devam',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+    return WillPopScope(
+      onWillPop: () async {
+        // Geri tuşuna basılınca FilterScreen'e dön
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const FilterScreen()),
+        );
+        return false; // False döndürerek varsayılan geri tuşu davranışını engelliyoruz
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.white),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              // Geri tuşuna basılınca FilterScreen'e dön
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const FilterScreen()),
+              );
+            },
+          ),
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
+                const Text(
+                  "Koşu Süresi",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-            ],
+                const SizedBox(height: 8),
+                const Text(
+                  "Hedef sürenizi seçin",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildDurationCard(
+                  duration: "1",
+                  description: "Hızlı antrenman",
+                  value: 'beginner',
+                  isPopular: false,
+                ),
+                const SizedBox(height: 16),
+                _buildDurationCard(
+                  duration: "5",
+                  description: "Orta seviye antrenman",
+                  value: 'intermediate',
+                  isPopular: false,
+                ),
+                const SizedBox(height: 16),
+                _buildDurationCard(
+                  duration: "10",
+                  description: "Orta seviye antrenman",
+                  value: 'preintermediate',
+                  isPopular: true,
+                ),
+                const SizedBox(height: 16),
+                _buildDurationCard(
+                  duration: "20",
+                  description: "Uzun antrenman",
+                  value: 'advanced',
+                  isPopular: false,
+                ),
+                const Spacer(),
+                if (_selectedLevel != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: _isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: Color(0xFFC4FF62)))
+                          : ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFC4FF62),
+                                foregroundColor: Colors.black,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () async {
+                                try {
+                                  setState(() {
+                                    _isLoading = true;
+                                  });
+
+                                  // Seçilen süreyi provider'a kaydet
+                                  final duration =
+                                      _durationMap[_selectedLevel!] ?? 10;
+                                  ref
+                                      .read(raceSettingsProvider.notifier)
+                                      .setDuration(duration);
+
+                                  // Tüm seçimleri al ve API'ye gönder
+                                  final settings =
+                                      ref.read(raceSettingsProvider);
+                                  if (!settings.isComplete) {
+                                    throw Exception(
+                                        'Please complete all selections');
+                                  }
+
+                                  final request = settings.toRequest();
+                                  final result = await ref
+                                      .read(raceJoinProvider(request).future);
+
+                                  // API cevabını işle
+                                  if (!mounted) return;
+
+                                  // Get formatted display values for the selections
+                                  final roomType =
+                                      settings.roomType ?? 'outdoor';
+                                  final activityType =
+                                      roomType.toLowerCase() == 'outdoor'
+                                          ? 'Outdoor Koşu'
+                                          : 'Indoor Koşu';
+
+                                  final durationText = '$duration Dakika';
+
+                                  // WaitingRoom'a yönlendir ve oda bilgilerini aktar
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => WaitingRoomScreen(
+                                        roomId: result['roomId'],
+                                        startTime: result['startTime'] != null
+                                            ? DateTime.parse(
+                                                result['startTime'])
+                                            : null,
+                                        activityType: activityType,
+                                        duration: durationText,
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(e.toString())),
+                                  );
+
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+                                }
+                              },
+                              child: const Text(
+                                'Devam',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
