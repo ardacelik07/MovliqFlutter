@@ -250,7 +250,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Yeni user data provider'ını dinle
+    // Kullanıcı verilerini izleyelim
     final userDataAsync = ref.watch(userDataProvider);
     // Kullanıcı sıralama provider'ını dinle
     final userRanksAsync = ref.watch(userRanksProvider);
@@ -283,141 +283,111 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Column(
                   children: [
                     // Profil Başlığı ve Fotoğraf
-                    Stack(
-                      children: [
-                        Container(
-                          height: 200,
-                          width: double.infinity,
-                          decoration: const BoxDecoration(
-                            image: DecorationImage(
-                              image: AssetImage(
-                                  'assets/images/loginbackground.jpg'),
-                              fit: BoxFit.cover,
+                    Container(
+                      height: 200,
+                      width: double.infinity,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Arka plan resim
+                          Container(
+                            decoration: const BoxDecoration(
+                              image: DecorationImage(
+                                image: AssetImage(
+                                    'assets/images/loginbackground.jpg'),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                        ),
-                        Container(
-                          height: 200,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withOpacity(0.3),
-                                Colors.black.withOpacity(0.5),
+                          // Gradient overlay
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.3),
+                                  Colors.black.withOpacity(0.5),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Ayarlar butonu
+                          Positioned(
+                            top: 16,
+                            right: 16,
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.settings,
+                                    color: Colors.white),
+                                padding: EdgeInsets.zero,
+                                iconSize: 24,
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const SettingsScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          // Profil bilgileri ve fotoğraf
+                          Positioned(
+                            bottom: 20,
+                            left: 20,
+                            right: 20,
+                            child: Row(
+                              children: [
+                                // Profil fotoğrafı - artık kendi widget'ını kullanıyoruz
+                                ProfilePictureWidget(userData: userData),
+                                const SizedBox(width: 16),
+                                // İsim ve kullanıcı adı (Flexible kullanarak taşmayı engelliyoruz)
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        userData.fullName,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        '@${userData.userName}',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.8),
+                                          fontSize: 16,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                        ),
-                        // Ayarlar butonu
-                        Positioned(
-                          top: 16,
-                          right: 16,
-                          child: IconButton(
-                            icon:
-                                const Icon(Icons.settings, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SettingsScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        // Profil bilgileri ve fotoğraf
-                        Positioned(
-                          bottom: 20,
-                          left: 20,
-                          child: Row(
-                            children: [
-                              // Profil fotoğrafı - artık kendi widget'ını kullanıyoruz
-                              ProfilePictureWidget(userData: userData),
-                              const SizedBox(width: 16),
-                              // İsim ve kullanıcı adı
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    userData.fullName,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    '@${userData.userName}',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.8),
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
 
-                    // İstatistikler - Animasyonlu ve modern tasarım
-                    Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 16),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFC4FF62), // Movliq yeşili
-                            Color(0xFF9BDC28), // Daha koyu yeşil
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // İç mekan sıralaması
-                          _buildStatIcon(
-                            icon: Icons.home_outlined,
-                            value: userRanksAsync.maybeWhen(
-                              data: (data) => data.indoorRank.toString(),
-                              orElse: () => "-",
-                            ),
-                            label: 'İç',
-                            iconColor: Colors.blue,
-                          ),
-                          // Dış mekan sıralaması
-                          _buildStatIcon(
-                            icon: Icons.terrain_outlined,
-                            value: userRanksAsync.maybeWhen(
-                              data: (data) => data.outdoorRank.toString(),
-                              orElse: () => "-",
-                            ),
-                            label: 'Dış',
-                            iconColor: Colors.green,
-                          ),
-                          _buildStreakStatIcon(),
-                          _buildStatIcon(
-                            icon: Icons.monetization_on_outlined,
-                            value: '32', // Örnek değer, API'den alınabilir
-                            label: 'Coin',
-                            iconColor: Colors.amber,
-                          ),
-                        ],
-                      ),
+                    // İstatistikler - İzleme ile birlikte yeni fonksiyonu çağıralım
+                    userRanksAsync.maybeWhen(
+                      data: (userRanks) => _buildStatsContainer(userRanks),
+                      orElse: () => _buildStatsContainer(null),
                     ),
 
                     // Rozetler
@@ -433,7 +403,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               const Text(
                                 'Badges',
                                 style: TextStyle(
-                                  fontSize: 18, // 20'den 18'e küçültüldü
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -443,9 +413,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4), // 8'den 4'e azaltıldı
+                          const SizedBox(height: 4),
                           SizedBox(
-                            height: 90, // 100'den 90'a azaltıldı
+                            height: 90,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
@@ -476,7 +446,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              // Aylık/Haftalık filtre butonları kaldırıldı
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -513,7 +482,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                                   return Column(
                                     children: [
-                                      // Geliştirilmiş Grafik
+                                      // Geliştirilmiş Grafik - yüksekliği sabit tutuyoruz
                                       Container(
                                         height: 240,
                                         decoration: BoxDecoration(
@@ -526,7 +495,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                   Colors.black.withOpacity(0.1),
                                               spreadRadius: 1,
                                               blurRadius: 10,
-                                            )
+                                            ),
                                           ],
                                         ),
                                         padding: const EdgeInsets.symmetric(
@@ -743,31 +712,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                         ),
                                       ),
 
-                                      // Grafik altı istatistik özeti
+                                      // Grafik altı istatistik özeti - scrollview ile taşma engelleniyor
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 16),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: [
-                                            _buildStatCard(
-                                                _activeType == 'indoor'
-                                                    ? 'Toplam Adım'
-                                                    : 'Toplam Mesafe',
-                                                _activeType == 'indoor'
-                                                    ? '${summary['totalSteps']?.toStringAsFixed(0)}'
-                                                    : '${summary['totalDistance']?.toStringAsFixed(2)} km'),
-                                            _buildStatCard(
-                                                _activeType == 'indoor'
-                                                    ? 'Tahmini Mesafe'
-                                                    : 'Toplam Adım',
-                                                _activeType == 'indoor'
-                                                    ? '${summary['stepsInKm']?.toStringAsFixed(2)} km'
-                                                    : '${summary['totalSteps']?.toStringAsFixed(0)}'),
-                                            _buildStatCard('Toplam Kalori',
-                                                '${summary['totalCalories']?.toStringAsFixed(0)} kcal'),
-                                          ],
+                                            horizontal: 0, vertical: 16),
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              _buildStatCard(
+                                                  _activeType == 'indoor'
+                                                      ? 'Toplam Adım'
+                                                      : 'Toplam Mesafe',
+                                                  _activeType == 'indoor'
+                                                      ? '${summary['totalSteps']?.toStringAsFixed(0)}'
+                                                      : '${summary['totalDistance']?.toStringAsFixed(2)} km'),
+                                              const SizedBox(width: 4),
+                                              _buildStatCard(
+                                                  _activeType == 'indoor'
+                                                      ? 'Tahmini Mesafe'
+                                                      : 'Toplam Adım',
+                                                  _activeType == 'indoor'
+                                                      ? '${summary['stepsInKm']?.toStringAsFixed(2)} km'
+                                                      : '${summary['totalSteps']?.toStringAsFixed(0)}'),
+                                              const SizedBox(width: 4),
+                                              _buildStatCard('Toplam Kalori',
+                                                  '${summary['totalCalories']?.toStringAsFixed(0)} kcal'),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -972,8 +946,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       children: [
         // İkon container'ı yüksekliğini azalt
         Container(
-          width: 50,
-          height: 50,
+          width: 45,
+          height: 45,
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
@@ -988,21 +962,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           child: const Icon(Icons.emoji_events, color: Colors.white, size: 25),
         ),
-        const SizedBox(height: 4), // 8'den 4'e düşürüldü
+        const SizedBox(height: 4),
         // Sabit yükseklik ve genişlik olan Container içindeki text
         SizedBox(
           width: 60,
-          height: 30, // Sabit yükseklik
+          height: 30,
           child: Center(
             child: Text(
               displayLabel,
               style: const TextStyle(
-                fontSize: 10, // 12'den 10'a düşürüldü
+                fontSize: 10,
                 color: Colors.white,
               ),
               textAlign: TextAlign.center,
-              maxLines: 2, // En fazla 2 satır göster
-              overflow: TextOverflow.ellipsis, // Taşarsa üç nokta koy
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
@@ -1094,7 +1068,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
                     const SizedBox(width: 4),
-                    Expanded(
+                    // Tarih için Flexible widget kullanarak taşmayı engelliyoruz
+                    Flexible(
                       child: Text(
                         date,
                         style: const TextStyle(fontSize: 14),
@@ -1108,9 +1083,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     Icon(Icons.straighten, size: 14, color: Colors.grey[600]),
                     const SizedBox(width: 4),
-                    Text(
-                      '$distance • $duration',
-                      style: TextStyle(color: Colors.grey[600]),
+                    // Mesafe ve süre için daha kompakt gösterim
+                    Flexible(
+                      child: Text(
+                        '$distance • $duration',
+                        style: TextStyle(color: Colors.grey[600]),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     // Yarış türü etiketi
@@ -1176,8 +1155,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right, color: Colors.grey),
+          // Sağ ok ikonu
+          const Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+          ),
         ],
       ),
     );
@@ -1204,7 +1186,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      width: MediaQuery.of(context).size.width / 3.5,
+      // Sabit genişlik yerine ekranın genişliğine göre ayarlayalım
+      width: (MediaQuery.of(context).size.width - 40) / 3.2,
       height: 75,
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
       decoration: BoxDecoration(
@@ -1353,7 +1336,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required Color iconColor,
   }) {
     return Container(
-      width: 85,
+      width: MediaQuery.of(context).size.width / 4 - 20,
       child: Column(
         children: [
           // İkon
@@ -1397,6 +1380,60 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // İstatistikler için daha kompakt ve responsive container
+  Widget _buildStatsContainer(UserRanksModel? userRanks) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFC4FF62), // Movliq yeşili
+            Color(0xFF9BDC28), // Daha koyu yeşil
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // İç mekan sıralaması
+          _buildStatIcon(
+            icon: Icons.home_outlined,
+            value: userRanks != null ? userRanks.indoorRank.toString() : "-",
+            label: 'İç',
+            iconColor: Colors.blue,
+          ),
+          // Dış mekan sıralaması
+          _buildStatIcon(
+            icon: Icons.terrain_outlined,
+            value: userRanks != null ? userRanks.outdoorRank.toString() : "-",
+            label: 'Dış',
+            iconColor: Colors.green,
+          ),
+          _buildStreakStatIcon(),
+          _buildStatIcon(
+            icon: Icons.monetization_on_outlined,
+            value: '32',
+            label: 'Coin',
+            iconColor: Colors.amber,
           ),
         ],
       ),
@@ -1538,7 +1575,8 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('http://localhost:5041/api/User/upload-profile-picture'),
+      Uri.parse(
+          'http://movliq.mehmetalicakir.tr:5000/api/User/upload-profile-picture'),
     );
 
     request.headers.addAll({
@@ -1588,7 +1626,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
 
         final imageProvider = _localImageFile != null
             ? FileImage(_localImageFile!) as ImageProvider
-            : (profileUrl != null
+            : (profileUrl != null && profileUrl.isNotEmpty
                 ? NetworkImage(
                     "$profileUrl?nocache=${DateTime.now().millisecondsSinceEpoch}_${UniqueKey().toString()}")
                 : const AssetImage('assets/images/runningman.png')
@@ -1597,6 +1635,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
         return GestureDetector(
           onTap: () => _selectAndUploadProfileImage(context, ref),
           child: Stack(
+            clipBehavior: Clip.none,
             children: [
               Container(
                 key: _imageKey,
@@ -1630,31 +1669,19 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                           width: 80,
                           height: 80,
                           gaplessPlayback: true,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.grey[300],
-                              ),
-                              child: const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            );
-                          },
                           errorBuilder: (context, error, stackTrace) {
+                            debugPrint('Profil resmi yüklenirken hata: $error');
                             return Container(
                               width: 80,
                               height: 80,
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
-                                image: DecorationImage(
-                                  image: AssetImage(
-                                      'assets/images/runningman.png'),
-                                  fit: BoxFit.cover,
-                                ),
+                                color: Colors.grey,
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 50,
                               ),
                             );
                           },
@@ -1662,8 +1689,8 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                       ),
               ),
               Positioned(
-                right: 0,
-                bottom: 0,
+                right: -2,
+                bottom: -2,
                 child: Container(
                   width: 28,
                   height: 28,
