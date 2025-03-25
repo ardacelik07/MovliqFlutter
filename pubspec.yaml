@@ -45,6 +45,8 @@ dependencies:
   permission_handler: ^11.4.0
   pedometer: ^4.0.2
   lottie: ^3.3.1
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.3.6
 
 dev_dependencies:
   flutter_test:
@@ -94,6 +96,9 @@ flutter:
     - assets/images/record.png
     - assets/images/indoorfilterbckgrnd.jpg
     - assets/images/outdoorfilterbckgrnd.jpg
+    - assets/images/playstore.png
+    - assets/images/loading.png
+    - assets/images/onlycolor.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -120,3 +125,38 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# flutter bölümünün dışında, dosyanın en altında
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/playstore.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/images/playstore.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "assets/images/playstore.png"
+    icon_size: 48
+
+flutter_native_splash:
+  color: "#C4FF62"
+  image: assets/images/loading.png
+
+  background_image: assets/images/onlycolor.jpeg
+
+  # Temel ayarlar
+  android: true
+  ios: true
+  ios_content_mode: scaleAspectFit # Oranı koruyarak görüntüler
+
+  # Ek ayarlar
+  fullscreen: true
+  web: false
+
+  android_12:
+    image: assets/images/loading.png
+    icon_background_color: "#C4FF62"
