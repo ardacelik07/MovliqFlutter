@@ -220,14 +220,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           });
           debugPrint('Kendi email adresiniz: $_myEmail');
         }
-
-        // Eğer name claim'inden username alamadıysak, email'den oluşturalım
-        if (_myUsername == null && _myEmail != null) {
-          setState(() {
-            _myUsername = _myEmail!.split('@')[0];
-          });
-          debugPrint('Email\'den kullanıcı adı oluşturuldu: $_myUsername');
-        }
       }
     } catch (e) {
       debugPrint('Kullanıcı bilgisi yüklenirken hata: $e');
@@ -413,43 +405,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       debugPrint(
           '🚫 Geçiş zaten başlamış veya widget artık mounted değil. Geçiş iptal edildi.');
       return;
-    }
-
-    // Kullanıcı adı null ise, yüklemeyi deneyelim
-    if (_myUsername == null) {
-      debugPrint('🚀 3. _myUsername null olduğu için yükleme başlıyor');
-      await _loadUsername();
-      debugPrint(
-          '🚀 4. _loadUsername çağrısı tamamlandı, yeni değer: $_myUsername');
-
-      // Yükleme sonrası hala null ise, son çare olarak token'dan doğrudan okuyalım
-      if (_myUsername == null) {
-        debugPrint('🚀 5. Hala null, token\'dan okuma deneniyor');
-        final tokenJson = await StorageService.getToken();
-        debugPrint('🚀 6. Token değeri: $tokenJson');
-
-        if (tokenJson != null) {
-          final Map<String, dynamic> userData = jsonDecode(tokenJson);
-          debugPrint('🚀 7. Token içeriği: $userData');
-
-          if (userData.containsKey('username')) {
-            setState(() {
-              _myUsername = userData['username'];
-            });
-            debugPrint('🚀 8. Token\'dan username alındı: $_myUsername');
-          } else if (userData.containsKey('email')) {
-            final email = userData['email'];
-            setState(() {
-              _myUsername = email.contains('@') ? email.split('@')[0] : email;
-            });
-            debugPrint('🚀 9. Email\'den username oluşturuldu: $_myUsername');
-          }
-        } else {
-          debugPrint('🚀 10. Token null geldi! Kullanıcı adı alınamadı');
-          _showErrorMessage('Kullanıcı bilgileri alınamadı!');
-          return; // Kullanıcı adı olmadan devam etmeyelim
-        }
-      }
     }
 
     if (mounted && _isRaceStarting) {
