@@ -66,7 +66,16 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Direkt uygulamadan çıkış yap
+        // Eğer ana sayfada değilsek, ana sayfaya dön
+        if (_selectedIndex != 0) {
+          setState(() {
+            _previousIndex = _selectedIndex;
+            _selectedIndex = 0;
+          });
+          return false; // Navigasyonu engelleyerek kendi işlemimizi yaptık
+        }
+
+        // Ana sayfadaysa direkt uygulamadan çıkış yap
         await SystemNavigator.pop();
         return false;
       },
