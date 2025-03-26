@@ -75,8 +75,40 @@ class SignalRService {
 
   bool get isConnected => _isConnected;
 
+  // Bağlantı bilgilerini tamamen temizleyen bir metod
+  Future<void> resetConnection() async {
+    debugPrint('SignalR bağlantısını sıfırlama başlatılıyor...');
+
+    // Önce mevcut bağlantıyı kapat
+    if (_hubConnection != null) {
+      try {
+        await _hubConnection!.stop();
+        debugPrint('Mevcut SignalR bağlantısı kapatıldı');
+      } catch (e) {
+        debugPrint('Bağlantı kapatma hatası: $e');
+      }
+    }
+
+    // Tüm değişkenleri sıfırla
+    _hubConnection = null;
+    _isConnected = false;
+
+    _leaderboardController.add([]);
+    _raceStartedController.add(false);
+    _raceEndedController.add(0);
+    _userJoinedController.add('');
+    _userLeftController.add('');
+    _locationUpdatedController.add({});
+    _raceStartingController.add({});
+    _roomParticipantsController.add([]);
+
+    debugPrint('SignalR bağlantısı tamamen sıfırlandı');
+  }
+
   Future<void> connect() async {
-    if (_isConnected) return;
+    if (_isConnected) {
+      await resetConnection();
+    }
 
     final tokenJson = await StorageService.getToken();
     if (tokenJson == null) {
