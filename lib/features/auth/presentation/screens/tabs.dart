@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
 import 'home_page.dart';
 import 'profile_screen.dart';
 import 'store_screen.dart';
 import 'record_screen.dart';
 import 'leaderboard_screen.dart';
 import '../providers/leaderboard_provider.dart';
+import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/http_interceptor.dart';
+import '../screens/login_screen.dart';
 
 class TabsScreen extends ConsumerStatefulWidget {
   const TabsScreen({super.key});
@@ -20,6 +24,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
   int _selectedIndex = 0;
   int _previousIndex = 0;
   DateTime? _lastBackPressTime;
+  bool _isLoading = true; // Token kontrolü için yükleme durumu
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -28,6 +33,61 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
     const LeaderboardScreen(),
     const ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkToken(); // Token geçerliliğini kontrol et
+  }
+
+  // Token kontrolü
+  Future<void> _checkToken() async {
+    try {
+      final tokenJson = await StorageService.getToken();
+
+      if (tokenJson == null) {
+        print('⚠️ Tabs: Token bulunamadı, login ekranına yönlendiriliyor');
+        _redirectToLogin();
+        return;
+      }
+
+      try {
+        // Token formatını kontrol et
+        final tokenData = jsonDecode(tokenJson);
+
+        if (!tokenData.containsKey('token') ||
+            tokenData['token'] == null ||
+            tokenData['token'].isEmpty) {
+          print('⚠️ Tabs: Token format hatası, login ekranına yönlendiriliyor');
+          _redirectToLogin();
+          return;
+        }
+
+        // Token geçerli, yükleme tamamlandı
+        setState(() {
+          _isLoading = false;
+        });
+      } catch (e) {
+        print('⚠️ Tabs: Token parse hatası: $e');
+        _redirectToLogin();
+      }
+    } catch (e) {
+      print('⚠️ Tabs: Token kontrolü sırasında hata: $e');
+      _redirectToLogin();
+    }
+  }
+
+  // Login ekranına yönlendir
+  void _redirectToLogin() async {
+    await StorageService.deleteToken();
+
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    }
+  }
 
   void _onItemTapped(int index) {
     // Leaderboard tab'ine geçiş yapılıyorsa provider'ları temizle
@@ -64,6 +124,15 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Token kontrol yüklemesi sırasında bekletme
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return WillPopScope(
       onWillPop: () async {
         // Eğer ana sayfada değilsek, ana sayfaya dön

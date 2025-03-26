@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/config/api_config.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/http_interceptor.dart';
 import '../../domain/models/user_data_model.dart';
 
 class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
@@ -23,7 +24,8 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
       final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
       final String token = tokenData['token'];
 
-      final response = await http.get(
+      // HttpInterceptor kullanarak istek yap (401 durumunda otomatik logout olacak)
+      final response = await HttpInterceptor.get(
         Uri.parse('${ApiConfig.baseUrl}/User/profile'),
         headers: {
           'Authorization': 'Bearer $token',
@@ -83,7 +85,8 @@ final userStreakProvider = FutureProvider<int>((ref) async {
     final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
     final String token = tokenData['token'];
 
-    final response = await http.get(
+    // HttpInterceptor kullanarak istek yap (401 durumunda otomatik logout olacak)
+    final response = await HttpInterceptor.get(
       Uri.parse(ApiConfig.userStreakTrackEndpoint),
       headers: {
         'Authorization': 'Bearer $token',

@@ -88,7 +88,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
 
       // Google Places API ile yakındaki spor salonlarını ara
       final apiKey = 'AIzaSyA79Tf7SPoGXrwx5WupR6G-67te9UGabLA';
-      final radius = 50; // 50 metre yarıçap - biraz daha gerçekçi bir değer
+      final radius = 150; // 50 metre yarıçap - biraz daha gerçekçi bir değer
       final url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
           '?location=${_currentPosition!.latitude},${_currentPosition!.longitude}'
           '&radius=1000' // API'ye daha geniş bir yarıçap ile sorgu yapıyoruz
