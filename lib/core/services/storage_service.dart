@@ -1,25 +1,33 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
 class StorageService {
-  static String? _token;
+  static const String _tokenKey = 'user_token';
 
   // Token'ı kaydet
   static Future<void> saveToken(String token) async {
-    _token = token;
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
     print('Token saved: $token');
   }
 
   // Token'ı getir
   static Future<String?> getToken() async {
-    return _token;
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
   }
 
   // Token'ı sil (logout için)
   static Future<void> deleteToken() async {
-    _token = null;
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
     print('Token deleted');
   }
 
   // Token var mı kontrol et
   static Future<bool> hasToken() async {
-    return _token != null;
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString(_tokenKey);
+    return token != null && token.isNotEmpty;
   }
 }
