@@ -484,7 +484,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     children: [
                                       // Geliştirilmiş Grafik - yüksekliği sabit tutuyoruz
                                       Container(
-                                        height: 240,
+                                        height: 200,
                                         decoration: BoxDecoration(
                                           color: const Color(0xFF93C53E),
                                           borderRadius:
@@ -499,7 +499,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                           ],
                                         ),
                                         padding: const EdgeInsets.symmetric(
-                                            vertical: 12, horizontal: 16),
+                                            vertical: 12, horizontal: 8),
                                         child: LineChart(
                                           LineChartData(
                                             lineTouchData: LineTouchData(
@@ -639,17 +639,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                                 .toStringAsFixed(
                                                                     2);
 
-                                                    return Text(
-                                                      displayValue,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 12,
+                                                    return Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              right: 8.0),
+                                                      child: Text(
+                                                        displayValue,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 12,
+                                                        ),
+                                                        textAlign:
+                                                            TextAlign.right,
                                                       ),
-                                                      textAlign:
-                                                          TextAlign.right,
                                                     );
                                                   },
-                                                  reservedSize: 40,
+                                                  reservedSize: 35,
                                                 ),
                                               ),
                                             ),
@@ -782,7 +787,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text(
-                                'Recent Races',
+                                'Son Yarışlar',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -790,6 +795,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                               TextButton(
                                 onPressed: () {
+                                  // Aktif tipi Indoor'a sıfırla
+                                  setState(() {
+                                    _activeType = 'indoor';
+                                  });
+
+                                  // Provider'ı doğrudan sıfırla - Indoor, Weekly olarak ayarla
+                                  ref
+                                      .read(activityProfileProvider.notifier)
+                                      .fetchActivities('indoor', 'weekly');
+
+                                  // Race Results ekranına geç
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -832,38 +848,259 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       final formattedDate =
                                           '${startTime.day} ${_getMonthName(startTime.month)}, ${startTime.year} - ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
 
-                                      // Süreyi formatlama (API'de duration)
-                                      final duration = race['duration'] ?? 0;
-                                      final hours = duration ~/ 60;
-                                      final minutes = duration % 60;
-                                      final formattedDuration = hours > 0
-                                          ? '${hours}h ${minutes}m'
-                                          : '${minutes}m';
-
-                                      // Mesafeyi formatlama
-                                      final distance =
-                                          race['distancekm'] ?? 0.0;
+                                      // Mesafe (km) hesaplama
                                       final distanceStr =
-                                          distance.toStringAsFixed(2);
+                                          race['distancekm'].toStringAsFixed(2);
 
-                                      // Yeri (rank) gösterme
-                                      final rank = race['rank'];
-                                      String rankText = rank != null
-                                          ? '${rank}. Sıra'
-                                          : 'Sıralama yok';
+                                      // Süre formatı
+                                      final duration = race['duration'] ?? 0;
+                                      final minutes = (duration / 60).floor();
+                                      final seconds = duration % 60;
+                                      final formattedDuration =
+                                          '$minutes:${seconds.toString().padLeft(2, '0')}';
 
+                                      // Sıralama kontrolü
+                                      int rank = race['rank'] ?? 0;
+                                      String rankText = 'Sıralama yok';
                                       if (rank == 1) rankText = '1. Sıra';
                                       if (rank == 2) rankText = '2. Sıra';
                                       if (rank == 3) rankText = '3. Sıra';
 
-                                      return _buildRaceItem(
-                                        date: formattedDate,
-                                        distance: '${distanceStr}km',
-                                        duration: formattedDuration,
-                                        place: rankText,
-                                        type: race['roomType'] == 'indoor'
-                                            ? 'Indoor'
-                                            : 'Outdoor',
+                                      return Container(
+                                        margin:
+                                            const EdgeInsets.only(bottom: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                              color: Colors.grey[200]!),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            // Logo
+                                            Container(
+                                              width: 36,
+                                              height: 36,
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue[100],
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Image.asset(
+                                                'assets/images/movliqonlylogo.png',
+                                                color: Colors.blue,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            // Orta kısım (tarih ve mesafe)
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Icon(Icons.access_time,
+                                                          size: 14,
+                                                          color:
+                                                              Colors.grey[600]),
+                                                      const SizedBox(width: 4),
+                                                      // Tarih için Flexible widget kullanarak taşmayı engelliyoruz
+                                                      Flexible(
+                                                        child: Text(
+                                                          formattedDate,
+                                                          style:
+                                                              const TextStyle(
+                                                                  fontSize: 14),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 6),
+                                                  Wrap(
+                                                    spacing: 8, // yatay boşluk
+                                                    runSpacing:
+                                                        4, // dikey boşluk
+                                                    alignment:
+                                                        WrapAlignment.start,
+                                                    crossAxisAlignment:
+                                                        WrapCrossAlignment
+                                                            .center,
+                                                    children: [
+                                                      // Mesafe bilgisi
+                                                      Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Icon(Icons.straighten,
+                                                              size: 14,
+                                                              color: Colors
+                                                                  .grey[600]),
+                                                          const SizedBox(
+                                                              width: 4),
+                                                          Text(
+                                                            '${distanceStr}km',
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 13,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+
+                                                      // Adım bilgisi ve yarış türü yan yana
+                                                      Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                              Icons
+                                                                  .directions_walk,
+                                                              size: 14,
+                                                              color: Colors
+                                                                  .grey[600]),
+                                                          const SizedBox(
+                                                              width: 4),
+                                                          Text(
+                                                            '${race['steps']}',
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 13,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              width: 4),
+                                                          Icon(
+                                                            race['roomType'] ==
+                                                                    'indoor'
+                                                                ? Icons
+                                                                    .home_outlined
+                                                                : Icons
+                                                                    .terrain_outlined,
+                                                            size: 14,
+                                                            color: race['roomType'] ==
+                                                                    'indoor'
+                                                                ? Colors
+                                                                    .blue[600]
+                                                                : Colors
+                                                                    .green[600],
+                                                          ),
+                                                          const SizedBox(
+                                                              width: 2),
+                                                          Text(
+                                                            race['roomType'] ==
+                                                                    'indoor'
+                                                                ? 'Indoor'
+                                                                : 'Outdoor',
+                                                            style: TextStyle(
+                                                              color: race['roomType'] ==
+                                                                      'indoor'
+                                                                  ? Colors
+                                                                      .blue[600]
+                                                                  : Colors.green[
+                                                                      600],
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            // Sağ kısım (sıralama bilgisi)
+                                            Container(
+                                              margin: const EdgeInsets.only(
+                                                  left: 8),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: rankText ==
+                                                        'Sıralama yok'
+                                                    ? Colors.grey[200]
+                                                    : rankText.contains('1')
+                                                        ? Colors.amber[700]!
+                                                            .withOpacity(0.2)
+                                                        : rankText.contains('2')
+                                                            ? Colors
+                                                                .blueGrey[700]!
+                                                                .withOpacity(
+                                                                    0.2)
+                                                            : Colors.brown[700]!
+                                                                .withOpacity(
+                                                                    0.2),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                      rankText == 'Sıralama yok'
+                                                          ? Icons.help_outline
+                                                          : Icons.emoji_events,
+                                                      size: 13,
+                                                      color: rankText ==
+                                                              'Sıralama yok'
+                                                          ? Colors.grey[600]
+                                                          : rankText
+                                                                  .contains('1')
+                                                              ? Colors
+                                                                  .amber[700]
+                                                              : rankText
+                                                                      .contains(
+                                                                          '2')
+                                                                  ? Colors.blueGrey[
+                                                                      700]
+                                                                  : Colors.brown[
+                                                                      700]),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    rankText,
+                                                    style: TextStyle(
+                                                      color: rankText ==
+                                                              'Sıralama yok'
+                                                          ? Colors.grey[600]
+                                                          : rankText
+                                                                  .contains('1')
+                                                              ? Colors
+                                                                  .amber[700]
+                                                              : rankText
+                                                                      .contains(
+                                                                          '2')
+                                                                  ? Colors.blueGrey[
+                                                                      700]
+                                                                  : Colors.brown[
+                                                                      700],
+                                                      fontSize: rankText ==
+                                                              'Sıralama yok'
+                                                          ? 10
+                                                          : 11,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       );
                                     }).toList(),
                                   );
@@ -1054,7 +1291,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               shape: BoxShape.circle,
             ),
             child: Image.asset(
-              'assets/images/Movliq_beyaz.png',
+              'assets/images/movliqonlylogo.png',
               color: Colors.blue,
             ),
           ),
