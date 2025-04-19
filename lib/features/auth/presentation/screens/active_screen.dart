@@ -14,78 +14,104 @@ class ActiveScreen extends ConsumerStatefulWidget {
 class _ActiveScreenState extends ConsumerState<ActiveScreen> {
   String? _selectedLevel;
 
+  // Define the primary green color for the gradient
+  static const Color primaryGreen = Color(0xFF7BB027);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
-              Image.asset(
-                'assets/images/active.jpg',
-                height: 300,
-              ),
-              const SizedBox(height: 40),
-              const Text(
-                "How active are you?",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              _buildActivityOption(
-                'Beginner',
-                'Just getting started',
-                Icons.directions_walk,
-                'beginner',
-              ),
-              const SizedBox(height: 16),
-              _buildActivityOption(
-                'Intermediate',
-                'Regular exercise',
-                Icons.favorite,
-                'intermediate',
-              ),
-              const SizedBox(height: 16),
-              _buildActivityOption(
-                'Advanced',
-                'Consistent training',
-                Icons.fitness_center,
-                'advanced',
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFC4FF62),
-                  foregroundColor: const Color.fromARGB(255, 0, 0, 0),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                onPressed: _selectedLevel != null
-                    ? () {
-                        ref.read(userProfileProvider.notifier).updateProfile(
-                              activityLevel: _selectedLevel,
-                            );
-
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const FinishScreen()),
-                        );
-                      }
-                    : null,
-                child: const Text('Continue'),
-              ),
+      // Remove the explicit white background color
+      // backgroundColor: Colors.white,
+      body: Container(
+        // Add Container to apply the gradient
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.black,
+              primaryGreen, // Start with the app's green
+              // End with black
             ],
+            begin: Alignment.topCenter, // Gradient from top
+            end: Alignment.bottomCenter, // to bottom
+            stops: [0.0, 0.8], // Control the blend point (adjust as needed)
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 40),
+                Image.asset(
+                  'assets/images/activity.png',
+                  height: 300,
+                ),
+                const SizedBox(height: 40),
+                const Text(
+                  "How active are you?",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    // Change text color to white to be visible on the dark gradient
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                // Pass the context to update text colors in options
+                _buildActivityOption(
+                  context,
+                  'Beginner',
+                  'Just getting started',
+                  Icons.directions_walk,
+                  'beginner',
+                ),
+                const SizedBox(height: 16),
+                _buildActivityOption(
+                  context,
+                  'Intermediate',
+                  'Regular exercise',
+                  Icons.favorite,
+                  'intermediate',
+                ),
+                const SizedBox(height: 16),
+                _buildActivityOption(
+                  context,
+                  'Advanced',
+                  'Consistent training',
+                  Icons.fitness_center,
+                  'advanced',
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF476C17),
+                    foregroundColor: primaryGreen,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: _selectedLevel != null
+                      ? () {
+                          ref.read(userProfileProvider.notifier).updateProfile(
+                                activityLevel: _selectedLevel,
+                              );
+
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const FinishScreen()),
+                          );
+                        }
+                      : null,
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -93,33 +119,45 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
   }
 
   Widget _buildActivityOption(
+    // Add BuildContext to access theme/colors if needed later
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
     String value,
   ) {
     final isSelected = _selectedLevel == value;
+    // Determine text colors based on the background gradient
+    final Color titleColor = isSelected ? Colors.black : Colors.white;
+    final Color subtitleColor = isSelected ? Colors.black54 : Colors.white70;
+    final Color iconColor = isSelected ? Colors.black : Colors.white;
+
     return InkWell(
       onTap: () {
         setState(() {
           _selectedLevel = value;
         });
       },
+      borderRadius: BorderRadius.circular(12), // Ensure ripple matches border
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFFC4FF62) : Colors.grey[100],
+          // Keep selected color, make unselected slightly transparent white
+          color: isSelected
+              ? const Color(0xFFC4FF62)
+              : Colors.white.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.black : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
+          // Remove border, selection is clear from background color
+          // border: Border.all(
+          //   color: isSelected ? Colors.black : Colors.grey.shade300,
+          //   width: isSelected ? 2 : 1,
+          // ),
         ),
         child: Row(
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.black : Colors.grey,
+              color: iconColor, // Use dynamically determined icon color
               size: 24,
             ),
             const SizedBox(width: 16),
@@ -132,14 +170,14 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.black : Colors.black,
+                      color: titleColor, // Use dynamic title color
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isSelected ? Colors.black : Colors.grey,
+                      color: subtitleColor, // Use dynamic subtitle color
                     ),
                   ),
                 ],
@@ -148,6 +186,7 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
             if (isSelected)
               const Icon(
                 Icons.check_circle,
+                // Make checkmark black for visibility on light selected background
                 color: Colors.black,
                 size: 24,
               ),

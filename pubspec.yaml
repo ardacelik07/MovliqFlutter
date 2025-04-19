@@ -102,6 +102,15 @@ flutter:
     - assets/images/loading.png
     - assets/images/onlycolor.jpeg
     - assets/images/logo.png
+    - assets/images/registerpicture.png
+    - assets/images/loginpicture.png
+    - assets/images/welcome1.png
+    - assets/images/registration.png
+    - assets/images/birthday.png
+    - assets/images/uzunluk.png
+    - assets/images/agirlik.png
+    - assets/images/activity.png
+    - assets/images/finish1.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

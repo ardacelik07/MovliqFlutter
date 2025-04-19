@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart'; // Import services
 
 import 'height_screen.dart';
 import '../providers/user_profile_provider.dart';
@@ -14,99 +15,210 @@ class AgeGenderScreen extends ConsumerStatefulWidget {
 class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
   DateTime? selectedDate;
   String? selectedGender;
-  final _formKey = GlobalKey<FormState>();
+  // Removed unused _formKey
+
+  // Helper function to format date as dd/MM/yyyy without intl
+  String _formatDate(DateTime date) {
+    String day = date.day.toString().padLeft(2, '0');
+    String month = date.month.toString().padLeft(2, '0');
+    String year = date.year.toString();
+    return '$day/$month/$year';
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Enable edge-to-edge
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+    ));
+
+    // Define colors based on the image
+    const Color primaryColor = Color(0xFF7BB027); // Green color
+    const Color darkGreenColor = Color(0xFF476C17); // Darker shade
+    const Color textFieldBgColor =
+        Color.fromARGB(195, 0, 0, 0); // Dark background like name_screen
+    const Color labelColor =
+        Color.fromARGB(255, 222, 222, 222); // Light label color for dark bg
+    const Color inputHintColor =
+        Color(0xFFBDBDBD); // Hint color like login/register
+    const Color inputTextColor = Colors.white; // Text color inside input
+    const Color buttonTextColor =
+        const Color(0xFF9FD545); // From user's last change
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
+      backgroundColor: primaryColor, // Match scaffold background
+      body: Container(
+        width: double.infinity, // Ensure container fills width
+        height: double.infinity, // Ensure container fills height
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color.fromARGB(255, 0, 0, 0)
+                  .withOpacity(0.9), // Match name_screen gradient
+              primaryColor,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
+              // Use Column for vertical layout
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
+                SizedBox(height: MediaQuery.of(context).padding.top + 20),
+                // Image
                 Image.asset(
-                  'assets/images/age_gender.jpg',
-                  height: 300,
+                  'assets/images/birthday.png', // Keep existing image for now
+                  height:
+                      MediaQuery.of(context).size.height * 0.4, // Adjust height
                 ),
-                const SizedBox(height: 150),
+                const Spacer(flex: 2), // Add space before inputs
+
+                // Birthday Label
+                const Text(
+                  'When is your Birthday?',
+                  style: TextStyle(color: labelColor, fontSize: 14),
+                  textAlign: TextAlign.left,
+                ),
+                const SizedBox(height: 8),
+                // Birthday Input (Calendar Picker)
                 GestureDetector(
                   onTap: () async {
                     final DateTime? picked = await showDatePicker(
                       context: context,
-                      initialDate: DateTime.now(),
+                      initialDate: selectedDate ?? DateTime.now(),
                       firstDate: DateTime(1900),
                       lastDate: DateTime.now(),
+                      builder: (context, child) {
+                        // Optional: Theme the date picker
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: primaryColor, // header background color
+                              onPrimary: Colors.white, // header text color
+                              onSurface: Colors.black, // body text color
+                            ),
+                            textButtonTheme: TextButtonThemeData(
+                              style: TextButton.styleFrom(
+                                foregroundColor:
+                                    primaryColor, // button text color
+                              ),
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
-                    if (picked != null) {
+                    if (picked != null && picked != selectedDate) {
                       setState(() {
                         selectedDate = picked;
                       });
                     }
                   },
                   child: Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black),
-                      borderRadius: BorderRadius.circular(8),
+                      color: textFieldBgColor, // Use dark background
+                      borderRadius:
+                          BorderRadius.circular(12), // Rounded corners
+                      // border: Border.all(color: Colors.black), // Removed border
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           selectedDate != null
-                              ? "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}"
-                              : "When is your Birthday???",
-                          style: const TextStyle(color: Colors.black),
+                              ? _formatDate(selectedDate!) // Use formatted date
+                              : 'Calendar', // Placeholder text
+                          style: TextStyle(
+                            color: selectedDate != null
+                                ? inputTextColor
+                                : inputHintColor, // Adjust text color
+                            fontSize: 16,
+                          ),
                         ),
-                        const Icon(Icons.calendar_today, color: Colors.black),
+                        const Icon(Icons.calendar_today,
+                            color: inputHintColor, size: 20),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+
+                // Gender Label
+                const Text(
+                  'How do you identify?',
+                  style: TextStyle(color: labelColor, fontSize: 14),
+                  textAlign: TextAlign.left,
+                ),
+                const SizedBox(height: 8),
+                // Gender Input (Dropdown)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    borderRadius: BorderRadius.circular(8),
+                    color: textFieldBgColor, // Use dark background
+                    borderRadius: BorderRadius.circular(12), // Rounded corners
+                    // border: Border.all(color: Colors.black), // Removed border
                   ),
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: selectedGender,
-                    hint: const Text(
-                      "How do you identify?",
-                      style: TextStyle(color: Colors.black),
+                  child: DropdownButtonHideUnderline(
+                    // Hide default underline
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: selectedGender,
+                      hint: const Text(
+                        'Dropdown', // Placeholder text
+                        style: TextStyle(color: inputHintColor, fontSize: 16),
+                      ),
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: Color.fromARGB(255, 255, 255, 255)),
+                      items: ["Male", "Female", "Other"]
+                          .map((String value) => DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value,
+                                    style: const TextStyle(
+                                        color:
+                                            Color.fromARGB(255, 255, 255, 255),
+                                        fontSize: 16)),
+                              ))
+                          .toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedGender = newValue;
+                        });
+                      },
+                      dropdownColor:
+                          Colors.grey[800], // Dark dropdown background
+                      style: const TextStyle(
+                          color: inputTextColor,
+                          fontSize: 16), // Style for selected item
                     ),
-                    underline: const SizedBox(),
-                    items: ["Male", "Female", "Other"]
-                        .map((String value) => DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            ))
-                        .toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedGender = newValue;
-                      });
-                    },
                   ),
                 ),
-                const SizedBox(height: 32),
+                const Spacer(flex: 3), // Push button to bottom
+
+                // Continue Button
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFC4FF62),
-                    foregroundColor: const Color.fromARGB(255, 0, 0, 0),
+                    backgroundColor: const Color.fromARGB(
+                        255, 43, 64, 16), // Match name_screen button
+                    foregroundColor: buttonTextColor, // White text
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12), // More rounded
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   onPressed: () {
+                    // Validate that both fields are selected
                     if (selectedDate != null && selectedGender != null) {
                       ref.read(userProfileProvider.notifier).updateProfile(
                             birthDate: selectedDate,
@@ -118,10 +230,19 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                         MaterialPageRoute(
                             builder: (context) => const HeightScreen()),
                       );
+                    } else {
+                      // Optional: Show a snackbar if fields are not selected
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Lütfen tüm alanları seçin')),
+                      );
                     }
                   },
-                  child: const Text('Continue'),
+                  child: const Text('Devam Et'),
                 ),
+                SizedBox(
+                    height: MediaQuery.of(context).padding.bottom +
+                        20), // Space at bottom
               ],
             ),
           ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart'; // Import services
 
-import '../widgets/auth_text_field.dart';
 import '../providers/user_profile_provider.dart';
 
 import 'age_gender_screen.dart';
@@ -27,123 +27,158 @@ class _NameScreenState extends ConsumerState<NameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 40),
-                    Image.asset(
-                      'assets/images/startscreen.jpg',
-                      height: 300,
-                    ),
-                    const SizedBox(height: 150),
-                    AuthTextField(
-                      controller: _nameController,
-                      hintText: 'What is your name?',
-                      validator: (value) {
-                        if (value?.isEmpty ?? true) {
-                          return 'Please enter your name';
-                        }
-                        return null;
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'What is your name?',
-                        labelStyle: const TextStyle(color: Colors.black),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Colors.black, width: 1),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Colors.black, width: 1),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Colors.black, width: 2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    AuthTextField(
-                      controller: _usernameController,
-                      hintText: '@username',
-                      validator: (value) {
-                        if (value?.isEmpty ?? true) {
-                          return 'Please enter a username';
-                        }
-                        return null;
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'What is your prefer username',
-                        labelStyle: const TextStyle(color: Colors.black),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Colors.black, width: 1),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Colors.black, width: 1),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: Colors.black, width: 2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFC4FF62),
-                        foregroundColor: const Color.fromARGB(255, 0, 0, 0),
-                        textStyle: TextStyle(color: Colors.black),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () {
-                        if (_formKey.currentState?.validate() ?? false) {
-                          // Update user profile
-                          ref.read(userProfileProvider.notifier).updateProfile(
-                                name: _nameController.text,
-                                username: _usernameController.text,
-                              );
+    // Enable edge-to-edge
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+    ));
 
-                          // Navigate to next screen
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AgeGenderScreen(),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Text('Continue'),
+    // Define colors based on the image
+    const Color primaryColor = Color(0xFF7BB027); // Green color from the image
+    const Color darkGreenColor =
+        Color(0xFF476C17); // Darker shade for gradient/button
+    const Color textFieldBgColor = Color.fromARGB(195, 0, 0, 0);
+    const Color labelColor =
+        Color.fromARGB(255, 222, 222, 222); // Dark grey for labels
+    const Color inputColor = Color.fromARGB(255, 255, 253, 253);
+    const Color buttonTextColor = const Color(0xFF9FD545);
+
+    return Scaffold(
+      backgroundColor: primaryColor, // Explicitly set scaffold background
+      // Use a gradient background similar to the image
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color.fromARGB(255, 0, 0, 0).withOpacity(0.9),
+              primaryColor,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                      height: MediaQuery.of(context).padding.top +
+                          20), // Space from top, considering status bar
+                  // Image
+                  Image.asset(
+                    'assets/images/registration.png', // Existing image
+                    height: MediaQuery.of(context).size.height *
+                        0.35, // Adjust height
+                  ),
+                  const SizedBox(height: 60),
+                  // Name Field
+                  TextFormField(
+                    controller: _nameController,
+                    style: const TextStyle(color: inputColor),
+                    decoration: InputDecoration(
+                      hintText: 'What is your name?',
+                      hintStyle:
+                          const TextStyle(color: labelColor, fontSize: 14),
+                      filled: true,
+                      fillColor: textFieldBgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12), // More rounded
+                        borderSide: BorderSide.none, // No border
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 16),
                     ),
-                  ],
-                ),
+                    validator: (value) {
+                      if (value?.isEmpty ?? true) {
+                        return 'Please enter your name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  // Username Field
+                  TextFormField(
+                    controller: _usernameController,
+                    style: const TextStyle(color: inputColor),
+                    decoration: InputDecoration(
+                      hintText: 'What is your prefer username?',
+                      hintStyle:
+                          const TextStyle(color: labelColor, fontSize: 14),
+                      filled: true,
+                      fillColor: textFieldBgColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12), // More rounded
+                        borderSide: BorderSide.none, // No border
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 16),
+                      prefixStyle: const TextStyle(
+                          color: labelColor), // Style for prefix
+                    ),
+                    validator: (value) {
+                      if (value?.isEmpty ?? true) {
+                        return 'Please enter a username';
+                      }
+                      // Basic username validation (no spaces, etc.) - enhance if needed
+                      if (value!.contains(' ')) {
+                        return 'Username cannot contain spaces';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 60),
+                  // Continue Button
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(
+                          255, 43, 64, 16), // Darker button background
+                      foregroundColor: buttonTextColor, // White text
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12), // More rounded
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      if (_formKey.currentState?.validate() ?? false) {
+                        // Update user profile
+                        ref.read(userProfileProvider.notifier).updateProfile(
+                              name: _nameController.text.trim(),
+                              // Prepend @ if not already present, ensure no extra @
+                              username: _usernameController.text
+                                      .trim()
+                                      .startsWith('@')
+                                  ? _usernameController.text.trim()
+                                  : '${_usernameController.text.trim()}',
+                            );
+
+                        // Navigate to next screen
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AgeGenderScreen(),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Devam Et'),
+                  ),
+                  SizedBox(
+                      height: MediaQuery.of(context).padding.bottom +
+                          20), // Space at bottom
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
