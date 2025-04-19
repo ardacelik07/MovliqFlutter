@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/signalr_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
@@ -10,13 +11,16 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 final authProvider =
     StateNotifierProvider<AuthNotifier, AsyncValue<String?>>((ref) {
   final repository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(repository);
+  final signalRService = ref.watch(signalRServiceProvider);
+  return AuthNotifier(repository, signalRService);
 });
 
 class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
   final AuthRepository _repository;
+  final SignalRService _signalRService;
 
-  AuthNotifier(this._repository) : super(const AsyncValue.data(null)) {
+  AuthNotifier(this._repository, this._signalRService)
+      : super(const AsyncValue.data(null)) {
     _initializeToken();
   }
 
@@ -31,6 +35,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
       {required String email, required String password}) async {
     state = const AsyncValue.loading();
     try {
+      await _signalRService.resetConnection();
+
       final token = await _repository.register(
         email: email,
         password: password,
@@ -43,6 +49,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
   }
 
   Future<void> logout() async {
+    await _signalRService.resetConnection();
     await StorageService.deleteToken();
     state = const AsyncValue.data(null);
   }
@@ -50,6 +57,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
   Future<void> login({required String email, required String password}) async {
     state = const AsyncValue.loading();
     try {
+      await _signalRService.resetConnection();
+
       final token = await _repository.login(
         email: email,
         password: password,

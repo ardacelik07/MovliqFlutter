@@ -11,4 +11,4 @@ class AuthModel {
         'email': email,
         'password': password,
       };
-} 
+}

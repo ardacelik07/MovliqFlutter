@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../../features/auth/domain/models/leaderboard_model.dart';
+import '../services/storage_service.dart';
 
 class LeaderboardService {
   Future<List<LeaderboardIndoorDto>> getIndoorLeaderboard() async {
@@ -92,6 +93,42 @@ class LeaderboardService {
     } catch (e) {
       debugPrint("Error in getOutdoorLeaderboard: $e");
       throw Exception('Failed to load outdoor leaderboard: ${e.toString()}');
+    }
+  }
+
+  Future<Map<String, dynamic>> getUserLeaderboardRanks() async {
+    try {
+      final tokenJson = await StorageService.getToken();
+
+      if (tokenJson == null) {
+        throw Exception('Kimlik doğrulama jetonu bulunamadı');
+      }
+
+      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+      final String token = tokenData['token'];
+
+      final response = await http.get(
+        Uri.parse(
+            '${ApiConfig.baseUrl}/LeaderBoard/GetUserByIdLeaderBoardRanks'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      debugPrint("Sıralama API yanıt durumu: ${response.statusCode}");
+      debugPrint("Sıralama API yanıt gövdesi: ${response.body}");
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception(
+            'Kullanıcı sıralaması alınamadı. Durum: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint("getUserLeaderboardRanks metodunda hata: $e");
+      throw Exception('Kullanıcı sıralaması alınamadı: ${e.toString()}');
     }
   }
 }

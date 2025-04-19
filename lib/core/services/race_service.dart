@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../../../features/auth/domain/models/race_room_request.dart';
 import '../config/api_config.dart';
 import 'storage_service.dart';
+import 'http_interceptor.dart';
 
 class RaceService {
   Future<Map<String, dynamic>> joinRaceRoom(RaceRoomRequest request) async {
@@ -15,7 +16,8 @@ class RaceService {
       final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
       final String actualToken = tokenData['token'];
 
-      final response = await http.post(
+      // HttpInterceptor kullanarak istek yap (401 durumunda otomatik logout olacak)
+      final response = await HttpInterceptor.post(
         Uri.parse('${ApiConfig.baseUrl}/RaceRoom/match-room'),
         headers: {
           'Content-Type': 'application/json',

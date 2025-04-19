@@ -18,8 +18,9 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
   // Duration value map - updated to match the UI in the image
   final Map<String, int> _durationMap = {
     'beginner': 1,
-    'intermediate': 20,
-    'advanced': 30,
+    'intermediate': 5,
+    'preintermediate': 10,
+    'advanced': 20,
   };
 
   @override
@@ -58,14 +59,21 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
               ),
               const SizedBox(height: 16),
               _buildDurationCard(
-                duration: "20",
+                duration: "5",
                 description: "Orta seviye antrenman",
                 value: 'intermediate',
+                isPopular: false,
+              ),
+              const SizedBox(height: 16),
+              _buildDurationCard(
+                duration: "10",
+                description: "Orta seviye antrenman",
+                value: 'preintermediate',
                 isPopular: true,
               ),
               const SizedBox(height: 16),
               _buildDurationCard(
-                duration: "30",
+                duration: "20",
                 description: "Uzun antrenman",
                 value: 'advanced',
                 isPopular: false,

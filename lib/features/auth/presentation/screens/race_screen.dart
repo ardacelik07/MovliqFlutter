@@ -19,13 +19,15 @@ class RaceScreen extends ConsumerStatefulWidget {
   final String? myUsername;
   final int? raceDuration; // Minutes
   final Map<String, String?> profilePictureCache; // Cache parametresini ekledik
+  final bool isIndoorRace; // Indoor yarış tipini belirlemek için yeni parametre
 
   const RaceScreen({
     super.key,
     required this.roomId,
     this.myUsername,
     this.raceDuration,
-    required this.profilePictureCache, // Constructor'a ekledik
+    required this.profilePictureCache,
+    required this.isIndoorRace, // Constructor'a ekledik
   });
 
   @override
@@ -41,9 +43,16 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   String? _myEmail;
   Timer? _locationUpdateTimer;
   Timer? _raceTimerTimer;
+  Timer? _antiCheatTimer; // Anti-cheat timer ekledik
   Duration _remainingRaceTime =
       const Duration(minutes: 10); // Default to 10 minutes
   bool _isTimerInitialized = false;
+
+  // Hile kontrolü için gerekli değişkenler
+  double _lastCheckDistance = 0.0;
+  int _lastCheckSteps = 0;
+  DateTime? _lastCheckTime;
+  int _violationCount = 0; // İhlal sayısını takip etmek için eklendi
 
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
@@ -74,11 +83,18 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     _setupSignalR();
     _initPermissions(); // Konum ve adım izinlerini başlat
     _initializeRaceTimer();
+    _initializeAntiCheatSystem(); // Hile kontrol sistemini başlat
   }
 
   // Tüm izinleri başlatan fonksiyon
   Future<void> _initPermissions() async {
-    // Konum servislerinin açık olup olmadığını kontrol et
+    // Indoor yarış ise sadece adım sayar izni al, GPS izni alma
+    if (widget.isIndoorRace) {
+      await _checkActivityPermission();
+      return;
+    }
+
+    // Outdoor yarış: konum servislerinin açık olup olmadığını kontrol et
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       // Konum servisleri kapalıysa, kullanıcıyı uyar
@@ -328,11 +344,21 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   }
 
   void _startLocationUpdates() {
+    // Indoor yarış ise konum takibini kesinlikle engelle
+    if (widget.isIndoorRace) {
+      debugPrint('🚫 Indoor yarış - GPS konum takibi tamamen devre dışı');
+      // Eğer bir şekilde başlatılmış olan konum takibi varsa durdur
+      _stopLocationUpdates();
+      return;
+    }
+
+    // Bundan sonraki kod sadece outdoor yarışlarda çalışacak
     if (!_hasLocationPermission) {
       _checkLocationPermission();
       return;
     }
 
+    // Normal konum takibi kodu...
     try {
       debugPrint('Konum takibi başlatılıyor...');
 
@@ -349,9 +375,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
             'Konum güncellendi: ${position.latitude}, ${position.longitude}');
 
         setState(() {
-          // Eski konum varsa, iki nokta arasındaki mesafeyi hesapla
-          // RecordScreen ile aynı mantık:
-          if (_currentPosition != null) {
+          // Indoor yarış değilse mesafe hesapla
+          if (!widget.isIndoorRace && _currentPosition != null) {
             double newDistance = Geolocator.distanceBetween(
               _currentPosition!.latitude,
               _currentPosition!.longitude,
@@ -359,13 +384,11 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               position.longitude,
             );
 
-            // ÖNEMLİ DEĞİŞİKLİK: RecordScreen'deki gibi kilometre cinsine çevirip ekle
             _myDistance += newDistance / 1000;
             debugPrint(
                 'Mesafe eklendi: ${newDistance / 1000} km. Toplam: $_myDistance km');
           }
 
-          // RecordScreen'de olduğu gibi doğrudan güncelle
           _currentPosition = position;
 
           // Konum güncellemesi gönder
@@ -388,11 +411,24 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     if (!_isConnected || !_isRaceActive) return;
 
     try {
+      double distanceToSend = 0.0; // Varsayılan değer her zaman 0
+
+      // Sadece outdoor yarışlarda gerçek mesafe değerini gönder
+      if (!widget.isIndoorRace) {
+        distanceToSend = _myDistance;
+      } else {
+        // Indoor yarışta mesafe değerini zorla 0 yap ve değişkeni de sıfırla
+        _myDistance = 0.0;
+      }
+
+      debugPrint(
+          '📊 Sunucuya gönderilen mesafe: $distanceToSend km (Indoor: ${widget.isIndoorRace})');
+
       await ref
           .read(signalRServiceProvider)
-          .updateLocation(widget.roomId, _myDistance, _mySteps);
+          .updateLocation(widget.roomId, distanceToSend, _mySteps);
     } catch (e) {
-      debugPrint('Konum güncellemesi gönderilirken hata: $e');
+      debugPrint('❌ Konum güncellemesi gönderilirken hata: $e');
     }
   }
 
@@ -407,6 +443,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
         builder: (context) => FinishRaceScreen(
           leaderboard: _leaderboard,
           myEmail: _myEmail,
+          isIndoorRace: widget.isIndoorRace, // Indoor yarış parametresini geçir
         ),
       ),
     );
@@ -430,6 +467,162 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  // Hile kontrol sistemini başlatan fonksiyon
+  void _initializeAntiCheatSystem() {
+    // İndoor yarışlarda hile kontrolü yapma (mesafe takibi olmadığı için)
+    if (widget.isIndoorRace) {
+      debugPrint('Indoor yarış - Hile kontrolü devre dışı');
+      return;
+    }
+
+    // İlk kontrol için başlangıç değerlerini kaydet
+    _lastCheckDistance = _myDistance;
+    _lastCheckSteps = _mySteps;
+    _lastCheckTime = DateTime.now();
+
+    // Her 30 saniyede bir hile kontrolü yap
+    _antiCheatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (!mounted || !_isRaceActive) {
+        timer.cancel();
+        return;
+      }
+
+      _checkForCheating();
+    });
+  }
+
+  // Hile kontrolü yapan fonksiyon
+  void _checkForCheating() {
+    // Eğer ilk kontrolse veya yarış aktif değilse kontrol yapma
+    if (_lastCheckTime == null || !_isRaceActive) return;
+
+    final now = DateTime.now();
+    final elapsedSeconds = now.difference(_lastCheckTime!).inSeconds;
+
+    // 30 saniye geçmediyse kontrol yapma (Timer hassasiyeti için ek kontrol)
+    if (elapsedSeconds < 25) return;
+
+    final currentDistance = _myDistance;
+    final currentSteps = _mySteps;
+
+    // Son kontrolden bu yana kat edilen mesafe (km'den metreye çevir)
+    final distanceDifference = (currentDistance - _lastCheckDistance) * 1000;
+    final stepsDifference = currentSteps - _lastCheckSteps;
+
+    debugPrint(
+        '🔍 Hile kontrol: $elapsedSeconds saniyede $distanceDifference metre, $stepsDifference adım');
+
+    bool violation = false;
+    String title = '';
+    String message = '';
+
+    // Hile kontrolü: 30 saniyede maksimum 250 metre
+    if (distanceDifference > 250) {
+      violation = true;
+      title = 'Anormal hız tespit edildi';
+      message =
+          'Son 30 saniyede $distanceDifference metre mesafe kaydedildi. Maksimum limit 250 metredir.';
+    }
+    // Hile kontrolü: Her metre için minimum 0.5 adım
+    else if (distanceDifference > 0) {
+      final requiredMinSteps = distanceDifference * 0.5;
+      if (stepsDifference < requiredMinSteps) {
+        violation = true;
+        title = 'Anormal adım-mesafe oranı tespit edildi';
+        message =
+            'Son 30 saniyede $distanceDifference metre için en az ${requiredMinSteps.toInt()} adım atılması gerekirken, $stepsDifference adım kaydedildi.';
+      }
+    }
+
+    // İhlal tespit edildiyse işlem yap
+    if (violation) {
+      _violationCount++;
+      debugPrint('❌ İhlal tespit edildi: $_violationCount. ihlal');
+
+      if (_violationCount >= 2) {
+        // İkinci ihlalde kullanıcıyı yarıştan at
+        _showViolationLimitExceededDialog(title, message);
+      } else {
+        // İlk ihlalde sadece uyarı ver
+        _showCheatWarningDialog(title, message);
+      }
+    }
+
+    // Yeni kontrol için değerleri güncelle
+    _lastCheckDistance = currentDistance;
+    _lastCheckSteps = currentSteps;
+    _lastCheckTime = now;
+  }
+
+  // Hile uyarı dialogu gösteren fonksiyon
+  void _showCheatWarningDialog(String title, String message) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(title, style: const TextStyle(color: Colors.red)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 16),
+            const Text(
+              'Lütfen gerçek koşu hızınızla devam edin. Tekrarlanan ihlaller hesabınızın askıya alınmasına neden olabilir.',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Anladım'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // İhlal limitinin aşıldığını gösteren dialog
+  void _showViolationLimitExceededDialog(String title, String message) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('$title - Yarış Sonlandırılıyor',
+            style: const TextStyle(color: Colors.red)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 16),
+            const Text(
+              'İhlal sayınız limiti aştığı için yarıştan çıkarılıyorsunuz.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Anladım'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Kullanıcıyı yarış odasından çıkar
+              _leaveRaceRoom(wasKicked: true);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -537,23 +730,27 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                             ? Colors.red
                             : null,
                       ),
-                      _buildStatItem(
-                        icon: Icons.directions_run,
-                        value: _myDistance.toStringAsFixed(2),
-                        label: 'Mesafe (km)',
-                      ),
+                      // Indoor yarış tipinde mesafe (km) gösterme
+                      if (!widget.isIndoorRace)
+                        _buildStatItem(
+                          icon: Icons.directions_run,
+                          value: _myDistance.toStringAsFixed(2),
+                          label: 'Mesafe (km)',
+                        ),
                       _buildStatItem(
                         icon: Icons.directions_walk,
                         value: _mySteps.toString(),
                         label: 'Adım',
                       ),
-                      _buildStatItem(
-                        icon: Icons.speed,
-                        value: _mySteps > 0
-                            ? (_myDistance / _mySteps).toStringAsFixed(1)
-                            : '0.0',
-                        label: 'Hız (km/adım)',
-                      ),
+                      // Indoor yarış tipinde hız metriğini (km/adım) gösterme
+                      if (!widget.isIndoorRace)
+                        _buildStatItem(
+                          icon: Icons.speed,
+                          value: _mySteps > 0
+                              ? (_myDistance / _mySteps).toStringAsFixed(1)
+                              : '0.0',
+                          label: 'Hız (km/adım)',
+                        ),
                     ],
                   ),
                 ),
@@ -618,6 +815,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                               profilePictureUrl: widget.profilePictureCache[
                                   participant
                                       .userName], // Cache'den profil fotoğrafını al
+                              isIndoorRace: widget
+                                  .isIndoorRace, // Indoor yarış parametresini geçir
                             );
                           },
                         ),
@@ -720,7 +919,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   }
 
   // Yarış esnasında odadan ayrılma işlemini yapan metod
-  Future<void> _leaveRaceRoom() async {
+  Future<void> _leaveRaceRoom({bool wasKicked = false}) async {
     try {
       // Konum güncellemelerini durdur
       _stopLocationUpdates();
@@ -749,6 +948,18 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
       _subscriptions.clear();
 
       if (mounted) {
+        // Eğer kullanıcı atıldıysa bir mesaj göster
+        if (wasKicked) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('Kurallara uymadığınız için yarıştan çıkarıldınız.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+
         // Ana sayfaya yönlendir
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const TabsScreen()),
@@ -772,6 +983,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   @override
   void dispose() {
     debugPrint('RaceScreen dispose ediliyor...');
+
+    // Anti-cheat timer'ı iptal et
+    _antiCheatTimer?.cancel();
+    _antiCheatTimer = null;
 
     // Konum takibini durdur
     _stopLocationUpdates();
@@ -813,13 +1028,15 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 class ParticipantTile extends StatelessWidget {
   final RaceParticipant participant;
   final bool isMe;
-  final String? profilePictureUrl; // Profil fotoğrafı URL'i ekledik
+  final String? profilePictureUrl;
+  final bool isIndoorRace; // Indoor yarış tipini belirleyen parametre ekledik
 
   const ParticipantTile({
     super.key,
     required this.participant,
     this.isMe = false,
-    this.profilePictureUrl, // Constructor'a ekledik
+    this.profilePictureUrl,
+    required this.isIndoorRace, // Constructor'a ekledik
   });
 
   @override
@@ -939,32 +1156,33 @@ class ParticipantTile extends StatelessWidget {
                   // Bilgi kartları satırı
                   Row(
                     children: [
-                      // Mesafe bilgisi
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.directions_run,
-                                size: 14, color: Colors.blue),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${participant.distance.toStringAsFixed(2)} km',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.blue,
+                      // Indoor yarışta mesafe gösterme, sadece adım sayısı göster
+                      if (!isIndoorRace)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.directions_run,
+                                  size: 14, color: Colors.blue),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${participant.distance.toStringAsFixed(2)} km',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.blue,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
+                      if (!isIndoorRace) const SizedBox(width: 8),
                       // Adım bilgisi
                       Container(
                         padding: const EdgeInsets.symmetric(

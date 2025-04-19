@@ -1,548 +1,370 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/signalr_service.dart';
-import 'tabs.dart';
+import '../screens/tabs.dart';
+import 'dart:math' as math;
 
-class FinishRaceScreen extends ConsumerWidget {
+class FinishRaceScreen extends ConsumerStatefulWidget {
   final List<RaceParticipant> leaderboard;
   final String? myEmail;
+  final bool isIndoorRace; // Indoor yarış tipini belirten parametre ekledik
 
   const FinishRaceScreen({
-    Key? key,
+    super.key,
     required this.leaderboard,
     this.myEmail,
-  }) : super(key: key);
+    required this.isIndoorRace, // Constructor'a ekledik
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Kazanan katılımcıları al (ilk 3)
-    final winners =
-        leaderboard.length > 3 ? leaderboard.sublist(0, 3) : leaderboard;
+  ConsumerState<FinishRaceScreen> createState() => _FinishRaceScreenState();
+}
 
-    // Kullanıcının kendi sonucunu bul
-    RaceParticipant? myResult;
-    int? myPosition;
+class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
+  bool _showConfetti = true;
 
-    if (myEmail != null) {
-      for (int i = 0; i < leaderboard.length; i++) {
-        if (leaderboard[i].email == myEmail) {
-          myResult = leaderboard[i];
-          myPosition = i + 1;
-          break;
-        }
+  @override
+  void initState() {
+    super.initState();
+
+    // 5 saniye sonra konfeti efektini kapat
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _showConfetti = false;
+        });
       }
+    });
+  }
+
+  // Mevcut kullanıcıyı tespit eden yardımcı metod
+  RaceParticipant? _getCurrentUser() {
+    if (widget.myEmail == null) return null;
+
+    try {
+      return widget.leaderboard.firstWhere(
+        (user) => user.email == widget.myEmail,
+        orElse: () => widget.leaderboard.first,
+      );
+    } catch (e) {
+      return null;
     }
+  }
 
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white,
-              Color(0xFFC4FF62),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                // Üst başlık
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Colors.green, Color(0xFFC4FF62)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.emoji_events,
-                        color: Colors.amber,
-                        size: 28,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Race Ended!',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
+  @override
+  Widget build(BuildContext context) {
+    // Kullanıcının kendi sonucunu bul
+    final currentUser = _getCurrentUser();
+    final bool isWinner = currentUser?.rank == 1;
+
+    return WillPopScope(
+      onWillPop: () async {
+        _navigateToHomePage();
+        return false;
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFFC4FF62),
+                    Colors.white,
+                  ],
                 ),
-
-                // Kutlama konfetileri
-                const SizedBox(height: 10),
-                const Icon(Icons.celebration, color: Colors.amber, size: 40),
-
-                // Kupa Platformu
-                Container(
-                  height: 300, // Fixed height for the podium
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: winners.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Sonuçlar yüklenemedi',
-                            style: TextStyle(fontSize: 18),
-                          ),
-                        )
-                      : _buildWinnersPodium(winners),
-                ),
-
-                // Divider
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 32),
-                  child: Divider(thickness: 2),
-                ),
-
-                // Kendi sonucun
-                if (myResult != null) ...[
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Senin Sonucun',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 25,
-                                    backgroundColor:
-                                        _getPositionColor(myPosition!),
-                                    child: CircleAvatar(
-                                      radius: 23,
-                                      backgroundColor: Colors.white,
-                                      child: Text(
-                                        myResult.userName[0].toUpperCase(),
-                                        style: TextStyle(
-                                          color: _getPositionColor(myPosition!),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    myResult.userName,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _getPositionColor(myPosition!),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '$myPosition. Sıra',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _buildStatItem(
-                                    icon: Icons.directions_run,
-                                    value:
-                                        '${myResult.distance.toStringAsFixed(2)} km',
-                                    label: 'Mesafe',
-                                    color: Colors.blue,
-                                  ),
-                                  _buildStatItem(
-                                    icon: Icons.directions_walk,
-                                    value: '${myResult.steps}',
-                                    label: 'Adım',
-                                    color: Colors.green,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                ],
-
-                // Ana sayfaya dön butonu
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const TabsScreen()),
-                        (route) => false,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4FF62),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 14,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      'Ana Sayfaya Dön',
+              ),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    // Başlık
+                    const Text(
+                      'Yarış Sona Erdi!',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    // Alt başlık
+                    if (currentUser != null)
+                      Text(
+                        isWinner
+                            ? 'Tebrikler! Yarışı kazandınız 🎉'
+                            : 'Yarışı ${currentUser.rank}. sırada bitirdiniz.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isWinner
+                              ? const Color(0xFFC4FF62)
+                              : Colors.black87,
+                          fontWeight:
+                              isWinner ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+
+                    // Kullanıcının kendi sonuçları
+                    if (currentUser != null)
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Sizin Sonucunuz',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildResultItem(
+                                  icon: Icons.emoji_events,
+                                  value: currentUser.rank.toString(),
+                                  label: 'Sıralama',
+                                  color: currentUser.rank == 1
+                                      ? Colors.amber
+                                      : currentUser.rank == 2
+                                          ? Colors.grey
+                                          : currentUser.rank == 3
+                                              ? Colors.brown
+                                              : Colors.black87,
+                                ),
+                                // Indoor yarışta mesafe gösterme
+                                if (!widget.isIndoorRace)
+                                  _buildResultItem(
+                                    icon: Icons.directions_run,
+                                    value:
+                                        currentUser.distance.toStringAsFixed(2),
+                                    label: 'Mesafe (km)',
+                                    color: Colors.blue,
+                                  ),
+                                _buildResultItem(
+                                  icon: Icons.directions_walk,
+                                  value: currentUser.steps.toString(),
+                                  label: 'Adım',
+                                  color: Colors.green,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 20),
+
+                    // Liderlik Tablosu
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Liderlik Tablosu',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: widget.leaderboard.length,
+                                itemBuilder: (context, index) {
+                                  final user = widget.leaderboard[index];
+                                  final isCurrentUser =
+                                      user.email == widget.myEmail;
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isCurrentUser
+                                          ? const Color(0xFFC4FF62)
+                                              .withOpacity(0.2)
+                                          : Colors.grey.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: isCurrentUser
+                                          ? Border.all(
+                                              color: const Color(0xFFC4FF62),
+                                              width: 2)
+                                          : null,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        // Sıralama
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: user.rank == 1
+                                                ? Colors.amber
+                                                : user.rank == 2
+                                                    ? Colors.grey.shade300
+                                                    : user.rank == 3
+                                                        ? Colors.brown.shade300
+                                                        : Colors.grey.shade100,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '${user.rank}',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: user.rank <= 3
+                                                    ? Colors.white
+                                                    : Colors.black54,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        // Kullanıcı adı
+                                        Expanded(
+                                          child: Text(
+                                            user.userName,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: isCurrentUser
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            ),
+                                          ),
+                                        ),
+                                        // Mesafe (Indoor yarışta gösterme)
+                                        if (!widget.isIndoorRace)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  Colors.blue.withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              '${user.distance.toStringAsFixed(2)} km',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                                color: Colors.blue,
+                                              ),
+                                            ),
+                                          ),
+                                        if (!widget.isIndoorRace)
+                                          const SizedBox(width: 8),
+                                        // Adım sayısı
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                Colors.green.withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            '${user.steps} adım',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                              color: Colors.green,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Ana Sayfaya Dön Butonu
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: ElevatedButton(
+                        onPressed: _navigateToHomePage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC4FF62),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.home),
+                            SizedBox(width: 8),
+                            Text('Ana Sayfaya Dön',
+                                style: TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+
+            // Konfeti efekti
+            if (_showConfetti)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: ConfettiPainter(),
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildWinnersPodium(List<RaceParticipant> winners) {
-    final Map<int, RaceParticipant> winnersByRank = {};
-
-    // Katılımcıları sıralamalarına göre haritaya ekle
-    for (final winner in winners) {
-      winnersByRank[winner.rank] = winner;
-    }
-
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      children: [
-        // Platform çizgisi
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 10,
-            decoration: BoxDecoration(
-              color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(5),
-            ),
-          ),
-        ),
-
-        // 2. ve 3. için platformlar
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // 2. sıra - sol platform
-            if (winnersByRank.containsKey(2))
-              _buildPodiumColumn(
-                winner: winnersByRank[2]!,
-                podiumHeight: 120,
-                position: 2,
-              )
-            else
-              _buildEmptyPodium(120, 2),
-
-            // 1. sıra için boşluk (ortada)
-            const SizedBox(width: 35),
-
-            // 3. sıra - sağ platform
-            if (winnersByRank.containsKey(3))
-              _buildPodiumColumn(
-                winner: winnersByRank[3]!,
-                podiumHeight: 80,
-                position: 3,
-              )
-            else
-              _buildEmptyPodium(80, 3),
-          ],
-        ),
-
-        // 1. sıra - orta platform (en yüksek)
-        if (winnersByRank.containsKey(1))
-          Positioned(
-            bottom: 0,
-            child: _buildPodiumColumn(
-              winner: winnersByRank[1]!,
-              podiumHeight: 160,
-              position: 1,
-              showCrown: true,
-            ),
-          )
-        else
-          Positioned(
-            bottom: 0,
-            child: _buildEmptyPodium(160, 1),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildPodiumColumn({
-    required RaceParticipant winner,
-    required double podiumHeight,
-    required int position,
-    bool showCrown = false,
-  }) {
-    final color = _getPositionColor(position);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Kupa veya Avatar
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            // Avatar
-            CircleAvatar(
-              radius: position == 1 ? 40 : 30,
-              backgroundColor: color,
-              child: CircleAvatar(
-                radius: position == 1 ? 38 : 28,
-                backgroundColor: Colors.white,
-                child: Text(
-                  winner.userName[0].toUpperCase(),
-                  style: TextStyle(
-                    fontSize: position == 1 ? 28 : 20,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ),
-            ),
-
-            // Taç (sadece 1. için)
-            if (showCrown)
-              Positioned(
-                top: -15,
-                child: Icon(
-                  Icons.front_hand,
-                  color: Colors.amber[700],
-                  size: 30,
-                ),
-              ),
-
-            // Sıralama rozeti
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Center(
-                  child: Text(
-                    '$position',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 6),
-
-        // İsim
-        Text(
-          winner.userName,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: position == 1 ? 16 : 14,
-            color: position <= 3 ? color : Colors.black,
-          ),
-        ),
-
-        // Bilgi
-        Text(
-          '${winner.distance.toStringAsFixed(2)} km',
-          style: TextStyle(
-            fontSize: position == 1 ? 14 : 12,
-            color: Colors.black54,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        // Platform
-        Container(
-          width: position == 1 ? 100 : 80,
-          height: podiumHeight,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(8),
-              topRight: Radius.circular(8),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              '$position',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: position == 1 ? 40 : 30,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyPodium(double height, int position) {
-    final color = _getPositionColor(position);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Boş avatar
-        CircleAvatar(
-          radius: position == 1 ? 40 : 30,
-          backgroundColor: color.withOpacity(0.5),
-          child: const Icon(
-            Icons.person_outline,
-            color: Colors.white,
-            size: 30,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        // Boş isim
-        Text(
-          'Boş',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: position == 1 ? 16 : 14,
-            color: color.withOpacity(0.7),
-          ),
-        ),
-
-        // Boş bilgi
-        Text(
-          '0.00 km',
-          style: TextStyle(
-            fontSize: position == 1 ? 14 : 12,
-            color: Colors.black54,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        // Platform
-        Container(
-          width: position == 1 ? 100 : 80,
-          height: height,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.5),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(8),
-              topRight: Radius.circular(8),
-            ),
-          ),
-          child: Center(
-            child: Text(
-              '$position',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: position == 1 ? 40 : 30,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Color _getPositionColor(int position) {
-    switch (position) {
-      case 1:
-        return const Color(0xFFFFD700); // Altın
-      case 2:
-        return const Color(0xFFC0C0C0); // Gümüş
-      case 3:
-        return const Color(0xFFCD7F32); // Bronz
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Widget _buildStatItem({
+  Widget _buildResultItem({
     required IconData icon,
     required String value,
     required String label,
@@ -550,38 +372,77 @@ class FinishRaceScreen extends ConsumerWidget {
   }) {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.2),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(icon, size: 24, color: color),
-        ),
+        Icon(icon, size: 24, color: color),
         const SizedBox(height: 8),
         Text(
           value,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: color,
           ),
         ),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 14,
             color: Colors.black54,
           ),
         ),
       ],
     );
   }
+
+  void _navigateToHomePage() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const TabsScreen()),
+      (route) => false,
+    );
+  }
+}
+
+class ConfettiPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random();
+    final paint = Paint();
+
+    // 100 konfeti parçası çiz
+    for (int i = 0; i < 100; i++) {
+      // Rastgele renk belirle
+      paint.color = Color.fromRGBO(
+        random.nextInt(255),
+        random.nextInt(255),
+        random.nextInt(255),
+        random.nextDouble() * 0.7 + 0.3,
+      );
+
+      // Rastgele pozisyon ve boyut belirle
+      final x = random.nextDouble() * size.width;
+      final y = random.nextDouble() * size.height;
+      final width = random.nextDouble() * 10 + 5;
+      final height = random.nextDouble() * 10 + 5;
+
+      // Rastgele şekil seç (0: dikdörtgen, 1: daire)
+      final shape = random.nextInt(2);
+
+      if (shape == 0) {
+        // Dikdörtgen çiz
+        canvas.drawRect(
+          Rect.fromLTWH(x, y, width, height),
+          paint,
+        );
+      } else {
+        // Daire çiz
+        canvas.drawCircle(
+          Offset(x, y),
+          width / 2,
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

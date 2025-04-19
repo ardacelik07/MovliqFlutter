@@ -75,8 +75,40 @@ class SignalRService {
 
   bool get isConnected => _isConnected;
 
+  // Bağlantı bilgilerini tamamen temizleyen bir metod
+  Future<void> resetConnection() async {
+    debugPrint('SignalR bağlantısını sıfırlama başlatılıyor...');
+
+    // Önce mevcut bağlantıyı kapat
+    if (_hubConnection != null) {
+      try {
+        await _hubConnection!.stop();
+        debugPrint('Mevcut SignalR bağlantısı kapatıldı');
+      } catch (e) {
+        debugPrint('Bağlantı kapatma hatası: $e');
+      }
+    }
+
+    // Tüm değişkenleri sıfırla
+    _hubConnection = null;
+    _isConnected = false;
+
+    _leaderboardController.add([]);
+    _raceStartedController.add(false);
+    _raceEndedController.add(0);
+    _userJoinedController.add('');
+    _userLeftController.add('');
+    _locationUpdatedController.add({});
+    _raceStartingController.add({});
+    _roomParticipantsController.add([]);
+
+    debugPrint('SignalR bağlantısı tamamen sıfırlandı');
+  }
+
   Future<void> connect() async {
-    if (_isConnected) return;
+    if (_isConnected) {
+      await resetConnection();
+    }
 
     final tokenJson = await StorageService.getToken();
     if (tokenJson == null) {
@@ -88,8 +120,7 @@ class SignalRService {
 
     try {
       // Hub URL oluşturma - API_Config'deki baseUrl'i kullanarak SignalR hub URL'ini oluştur
-      final hubUrl =
-          'https://23c703a9-aeb4-4a19-bcd9-1bb5a82788de-00-35bgx6xr95c1e.sisko.replit.dev/racehub';
+      final hubUrl = 'http://movliq.mehmetalicakir.tr:5000/racehub';
 
       // Hub bağlantısını başlat
       _hubConnection = HubConnectionBuilder()

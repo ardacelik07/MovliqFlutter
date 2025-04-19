@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../../domain/models/user_profile_model.dart';
 import '../../../../core/config/api_config.dart';
 import 'auth_provider.dart';
+import '../../../../core/services/storage_service.dart';
 
 final userProfileProvider =
     StateNotifierProvider<UserProfileNotifier, AsyncValue<UserProfileModel?>>(
@@ -70,6 +71,12 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
 
       if (response.statusCode == 200) {
         state = AsyncValue.data(_profile);
+        final responseData = response.body;
+        if (responseData != null) {
+          await StorageService.saveToken(response.body);
+          _ref.read(authProvider.notifier).state =
+              AsyncValue.data(response.body);
+        }
       } else {
         throw Exception('Failed to update profile: ${response.body}');
       }

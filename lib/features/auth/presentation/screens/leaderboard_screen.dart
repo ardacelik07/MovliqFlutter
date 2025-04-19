@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/leaderboard_provider.dart';
+import '../providers/user_data_provider.dart';
 import '../../domain/models/leaderboard_model.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
@@ -17,6 +18,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     // Ekran ilk açıldığında veriyi yükle
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshCurrentLeaderboard();
+      // Kullanıcı verilerini de yükle
+      ref.read(userDataProvider.notifier).fetchUserData();
     });
   }
 
@@ -167,6 +170,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
   Widget _buildOutdoorLeaderboard() {
     final outdoorLeaderboardAsync = ref.watch(outdoorLeaderboardProvider);
+    final userDataAsync = ref.watch(userDataProvider);
 
     return outdoorLeaderboardAsync.when(
       data: (leaderboardUsers) {
@@ -179,10 +183,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           );
         }
 
-        // Sort by outdoor steps in descending order
-        final sortedUsers = [
-          ...leaderboardUsers
-        ]..sort((a, b) => (b.outdoorSteps ?? 0).compareTo(a.outdoorSteps ?? 0));
+        // Mevcut kullanıcının adını al
+        final currentUserName = userDataAsync.whenOrNull(
+          data: (userData) => userData?.userName,
+        );
+
+        // Sort by generalDistance in descending order
+        final sortedUsers = [...leaderboardUsers]..sort((a, b) =>
+            (b.generalDistance ?? 0).compareTo(a.generalDistance ?? 0));
 
         // Add ranks based on the sorted order
         final rankedUsers = sortedUsers.asMap().entries.map((entry) {
@@ -213,11 +221,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  if (topThree.length > 1) _buildTopUser(topThree[1], 2),
+                  if (topThree.length > 1)
+                    _buildTopUser(topThree[1], 2, currentUserName),
                   const SizedBox(width: 8),
-                  if (topThree.isNotEmpty) _buildTopUser(topThree[0], 1),
+                  if (topThree.isNotEmpty)
+                    _buildTopUser(topThree[0], 1, currentUserName),
                   const SizedBox(width: 8),
-                  if (topThree.length > 2) _buildTopUser(topThree[2], 3),
+                  if (topThree.length > 2)
+                    _buildTopUser(topThree[2], 3, currentUserName),
                 ],
               ),
 
@@ -230,11 +241,20 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 itemCount: remainingUsers.length,
                 itemBuilder: (context, index) {
                   final user = remainingUsers[index];
+                  final isCurrentUser = currentUserName != null &&
+                      user.userName == currentUserName;
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF333333),
+                      color: isCurrentUser
+                          ? const Color(0xFFC4FF62).withOpacity(0.2)
+                          : const Color(0xFF333333),
                       borderRadius: BorderRadius.circular(8),
+                      border: isCurrentUser
+                          ? Border.all(
+                              color: const Color(0xFFC4FF62), width: 1.5)
+                          : null,
                     ),
                     child: ListTile(
                       leading: Row(
@@ -244,8 +264,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                             width: 24,
                             child: Text(
                               '${user.rank}',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: isCurrentUser
+                                    ? const Color(0xFFC4FF62)
+                                    : Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -271,8 +293,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       ),
                       title: Text(
                         user.userName,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: isCurrentUser
+                              ? const Color(0xFFC4FF62)
+                              : Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       trailing: Text(
@@ -319,6 +344,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
   Widget _buildIndoorLeaderboard() {
     final indoorLeaderboardAsync = ref.watch(indoorLeaderboardProvider);
+    final userDataAsync = ref.watch(userDataProvider);
 
     return indoorLeaderboardAsync.when(
       data: (leaderboardUsers) {
@@ -330,6 +356,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             ),
           );
         }
+
+        // Mevcut kullanıcının adını al
+        final currentUserName = userDataAsync.whenOrNull(
+          data: (userData) => userData?.userName,
+        );
 
         // Sort by indoor steps in descending order
         final sortedUsers = [...leaderboardUsers]
@@ -363,11 +394,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  if (topThree.length > 1) _buildTopUser(topThree[1], 2),
+                  if (topThree.length > 1)
+                    _buildTopUser(topThree[1], 2, currentUserName),
                   const SizedBox(width: 20),
-                  if (topThree.isNotEmpty) _buildTopUser(topThree[0], 1),
+                  if (topThree.isNotEmpty)
+                    _buildTopUser(topThree[0], 1, currentUserName),
                   const SizedBox(width: 20),
-                  if (topThree.length > 2) _buildTopUser(topThree[2], 3),
+                  if (topThree.length > 2)
+                    _buildTopUser(topThree[2], 3, currentUserName),
                 ],
               ),
 
@@ -380,11 +414,20 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 itemCount: remainingUsers.length,
                 itemBuilder: (context, index) {
                   final user = remainingUsers[index];
+                  final isCurrentUser = currentUserName != null &&
+                      user.userName == currentUserName;
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF333333),
+                      color: isCurrentUser
+                          ? const Color(0xFFC4FF62).withOpacity(0.2)
+                          : const Color(0xFF333333),
                       borderRadius: BorderRadius.circular(8),
+                      border: isCurrentUser
+                          ? Border.all(
+                              color: const Color(0xFFC4FF62), width: 1.5)
+                          : null,
                     ),
                     child: ListTile(
                       leading: Row(
@@ -394,8 +437,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                             width: 24,
                             child: Text(
                               '${user.rank}',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: isCurrentUser
+                                    ? const Color(0xFFC4FF62)
+                                    : Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -421,8 +466,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       ),
                       title: Text(
                         user.userName,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: isCurrentUser
+                              ? const Color(0xFFC4FF62)
+                              : Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       trailing: Text(
@@ -466,9 +514,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     );
   }
 
-  Widget _buildTopUser(dynamic user, int position) {
+  Widget _buildTopUser(dynamic user, int position, String? currentUserName) {
     final double size = position == 1 ? 90.0 : 70.0;
     final double fontSize = position == 1 ? 18.0 : 16.0;
+    final bool isCurrentUser =
+        currentUserName != null && user.userName == currentUserName;
 
     return Column(
       children: [
@@ -484,12 +534,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: position == 1
-                      ? Colors.yellow
-                      : position == 2
-                          ? Colors.grey.shade300
-                          : Colors.brown,
-                  width: 2.0,
+                  color: isCurrentUser
+                      ? const Color(0xFFC4FF62)
+                      : position == 1
+                          ? Colors.yellow
+                          : position == 2
+                              ? Colors.grey.shade300
+                              : Colors.brown,
+                  width: isCurrentUser ? 3.0 : 2.0,
                 ),
               ),
               child: CircleAvatar(
@@ -540,7 +592,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         Text(
           user.userName,
           style: TextStyle(
-            color: Colors.white,
+            color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: fontSize - 4,
           ),
