@@ -36,6 +36,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ref.read(userDataProvider.notifier).fetchUserData();
       _fetchActivityData(); // Aktivite verilerini yükle
       ref.refresh(userRanksProvider); // Kullanıcı sıralamasını yükle
+      ref.refresh(userStreakProvider); // Kullanıcı streak bilgisini yükle
     });
   }
 
