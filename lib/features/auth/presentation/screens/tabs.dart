@@ -38,6 +38,12 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
   @override
   void initState() {
     super.initState();
+    // Ensure tab is set to 0 (Home) when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Force reset to home tab whenever TabsScreen is initialized
+      ref.read(selectedTabProvider.notifier).state = 0;
+      print('💡 TabsScreen: Tab index explicitly set to 0 (Home)');
+    });
     _checkToken(); // Token geçerliliğini kontrol et
   }
 
@@ -64,12 +70,13 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
           return;
         }
 
-        // Token geçerli, yükleme tamamlandı
+        // Token is valid, now fetch user data BEFORE marking loading as complete
+        await ref.read(userDataProvider.notifier).fetchUserData();
+
+        // Set loading to false only after token check AND initial data fetch
         setState(() {
           _isLoading = false;
         });
-        // Fetch user data once token is confirmed
-        ref.read(userDataProvider.notifier).fetchUserData();
       } catch (e) {
         print('⚠️ Tabs: Token parse hatası: $e');
         _redirectToLogin();
@@ -150,7 +157,11 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
         return false;
       },
       child: Scaffold(
-        body: _pages[selectedIndex],
+        // Use IndexedStack to keep all pages in the tree but show only one
+        body: IndexedStack(
+          index: selectedIndex,
+          children: _pages,
+        ),
         bottomNavigationBar: Container(
           child: BottomNavigationBar(
             backgroundColor: Colors.black,

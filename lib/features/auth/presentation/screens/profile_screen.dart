@@ -32,8 +32,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     // Profil verisini yükleme işlemi başlatılıyor
+    // TabsScreen now handles the initial fetchUserData call.
     Future.microtask(() {
-      ref.read(userDataProvider.notifier).fetchUserData();
+      // ref.read(userDataProvider.notifier).fetchUserData(); // Removed redundant call
       _fetchActivityData(); // Aktivite verilerini yükle
       ref.refresh(userRanksProvider); // Kullanıcı sıralamasını yükle
       ref.refresh(userStreakProvider); // Kullanıcı streak bilgisini yükle
