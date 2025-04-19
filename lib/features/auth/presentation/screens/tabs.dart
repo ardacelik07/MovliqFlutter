@@ -10,8 +10,11 @@ import 'record_screen.dart';
 import 'leaderboard_screen.dart';
 import '../providers/leaderboard_provider.dart';
 import '../../../../core/services/storage_service.dart';
-import '../../../../core/services/http_interceptor.dart';
 import '../screens/login_screen.dart';
+import '../providers/user_data_provider.dart';
+
+// Provider for the selected tab index
+final selectedTabProvider = StateProvider<int>((ref) => 0);
 
 class TabsScreen extends ConsumerStatefulWidget {
   const TabsScreen({super.key});
@@ -21,8 +24,6 @@ class TabsScreen extends ConsumerStatefulWidget {
 }
 
 class _TabsScreenState extends ConsumerState<TabsScreen> {
-  int _selectedIndex = 0;
-  int _previousIndex = 0;
   DateTime? _lastBackPressTime;
   bool _isLoading = true; // Token kontrolü için yükleme durumu
 
@@ -67,6 +68,8 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
         setState(() {
           _isLoading = false;
         });
+        // Fetch user data once token is confirmed
+        ref.read(userDataProvider.notifier).fetchUserData();
       } catch (e) {
         print('⚠️ Tabs: Token parse hatası: $e');
         _redirectToLogin();
@@ -90,14 +93,13 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
   }
 
   void _onItemTapped(int index) {
+    final currentIndex = ref.read(selectedTabProvider);
+
     // Leaderboard tab'ine geçiş yapılıyorsa provider'ları temizle
-    if (index == 3 && _selectedIndex != 3) {
+    if (index == 3 && currentIndex != 3) {
       // Leaderboard ekranına geçildiğinde verileri yeniden yükle
-      // Önce state'i güncelle, sonra Future.microtask ile provider'ları yenile
-      setState(() {
-        _previousIndex = _selectedIndex;
-        _selectedIndex = index;
-      });
+      // Update the provider state first
+      ref.read(selectedTabProvider.notifier).state = index;
 
       // Microtask ile widget ağacının güncellenmesinden sonra çalıştır
       Future.microtask(() {
@@ -113,17 +115,18 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
         }
       });
 
-      return; // Aşağıdaki setState'i çalıştırma
+      return; // Don't run the code below
     }
 
-    setState(() {
-      _previousIndex = _selectedIndex;
-      _selectedIndex = index;
-    });
+    // Update the provider state for other tabs
+    ref.read(selectedTabProvider.notifier).state = index;
   }
 
   @override
   Widget build(BuildContext context) {
+    // Read the current index from the provider
+    final selectedIndex = ref.watch(selectedTabProvider);
+
     // Token kontrol yüklemesi sırasında bekletme
     if (_isLoading) {
       return const Scaffold(
@@ -135,13 +138,11 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
     return WillPopScope(
       onWillPop: () async {
-        // Eğer ana sayfada değilsek, ana sayfaya dön
-        if (_selectedIndex != 0) {
-          setState(() {
-            _previousIndex = _selectedIndex;
-            _selectedIndex = 0;
-          });
-          return false; // Navigasyonu engelleyerek kendi işlemimizi yaptık
+        // Use the provider's value to check if on home page
+        if (ref.read(selectedTabProvider) != 0) {
+          // Navigate to home by updating the provider
+          ref.read(selectedTabProvider.notifier).state = 0;
+          return false; // Prevent default back navigation
         }
 
         // Ana sayfadaysa direkt uygulamadan çıkış yap
@@ -149,14 +150,14 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
         return false;
       },
       child: Scaffold(
-        body: _pages[_selectedIndex],
+        body: _pages[selectedIndex],
         bottomNavigationBar: Container(
           child: BottomNavigationBar(
             backgroundColor: Colors.black,
             selectedItemColor: Color(0xFFC4FF62),
             unselectedItemColor: Colors.grey,
             type: BottomNavigationBarType.fixed,
-            currentIndex: _selectedIndex,
+            currentIndex: selectedIndex,
             onTap: _onItemTapped,
             items: const [
               BottomNavigationBarItem(
