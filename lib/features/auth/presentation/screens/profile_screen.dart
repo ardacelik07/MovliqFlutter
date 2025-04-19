@@ -390,46 +390,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       orElse: () => _buildStatsContainer(null),
                     ),
 
-                    // Rozetler
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Badges',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () {},
-                                child: const Text('View All'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            height: 90,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildBadge(Colors.amber, 'Marathon Pro'),
-                                _buildBadge(Colors.black87, '100km Club'),
-                                _buildBadge(Colors.purple, 'Early Bird'),
-                                _buildBadge(Colors.green, 'Pace Setter'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
                     // Performans Grafiği
                     Padding(
                       padding: const EdgeInsets.all(16),
@@ -1866,7 +1826,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
             : (profileUrl != null && profileUrl.isNotEmpty
                 ? NetworkImage(
                     "$profileUrl?nocache=${DateTime.now().millisecondsSinceEpoch}_${UniqueKey().toString()}")
-                : const AssetImage('assets/images/runningman.png')
+                : const AssetImage('assets/images/defaultprofile.jpeg')
                     as ImageProvider);
 
         return GestureDetector(

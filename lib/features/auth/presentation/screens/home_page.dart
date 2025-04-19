@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 import '../providers/user_data_provider.dart';
+import 'profile_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -80,22 +81,33 @@ class _HomePageState extends ConsumerState<HomePage>
                     // Profil fotoğrafı - userDataProvider'dan alınan veri ile
                     userDataAsync.when(
                       data: (userData) {
-                        return CircleAvatar(
-                          radius: 25,
-                          backgroundColor: Colors.grey[300],
-                          backgroundImage:
-                              userData?.profilePictureUrl != null &&
-                                      userData!.profilePictureUrl!.isNotEmpty
-                                  ? NetworkImage(userData.profilePictureUrl!)
-                                  : const AssetImage('assets/images/nike.png')
-                                      as ImageProvider,
-                          child: userData?.profilePictureUrl == null ||
-                                  userData!.profilePictureUrl!.isEmpty
-                              ? (userData?.userName != null &&
-                                      userData!.userName!.isNotEmpty)
-                                  ? Text(userData.userName![0].toUpperCase())
-                                  : const Icon(Icons.person)
-                              : null,
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ProfileScreen(),
+                              ),
+                            );
+                          },
+                          child: CircleAvatar(
+                            radius: 25,
+                            backgroundColor: Colors.grey[300],
+                            backgroundImage:
+                                userData?.profilePictureUrl != null &&
+                                        userData!.profilePictureUrl!.isNotEmpty
+                                    ? NetworkImage(userData.profilePictureUrl!)
+                                    : const AssetImage(
+                                            'assets/images/defaultprofile.jpeg')
+                                        as ImageProvider,
+                            child: userData?.profilePictureUrl == null ||
+                                    userData!.profilePictureUrl!.isEmpty
+                                ? (userData?.userName != null &&
+                                        userData!.userName!.isNotEmpty)
+                                    ? Text(userData.userName![0].toUpperCase())
+                                    : const Icon(Icons.person)
+                                : null,
+                          ),
                         );
                       },
                       loading: () => const CircleAvatar(

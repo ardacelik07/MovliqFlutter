@@ -807,16 +807,19 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                               return Padding(
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 4),
-                                child: CircleAvatar(
-                                  radius: 25,
-                                  backgroundColor: isCurrentUser
-                                      ? const Color(0xFFC4FF62)
-                                      : Colors.white,
-                                  backgroundImage: profileUrl != null
-                                      ? NetworkImage(profileUrl)
-                                      : null,
-                                  child: profileUrl == null
-                                      ? Text(
+                                child: profileUrl != null
+                                    ? ClipOval(
+                                        child: Image.network(
+                                          profileUrl,
+                                          width: 50,
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                    : CircleAvatar(
+                                        radius: 25,
+                                        backgroundColor: Colors.grey.shade300,
+                                        child: Text(
                                           participant.userName.isNotEmpty
                                               ? participant.userName[0]
                                                   .toUpperCase()
@@ -827,9 +830,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                                                 ? FontWeight.bold
                                                 : FontWeight.normal,
                                           ),
-                                        )
-                                      : null,
-                                ),
+                                        ),
+                                      ),
                               );
                             },
                           ),
