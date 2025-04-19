@@ -49,6 +49,7 @@ dependencies:
   flutter_native_splash: ^2.4.4
   shared_preferences: ^2.5.2
   avatar_glow: ^3.0.1
+  font_awesome_flutter: ^10.8.0
 
 dev_dependencies:
   flutter_test:
@@ -111,6 +112,9 @@ flutter:
     - assets/images/agirlik.png
     - assets/images/activity.png
     - assets/images/finish1.png
+    - assets/images/loginpagephoto.png
+    - assets/images/movliq_blackxt.png
+    - assets/images/movliq_withtext.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
