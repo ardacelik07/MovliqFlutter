@@ -12,6 +12,14 @@ import '../../../../core/config/api_config.dart';
 import '../screens/tabs.dart';
 import 'package:my_flutter_project/features/auth/domain/models/room_participant.dart';
 
+// Define colors from the image design
+const Color _backgroundColor = Color(0xFF121212); // Very dark background
+const Color _cardBackgroundColor =
+    Color(0xFF1F3C18); // Dark green card background
+const Color _primaryTextColor = Colors.white;
+const Color _secondaryTextColor = Color(0xFFB0B0B0); // Grey for labels
+const Color _accentColor = Color(0xFFC4FF62); // Bright green accent
+
 class WaitingRoomScreen extends ConsumerStatefulWidget {
   final int roomId;
   final DateTime? startTime;
@@ -37,13 +45,18 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   List<RoomParticipant> _participants = [];
   String? _myUsername; // Kullanıcı adı
   String? _myEmail; // Email adresi
-  String? _lastJoinedUser; // Son katılan kullanıcı
+  String? _lastJoinedUser;
+  bool _isLoading = false; // Son katılan kullanıcı
 
   // Fotoğraf önbelleği için harita ekliyoruz
   final Map<String, String?> _profilePictureCache = {};
 
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
+
+  // State variables for countdown
+  Timer? _countdownTimer;
+  int? _countdownSeconds;
 
   // Odadan çıkış işlemi için yeni metot
   Future<void> _leaveRoom({bool showConfirmation = true}) async {
@@ -52,6 +65,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       final bool confirm = await _showLeaveConfirmationDialog();
       if (!confirm) return;
     }
+
+    _countdownTimer?.cancel(); // Cancel timer if leaving
 
     try {
       setState(() {
@@ -315,7 +330,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         debugPrint('Yarış başlama olayı alındı: $data');
         final int roomId = data['roomId'];
         final int countdownSeconds =
-            data['countdownSeconds'] ?? 10; // Varsayılan 4 saniye
+            data['countdownSeconds'] ?? 10; // Varsayılan 10 saniye
 
         if (roomId == widget.roomId) {
           debugPrint(
@@ -328,28 +343,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
               'Başka bir oda için yarış başlıyor: $roomId (bizim oda: ${widget.roomId})');
         }
       }));
-
-      // Doğrudan yarış başladı eventi
-      // _subscriptions.add(signalRService.userJoinedStream.listen((username) {
-      //   if (!mounted) return; // Mounted kontrolü
-
-      //   debugPrint('Kullanıcı katıldı: $username');
-      //   setState(() {
-      //    if (!_participants.contains(username)) {
-      //      _participants.add(username);
-      //     _lastJoinedUser = username; // Son katılan kullanıcıyı kaydet
-
-      // 3 saniye sonra vurguyu kaldır
-      //     Future.delayed(const Duration(seconds: 5), () {
-      //       if (mounted) {
-      //         setState(() {
-      //           _lastJoinedUser = null;
-      //         });
-      //       }
-      //     });
-      //   }
-      // });
-      //}));
     } catch (e) {
       debugPrint('SignalR bağlantı hatası: $e');
       _showErrorMessage('SignalR bağlantı hatası: $e');
@@ -369,14 +362,34 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
     setState(() {
       _isRaceStarting = true;
-      _showInfoMessage('Yarış başlıyor! $seconds saniye içinde hazır olun.');
+      _countdownSeconds = seconds; // Set initial countdown value
     });
 
-    // Standart süre sonunda yarış ekranına geçiş yap
+    _countdownTimer?.cancel(); // Cancel previous timer if any
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_countdownSeconds != null && _countdownSeconds! > 0) {
+          _countdownSeconds = _countdownSeconds! - 1;
+          debugPrint('⏳ Geri sayım: $_countdownSeconds');
+        } else {
+          timer.cancel();
+          debugPrint('⏱️ Geri sayım timer\'ı tamamlandı.');
+          // Navigation is handled by the separate Future.delayed
+        }
+      });
+    });
+
+    // Schedule navigation (this delay determines when navigation actually happens)
     Future.delayed(Duration(seconds: seconds), () {
       if (mounted && _isRaceStarting) {
         debugPrint(
             '⏱️ Geri sayım süresi doldu, RaceScreen\'e geçiş yapılıyor...');
+        _countdownTimer
+            ?.cancel(); // Ensure timer is cancelled before navigating
         _navigateToRaceScreen();
       }
     });
@@ -516,7 +529,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     }
     _subscriptions.clear();
 
-    debugPrint('WaitingRoomScreen dispose edildi - tüm dinleyiciler kapatıldı');
+    debugPrint(
+        'WaitingRoomScreen dispose edildi - tüm dinleyiciler ve timer kapatıldı');
     // SignalR bağlantısını kapatmayın - RaceScreen'e geçilince orada tekrar kullanılacak
     super.dispose();
   }
@@ -561,296 +575,183 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     });
   }
 
-  // Kendime ait kullanıcı adı için özel bir stil
-  Widget _buildParticipantChip(String username) {
-    // Gelen username ile token'daki bilgileri karşılaştır
-    // Email, username veya username@domain.com şeklinde gelebilir
-    bool isMe = false;
-
-    // 1. Direkt username karşılaştırması
-    if (_myUsername != null &&
-        username.toLowerCase() == _myUsername!.toLowerCase()) {
-      isMe = true;
-    }
-    // 2. Email karşılaştırması
-    else if (_myEmail != null &&
-        username.toLowerCase() == _myEmail!.toLowerCase()) {
-      isMe = true;
-    }
-    // 3. Email içinde username karşılaştırması (username@domain.com formatında ise)
-    else if (_myUsername != null &&
-        username.contains('@') &&
-        username.split('@')[0].toLowerCase() == _myUsername!.toLowerCase()) {
-      isMe = true;
-    }
-    // 4. Username içinde email karşılaştırması (eğer email username olarak geldiyse)
-    else if (_myEmail != null &&
-        _myEmail!.contains('@') &&
-        _myEmail!.split('@')[0].toLowerCase() == username.toLowerCase()) {
-      isMe = true;
-    }
-
-    debugPrint(
-        'Username karşılaştırma: gelen=$username, my_username=$_myUsername, my_email=$_myEmail, isMe=$isMe');
-
-    final bool isLastJoined = username == _lastJoinedUser;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
-      transform: isLastJoined
-          ? (Matrix4.translationValues(0, -4, 0)..scale(1.05))
-          : Matrix4.identity(),
-      child: Chip(
-        label: Text(
-          isMe ? "$username (Ben)" : username,
-          style: TextStyle(
-            fontWeight:
-                isMe || isLastJoined ? FontWeight.bold : FontWeight.normal,
-            color: isMe ? Colors.black : Colors.black87,
-          ),
-        ),
-        backgroundColor: isLastJoined
-            ? const Color(0xFFC4FF62)
-            : isMe
-                ? const Color(0xFFC4FF62)
-                : const Color(0xFFC4FF62).withOpacity(0.5),
-        avatar: isLastJoined
-            ? const Icon(Icons.person_add, size: 16)
-            : isMe
-                ? const Icon(Icons.person, size: 16)
-                : null,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Race Settings Provider'ı izle
     final raceSettings = ref.watch(raceSettingsProvider);
-
-    // Aktivite tipi ve süre bilgilerini al
     final String displayActivityType = widget.activityType ??
-        (raceSettings.roomType?.contains('indoor') == true
-            ? 'Indoor Koşu'
-            : 'Outdoor Koşu');
-    final String displayDurationFromNow = widget.duration ??
+        (raceSettings.roomType?.toLowerCase().contains('indoor') == true
+            ? 'İç Mekan' // Simplified text
+            : 'Dış Mekan'); // Simplified text
+    final String displayDuration = widget.duration ??
         (raceSettings.duration != null
-            ? '${raceSettings.duration} Dakika'
-            : '30 Dakika');
+            ? '${raceSettings.duration} dakika' // Lowercase 'd'
+            : 'Belirsiz'); // Default if null
+
+    // Determine subtitle text based on countdown state
+    final String subtitleText =
+        (_countdownSeconds != null && _countdownSeconds! > 0)
+            ? 'Yarış Başlıyor $_countdownSeconds...'
+            : 'Diğer yarışmacılar bekleniyor...';
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => _leaveRoom(showConfirmation: true),
-        ),
-        title: Text(
-          'Yarış Odası #${widget.roomId}',
-          style: const TextStyle(color: Colors.white),
-        ),
-        centerTitle: true,
-      ),
-      // WillPopScope ekleyerek fiziksel geri tuşunu da kontrol edelim
+      backgroundColor: _backgroundColor,
       body: WillPopScope(
         onWillPop: () async {
           await _leaveRoom(showConfirmation: true);
-          return false; // Gerçek pop işlemini biz ele alıyoruz
+          return false; // Prevent default back navigation
         },
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFC4FF62),
-                Color(0xFFC4FF62),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Stack(
+        child: SafeArea(
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.stretch, // Stretch elements horizontally
               children: [
-                // Arka plan daireleri
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: CirclePatternPainter(),
+                // Title
+                const Text(
+                  'Yarış Başlamak Üzere',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: _primaryTextColor,
                   ),
                 ),
+                const SizedBox(height: 8),
+                // Subtitle
+                Text(
+                  subtitleText,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: _accentColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 30),
 
-                // Ana içerik
-                SingleChildScrollView(
+                // Info Card
+                Container(
+                  padding: const EdgeInsets.all(20.0),
+                  decoration: BoxDecoration(
+                    color: _cardBackgroundColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Seçilen Yarış Tipi',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _secondaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        displayActivityType,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: _primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Yarış Süresi',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _secondaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.timer_outlined,
+                              color: _accentColor, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            displayDuration,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: _primaryTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // Central Image
+                Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 20),
-                        // Activity Type Circle - Display the selected activity type
-                        Container(
-                          width: 150,
-                          height: 150,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // Icon based on activity type
-                                Icon(
-                                    displayActivityType
-                                            .toLowerCase()
-                                            .contains('outdoor')
-                                        ? Icons.directions_run
-                                        : displayActivityType
-                                                .toLowerCase()
-                                                .contains('indoor')
-                                            ? Icons.fitness_center
-                                            : Icons.directions_run,
-                                    size: 30,
-                                    color: Colors.black),
-                                const SizedBox(height: 4),
-                                Text(
-                                  displayActivityType,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Duration Circle - Display the selected duration
-                        Container(
-                          width: 150,
-                          height: 150,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.timer,
-                                    size: 30, color: Colors.black),
-                                const SizedBox(height: 4),
-                                Text(
-                                  displayDurationFromNow,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Koşucular Bekleniyor Circle
-                        Container(
-                          width: 180,
-                          height: 180,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.people,
-                                    size: 40, color: Colors.black),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Koşucular\nBekleniyor',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Kullanıcı Profil Fotoğrafları
-                        SizedBox(
-                          height: 60,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            itemCount: _participants.length,
-                            itemBuilder: (context, index) {
-                              final participant = _participants[index];
-                              final isCurrentUser =
-                                  participant.userName == _myUsername ||
-                                      (participant.userName.contains('@') &&
-                                          participant.userName.split('@')[0] ==
-                                              _myUsername);
-
-                              // Önbellekten kullanıcının fotoğraf URL'sini al
-                              final profileUrl = participant
-                                      .profilePictureUrl ??
-                                  _profilePictureCache[participant.userName];
-
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 4),
-                                child: CircleAvatar(
-                                  radius: 25,
-                                  backgroundColor: isCurrentUser
-                                      ? const Color(0xFFC4FF62)
-                                      : Colors.white,
-                                  backgroundImage: profileUrl != null
-                                      ? NetworkImage(profileUrl)
-                                      : null,
-                                  child: profileUrl == null
-                                      ? Text(
-                                          participant.userName.isNotEmpty
-                                              ? participant.userName[0]
-                                                  .toUpperCase()
-                                              : '?',
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontWeight: isCurrentUser
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                          ),
-                                        )
-                                      : null,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Alt bilgi metni
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.0),
-                          child: Text(
-                            'Oda dolduğunda yarış otomatik\nolarak başlayacak',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20.0), // Padding for image
+                    child: Image.asset(
+                      'assets/images/waiting.png', // Use provided asset
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
+                const SizedBox(height: 30),
+
+                // Participants Card
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 16.0),
+                  decoration: BoxDecoration(
+                    color: _cardBackgroundColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Hazır Olan Yarışmacılar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: _primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Stacked Profile Pictures
+                      _buildParticipantAvatars(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Leave Button
+                if (!_isLoading) // Hide button while loading/leaving
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () => _leaveRoom(showConfirmation: true),
+                      icon: const Icon(Icons.exit_to_app, color: _accentColor),
+                      label: const Text(
+                        'Yarıştan Çık',
+                        style: TextStyle(
+                          color: _accentColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                // Loading indicator
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 15.0),
+                    child: Center(
+                        child: CircularProgressIndicator(color: _accentColor)),
+                  ),
               ],
             ),
           ),
@@ -859,39 +760,98 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     );
   }
 
-  // Diğer değişkenler
-  bool _isLoading = false;
-}
+  // Helper Widget for stacked participant avatars
+  Widget _buildParticipantAvatars() {
+    const double avatarRadius = 20.0;
+    const double overlap = 15.0; // How much avatars overlap
+    final int maxVisibleAvatars = 5; // Show max 5 avatars + overflow indicator
 
-// Daire desenleri çizen custom painter sınıfı
-class CirclePatternPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color.fromARGB(25, 0, 0, 0)
-      ..style = PaintingStyle.fill;
+    List<Widget> avatarWidgets = [];
+    int visibleCount = _participants.length > maxVisibleAvatars
+        ? maxVisibleAvatars
+        : _participants.length;
 
-    // Ekran boyutuna göre dairelerin konumlarını belirleyelim
-    final width = size.width;
-    final height = size.height;
-
-    // Rastgele konumlarda daireler çizelim
-    final circles = [
-      Offset(width * 0.2, height * 0.1),
-      Offset(width * 0.6, height * 0.2),
-      Offset(width * 0.3, height * 0.3),
-      Offset(width * 0.7, height * 0.4),
-      Offset(width * 0.1, height * 0.5),
-      Offset(width * 0.5, height * 0.6),
-      Offset(width * 0.8, height * 0.7),
-    ];
-
-    // Daireleri çiz
-    for (var center in circles) {
-      canvas.drawCircle(center, 75, paint);
+    // Ensure we only try to access participants if the list is not empty
+    if (_participants.isNotEmpty) {
+      for (int i = 0; i < visibleCount; i++) {
+        final participant = _participants[i];
+        final profileUrl = participant.profilePictureUrl ??
+            _profilePictureCache[participant.userName];
+        avatarWidgets.add(
+          Positioned(
+            left: i * (avatarRadius * 2 - overlap),
+            child: CircleAvatar(
+              radius: avatarRadius,
+              backgroundColor: _accentColor, // Border color
+              child: CircleAvatar(
+                radius: avatarRadius - 2, // Inner circle
+                backgroundColor: _secondaryTextColor, // Fallback bg
+                backgroundImage:
+                    profileUrl != null ? NetworkImage(profileUrl) : null,
+                child: profileUrl == null
+                    ? Text(
+                        participant.userName.isNotEmpty
+                            ? participant.userName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                            color: _backgroundColor,
+                            fontWeight: FontWeight.bold),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        );
+      }
     }
-  }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+    // Add overflow indicator if more participants exist
+    if (_participants.length > maxVisibleAvatars) {
+      avatarWidgets.add(
+        Positioned(
+          left: maxVisibleAvatars * (avatarRadius * 2 - overlap),
+          child: CircleAvatar(
+            radius: avatarRadius,
+            backgroundColor: _secondaryTextColor,
+            child: Text(
+              '+${_participants.length - maxVisibleAvatars}',
+              style: const TextStyle(
+                  color: _backgroundColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Calculate the total width required for the stack
+    double stackWidth = _participants.isEmpty
+        ? 0
+        : (visibleCount * (avatarRadius * 2 - overlap)) +
+            overlap +
+            (_participants.length > maxVisibleAvatars
+                ? (avatarRadius * 2)
+                : 0) -
+            (_participants.length > maxVisibleAvatars ? overlap : 0);
+
+    // Handle case where stackWidth might be zero or negative if no participants
+    if (stackWidth <= 0 && _participants.isNotEmpty) {
+      stackWidth = avatarRadius * 2; // Minimum width for one avatar
+    } else if (stackWidth <= 0 && _participants.isEmpty) {
+      return const SizedBox(
+          height: avatarRadius * 2); // Return empty space if no participants
+    }
+
+    return Container(
+      height: avatarRadius * 2, // Height of the avatar row
+      // Ensure the container has a minimum width if there are avatars
+      width: stackWidth > 0 ? stackWidth : null,
+      constraints: BoxConstraints(
+          minWidth: stackWidth > 0 ? stackWidth : 0), // Add constraints
+      child: Stack(
+        children: avatarWidgets,
+      ),
+    );
+  }
 }
