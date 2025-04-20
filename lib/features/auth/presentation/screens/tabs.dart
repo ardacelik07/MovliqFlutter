@@ -10,11 +10,8 @@ import 'record_screen.dart';
 import 'leaderboard_screen.dart';
 import '../providers/leaderboard_provider.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/http_interceptor.dart';
 import '../screens/login_screen.dart';
-import '../providers/user_data_provider.dart';
-
-// Provider for the selected tab index
-final selectedTabProvider = StateProvider<int>((ref) => 0);
 
 class TabsScreen extends ConsumerStatefulWidget {
   const TabsScreen({super.key});
@@ -24,6 +21,8 @@ class TabsScreen extends ConsumerStatefulWidget {
 }
 
 class _TabsScreenState extends ConsumerState<TabsScreen> {
+  int _selectedIndex = 0;
+  int _previousIndex = 0;
   DateTime? _lastBackPressTime;
   bool _isLoading = true; // Token kontrolü için yükleme durumu
 
@@ -38,12 +37,6 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure tab is set to 0 (Home) when screen initializes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Force reset to home tab whenever TabsScreen is initialized
-      ref.read(selectedTabProvider.notifier).state = 0;
-      print('💡 TabsScreen: Tab index explicitly set to 0 (Home)');
-    });
     _checkToken(); // Token geçerliliğini kontrol et
   }
 
@@ -70,10 +63,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
           return;
         }
 
-        // Token is valid, now fetch user data BEFORE marking loading as complete
-        await ref.read(userDataProvider.notifier).fetchUserData();
-
-        // Set loading to false only after token check AND initial data fetch
+        // Token geçerli, yükleme tamamlandı
         setState(() {
           _isLoading = false;
         });
@@ -100,13 +90,14 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
   }
 
   void _onItemTapped(int index) {
-    final currentIndex = ref.read(selectedTabProvider);
-
     // Leaderboard tab'ine geçiş yapılıyorsa provider'ları temizle
-    if (index == 3 && currentIndex != 3) {
+    if (index == 3 && _selectedIndex != 3) {
       // Leaderboard ekranına geçildiğinde verileri yeniden yükle
-      // Update the provider state first
-      ref.read(selectedTabProvider.notifier).state = index;
+      // Önce state'i güncelle, sonra Future.microtask ile provider'ları yenile
+      setState(() {
+        _previousIndex = _selectedIndex;
+        _selectedIndex = index;
+      });
 
       // Microtask ile widget ağacının güncellenmesinden sonra çalıştır
       Future.microtask(() {
@@ -122,18 +113,17 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
         }
       });
 
-      return; // Don't run the code below
+      return; // Aşağıdaki setState'i çalıştırma
     }
 
-    // Update the provider state for other tabs
-    ref.read(selectedTabProvider.notifier).state = index;
+    setState(() {
+      _previousIndex = _selectedIndex;
+      _selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Read the current index from the provider
-    final selectedIndex = ref.watch(selectedTabProvider);
-
     // Token kontrol yüklemesi sırasında bekletme
     if (_isLoading) {
       return const Scaffold(
@@ -145,11 +135,13 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
     return WillPopScope(
       onWillPop: () async {
-        // Use the provider's value to check if on home page
-        if (ref.read(selectedTabProvider) != 0) {
-          // Navigate to home by updating the provider
-          ref.read(selectedTabProvider.notifier).state = 0;
-          return false; // Prevent default back navigation
+        // Eğer ana sayfada değilsek, ana sayfaya dön
+        if (_selectedIndex != 0) {
+          setState(() {
+            _previousIndex = _selectedIndex;
+            _selectedIndex = 0;
+          });
+          return false; // Navigasyonu engelleyerek kendi işlemimizi yaptık
         }
 
         // Ana sayfadaysa direkt uygulamadan çıkış yap
@@ -157,85 +149,43 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
         return false;
       },
       child: Scaffold(
-        extendBody: true, // Draw body behind notch
-        // Use IndexedStack to keep all pages in the tree but show only one
-        body: IndexedStack(
-          index: selectedIndex,
-          children: _pages,
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _onItemTapped(2), // Index 2 for Record
-          backgroundColor: const Color(0xFFC4FF62), // Lime green
-          shape: const CircleBorder(), // Ensure it's always circular
-          child: const Icon(Icons.fiber_manual_record,
-              color: Colors.black), // Use appropriate icon
-          elevation: 2.0,
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        // Wrap BottomAppBar with SizedBox to control height
-        bottomNavigationBar: SizedBox(
-          height: 52.0, // Set desired height (adjust as needed)
-          child: BottomAppBar(
-            shape: const CircularNotchedRectangle(),
-            notchMargin: 8.0,
-            color: const Color.fromARGB(255, 30, 30, 30), // Dark background
-            padding: const EdgeInsets.symmetric(
-                horizontal: 0), // Remove default padding
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: <Widget>[
-                _buildNavItem(
-                    Icons.home_outlined, Icons.home, 'Home', 0, selectedIndex),
-                _buildNavItem(Icons.store_outlined, Icons.store, 'Store', 1,
-                    selectedIndex),
-                const SizedBox(width: 40), // Placeholder for the notch
-                _buildNavItem(Icons.leaderboard_outlined, Icons.leaderboard,
-                    'Leaderboard', 3, selectedIndex),
-                _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 4,
-                    selectedIndex),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Helper method to build navigation items for BottomAppBar
-  // This directly uses selectedIndex to determine the color, maintaining original logic
-  Widget _buildNavItem(IconData outlinedIcon, IconData filledIcon, String label,
-      int index, int selectedIndex) {
-    final bool isSelected = selectedIndex == index;
-    // Use the exact colors from the original BottomNavigationBar
-    final Color color = isSelected ? const Color(0xFFC4FF62) : Colors.grey;
-
-    return InkWell(
-      onTap: () => _onItemTapped(index),
-      customBorder:
-          const CircleBorder(), // Make tap area circular for better feel
-      child: Padding(
-        // Reduce vertical padding slightly
-        padding: const EdgeInsets.symmetric(
-            vertical: 4.0, horizontal: 12.0), // Reduced from 6.0
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              isSelected ? filledIcon : outlinedIcon,
-              color: color,
-              // Reduce icon size slightly
-              size: 22, // Reduced from 24
-            ),
-            const SizedBox(height: 3), // Reduced from 4
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 10, // Keeping font size the same for now
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        body: _pages[_selectedIndex],
+        bottomNavigationBar: Container(
+          child: BottomNavigationBar(
+            backgroundColor: Colors.black,
+            selectedItemColor: Color(0xFFC4FF62),
+            unselectedItemColor: Colors.grey,
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
+                label: 'Home',
               ),
-            ),
-          ],
+              BottomNavigationBarItem(
+                icon: Icon(Icons.store_outlined),
+                activeIcon: Icon(Icons.store),
+                label: 'Store',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.fiber_manual_record_outlined),
+                activeIcon: Icon(Icons.fiber_manual_record),
+                label: 'Record',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.leaderboard_outlined),
+                activeIcon: Icon(Icons.leaderboard),
+                label: 'Leaderboard',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
+          ),
         ),
       ),
     );

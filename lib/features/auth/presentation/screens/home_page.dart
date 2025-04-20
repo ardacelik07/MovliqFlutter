@@ -390,9 +390,7 @@ class HomePage extends ConsumerWidget {
                                 fontWeight: FontWeight.bold),
                           ),
                           TextButton(
-                            onPressed: () {
-                              ref.read(selectedTabProvider.notifier).state = 1;
-                            },
+                            onPressed: () {},
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
