@@ -4,6 +4,7 @@ import 'home_page.dart';
 import '../screens/tabs.dart';
 
 import '../providers/user_profile_provider.dart';
+import '../providers/user_data_provider.dart';
 
 class FinishScreen extends ConsumerStatefulWidget {
   const FinishScreen({super.key});
@@ -46,6 +47,9 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
         },
         data: (_) {
           setState(() => _isLoading = false);
+          // Fetch user data and reset tab before navigating
+          ref.read(userDataProvider.notifier).fetchUserData();
+          ref.read(selectedTabProvider.notifier).state = 0; // YENI DEGISIKLER
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
