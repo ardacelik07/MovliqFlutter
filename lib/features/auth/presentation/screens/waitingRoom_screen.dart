@@ -590,7 +590,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     // Determine subtitle text based on countdown state
     final String subtitleText =
         (_countdownSeconds != null && _countdownSeconds! > 0)
-            ? 'Yarış Başlıyor $_countdownSeconds...'
+            ? 'Yarış Başlıyor $_countdownSeconds'
             : 'Diğer yarışmacılar bekleniyor...';
 
     return Scaffold(
@@ -624,7 +624,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                   subtitleText,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 24,
                     color: _accentColor,
                     fontWeight: FontWeight.w500,
                   ),
