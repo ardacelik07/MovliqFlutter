@@ -16,51 +16,50 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardHeight = screenWidth * 0.65;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
               const Text(
                 "Koşu Türünü Seç",
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                "Tercihini istediğin zaman değiştirebilirsin",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildRunningOptionCard(
-                title: "İç Mekan Koşusu",
-                description: "Koşu bandında antrenman",
-                iconData: Icons.directions_run,
-                backgroundImage: "assets/images/indoorfilterbckgrnd.jpg",
+              const SizedBox(height: 40),
+              _buildOptionCard(
+                titleLines: ["İç Mekan", "Koşusu"],
+                description: "Spor salonu ve kapalı alanlarda koşu",
+                imagePath: "assets/images/manOnRunningInside.png",
                 value: "indoor",
+                isSelected: _selectedPreference == "indoor",
+                cardHeight: cardHeight,
+                onTap: () => setState(() => _selectedPreference = "indoor"),
               ),
-              const SizedBox(height: 16),
-              _buildRunningOptionCard(
-                title: "Dış Mekan Koşusu",
-                description: "Açık havada koşu deneyimi",
-                iconData: Icons.terrain,
-                backgroundImage: "assets/images/outdoorfilterbckgrnd.jpg",
+              const SizedBox(height: 24),
+              _buildOptionCard(
+                titleLines: ["Dış Mekan", "Koşusu"],
+                description: "Park ve açık alanlarda koşu",
+                imagePath: "assets/images/womanRunOutside.png",
                 value: "outdoor",
+                isSelected: _selectedPreference == "outdoor",
+                cardHeight: cardHeight,
+                onTap: () => setState(() => _selectedPreference = "outdoor"),
               ),
               const Spacer(),
               if (_selectedPreference != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 24.0),
+                  padding: const EdgeInsets.only(bottom: 16.0),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -69,16 +68,15 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        elevation: 0,
                       ),
                       onPressed: () {
-                        // Save the selected room type to provider
                         ref
                             .read(raceSettingsProvider.notifier)
                             .setRoomType(_selectedPreference!);
 
-                        // İç mekan seçilirse doğrulama ekranına yönlendir
                         if (_selectedPreference == 'indoor') {
                           Navigator.push(
                             context,
@@ -87,7 +85,6 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                             ),
                           );
                         } else {
-                          // Dış mekan seçilirse direkt süre seçimi ekranına git
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
@@ -112,90 +109,84 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
     );
   }
 
-  Widget _buildRunningOptionCard({
-    required String title,
+  Widget _buildOptionCard({
+    required List<String> titleLines,
     required String description,
-    required IconData iconData,
-    required String backgroundImage,
+    required String imagePath,
     required String value,
+    required bool isSelected,
+    required double cardHeight,
+    required VoidCallback onTap,
   }) {
-    final bool isSelected = _selectedPreference == value;
+    const Color cardBackgroundColor = Color(0xFF2A2A2A);
+    const Color highlightColor = Color(0xFFC4FF62);
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedPreference = value;
-        });
-      },
+      onTap: onTap,
       child: Container(
-        height: 150,
+        height: cardHeight,
         width: double.infinity,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: isSelected
-              ? Border.all(color: const Color(0xFFC4FF62), width: 2.5)
-              : null,
-          image: DecorationImage(
-            image: AssetImage(backgroundImage),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              Colors.black.withOpacity(0.6),
-              BlendMode.darken,
-            ),
-          ),
+          color: cardBackgroundColor,
+          borderRadius: BorderRadius.circular(20),
+          border:
+              isSelected ? Border.all(color: highlightColor, width: 2.5) : null,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Row(
-            children: [
-              // Left side - Icon
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFC4FF62)
-                      .withOpacity(isSelected ? 0.4 : 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  iconData,
-                  color: const Color(0xFFC4FF62),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Middle - Title and Description
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Color(0xFFC4FF62),
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+        child: Row(
+          children: [
+            Container(
+              width: 15,
+              color: highlightColor,
+            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                          left: 10.0, top: 10.0, bottom: 10.0, right: 30.0),
+                      child: Image.asset(
+                        imagePath,
+                        fit: BoxFit.contain,
+                        alignment: Alignment.centerLeft,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
+                  ),
+                  Positioned(
+                    top: 20,
+                    right: 20,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: titleLines
+                          .map((line) => Text(
+                                line,
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.2,
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 15,
+                    right: 20,
+                    child: Text(
                       description,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              // Right side - Arrow
-              Icon(
-                Icons.arrow_forward,
-                color: const Color(0xFFC4FF62),
-                size: 20,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

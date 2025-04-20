@@ -115,6 +115,8 @@ flutter:
     - assets/images/loginpagephoto.png
     - assets/images/movliq_blackxt.png
     - assets/images/movliq_withtext.png
+    - assets/images/manOnRunningInside.png
+    - assets/images/womanRunOutside.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
