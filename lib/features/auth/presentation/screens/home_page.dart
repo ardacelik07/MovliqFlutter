@@ -390,16 +390,13 @@ class HomePage extends ConsumerWidget {
                                 fontWeight: FontWeight.bold),
                           ),
                           TextButton(
-                            onPressed: () {},
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Mağaza',
-                                    style: TextStyle(color: Color(0xFFC4FF62))),
-                                SizedBox(width: 4),
-                                Icon(Icons.arrow_forward_ios,
-                                    size: 14, color: Color(0xFFC4FF62)),
-                              ],
+                            onPressed: () {
+                              // Update the provider to switch to the Store tab (index 1)
+                              ref.read(selectedTabProvider.notifier).state = 1;
+                            },
+                            child: const Text(
+                              'Mağaza >',
+                              style: TextStyle(color: Color(0xFFC4FF62)),
                             ),
                           ),
                         ],

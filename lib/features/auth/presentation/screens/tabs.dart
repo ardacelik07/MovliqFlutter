@@ -13,6 +13,9 @@ import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/http_interceptor.dart';
 import '../screens/login_screen.dart';
 
+// Provider for managing the selected tab index
+final selectedTabProvider = StateProvider<int>((ref) => 0);
+
 class TabsScreen extends ConsumerStatefulWidget {
   const TabsScreen({super.key});
 
@@ -21,26 +24,26 @@ class TabsScreen extends ConsumerStatefulWidget {
 }
 
 class _TabsScreenState extends ConsumerState<TabsScreen> {
-  int _selectedIndex = 0;
-  int _previousIndex = 0;
+  // Remove local state for selected index
+  // int _selectedIndex = 0;
+  int _previousIndex = 0; // Keep for leaderboard logic if needed
   DateTime? _lastBackPressTime;
-  bool _isLoading = true; // Token kontrolü için yükleme durumu
+  bool _isLoading = true;
 
   final List<Widget> _pages = [
     const HomePage(),
-    const StoreScreen(),
+    const StoreScreen(), // Index 1
     const RecordScreen(),
-    const LeaderboardScreen(),
+    const LeaderboardScreen(), // Index 3
     const ProfileScreen(),
   ];
 
   @override
   void initState() {
     super.initState();
-    _checkToken(); // Token geçerliliğini kontrol et
+    _checkToken();
   }
 
-  // Token kontrolü
   Future<void> _checkToken() async {
     try {
       final tokenJson = await StorageService.getToken();
@@ -52,7 +55,6 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
       }
 
       try {
-        // Token formatını kontrol et
         final tokenData = jsonDecode(tokenJson);
 
         if (!tokenData.containsKey('token') ||
@@ -63,7 +65,6 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
           return;
         }
 
-        // Token geçerli, yükleme tamamlandı
         setState(() {
           _isLoading = false;
         });
@@ -77,7 +78,6 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
     }
   }
 
-  // Login ekranına yönlendir
   void _redirectToLogin() async {
     await StorageService.deleteToken();
 
@@ -89,17 +89,18 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
     }
   }
 
+  // Update the provider when a tab is tapped
   void _onItemTapped(int index) {
-    // Leaderboard tab'ine geçiş yapılıyorsa provider'ları temizle
-    if (index == 3 && _selectedIndex != 3) {
-      // Leaderboard ekranına geçildiğinde verileri yeniden yükle
-      // Önce state'i güncelle, sonra Future.microtask ile provider'ları yenile
-      setState(() {
-        _previousIndex = _selectedIndex;
-        _selectedIndex = index;
-      });
+    final currentIndex = ref.read(selectedTabProvider);
+    // Update previous index *before* changing the state
+    _previousIndex = currentIndex;
 
-      // Microtask ile widget ağacının güncellenmesinden sonra çalıştır
+    // Leaderboard specific logic
+    if (index == 3 && currentIndex != 3) {
+      // Update provider first
+      ref.read(selectedTabProvider.notifier).state = index;
+
+      // Then refresh leaderboard data
       Future.microtask(() {
         try {
           final isOutdoor = ref.read(isOutdoorSelectedProvider);
@@ -112,19 +113,18 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
           debugPrint("Hata: $e");
         }
       });
-
-      return; // Aşağıdaki setState'i çalıştırma
+      return;
     }
 
-    setState(() {
-      _previousIndex = _selectedIndex;
-      _selectedIndex = index;
-    });
+    // Update the provider for other tabs
+    ref.read(selectedTabProvider.notifier).state = index;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Token kontrol yüklemesi sırasında bekletme
+    // Read the selected index from the provider
+    final selectedIndex = ref.watch(selectedTabProvider);
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(
@@ -135,28 +135,27 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
     return WillPopScope(
       onWillPop: () async {
-        // Eğer ana sayfada değilsek, ana sayfaya dön
-        if (_selectedIndex != 0) {
-          setState(() {
-            _previousIndex = _selectedIndex;
-            _selectedIndex = 0;
-          });
-          return false; // Navigasyonu engelleyerek kendi işlemimizi yaptık
+        // Use the provider's value for logic
+        if (selectedIndex != 0) {
+          // Update provider to go to home
+          _previousIndex = selectedIndex;
+          ref.read(selectedTabProvider.notifier).state = 0;
+          return false;
         }
-
-        // Ana sayfadaysa direkt uygulamadan çıkış yap
         await SystemNavigator.pop();
         return false;
       },
       child: Scaffold(
-        body: _pages[_selectedIndex],
+        // Use index from provider
+        body: _pages[selectedIndex],
         bottomNavigationBar: Container(
           child: BottomNavigationBar(
             backgroundColor: Colors.black,
             selectedItemColor: Color(0xFFC4FF62),
             unselectedItemColor: Colors.grey,
             type: BottomNavigationBarType.fixed,
-            currentIndex: _selectedIndex,
+            // Use index from provider
+            currentIndex: selectedIndex,
             onTap: _onItemTapped,
             items: const [
               BottomNavigationBarItem(
