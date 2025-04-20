@@ -625,52 +625,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           SafeArea(
             child: Column(
               children: [
-                // Header - şeffaf arka plan ile
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(16.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '$_activityType Activity',
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.settings_outlined,
-                            color: Colors.black),
-                        onPressed: () {
-                          // Show settings dialog
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Stats Overlay
                 Container(
                   margin: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
+                      horizontal: 8.0, vertical: 2.0),
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: const Color.fromARGB(150, 255, 255, 255),
                     borderRadius: BorderRadius.circular(16.0),
                     boxShadow: [
                       BoxShadow(
