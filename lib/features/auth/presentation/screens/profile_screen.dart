@@ -252,900 +252,693 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Kullanıcı verilerini izleyelim
     final userDataAsync = ref.watch(userDataProvider);
-    // Kullanıcı sıralama provider'ını dinle
     final userRanksAsync = ref.watch(userRanksProvider);
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            stops: [0.0, 1.0],
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFC4FF62),
-              Color.fromARGB(255, 72, 108, 14),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: userDataAsync.when(
-            data: (userData) {
-              if (userData == null) {
-                // Provider yüklenmemiş, veriyi API'den çekelim
-                Future.microtask(
-                    () => ref.read(userDataProvider.notifier).fetchUserData());
-                return const Center(child: CircularProgressIndicator());
-              }
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: userDataAsync.when(
+          data: (userData) {
+            if (userData == null) {
+              // Provider yüklenmemiş, veriyi API'den çekelim
+              Future.microtask(
+                  () => ref.read(userDataProvider.notifier).fetchUserData());
+              return const Center(child: CircularProgressIndicator());
+            }
 
-              // Veri başarıyla yüklendiyse UI'ı oluştur
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Profil Başlığı ve Fotoğraf
-                    Container(
-                      height: 200,
-                      width: double.infinity,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        clipBehavior: Clip.none,
-                        children: [
-                          // Arka plan resim
-                          Container(
-                            decoration: const BoxDecoration(
-                              image: DecorationImage(
-                                image: AssetImage(
-                                    'assets/images/loginbackground.jpg'),
-                                fit: BoxFit.cover,
-                              ),
+            // Veri başarıyla yüklendiyse UI'ı oluştur
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Profil Başlığı ve Fotoğraf
+                  Container(
+                    color: const Color(0xFF1F2922),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Sol taraf: Profil fotoğrafı ve kullanıcı bilgileri
+                        Row(
+                          children: [
+                            // Profil fotoğrafı
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: Colors.grey[800],
+                              backgroundImage: userData.profilePictureUrl !=
+                                          null &&
+                                      userData.profilePictureUrl!.isNotEmpty
+                                  ? NetworkImage(userData.profilePictureUrl!)
+                                  : null,
+                              child: userData.profilePictureUrl == null ||
+                                      userData.profilePictureUrl!.isEmpty
+                                  ? const Icon(Icons.person,
+                                      color: Colors.white, size: 24)
+                                  : null,
                             ),
-                          ),
-                          // Gradient overlay
-                          Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.black.withOpacity(0.3),
-                                  Colors.black.withOpacity(0.5),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Ayarlar butonu
-                          Positioned(
-                            top: 16,
-                            right: 16,
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.settings,
-                                    color: Colors.white),
-                                padding: EdgeInsets.zero,
-                                iconSize: 24,
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const SettingsScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          // Profil bilgileri ve fotoğraf
-                          Positioned(
-                            bottom: 20,
-                            left: 20,
-                            right: 20,
-                            child: Row(
+                            const SizedBox(width: 12),
+                            // Kullanıcı bilgileri
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Profil fotoğrafı - artık kendi widget'ını kullanıyoruz
-                                ProfilePictureWidget(userData: userData),
-                                const SizedBox(width: 16),
-                                // İsim ve kullanıcı adı (Flexible kullanarak taşmayı engelliyoruz)
-                                Flexible(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        userData.fullName,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        '@${userData.userName}',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.8),
-                                          fontSize: 16,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
+                                Text(
+                                  userData.fullName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '@${userData.userName}',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontSize: 14,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                        // Sağ taraf: Ayarlar butonu
+                        IconButton(
+                          icon: const Icon(Icons.settings,
+                              color: Color(0xFF93C53E)),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
+                  ),
 
-                    // İstatistikler - İzleme ile birlikte yeni fonksiyonu çağıralım
-                    userRanksAsync.maybeWhen(
-                      data: (userRanks) => _buildStatsContainer(userRanks),
-                      orElse: () => _buildStatsContainer(null),
-                    ),
+                  // İstatistikler - İzleme ile birlikte yeni fonksiyonu çağıralım
+                  userRanksAsync.maybeWhen(
+                    data: (userRanks) => _buildStatsContainer(userRanks),
+                    orElse: () => _buildStatsContainer(null),
+                  ),
 
-                    // Rozetler
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Performans Grafiği
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Haftalık Performans',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Aktivite türü filtreleme
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
                             children: [
-                              const Text(
-                                'Badges',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () {},
-                                child: const Text('View All'),
-                              ),
+                              _buildFilterButton(
+                                  'Indoor', _activeType == 'indoor'),
+                              const SizedBox(width: 8),
+                              _buildFilterButton(
+                                  'Outdoor', _activeType == 'outdoor'),
+                              const SizedBox(width: 8),
+                              _buildFilterButton(
+                                  'Record', _activeType == 'record'),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            height: 90,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildBadge(Colors.amber, 'Marathon Pro'),
-                                _buildBadge(Colors.black87, '100km Club'),
-                                _buildBadge(Colors.purple, 'Early Bird'),
-                                _buildBadge(Colors.green, 'Pace Setter'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
 
-                    // Performans Grafiği
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Haftalık Performans',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
+                        const SizedBox(height: 20),
 
-                          // Aktivite türü filtreleme
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: [
-                                _buildFilterButton(
-                                    'Indoor', _activeType == 'indoor'),
-                                const SizedBox(width: 8),
-                                _buildFilterButton(
-                                    'Outdoor', _activeType == 'outdoor'),
-                                const SizedBox(width: 8),
-                                _buildFilterButton(
-                                    'Record', _activeType == 'record'),
-                              ],
-                            ),
-                          ),
+                        // Aktivite verilerini gözlemliyoruz
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final activitiesAsync =
+                                ref.watch(activityProfileProvider);
 
-                          const SizedBox(height: 20),
+                            return activitiesAsync.when(
+                              data: (activities) {
+                                final spots = _getSpots(activities);
+                                final summary = _calculateSummary(activities);
 
-                          // Aktivite verilerini gözlemliyoruz
-                          Consumer(
-                            builder: (context, ref, child) {
-                              final activitiesAsync =
-                                  ref.watch(activityProfileProvider);
-
-                              return activitiesAsync.when(
-                                data: (activities) {
-                                  final spots = _getSpots(activities);
-                                  final summary = _calculateSummary(activities);
-
-                                  return Column(
-                                    children: [
-                                      // Geliştirilmiş Grafik - yüksekliği sabit tutuyoruz
-                                      Container(
-                                        height: 200,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF93C53E),
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.1),
-                                              spreadRadius: 1,
-                                              blurRadius: 10,
+                                return Column(
+                                  children: [
+                                    // Geliştirilmiş Grafik - yüksekliği sabit tutuyoruz
+                                    Container(
+                                      height: 200,
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                            0xFF1F3C18), // Koyu yeşil arka plan
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color:
+                                                Colors.black.withOpacity(0.1),
+                                            spreadRadius: 1,
+                                            blurRadius: 10,
+                                          ),
+                                        ],
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 12, horizontal: 8),
+                                      child: LineChart(
+                                        LineChartData(
+                                          lineTouchData: LineTouchData(
+                                            enabled: true,
+                                            touchTooltipData:
+                                                LineTouchTooltipData(
+                                              tooltipRoundedRadius: 8,
+                                              getTooltipItems:
+                                                  (List<LineBarSpot>
+                                                      touchedSpots) {
+                                                return touchedSpots.map((spot) {
+                                                  return LineTooltipItem(
+                                                    _activeType == 'indoor'
+                                                        ? '${spot.y.toStringAsFixed(0)} adım\n(${stepsToKilometers(spot.y.toInt()).toStringAsFixed(2)} km)'
+                                                        : '${spot.y.toStringAsFixed(2)} km',
+                                                    const TextStyle(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  );
+                                                }).toList();
+                                              },
                                             ),
-                                          ],
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 12, horizontal: 8),
-                                        child: LineChart(
-                                          LineChartData(
-                                            lineTouchData: LineTouchData(
-                                              enabled: true,
-                                              touchTooltipData:
-                                                  LineTouchTooltipData(
-                                                tooltipRoundedRadius: 8,
-                                                getTooltipItems:
-                                                    (List<LineBarSpot>
-                                                        touchedSpots) {
-                                                  return touchedSpots
-                                                      .map((spot) {
-                                                    return LineTooltipItem(
-                                                      _activeType == 'indoor'
-                                                          ? '${spot.y.toStringAsFixed(0)} adım\n(${stepsToKilometers(spot.y.toInt()).toStringAsFixed(2)} km)'
-                                                          : '${spot.y.toStringAsFixed(2)} km',
-                                                      const TextStyle(
-                                                        color: Colors.black,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    );
-                                                  }).toList();
+                                          ),
+                                          gridData: FlGridData(
+                                            show: true,
+                                            drawVerticalLine: true,
+                                            horizontalInterval:
+                                                _calculateYAxisInterval(spots),
+                                            verticalInterval: 1,
+                                            getDrawingHorizontalLine: (value) {
+                                              return FlLine(
+                                                color: Colors.white
+                                                    .withOpacity(0.1),
+                                                strokeWidth: 1,
+                                                dashArray: [5, 5],
+                                              );
+                                            },
+                                            getDrawingVerticalLine: (value) {
+                                              return FlLine(
+                                                color: Colors.white
+                                                    .withOpacity(0.1),
+                                                strokeWidth: 1,
+                                                dashArray: [5, 5],
+                                              );
+                                            },
+                                            checkToShowHorizontalLine: (value) {
+                                              // Sıfıra yakın değerler için yatay çizgi gösterme
+                                              return value > 0.1;
+                                            },
+                                          ),
+                                          titlesData: FlTitlesData(
+                                            show: true,
+                                            rightTitles: AxisTitles(
+                                              sideTitles:
+                                                  SideTitles(showTitles: false),
+                                            ),
+                                            topTitles: AxisTitles(
+                                              sideTitles:
+                                                  SideTitles(showTitles: false),
+                                            ),
+                                            bottomTitles: AxisTitles(
+                                              sideTitles: SideTitles(
+                                                showTitles: true,
+                                                reservedSize: 30,
+                                                interval: 1,
+                                                getTitlesWidget: (value, meta) {
+                                                  const style = TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                  );
+                                                  String text;
+
+                                                  // Haftalık görünüm için gün isimleri göster
+                                                  switch (value.toInt()) {
+                                                    case 0:
+                                                      text = 'Pzt';
+                                                      break;
+                                                    case 1:
+                                                      text = 'Sal';
+                                                      break;
+                                                    case 2:
+                                                      text = 'Çar';
+                                                      break;
+                                                    case 3:
+                                                      text = 'Per';
+                                                      break;
+                                                    case 4:
+                                                      text = 'Cum';
+                                                      break;
+                                                    case 5:
+                                                      text = 'Cmt';
+                                                      break;
+                                                    case 6:
+                                                      text = 'Paz';
+                                                      break;
+                                                    default:
+                                                      text = '';
+                                                  }
+
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            top: 8.0),
+                                                    child: Text(text,
+                                                        style: style),
+                                                  );
                                                 },
                                               ),
                                             ),
-                                            gridData: FlGridData(
-                                              show: true,
-                                              drawVerticalLine: true,
-                                              horizontalInterval:
-                                                  _calculateYAxisInterval(
-                                                      spots),
-                                              verticalInterval: 1,
-                                              getDrawingHorizontalLine:
-                                                  (value) {
-                                                return FlLine(
-                                                  color: Colors.white
-                                                      .withOpacity(0.2),
-                                                  strokeWidth: 1,
-                                                  dashArray: [5, 5],
-                                                );
-                                              },
-                                              getDrawingVerticalLine: (value) {
-                                                return FlLine(
-                                                  color: Colors.white
-                                                      .withOpacity(0.2),
-                                                  strokeWidth: 1,
-                                                  dashArray: [5, 5],
-                                                );
-                                              },
-                                              checkToShowHorizontalLine:
-                                                  (value) {
-                                                // Sıfıra yakın değerler için yatay çizgi gösterme
-                                                return value > 0.1;
-                                              },
-                                            ),
-                                            titlesData: FlTitlesData(
-                                              show: true,
-                                              rightTitles: AxisTitles(
-                                                sideTitles: SideTitles(
-                                                    showTitles: false),
-                                              ),
-                                              topTitles: AxisTitles(
-                                                sideTitles: SideTitles(
-                                                    showTitles: false),
-                                              ),
-                                              bottomTitles: AxisTitles(
-                                                sideTitles: SideTitles(
-                                                  showTitles: true,
-                                                  reservedSize: 30,
-                                                  interval: 1,
-                                                  getTitlesWidget:
-                                                      (value, meta) {
-                                                    const style = TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 12,
-                                                    );
-                                                    String text;
+                                            leftTitles: AxisTitles(
+                                              sideTitles: SideTitles(
+                                                showTitles: true,
+                                                interval:
+                                                    _calculateYAxisInterval(
+                                                        spots),
+                                                getTitlesWidget: (value, meta) {
+                                                  // Sıfıra yakın değerler için etiket gösterme
+                                                  if (value < 0.1)
+                                                    return const SizedBox
+                                                        .shrink();
 
-                                                    // Haftalık görünüm için gün isimleri göster
-                                                    switch (value.toInt()) {
-                                                      case 0:
-                                                        text = 'Pzt';
-                                                        break;
-                                                      case 1:
-                                                        text = 'Sal';
-                                                        break;
-                                                      case 2:
-                                                        text = 'Çar';
-                                                        break;
-                                                      case 3:
-                                                        text = 'Per';
-                                                        break;
-                                                      case 4:
-                                                        text = 'Cum';
-                                                        break;
-                                                      case 5:
-                                                        text = 'Cmt';
-                                                        break;
-                                                      case 6:
-                                                        text = 'Paz';
-                                                        break;
-                                                      default:
-                                                        text = '';
-                                                    }
+                                                  // Indoor modunda tam sayı göster, outdoor modunda 2 ondalık basamak
+                                                  final displayValue =
+                                                      _activeType == 'indoor'
+                                                          ? value
+                                                              .toInt()
+                                                              .toString()
+                                                          : value
+                                                              .toStringAsFixed(
+                                                                  2);
 
-                                                    return Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              top: 8.0),
-                                                      child: Text(text,
-                                                          style: style),
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                              leftTitles: AxisTitles(
-                                                sideTitles: SideTitles(
-                                                  showTitles: true,
-                                                  interval:
-                                                      _calculateYAxisInterval(
-                                                          spots),
-                                                  getTitlesWidget:
-                                                      (value, meta) {
-                                                    // Sıfıra yakın değerler için etiket gösterme
-                                                    if (value < 0.1)
-                                                      return const SizedBox
-                                                          .shrink();
-
-                                                    // Indoor modunda tam sayı göster, outdoor modunda 2 ondalık basamak
-                                                    final displayValue =
-                                                        _activeType == 'indoor'
-                                                            ? value
-                                                                .toInt()
-                                                                .toString()
-                                                            : value
-                                                                .toStringAsFixed(
-                                                                    2);
-
-                                                    return Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              right: 8.0),
-                                                      child: Text(
-                                                        displayValue,
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 12,
-                                                        ),
-                                                        textAlign:
-                                                            TextAlign.right,
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            right: 8.0),
+                                                    child: Text(
+                                                      displayValue,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 12,
                                                       ),
-                                                    );
-                                                  },
-                                                  reservedSize: 35,
-                                                ),
-                                              ),
-                                            ),
-                                            borderData: FlBorderData(
-                                              show: true,
-                                              border: Border.all(
-                                                color: Colors.white
-                                                    .withOpacity(0.2),
-                                              ),
-                                            ),
-                                            minX: 0,
-                                            maxX: 6,
-                                            minY: 0.01,
-                                            clipData: FlClipData.none(),
-                                            maxY: _calculateMaxY(spots),
-                                            lineBarsData: [
-                                              LineChartBarData(
-                                                spots: spots,
-                                                isCurved: true,
-                                                curveSmoothness: 0.2,
-                                                preventCurveOverShooting: true,
-                                                color: Colors.white,
-                                                barWidth: 3,
-                                                isStrokeCapRound: true,
-                                                dotData: FlDotData(
-                                                  show: true,
-                                                  getDotPainter: (spot, percent,
-                                                      barData, index) {
-                                                    return FlDotCirclePainter(
-                                                      radius: 5,
-                                                      color: Colors.white,
-                                                      strokeWidth: 2,
-                                                      strokeColor: Colors.white,
-                                                    );
-                                                  },
-                                                  checkToShowDot:
-                                                      (spot, barData) {
-                                                    // Sıfır değerlerine sahip noktaları gösterme
-                                                    return spot.y > 0;
-                                                  },
-                                                ),
-                                                belowBarData: BarAreaData(
-                                                  show: true,
-                                                  color: Colors.white
-                                                      .withOpacity(0.2),
-                                                  gradient: LinearGradient(
-                                                    colors: [
-                                                      Colors.white
-                                                          .withOpacity(0.3),
-                                                      Colors.white
-                                                          .withOpacity(0.1),
-                                                    ],
-                                                    begin: Alignment.topCenter,
-                                                    end: Alignment.bottomCenter,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-
-                                      // Grafik altı istatistik özeti - scrollview ile taşma engelleniyor
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 0, vertical: 16),
-                                        child: SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceEvenly,
-                                            children: [
-                                              _buildStatCard(
-                                                  _activeType == 'indoor'
-                                                      ? 'Toplam Adım'
-                                                      : 'Toplam Mesafe',
-                                                  _activeType == 'indoor'
-                                                      ? '${summary['totalSteps']?.toStringAsFixed(0)}'
-                                                      : '${summary['totalDistance']?.toStringAsFixed(2)} km'),
-                                              const SizedBox(width: 4),
-                                              _buildStatCard(
-                                                  _activeType == 'indoor'
-                                                      ? 'Tahmini Mesafe'
-                                                      : 'Toplam Adım',
-                                                  _activeType == 'indoor'
-                                                      ? '${summary['stepsInKm']?.toStringAsFixed(2)} km'
-                                                      : '${summary['totalSteps']?.toStringAsFixed(0)}'),
-                                              const SizedBox(width: 4),
-                                              _buildStatCard('Toplam Kalori',
-                                                  '${summary['totalCalories']?.toStringAsFixed(0)} kcal'),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                                loading: () => const Center(
-                                  child: SizedBox(
-                                    height: 240,
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                        color: Color(0xFFC4FF62),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                error: (error, stackTrace) => SizedBox(
-                                  height: 240,
-                                  child: Center(
-                                    child: Text(
-                                      'Veriler yüklenirken hata oluştu: $error',
-                                      style: const TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Recent Races Section
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Son Yarışlar',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  // Aktif tipi Indoor'a sıfırla
-                                  setState(() {
-                                    _activeType = 'indoor';
-                                  });
-
-                                  // Provider'ı doğrudan sıfırla - Indoor, Weekly olarak ayarla
-                                  ref
-                                      .read(activityProfileProvider.notifier)
-                                      .fetchActivities('indoor', 'weekly');
-
-                                  // Race Results ekranına geç
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const RaceResultsScreen(),
-                                    ),
-                                  );
-                                },
-                                child: const Text('See All'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Son 3 yarış sonucunu listele
-                          Consumer(
-                            builder: (context, ref, child) {
-                              final racesAsync = ref.watch(recentRacesProvider);
-
-                              return racesAsync.when(
-                                data: (races) {
-                                  if (races.isEmpty) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(16.0),
-                                        child: Text(
-                                          'Henüz yarış kaydınız bulunmuyor.',
-                                          style:
-                                              TextStyle(color: Colors.white70),
-                                        ),
-                                      ),
-                                    );
-                                  }
-
-                                  return Column(
-                                    children: races.map((race) {
-                                      // Yarış tarihini formatlama
-                                      final startTime =
-                                          DateTime.parse(race['startTime']);
-                                      final formattedDate =
-                                          '${startTime.day} ${_getMonthName(startTime.month)}, ${startTime.year} - ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
-
-                                      // Mesafe (km) hesaplama
-                                      final distanceStr =
-                                          race['distancekm'].toStringAsFixed(2);
-
-                                      // Süre formatı
-                                      final duration = race['duration'] ?? 0;
-                                      final minutes = (duration / 60).floor();
-                                      final seconds = duration % 60;
-                                      final formattedDuration =
-                                          '$minutes:${seconds.toString().padLeft(2, '0')}';
-
-                                      // Sıralama kontrolü
-                                      int rank = race['rank'] ?? 0;
-                                      String rankText = 'Sıralama yok';
-                                      if (rank == 1) rankText = '1. Sıra';
-                                      if (rank == 2) rankText = '2. Sıra';
-                                      if (rank == 3) rankText = '3. Sıra';
-
-                                      return Container(
-                                        margin:
-                                            const EdgeInsets.only(bottom: 8),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          border: Border.all(
-                                              color: Colors.grey[200]!),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            // Logo
-                                            Container(
-                                              width: 36,
-                                              height: 36,
-                                              decoration: BoxDecoration(
-                                                color: Colors.blue[100],
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Image.asset(
-                                                'assets/images/movliqonlylogo.png',
-                                                color: Colors.blue,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            // Orta kısım (tarih ve mesafe)
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    children: [
-                                                      Icon(Icons.access_time,
-                                                          size: 14,
-                                                          color:
-                                                              Colors.grey[600]),
-                                                      const SizedBox(width: 4),
-                                                      // Tarih için Flexible widget kullanarak taşmayı engelliyoruz
-                                                      Flexible(
-                                                        child: Text(
-                                                          formattedDate,
-                                                          style:
-                                                              const TextStyle(
-                                                                  fontSize: 14),
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 6),
-                                                  Wrap(
-                                                    spacing: 8, // yatay boşluk
-                                                    runSpacing:
-                                                        4, // dikey boşluk
-                                                    alignment:
-                                                        WrapAlignment.start,
-                                                    crossAxisAlignment:
-                                                        WrapCrossAlignment
-                                                            .center,
-                                                    children: [
-                                                      // Mesafe bilgisi
-                                                      Row(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          Icon(Icons.straighten,
-                                                              size: 14,
-                                                              color: Colors
-                                                                  .grey[600]),
-                                                          const SizedBox(
-                                                              width: 4),
-                                                          Text(
-                                                            '${distanceStr}km',
-                                                            style:
-                                                                const TextStyle(
-                                                              fontSize: 13,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-
-                                                      // Adım bilgisi ve yarış türü yan yana
-                                                      Row(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          Icon(
-                                                              Icons
-                                                                  .directions_walk,
-                                                              size: 14,
-                                                              color: Colors
-                                                                  .grey[600]),
-                                                          const SizedBox(
-                                                              width: 4),
-                                                          Text(
-                                                            '${race['steps']}',
-                                                            style:
-                                                                const TextStyle(
-                                                              fontSize: 13,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                            ),
-                                                          ),
-                                                          const SizedBox(
-                                                              width: 4),
-                                                          Icon(
-                                                            race['roomType'] ==
-                                                                    'indoor'
-                                                                ? Icons
-                                                                    .home_outlined
-                                                                : Icons
-                                                                    .terrain_outlined,
-                                                            size: 14,
-                                                            color: race['roomType'] ==
-                                                                    'indoor'
-                                                                ? Colors
-                                                                    .blue[600]
-                                                                : Colors
-                                                                    .green[600],
-                                                          ),
-                                                          const SizedBox(
-                                                              width: 2),
-                                                          Text(
-                                                            race['roomType'] ==
-                                                                    'indoor'
-                                                                ? 'Indoor'
-                                                                : 'Outdoor',
-                                                            style: TextStyle(
-                                                              color: race['roomType'] ==
-                                                                      'indoor'
-                                                                  ? Colors
-                                                                      .blue[600]
-                                                                  : Colors.green[
-                                                                      600],
-                                                              fontSize: 12,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            // Sağ kısım (sıralama bilgisi)
-                                            Container(
-                                              margin: const EdgeInsets.only(
-                                                  left: 8),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: rankText ==
-                                                        'Sıralama yok'
-                                                    ? Colors.grey[200]
-                                                    : rankText.contains('1')
-                                                        ? Colors.amber[700]!
-                                                            .withOpacity(0.2)
-                                                        : rankText.contains('2')
-                                                            ? Colors
-                                                                .blueGrey[700]!
-                                                                .withOpacity(
-                                                                    0.2)
-                                                            : Colors.brown[700]!
-                                                                .withOpacity(
-                                                                    0.2),
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                      rankText == 'Sıralama yok'
-                                                          ? Icons.help_outline
-                                                          : Icons.emoji_events,
-                                                      size: 13,
-                                                      color: rankText ==
-                                                              'Sıralama yok'
-                                                          ? Colors.grey[600]
-                                                          : rankText
-                                                                  .contains('1')
-                                                              ? Colors
-                                                                  .amber[700]
-                                                              : rankText
-                                                                      .contains(
-                                                                          '2')
-                                                                  ? Colors.blueGrey[
-                                                                      700]
-                                                                  : Colors.brown[
-                                                                      700]),
-                                                  const SizedBox(width: 3),
-                                                  Text(
-                                                    rankText,
-                                                    style: TextStyle(
-                                                      color: rankText ==
-                                                              'Sıralama yok'
-                                                          ? Colors.grey[600]
-                                                          : rankText
-                                                                  .contains('1')
-                                                              ? Colors
-                                                                  .amber[700]
-                                                              : rankText
-                                                                      .contains(
-                                                                          '2')
-                                                                  ? Colors.blueGrey[
-                                                                      700]
-                                                                  : Colors.brown[
-                                                                      700],
-                                                      fontSize: rankText ==
-                                                              'Sıralama yok'
-                                                          ? 10
-                                                          : 11,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                                      textAlign:
+                                                          TextAlign.right,
                                                     ),
-                                                  ),
-                                                ],
+                                                  );
+                                                },
+                                                reservedSize: 35,
+                                              ),
+                                            ),
+                                          ),
+                                          borderData: FlBorderData(
+                                            show: true,
+                                            border: Border.all(
+                                              color:
+                                                  Colors.white.withOpacity(0.1),
+                                            ),
+                                          ),
+                                          minX: 0,
+                                          maxX: 6,
+                                          minY: 0.01,
+                                          clipData: FlClipData.none(),
+                                          maxY: _calculateMaxY(spots),
+                                          lineBarsData: [
+                                            LineChartBarData(
+                                              spots: spots,
+                                              isCurved: true,
+                                              curveSmoothness: 0.2,
+                                              preventCurveOverShooting: true,
+                                              color: const Color(
+                                                  0xFF93C53E), // Açık yeşil çizgi
+                                              barWidth: 3,
+                                              isStrokeCapRound: true,
+                                              dotData: FlDotData(
+                                                show: true,
+                                                getDotPainter: (spot, percent,
+                                                    barData, index) {
+                                                  return FlDotCirclePainter(
+                                                    radius: 5,
+                                                    color:
+                                                        const Color(0xFF93C53E),
+                                                    strokeWidth: 2,
+                                                    strokeColor: Colors.white,
+                                                  );
+                                                },
+                                                checkToShowDot:
+                                                    (spot, barData) {
+                                                  // Sıfır değerlerine sahip noktaları gösterme
+                                                  return spot.y > 0;
+                                                },
+                                              ),
+                                              belowBarData: BarAreaData(
+                                                show: true,
+                                                color: const Color(0xFF93C53E)
+                                                    .withOpacity(0.1),
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    const Color(0xFF93C53E)
+                                                        .withOpacity(0.2),
+                                                    const Color(0xFF93C53E)
+                                                        .withOpacity(0.0),
+                                                  ],
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                ),
                                               ),
                                             ),
                                           ],
                                         ),
-                                      );
-                                    }).toList(),
-                                  );
-                                },
-                                loading: () => const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.0),
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                ),
-                                error: (error, _) => Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Text(
-                                      'Veriler yüklenirken hata: $error',
-                                      style: const TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+
+                                    // Grafik altı istatistik özeti - scrollview ile taşma engelleniyor
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 0, vertical: 16),
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            _buildStatCard(
+                                                _activeType == 'indoor'
+                                                    ? 'Toplam Adım'
+                                                    : 'Toplam Mesafe',
+                                                _activeType == 'indoor'
+                                                    ? '${summary['totalSteps']?.toStringAsFixed(0)}'
+                                                    : '${summary['totalDistance']?.toStringAsFixed(2)} km'),
+                                            const SizedBox(width: 4),
+                                            _buildStatCard(
+                                                _activeType == 'indoor'
+                                                    ? 'Tahmini Mesafe'
+                                                    : 'Toplam Adım',
+                                                _activeType == 'indoor'
+                                                    ? '${summary['stepsInKm']?.toStringAsFixed(2)} km'
+                                                    : '${summary['totalSteps']?.toStringAsFixed(0)}'),
+                                            const SizedBox(width: 4),
+                                            _buildStatCard('Toplam Kalori',
+                                                '${summary['totalCalories']?.toStringAsFixed(0)} kcal'),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                              loading: () => const Center(
+                                child: SizedBox(
+                                  height: 240,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color: Color(0xFFC4FF62),
                                     ),
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                              ),
+                              error: (error, stackTrace) => SizedBox(
+                                height: 240,
+                                child: Center(
+                                  child: Text(
+                                    'Veriler yüklenirken hata oluştu: $error',
+                                    style: const TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Hata: $error',
-                      style: const TextStyle(color: Colors.red)),
-                  ElevatedButton(
-                    onPressed: () =>
-                        ref.read(userDataProvider.notifier).fetchUserData(),
-                    child: const Text('Yeniden Dene'),
+                  ),
+
+                  // Recent Races Section
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Son Yarışlar',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                // Aktif tipi Indoor'a sıfırla
+                                setState(() {
+                                  _activeType = 'indoor';
+                                });
+
+                                // Provider'ı doğrudan sıfırla - Indoor, Weekly olarak ayarla
+                                ref
+                                    .read(activityProfileProvider.notifier)
+                                    .fetchActivities('indoor', 'weekly');
+
+                                // Race Results ekranına geç
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const RaceResultsScreen(),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                'Tümünü Görüntüle',
+                                style: TextStyle(
+                                  color: Color(0xFF93C53E),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Son yarışlar için liste
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final racesAsync = ref.watch(recentRacesProvider);
+
+                            return racesAsync.when(
+                              data: (races) {
+                                if (races.isEmpty) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: Text(
+                                        'Henüz yarış kaydınız bulunmuyor.',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                return Column(
+                                  children: races.map((race) {
+                                    // Yarış tarihini formatlama
+                                    final startTime =
+                                        DateTime.parse(race['startTime']);
+                                    final formattedDate =
+                                        '${startTime.day} ${_getMonthName(startTime.month)}, ${startTime.year} - ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
+
+                                    // Mesafe (km) hesaplama
+                                    final distanceStr =
+                                        race['distancekm'].toStringAsFixed(2);
+
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF1F2922),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color:
+                                                Colors.grey.withOpacity(0.2)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // Aktivite ikonu (iç/dış mekan)
+                                          Container(
+                                            width: 36,
+                                            height: 36,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF93C53E)
+                                                  .withOpacity(0.2),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              race['roomType'] == 'indoor'
+                                                  ? Icons.home_outlined
+                                                  : Icons.terrain_outlined,
+                                              color: const Color(0xFF93C53E),
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Orta kısım (tarih ve mesafe)
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  race['roomType'] == 'indoor'
+                                                      ? 'İç Mekan'
+                                                      : 'Dış Mekan',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  formattedDate,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.white70,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          // Sağ kısım (sıralama bilgisi ve mesafe)
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              // Sıralama bilgisi
+                                              if (race['rank'] != null &&
+                                                  race['rank'] > 0)
+                                                Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.emoji_events,
+                                                      size: 14,
+                                                      color: race['rank'] == 1
+                                                          ? Colors.amber
+                                                          : race['rank'] == 2
+                                                              ? Colors.blueGrey
+                                                              : Colors.brown,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      race['rank'] == 1
+                                                          ? '1st Place'
+                                                          : race['rank'] == 2
+                                                              ? '2nd Place'
+                                                              : '3rd Place',
+                                                      style: TextStyle(
+                                                        color: race['rank'] == 1
+                                                            ? Colors.amber
+                                                            : race['rank'] == 2
+                                                                ? Colors
+                                                                    .blueGrey
+                                                                : Colors.brown,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              const SizedBox(height: 4),
+                                              // Mesafe bilgisi
+                                              Text(
+                                                '${distanceStr} km',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                '${race['steps']} adım',
+                                                style: const TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                );
+                              },
+                              loading: () => const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color(0xFF93C53E),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              error: (error, _) => Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Text(
+                                    'Veriler yüklenirken hata: $error',
+                                    style: const TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Hata: $error', style: const TextStyle(color: Colors.red)),
+                ElevatedButton(
+                  onPressed: () =>
+                      ref.read(userDataProvider.notifier).fetchUserData(),
+                  child: const Text('Yeniden Dene'),
+                ),
+              ],
             ),
           ),
         ),
@@ -1176,70 +969,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildBadge(Color color, String label) {
-    // Label'ı tek satır olarak göster, çok uzunsa kırp
-    final displayLabel = label.replaceAll('\n', ' ');
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // İkon container'ı yüksekliğini azalt
-        Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 5,
-                spreadRadius: 1,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Icon(Icons.emoji_events, color: Colors.white, size: 25),
-        ),
-        const SizedBox(height: 4),
-        // Sabit yükseklik ve genişlik olan Container içindeki text
-        SizedBox(
-          width: 60,
-          height: 30,
-          child: Center(
-            child: Text(
-              displayLabel,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildFilterButton(String text, bool isSelected) {
+    String buttonText;
+    // Metinleri Türkçe'ye çevirelim
+    if (text.toLowerCase() == 'indoor') {
+      buttonText = 'İç Mekan';
+    } else if (text.toLowerCase() == 'outdoor') {
+      buttonText = 'Dış Mekan';
+    } else {
+      buttonText = 'Kayıt';
+    }
+
     return GestureDetector(
       onTap: () => _updateActiveType(text.toLowerCase()),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF4CAF50) : Colors.grey[200],
+          color: isSelected ? const Color(0xFF93C53E) : const Color(0xFF1F2922),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? Colors.transparent : Colors.grey[300]!,
-            width: 1,
-          ),
+          border:
+              isSelected ? Border.all(color: const Color(0xFF93C53E)) : null,
         ),
         child: Text(
-          text,
+          buttonText,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black54,
+            color: Colors.white,
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -1528,39 +1282,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               icon: Icons.local_fire_department_outlined,
               value: streakCount.toString(),
               label: 'Günlük Seri',
-              iconColor: Colors.deepOrange,
+              iconColor: Colors.deepOrangeAccent.shade100,
             );
           },
-          loading: () => const Center(
-            child: SizedBox(
-              width: 80,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      )),
-                  SizedBox(height: 8),
-                  Text(
-                    'Yükleniyor',
+          loading: () => Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2)),
+                SizedBox(height: 28),
+                Text('Günlük Seri',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
+              ],
             ),
           ),
           error: (_, __) => _buildStatIcon(
             icon: Icons.local_fire_department_outlined,
             value: '0',
             label: 'Günlük Seri',
-            iconColor: Colors.deepOrange,
+            iconColor: Colors.deepOrangeAccent.shade100,
           ),
         );
       },
@@ -1574,47 +1321,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String label,
     required Color iconColor,
   }) {
-    return Container(
-      width: MediaQuery.of(context).size.width / 4 - 20,
+    return Expanded(
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // İkon
           Container(
-            width: 50,
-            height: 50,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.white.withOpacity(0.15),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 5,
-                  spreadRadius: 1,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
             child: Icon(
               icon,
-              color: iconColor,
-              size: 26,
+              color: const Color(0xFF93C53E),
+              size: 24,
             ),
           ),
           const SizedBox(height: 8),
-          // Değer
           Text(
             value,
             style: const TextStyle(
-              color: Colors.black,
-              fontSize: 22,
+              color: Colors.white,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-          // Etiket
+          const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.black87,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -1630,49 +1366,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   // İstatistikler için daha kompakt ve responsive container
   Widget _buildStatsContainer(UserRanksModel? userRanks) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFC4FF62), // Movliq yeşili
-            Color(0xFF9BDC28), // Daha koyu yeşil
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: const Color(0xFF1F3C18),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          // İç mekan sıralaması
           _buildStatIcon(
             icon: Icons.home_outlined,
-            value: userRanks != null ? userRanks.indoorRank.toString() : "-",
+            value: userRanks?.indoorRank.toString() ?? "-",
             label: 'İç',
-            iconColor: Colors.blue,
+            iconColor: Colors.white,
           ),
-          // Dış mekan sıralaması
           _buildStatIcon(
-            icon: Icons.terrain_outlined,
-            value: userRanks != null ? userRanks.outdoorRank.toString() : "-",
+            icon: Icons.filter_hdr_outlined,
+            value: userRanks?.outdoorRank.toString() ?? "-",
             label: 'Dış',
-            iconColor: Colors.green,
+            iconColor: Colors.white,
           ),
           _buildStreakStatIcon(),
           _buildStatIcon(
             icon: Icons.monetization_on_outlined,
             value: '32',
             label: 'Coin',
-            iconColor: Colors.amber,
+            iconColor: Colors.white,
           ),
         ],
       ),

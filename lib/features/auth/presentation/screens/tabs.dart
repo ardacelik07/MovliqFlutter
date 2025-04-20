@@ -157,47 +157,77 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
         return false;
       },
       child: Scaffold(
+        extendBody: true, // Draw body behind notch
         // Use IndexedStack to keep all pages in the tree but show only one
         body: IndexedStack(
           index: selectedIndex,
           children: _pages,
         ),
-        bottomNavigationBar: Container(
-          child: BottomNavigationBar(
-            backgroundColor: Colors.black,
-            selectedItemColor: Color(0xFFC4FF62),
-            unselectedItemColor: Colors.grey,
-            type: BottomNavigationBarType.fixed,
-            currentIndex: selectedIndex,
-            onTap: _onItemTapped,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.store_outlined),
-                activeIcon: Icon(Icons.store),
-                label: 'Store',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.fiber_manual_record_outlined),
-                activeIcon: Icon(Icons.fiber_manual_record),
-                label: 'Record',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.leaderboard_outlined),
-                activeIcon: Icon(Icons.leaderboard),
-                label: 'Leaderboard',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                activeIcon: Icon(Icons.person),
-                label: 'Profile',
-              ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _onItemTapped(2), // Index 2 for Record
+          backgroundColor: const Color(0xFFC4FF62), // Lime green
+          shape: const CircleBorder(), // Ensure it's always circular
+          child: const Icon(Icons.fiber_manual_record,
+              color: Colors.black), // Use appropriate icon
+          elevation: 2.0,
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8.0,
+          color: const Color.fromARGB(255, 30, 30, 30), // Dark background
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: <Widget>[
+              _buildNavItem(
+                  Icons.home_outlined, Icons.home, 'Home', 0, selectedIndex),
+              _buildNavItem(
+                  Icons.store_outlined, Icons.store, 'Store', 1, selectedIndex),
+              const SizedBox(width: 40), // Placeholder for the notch
+              _buildNavItem(Icons.leaderboard_outlined, Icons.leaderboard,
+                  'Leaderboard', 3, selectedIndex),
+              _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 4,
+                  selectedIndex),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // Helper method to build navigation items for BottomAppBar
+  // This directly uses selectedIndex to determine the color, maintaining original logic
+  Widget _buildNavItem(IconData outlinedIcon, IconData filledIcon, String label,
+      int index, int selectedIndex) {
+    final bool isSelected = selectedIndex == index;
+    // Use the exact colors from the original BottomNavigationBar
+    final Color color = isSelected ? const Color(0xFFC4FF62) : Colors.grey;
+
+    return InkWell(
+      onTap: () => _onItemTapped(index),
+      customBorder:
+          const CircleBorder(), // Make tap area circular for better feel
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            vertical: 6.0, horizontal: 12.0), // Consistent padding
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              isSelected ? filledIcon : outlinedIcon,
+              color: color,
+              size: 24, // Standard icon size
+            ),
+            const SizedBox(height: 4), // Space between icon and label
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10, // Small font size for labels
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );

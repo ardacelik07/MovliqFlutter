@@ -89,7 +89,7 @@ class HomePage extends ConsumerWidget {
                           ),
                           userDataAsync.when(
                             data: (userData) => Text(
-                              userData?.name ?? 'Kullanıcı', // Display name
+                              userData?.userName ?? 'Kullanıcı', // Display name
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
