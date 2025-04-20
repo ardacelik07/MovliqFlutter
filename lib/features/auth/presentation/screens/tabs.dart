@@ -172,23 +172,29 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
           elevation: 2.0,
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 8.0,
-          color: const Color.fromARGB(255, 30, 30, 30), // Dark background
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              _buildNavItem(
-                  Icons.home_outlined, Icons.home, 'Home', 0, selectedIndex),
-              _buildNavItem(
-                  Icons.store_outlined, Icons.store, 'Store', 1, selectedIndex),
-              const SizedBox(width: 40), // Placeholder for the notch
-              _buildNavItem(Icons.leaderboard_outlined, Icons.leaderboard,
-                  'Leaderboard', 3, selectedIndex),
-              _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 4,
-                  selectedIndex),
-            ],
+        // Wrap BottomAppBar with SizedBox to control height
+        bottomNavigationBar: SizedBox(
+          height: 52.0, // Set desired height (adjust as needed)
+          child: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 8.0,
+            color: const Color.fromARGB(255, 30, 30, 30), // Dark background
+            padding: const EdgeInsets.symmetric(
+                horizontal: 0), // Remove default padding
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                _buildNavItem(
+                    Icons.home_outlined, Icons.home, 'Home', 0, selectedIndex),
+                _buildNavItem(Icons.store_outlined, Icons.store, 'Store', 1,
+                    selectedIndex),
+                const SizedBox(width: 40), // Placeholder for the notch
+                _buildNavItem(Icons.leaderboard_outlined, Icons.leaderboard,
+                    'Leaderboard', 3, selectedIndex),
+                _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 4,
+                    selectedIndex),
+              ],
+            ),
           ),
         ),
       ),
@@ -208,22 +214,24 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
       customBorder:
           const CircleBorder(), // Make tap area circular for better feel
       child: Padding(
+        // Reduce vertical padding slightly
         padding: const EdgeInsets.symmetric(
-            vertical: 6.0, horizontal: 12.0), // Consistent padding
+            vertical: 4.0, horizontal: 12.0), // Reduced from 6.0
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(
               isSelected ? filledIcon : outlinedIcon,
               color: color,
-              size: 24, // Standard icon size
+              // Reduce icon size slightly
+              size: 22, // Reduced from 24
             ),
-            const SizedBox(height: 4), // Space between icon and label
+            const SizedBox(height: 3), // Reduced from 4
             Text(
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 10, // Small font size for labels
+                fontSize: 10, // Keeping font size the same for now
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),

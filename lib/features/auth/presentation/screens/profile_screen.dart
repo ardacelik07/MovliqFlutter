@@ -1282,7 +1282,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               icon: Icons.local_fire_department_outlined,
               value: streakCount.toString(),
               label: 'Günlük Seri',
-              iconColor: Colors.deepOrangeAccent.shade100,
+              iconColor: Colors.red.shade400,
             );
           },
           loading: () => Expanded(
@@ -1307,7 +1307,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.local_fire_department_outlined,
             value: '0',
             label: 'Günlük Seri',
-            iconColor: Colors.deepOrangeAccent.shade100,
+            iconColor: Colors.red.shade400,
           ),
         );
       },
@@ -1333,7 +1333,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             child: Icon(
               icon,
-              color: const Color(0xFF93C53E),
+              color: iconColor,
               size: 24,
             ),
           ),
@@ -1392,7 +1392,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.monetization_on_outlined,
             value: '32',
             label: 'Coin',
-            iconColor: Colors.white,
+            iconColor: Colors.amber,
           ),
         ],
       ),
