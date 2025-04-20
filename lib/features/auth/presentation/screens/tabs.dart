@@ -24,17 +24,15 @@ class TabsScreen extends ConsumerStatefulWidget {
 }
 
 class _TabsScreenState extends ConsumerState<TabsScreen> {
-  // Remove local state for selected index
-  // int _selectedIndex = 0;
   int _previousIndex = 0; // Keep for leaderboard logic if needed
   DateTime? _lastBackPressTime;
   bool _isLoading = true;
 
   final List<Widget> _pages = [
     const HomePage(),
-    const StoreScreen(), // Index 1
+    const StoreScreen(),
     const RecordScreen(),
-    const LeaderboardScreen(), // Index 3
+    const LeaderboardScreen(),
     const ProfileScreen(),
   ];
 
@@ -89,18 +87,17 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
     }
   }
 
-  // Update the provider when a tab is tapped
   void _onItemTapped(int index) {
     final currentIndex = ref.read(selectedTabProvider);
-    // Update previous index *before* changing the state
+    if (currentIndex == index)
+      return; // Do nothing if tapping the current index
+
     _previousIndex = currentIndex;
 
     // Leaderboard specific logic
-    if (index == 3 && currentIndex != 3) {
-      // Update provider first
+    if (index == 3) {
+      // Leaderboard index
       ref.read(selectedTabProvider.notifier).state = index;
-
-      // Then refresh leaderboard data
       Future.microtask(() {
         try {
           final isOutdoor = ref.read(isOutdoorSelectedProvider);
@@ -110,34 +107,36 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
             ref.refresh(indoorLeaderboardProvider);
           }
         } catch (e) {
-          debugPrint("Hata: $e");
+          debugPrint("Leaderboard refresh error: $e");
         }
       });
-      return;
+    } else {
+      // Update the provider for other tabs (0, 1, 2, 4)
+      ref.read(selectedTabProvider.notifier).state = index;
     }
-
-    // Update the provider for other tabs
-    ref.read(selectedTabProvider.notifier).state = index;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Read the selected index from the provider
     final selectedIndex = ref.watch(selectedTabProvider);
+    const Color unselectedColor =
+        Color(0xFF8E8E93); // Greyish color for unselected icons
+    const Color selectedBgColor = Color(0xFFC4FF62); // Highlight green
+    const Color navBarColor =
+        Color.fromARGB(255, 0, 0, 0); // Dark blue/purple from image
 
     if (_isLoading) {
       return const Scaffold(
+        backgroundColor: Colors.black, // Consistent background
         body: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(color: selectedBgColor),
         ),
       );
     }
 
     return WillPopScope(
       onWillPop: () async {
-        // Use the provider's value for logic
         if (selectedIndex != 0) {
-          // Update provider to go to home
           _previousIndex = selectedIndex;
           ref.read(selectedTabProvider.notifier).state = 0;
           return false;
@@ -146,44 +145,118 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
         return false;
       },
       child: Scaffold(
-        // Use index from provider
+        backgroundColor: Colors.black, // Match background
+        extendBody: true, // Allows body to go behind the notched bar
         body: _pages[selectedIndex],
-        bottomNavigationBar: Container(
-          child: BottomNavigationBar(
-            backgroundColor: Colors.black,
-            selectedItemColor: Color(0xFFC4FF62),
-            unselectedItemColor: Colors.grey,
-            type: BottomNavigationBarType.fixed,
-            // Use index from provider
-            currentIndex: selectedIndex,
-            onTap: _onItemTapped,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
-                label: 'Home',
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        floatingActionButton: Container(
+          // Gradient Circle FAB
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  const Color.fromARGB(255, 195, 255, 98),
+                  selectedBgColor,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.store_outlined),
-                activeIcon: Icon(Icons.store),
-                label: 'Store',
+              boxShadow: [
+                BoxShadow(
+                  color: selectedBgColor.withOpacity(0.3),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                )
+              ]),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => _onItemTapped(2), // Index 2 for RecordScreen
+              child: const Icon(
+                Icons.hourglass_bottom,
+                color: Colors.black, // Black color for contrast
+                size: 28, // Adjust size as needed
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.fiber_manual_record_outlined),
-                activeIcon: Icon(Icons.fiber_manual_record),
-                label: 'Record',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.leaderboard_outlined),
-                activeIcon: Icon(Icons.leaderboard),
-                label: 'Leaderboard',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                activeIcon: Icon(Icons.person),
-                label: 'Profile',
-              ),
+            ),
+          ),
+        ),
+        bottomNavigationBar: BottomAppBar(
+          color: navBarColor,
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8.0, // Space around the FAB
+          height: 65.0, // Standard height
+          padding: EdgeInsets.zero,
+          surfaceTintColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              _buildNavItem(
+                  // Home
+                  index: 0,
+                  selectedIndex: selectedIndex,
+                  iconData: Icons.home_outlined,
+                  activeColor: selectedBgColor,
+                  inactiveColor: unselectedColor),
+              _buildNavItem(
+                  // Store
+                  index: 1,
+                  selectedIndex: selectedIndex,
+                  iconData: Icons.store_outlined,
+                  activeColor: selectedBgColor,
+                  inactiveColor: unselectedColor),
+              const SizedBox(width: 48), // Spacer for FAB notch
+              _buildNavItem(
+                  // Leaderboard
+                  index: 3,
+                  selectedIndex: selectedIndex,
+                  iconData: Icons.leaderboard_outlined,
+                  activeColor: selectedBgColor,
+                  inactiveColor: unselectedColor),
+              _buildNavItem(
+                  // Profile
+                  index: 4,
+                  selectedIndex: selectedIndex,
+                  iconData: Icons.person_outline,
+                  activeColor: selectedBgColor,
+                  inactiveColor: unselectedColor),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper to build navigation items
+  Widget _buildNavItem({
+    required int index,
+    required int selectedIndex,
+    required IconData iconData,
+    required Color activeColor,
+    required Color inactiveColor,
+  }) {
+    const Color navBarColor = Color(0xFF1A1F36); // Define color here
+    final bool isSelected = index == selectedIndex;
+    // Icon color is now simply active or inactive color
+    final Color iconColor = isSelected ? activeColor : inactiveColor;
+
+    // Removed special gradient background logic for index 0
+    final Widget iconWidget = Icon(iconData, color: iconColor, size: 28);
+
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onItemTapped(index),
+          customBorder: const CircleBorder(), // Make tap area circular
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                vertical: 10.0), // Vertical padding for tap area
+            alignment: Alignment.center,
+            child: iconWidget,
           ),
         ),
       ),
