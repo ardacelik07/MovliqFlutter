@@ -192,8 +192,15 @@ class HomePage extends ConsumerWidget {
                     padEnds: false, // Don't add padding at the ends
                     itemCount: 3, // Placeholder count for demonstration
                     itemBuilder: (context, index) {
-                      // Build the card for the current index
-                      // You can vary the content based on the index
+                      // Define the image path based on the index
+                      final imagePaths = [
+                        'assets/images/slidebar1.jpeg',
+                        'assets/images/slidebar2.jpeg',
+                        'assets/images/slidebar3.jpeg',
+                      ];
+                      // Use modulo in case itemCount changes later, although currently it's 3
+                      final imagePath = imagePaths[index % imagePaths.length];
+
                       return Container(
                         margin: const EdgeInsets.symmetric(
                             horizontal: 8.0,
@@ -202,24 +209,9 @@ class HomePage extends ConsumerWidget {
                         padding: const EdgeInsets.all(20.0),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20.0),
-                          gradient: LinearGradient(
-                            // Example: Vary gradient based on index
-                            colors: index == 0
-                                ? [
-                                    Colors.pinkAccent.shade100,
-                                    Colors.blueAccent.shade100
-                                  ]
-                                : index == 1
-                                    ? [
-                                        Colors.orangeAccent.shade100,
-                                        Colors.redAccent.shade100
-                                      ]
-                                    : [
-                                        Colors.greenAccent.shade100,
-                                        Colors.tealAccent.shade100
-                                      ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                          image: DecorationImage(
+                            image: AssetImage(imagePath),
+                            fit: BoxFit.cover, // Make image cover the container
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -254,21 +246,7 @@ class HomePage extends ConsumerWidget {
                                 ),
                               ),
                             // Level Number (Placeholder - varies by index)
-                            Align(
-                              alignment: Alignment.center,
-                              child: Text(
-                                index == 0
-                                    ? '20'
-                                    : (index == 1
-                                        ? '🔥'
-                                        : '🏆'), // Example content variation
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 80,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+
                             // Progress Indicator (Placeholder - varies by index)
                             Positioned(
                               top: 0,
@@ -514,6 +492,16 @@ class HomePage extends ConsumerWidget {
                               'Community Challenge'
                             ];
                             final participants = ['2.5K', '5K', '1.8K', '3.2K'];
+                            // Define image paths for the special races
+                            final raceImagePaths = [
+                              'assets/images/slidebar5.jpeg',
+                              'assets/images/slidebar1.jpeg',
+                              'assets/images/slidebar3.jpeg',
+                              'assets/images/slidebar2.jpeg',
+                              // 'assets/images/slidebar5.jpeg', // Add if itemCount increases
+                            ];
+                            final imagePath = raceImagePaths[index %
+                                raceImagePaths.length]; // Use modulo for safety
 
                             return Container(
                               width: MediaQuery.of(context).size.width *
@@ -522,29 +510,59 @@ class HomePage extends ConsumerWidget {
                                   right: 12.0), // Margin between cards
                               padding: const EdgeInsets.all(16.0),
                               decoration: BoxDecoration(
-                                color: Colors.grey[900],
+                                // Remove solid color
+                                // color: Colors.grey[900],
                                 borderRadius: BorderRadius.circular(12.0),
+                                // Add background image
+                                image: DecorationImage(
+                                  image: AssetImage(imagePath),
+                                  fit: BoxFit.cover,
+                                  // Add a slight darken overlay for text contrast
+                                  colorFilter: ColorFilter.mode(
+                                    Colors.black.withOpacity(0.5),
+                                    BlendMode.darken,
+                                  ),
+                                ),
                               ),
                               child: Row(
+                                crossAxisAlignment: CrossAxisAlignment
+                                    .center, // Vertically center items
                                 children: [
+                                  // Title (takes available space)
                                   Expanded(
                                     child: Text(
-                                      titles[index],
+                                      titles[
+                                          index % titles.length], // Use modulo
                                       style: TextStyle(
                                           color: Colors.white,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 16),
-                                      maxLines: 1,
+                                          fontWeight: FontWeight
+                                              .bold, // Keep title bold
+                                          fontSize:
+                                              16), // Adjust size if needed
+                                      maxLines: 2, // Allow wrapping
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  Icon(Icons.group_outlined,
-                                      color: Colors.grey[400], size: 18),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    participants[index],
-                                    style: TextStyle(
-                                        color: Colors.grey[400], fontSize: 14),
+                                  const SizedBox(
+                                      width:
+                                          12), // Space before participant count
+                                  // Participants count
+                                  Row(
+                                    mainAxisSize:
+                                        MainAxisSize.min, // Keep row compact
+                                    children: [
+                                      Icon(Icons.group_outlined,
+                                          color: Colors.white70, size: 18),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        participants[index %
+                                            participants.length], // Use modulo
+                                        style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

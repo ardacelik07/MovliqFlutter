@@ -118,6 +118,11 @@ flutter:
     - assets/images/manOnRunningInside.png
     - assets/images/womanRunOutside.png
     - assets/images/waiting.png
+    - assets/images/slidebar1.jpeg
+    - assets/images/slidebar2.jpeg
+    - assets/images/slidebar3.jpeg
+    - assets/images/slidebar4.jpeg
+    - assets/images/slidebar5.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
