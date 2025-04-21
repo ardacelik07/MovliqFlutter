@@ -13,6 +13,9 @@ import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/http_interceptor.dart';
 import '../screens/login_screen.dart';
 
+// Provider for managing the selected tab index
+final selectedTabProvider = StateProvider<int>((ref) => 0);
+
 class TabsScreen extends ConsumerStatefulWidget {
   const TabsScreen({super.key});
 
@@ -21,10 +24,9 @@ class TabsScreen extends ConsumerStatefulWidget {
 }
 
 class _TabsScreenState extends ConsumerState<TabsScreen> {
-  int _selectedIndex = 0;
-  int _previousIndex = 0;
+  int _previousIndex = 0; // Keep for leaderboard logic if needed
   DateTime? _lastBackPressTime;
-  bool _isLoading = true; // Token kontrolü için yükleme durumu
+  bool _isLoading = true;
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -37,10 +39,9 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
   @override
   void initState() {
     super.initState();
-    _checkToken(); // Token geçerliliğini kontrol et
+    _checkToken();
   }
 
-  // Token kontrolü
   Future<void> _checkToken() async {
     try {
       final tokenJson = await StorageService.getToken();
@@ -52,7 +53,6 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
       }
 
       try {
-        // Token formatını kontrol et
         final tokenData = jsonDecode(tokenJson);
 
         if (!tokenData.containsKey('token') ||
@@ -63,7 +63,6 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
           return;
         }
 
-        // Token geçerli, yükleme tamamlandı
         setState(() {
           _isLoading = false;
         });
@@ -77,7 +76,6 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
     }
   }
 
-  // Login ekranına yönlendir
   void _redirectToLogin() async {
     await StorageService.deleteToken();
 
@@ -90,16 +88,16 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
   }
 
   void _onItemTapped(int index) {
-    // Leaderboard tab'ine geçiş yapılıyorsa provider'ları temizle
-    if (index == 3 && _selectedIndex != 3) {
-      // Leaderboard ekranına geçildiğinde verileri yeniden yükle
-      // Önce state'i güncelle, sonra Future.microtask ile provider'ları yenile
-      setState(() {
-        _previousIndex = _selectedIndex;
-        _selectedIndex = index;
-      });
+    final currentIndex = ref.read(selectedTabProvider);
+    if (currentIndex == index)
+      return; // Do nothing if tapping the current index
 
-      // Microtask ile widget ağacının güncellenmesinden sonra çalıştır
+    _previousIndex = currentIndex;
+
+    // Leaderboard specific logic
+    if (index == 3) {
+      // Leaderboard index
+      ref.read(selectedTabProvider.notifier).state = index;
       Future.microtask(() {
         try {
           final isOutdoor = ref.read(isOutdoorSelectedProvider);
@@ -109,82 +107,156 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
             ref.refresh(indoorLeaderboardProvider);
           }
         } catch (e) {
-          debugPrint("Hata: $e");
+          debugPrint("Leaderboard refresh error: $e");
         }
       });
-
-      return; // Aşağıdaki setState'i çalıştırma
+    } else {
+      // Update the provider for other tabs (0, 1, 2, 4)
+      ref.read(selectedTabProvider.notifier).state = index;
     }
-
-    setState(() {
-      _previousIndex = _selectedIndex;
-      _selectedIndex = index;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Token kontrol yüklemesi sırasında bekletme
+    final selectedIndex = ref.watch(selectedTabProvider);
+    const Color unselectedColor =
+        Color(0xFF8E8E93); // Greyish color for unselected icons
+    const Color selectedBgColor = Color(0xFFC4FF62); // Highlight green
+    const Color navBarColor =
+        Color.fromARGB(255, 0, 0, 0); // Dark blue/purple from image
+
     if (_isLoading) {
       return const Scaffold(
+        backgroundColor: Colors.black, // Consistent background
         body: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(color: selectedBgColor),
         ),
       );
     }
 
     return WillPopScope(
       onWillPop: () async {
-        // Eğer ana sayfada değilsek, ana sayfaya dön
-        if (_selectedIndex != 0) {
-          setState(() {
-            _previousIndex = _selectedIndex;
-            _selectedIndex = 0;
-          });
-          return false; // Navigasyonu engelleyerek kendi işlemimizi yaptık
+        if (selectedIndex != 0) {
+          _previousIndex = selectedIndex;
+          ref.read(selectedTabProvider.notifier).state = 0;
+          return false;
         }
-
-        // Ana sayfadaysa direkt uygulamadan çıkış yap
         await SystemNavigator.pop();
         return false;
       },
       child: Scaffold(
-        body: _pages[_selectedIndex],
-        bottomNavigationBar: Container(
-          child: BottomNavigationBar(
-            backgroundColor: Colors.black,
-            selectedItemColor: Color(0xFFC4FF62),
-            unselectedItemColor: Colors.grey,
-            type: BottomNavigationBarType.fixed,
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
-                label: 'Home',
+        backgroundColor: Colors.black, // Match background
+        extendBody: true, // Allows body to go behind the notched bar
+        body: _pages[selectedIndex],
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        floatingActionButton: Container(
+          // Gradient Circle FAB
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  const Color.fromARGB(255, 195, 255, 98),
+                  selectedBgColor,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.store_outlined),
-                activeIcon: Icon(Icons.store),
-                label: 'Store',
+              boxShadow: [
+                BoxShadow(
+                  color: selectedBgColor.withOpacity(0.3),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                )
+              ]),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => _onItemTapped(2), // Index 2 for RecordScreen
+              child: const Icon(
+                Icons.hourglass_bottom,
+                color: Colors.black, // Black color for contrast
+                size: 28, // Adjust size as needed
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.fiber_manual_record_outlined),
-                activeIcon: Icon(Icons.fiber_manual_record),
-                label: 'Record',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.leaderboard_outlined),
-                activeIcon: Icon(Icons.leaderboard),
-                label: 'Leaderboard',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                activeIcon: Icon(Icons.person),
-                label: 'Profile',
-              ),
+            ),
+          ),
+        ),
+        bottomNavigationBar: BottomAppBar(
+          color: navBarColor,
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8.0, // Space around the FAB
+          height: 65.0, // Standard height
+          padding: EdgeInsets.zero,
+          surfaceTintColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              _buildNavItem(
+                  // Home
+                  index: 0,
+                  selectedIndex: selectedIndex,
+                  iconData: Icons.home_outlined,
+                  activeColor: selectedBgColor,
+                  inactiveColor: unselectedColor),
+              _buildNavItem(
+                  // Store
+                  index: 1,
+                  selectedIndex: selectedIndex,
+                  iconData: Icons.store_outlined,
+                  activeColor: selectedBgColor,
+                  inactiveColor: unselectedColor),
+              const SizedBox(width: 48), // Spacer for FAB notch
+              _buildNavItem(
+                  // Leaderboard
+                  index: 3,
+                  selectedIndex: selectedIndex,
+                  iconData: Icons.leaderboard_outlined,
+                  activeColor: selectedBgColor,
+                  inactiveColor: unselectedColor),
+              _buildNavItem(
+                  // Profile
+                  index: 4,
+                  selectedIndex: selectedIndex,
+                  iconData: Icons.person_outline,
+                  activeColor: selectedBgColor,
+                  inactiveColor: unselectedColor),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper to build navigation items
+  Widget _buildNavItem({
+    required int index,
+    required int selectedIndex,
+    required IconData iconData,
+    required Color activeColor,
+    required Color inactiveColor,
+  }) {
+    const Color navBarColor = Color(0xFF1A1F36); // Define color here
+    final bool isSelected = index == selectedIndex;
+    // Icon color is now simply active or inactive color
+    final Color iconColor = isSelected ? activeColor : inactiveColor;
+
+    // Removed special gradient background logic for index 0
+    final Widget iconWidget = Icon(iconData, color: iconColor, size: 28);
+
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onItemTapped(index),
+          customBorder: const CircleBorder(), // Make tap area circular
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                vertical: 10.0), // Vertical padding for tap area
+            alignment: Alignment.center,
+            child: iconWidget,
           ),
         ),
       ),

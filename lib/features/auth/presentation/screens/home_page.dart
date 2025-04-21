@@ -2,483 +2,647 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 import '../providers/user_data_provider.dart';
+import '../providers/user_ranks_provider.dart'; // For streak
+import 'store_screen.dart'; // Import StoreScreen
+import 'package:avatar_glow/avatar_glow.dart'; // Import AvatarGlow
+import 'tabs.dart'; // Correct import for the provider defined in tabs.dart
 
-class HomePage extends ConsumerStatefulWidget {
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
-  ConsumerState<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends ConsumerState<HomePage>
-    with SingleTickerProviderStateMixin {
-  bool _isHovered = false;
-  late AnimationController _controller;
-  late Animation<double> _rotationAnimation;
-  late Animation<double> _pulseAnimation;
-  bool _isPressed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 4),
-      vsync: this,
-    )..repeat();
-
-    _rotationAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(_controller);
-
-    _pulseAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
-
-    // Kullanıcı verilerini yükle
-    Future.microtask(() {
-      ref.read(userDataProvider.notifier).fetchUserData();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // userDataProvider'dan kullanıcı verilerini al
+  Widget build(BuildContext context, WidgetRef ref) {
     final userDataAsync = ref.watch(userDataProvider);
+    final userStreakAsync =
+        ref.watch(userStreakProvider); // Watch streak provider
 
     return Scaffold(
+      backgroundColor: Colors.black, // Set background to black
       body: Container(
+        // Keep the gradient if needed, or just use black
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            stops: [0.0, 0.95],
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFC4FF62),
-              Color.fromARGB(255, 0, 0, 0),
-            ],
-          ),
+          color: Colors.black, // Use black background
+          // gradient: LinearGradient(
+          //   begin: Alignment.topCenter,
+          //   stops: [0.0, 0.95],
+          //   end: Alignment.bottomCenter,
+          //   colors: [
+          //     Color(0xFFC4FF62),
+          //     Color.fromARGB(255, 0, 0, 0),
+          //   ],
+          // ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // Üst kısım - Profil
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    // Profil fotoğrafı - userDataProvider'dan alınan veri ile
-                    userDataAsync.when(
-                      data: (userData) {
-                        return CircleAvatar(
-                          radius: 25,
-                          backgroundColor: Colors.grey[300],
+          child: SingleChildScrollView(
+            // Make the content scrollable
+            child: Column(
+              children: [
+                // --- New Top Bar ---
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 12.0),
+                  child: Row(
+                    children: [
+                      // Profile picture
+                      userDataAsync.when(
+                        data: (userData) => CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.grey[800],
                           backgroundImage:
                               userData?.profilePictureUrl != null &&
                                       userData!.profilePictureUrl!.isNotEmpty
                                   ? NetworkImage(userData.profilePictureUrl!)
-                                  : const AssetImage('assets/images/nike.png')
-                                      as ImageProvider,
-                          child: userData?.profilePictureUrl == null ||
-                                  userData!.profilePictureUrl!.isEmpty
-                              ? (userData?.userName != null &&
-                                      userData!.userName!.isNotEmpty)
-                                  ? Text(userData.userName![0].toUpperCase())
-                                  : const Icon(Icons.person)
+                                  : null, // Handle null/empty URL
+                          child: (userData?.profilePictureUrl == null ||
+                                  userData!.profilePictureUrl!.isEmpty)
+                              ? const Icon(Icons.person,
+                                  size: 24, color: Colors.white70)
                               : null,
-                        );
-                      },
-                      loading: () => const CircleAvatar(
-                        radius: 25,
-                        backgroundColor: Colors.grey,
-                        child: CircularProgressIndicator(
-                          color: Color(0xFFC4FF62),
-                          strokeWidth: 2,
+                        ),
+                        loading: () => const CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.grey,
+                          child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white)),
+                        ),
+                        error: (_, __) => const CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.error_outline,
+                              color: Colors.red, size: 24),
                         ),
                       ),
-                      error: (_, __) => const CircleAvatar(
-                        radius: 25,
-                        backgroundColor: Colors.grey,
-                        child: Icon(Icons.error, color: Colors.red),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Welcome back!',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        // Kullanıcı adı - userDataProvider'dan alınan veri ile
-                        userDataAsync.when(
-                          data: (userData) => Text(
-                            userData?.userName ?? 'Runner',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          loading: () => const Text(
-                            'Loading...',
+                      const SizedBox(width: 12),
+                      // Welcome Text
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hoşgeldiniz',
                             style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.grey[400],
                             ),
                           ),
-                          error: (_, __) => const Text(
-                            'Welcome',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                          userDataAsync.when(
+                            data: (userData) => Text(
+                              userData?.userName ?? 'Kullanıcı', // Display name
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined),
-                      onPressed: () {},
-                    ),
-                  ],
-                ),
-              ),
-              // Slider
-              Container(
-                height: 180,
-                color: const Color.fromARGB(0, 255, 255, 255),
-                child: PageView.builder(
-                  itemCount: 5,
-                  controller: PageController(viewportFraction: 0.93),
-                  padEnds: false,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 4),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            spreadRadius: 0,
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
+                            loading: () => const Text(
+                              'Yükleniyor...',
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.white70),
+                            ),
+                            error: (_, __) => const Text(
+                              'Kullanıcı',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                      const Spacer(),
+                      // Icons Row
+                      Row(
+                        children: [
+                          // Notification Icon (Placeholder)
+                          Stack(
+                            alignment: Alignment.topRight,
+                            children: [
+                              Icon(Icons.notifications_outlined,
+                                  color: Colors.white, size: 26),
+                              // Add a badge if there are notifications
+                              // Positioned(
+                              //   right: 0,
+                              //   top: 0,
+                              //   child: Container(
+                              //     padding: EdgeInsets.all(2),
+                              //     decoration: BoxDecoration(
+                              //       color: Colors.red,
+                              //       shape: BoxShape.circle,
+                              //     ),
+                              //     constraints: BoxConstraints(
+                              //       minWidth: 8,
+                              //       minHeight: 8,
+                              //     ),
+                              //   ),
+                              // ),
+                            ],
+                          ),
+                          const SizedBox(width: 12),
+                          // Coin Icon & Count (Placeholder)
+                          const Icon(Icons.monetization_on,
+                              color: Colors.amber, size: 22),
+                          const SizedBox(width: 4),
+                          const Text(
+                            '2,450', // Placeholder Coin Count
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14),
+                          ),
+                          const SizedBox(width: 12),
+                          // Streak Icon & Count
+                          const Icon(Icons.local_fire_department,
+                              color: Colors.deepOrangeAccent, size: 22),
+                          const SizedBox(width: 4),
+                          userStreakAsync.when(
+                            data: (streak) => Text(
+                              streak.toString(),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14),
+                            ),
+                            loading: () => const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white)),
+                            error: (_, __) => const Text(
+                              '0', // Default on error
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // --- Level Card (Now a PageView Slider) ---
+                SizedBox(
+                  height: 170, // Adjust height for the slider area
+                  child: PageView.builder(
+                    controller: PageController(
+                        viewportFraction: 0.9), // Shows parts of adjacent pages
+                    padEnds: false, // Don't add padding at the ends
+                    itemCount: 3, // Placeholder count for demonstration
+                    itemBuilder: (context, index) {
+                      // Define the image path based on the index
+                      final imagePaths = [
+                        'assets/images/slidebar1.jpeg',
+                        'assets/images/slidebar2.jpeg',
+                        'assets/images/slidebar3.jpeg',
+                      ];
+                      // Use modulo in case itemCount changes later, although currently it's 3
+                      final imagePath = imagePaths[index % imagePaths.length];
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 8.0,
+                            vertical:
+                                8.0), // Add horizontal margin between cards
+                        padding: const EdgeInsets.all(20.0),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20.0),
+                          image: DecorationImage(
+                            image: AssetImage(imagePath),
+                            fit: BoxFit.cover, // Make image cover the container
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
                         child: Stack(
                           children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Colors.purple[300]!,
-                                    Colors.purple[600]!,
-                                  ],
-                                ),
-                              ),
-                              child: Image.asset(
-                                index == 0
-                                    ? 'assets/images/nike.png'
-                                    : index == 1
-                                        ? 'assets/images/slider.png'
-                                        : index == 2
-                                            ? 'assets/images/active.jpg'
-                                            : index == 3
-                                                ? 'assets/images/finish.jpg'
-                                                : 'assets/images/welcome.png',
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
-                            ),
-                            Positioned(
-                              top: 12,
-                              right: 12,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.6),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '${index + 1}/5',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
+                            // NEW Tag (Only for the first item in this example)
+                            if (index == 0)
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              left: 16,
-                              bottom: 16,
-                              right: 16,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Text(
-                                      'NEW',
-                                      style: TextStyle(
-                                        color: Colors.purple,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    index == 0
-                                        ? 'Special Challenge'
-                                        : index == 1
-                                            ? 'Daily Workout'
-                                            : index == 2
-                                                ? 'Active Goals'
-                                                : index == 3
-                                                    ? 'Race Time'
-                                                    : 'Welcome Runner',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    index == 0
-                                        ? 'Join now and win rewards! 🏆'
-                                        : index == 1
-                                            ? 'Start your daily challenge 💪'
-                                            : index == 2
-                                                ? 'Reach your goals today 🎯'
-                                                : index == 3
-                                                    ? 'Race with others now 🏃'
-                                                    : 'Begin your journey 🌟',
+                                  child: const Text(
+                                    'NEW',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.9),
-                                      fontSize: 14,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
                                     ),
                                   ),
-                                ],
+                                ),
+                              ),
+                            // Level Number (Placeholder - varies by index)
+
+                            // Progress Indicator (Placeholder - varies by index)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Text(
+                                index == 0
+                                    ? '1/5'
+                                    : (index == 1
+                                        ? 'Daily'
+                                        : 'Weekly'), // Example content variation
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-              // Quick Actions Grid
+                const SizedBox(height: 10),
 
-              // Challenge kısmı
-              Expanded(
-                child: Center(
+                // --- Invite Friend Card ---
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.group_add_outlined,
+                          color: Color(0xFFC4FF62), size: 30),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Arkadaşını Davet Et',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Her arkadaşın için 500 mPara',
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFFC4FF62),
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
+                        child: const Text('Davet Et'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // --- Ready to Race Text ---
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0), // Keep padding
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        'Ready to challenge yourself today?',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromARGB(255, 216, 215, 215),
-                        ),
+                        'Yarışa hazır mısın?',
                         textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Make cardio fun! Click now to join a live race and win unique rewards! 🚀🏆',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color.fromARGB(255, 183, 182, 182),
-                        ),
+                      Text(
+                        'Kardiyoyu eğlenceli hale getirin! Canlı bir yarışa katılmak ve benzersiz ödüller kazanmak için hemen tıklayın!',
                         textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey[400], fontSize: 14),
                       ),
-                      const SizedBox(height: 30),
-                      // 3D Animasyonlu Movliq Butonu
-                      GestureDetector(
-                        onTapDown: (_) => setState(() => _isPressed = true),
-                        onTapUp: (_) {
-                          setState(() => _isPressed = false);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const FilterScreen()),
-                          );
-                        },
-                        onTapCancel: () => setState(() => _isPressed = false),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Color.fromARGB(255, 2, 59, 12),
-                                Color.fromARGB(255, 118, 162, 47),
-                              ],
-                            ),
-                            boxShadow: [
-                              // Alt gölge (3D efekti için)
-                              BoxShadow(
-                                color: const Color.fromARGB(255, 0, 85, 44),
-                                offset: Offset(0, _isPressed ? 2 : 4),
-                                blurRadius: _isPressed ? 4 : 8,
-                              ),
-                              // Üst ışık efekti
-                              const BoxShadow(
-                                color: Color.fromARGB(59, 0, 130, 48),
-                                offset: Offset(-2, -2),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                              // Yeşil parlama
-                              BoxShadow(
-                                color: const Color.fromARGB(255, 0, 103, 15)
-                                    .withOpacity(0.4),
-                                spreadRadius: _isPressed ? 1 : 4,
-                                blurRadius: _isPressed ? 8 : 16,
-                              ),
-                            ],
+                      const SizedBox(height: 4),
+                    ],
+                  ),
+                ),
+
+                // --- Central Action Button ---
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                  child: AnimatedCentralButton(),
+                ),
+
+                // --- Available Products Section ---
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Alınabilir Ürünler',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold),
                           ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Dönme efekti
-                              TweenAnimationBuilder(
-                                tween: Tween<double>(begin: 0, end: 1),
-                                duration: const Duration(seconds: 20),
-                                builder: (context, double value, child) {
-                                  return Transform.rotate(
-                                    angle: value * 2 * 3.14,
-                                    child: Container(
-                                      width: 100,
-                                      height: 100,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: SweepGradient(
-                                          colors: [
-                                            const Color.fromARGB(
-                                                    255, 255, 255, 255)
-                                                .withOpacity(0),
-                                            const Color.fromARGB(
-                                                    255, 255, 255, 255)
-                                                .withOpacity(0.3),
-                                            const Color.fromARGB(
-                                                    255, 255, 255, 255)
-                                                .withOpacity(0),
+                          TextButton(
+                            onPressed: () {
+                              // Update the provider to switch to the Store tab (index 1)
+                              ref.read(selectedTabProvider.notifier).state = 1;
+                            },
+                            child: const Text(
+                              'Mağaza >',
+                              style: TextStyle(color: Color(0xFFC4FF62)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 200, // Adjust height for product cards
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: 4, // Placeholder count
+                          itemBuilder: (context, index) {
+                            // Placeholder Product Card
+                            return Container(
+                              width: 150, // Adjust width
+                              margin: const EdgeInsets.only(right: 12.0),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[900],
+                                borderRadius: BorderRadius.circular(16.0),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(16.0)),
+                                      child: Image.asset(
+                                        'assets/images/nike.png', // Placeholder image
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          index % 2 == 0
+                                              ? 'Premium Nike'
+                                              : 'Sports T-shirt', // Placeholder title
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.monetization_on,
+                                                color: Colors.amber, size: 16),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              index % 2 == 0
+                                                  ? '2500'
+                                                  : '1800', // Placeholder price
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14),
+                                            ),
                                           ],
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  );
-                                },
+                                  ),
+                                ],
                               ),
-                              // Nabız efekti
-                              TweenAnimationBuilder(
-                                tween: Tween<double>(begin: 0.95, end: 1.05),
-                                duration: const Duration(milliseconds: 1000),
-                                curve: Curves.easeInOut,
-                                builder: (context, value, child) {
-                                  return Transform.scale(
-                                    scale: _isPressed ? 0.9 : value,
-                                    child: Container(
-                                      width: 90,
-                                      height: 90,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: const Color(0xFFC4FF62)
-                                              .withOpacity(0.2),
-                                          width: 2,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              // Logo
-                              AnimatedScale(
-                                duration: const Duration(milliseconds: 200),
-                                scale: _isPressed ? 0.8 : 1.0,
-                                child: Image.asset(
-                                  'assets/images/movliqonlylogo.png',
-                                  width: 70,
-                                  height: 70,
-                                  color:
-                                      const Color.fromARGB(255, 255, 255, 255),
-                                ),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+
+                // --- Special Races Section (Horizontal Scroll) ---
+                Padding(
+                  padding: const EdgeInsets.only(
+                      left: 16.0,
+                      top: 16.0,
+                      bottom: 16.0,
+                      right: 0), // Adjust padding
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(
+                            right: 16.0), // Add padding for title if needed
+                        child: Text(
+                          'Özel Yarışlar',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height:
+                            150, // Define height for the horizontal list items
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: 4, // Placeholder count
+                          itemBuilder: (context, index) {
+                            // Placeholder Race Card Data
+                            final titles = [
+                              'Nike Community Run',
+                              'Adidas Global Race',
+                              'Puma Night Run',
+                              'Community Challenge'
+                            ];
+                            final participants = ['2.5K', '5K', '1.8K', '3.2K'];
+                            // Define image paths for the special races
+                            final raceImagePaths = [
+                              'assets/images/slidebar5.jpeg',
+                              'assets/images/slidebar1.jpeg',
+                              'assets/images/slidebar3.jpeg',
+                              'assets/images/slidebar2.jpeg',
+                              // 'assets/images/slidebar5.jpeg', // Add if itemCount increases
+                            ];
+                            final imagePath = raceImagePaths[index %
+                                raceImagePaths.length]; // Use modulo for safety
+
+                            return Container(
+                              width: MediaQuery.of(context).size.width *
+                                  0.7, // Adjust card width
+                              margin: const EdgeInsets.only(
+                                  right: 12.0), // Margin between cards
+                              padding: const EdgeInsets.all(16.0),
+                              decoration: BoxDecoration(
+                                // Remove solid color
+                                // color: Colors.grey[900],
+                                borderRadius: BorderRadius.circular(12.0),
+                                // Add background image
+                                image: DecorationImage(
+                                  image: AssetImage(imagePath),
+                                  fit: BoxFit.cover,
+                                  // Add a slight darken overlay for text contrast
+                                  colorFilter: ColorFilter.mode(
+                                    Colors.black.withOpacity(0.5),
+                                    BlendMode.darken,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment
+                                    .center, // Vertically center items
+                                children: [
+                                  // Title (takes available space)
+                                  Expanded(
+                                    child: Text(
+                                      titles[
+                                          index % titles.length], // Use modulo
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight
+                                              .bold, // Keep title bold
+                                          fontSize:
+                                              16), // Adjust size if needed
+                                      maxLines: 2, // Allow wrapping
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                      width:
+                                          12), // Space before participant count
+                                  // Participants count
+                                  Row(
+                                    mainAxisSize:
+                                        MainAxisSize.min, // Keep row compact
+                                    children: [
+                                      Icon(Icons.group_outlined,
+                                          color: Colors.white70, size: 18),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        participants[index %
+                                            participants.length], // Use modulo
+                                        style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20), // Add some bottom padding
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildQuickActionItem(String title, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 245, 245, 245),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 24, color: Colors.black),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black,
+// Extracted Animated Central Button Widget BUTON ANIMASYONU
+class AnimatedCentralButton extends ConsumerStatefulWidget {
+  const AnimatedCentralButton({super.key});
+
+  @override
+  ConsumerState<AnimatedCentralButton> createState() =>
+      _AnimatedCentralButtonState();
+}
+
+class _AnimatedCentralButtonState extends ConsumerState<AnimatedCentralButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        // Navigate on tap up
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const FilterScreen(),
+          ),
+        );
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: AvatarGlow(
+          glowColor: Color(0xFFC4FF62),
+          glowRadiusFactor: 0.3,
+          duration: Duration(milliseconds: 2000),
+          repeat: true,
+          startDelay: Duration(milliseconds: 100),
+          child: Material(
+            elevation: 8.0,
+            shape: CircleBorder(),
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFFC4FF62), // Movliq green
+              ),
+              child: Center(
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 80,
+                  height: 80,
+                  color: Colors.black,
+                ),
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
+
+// --- Available Products Section ---

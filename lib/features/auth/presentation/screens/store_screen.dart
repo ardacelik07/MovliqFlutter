@@ -13,21 +13,20 @@ class StoreScreen extends ConsumerStatefulWidget {
 class _StoreScreenState extends ConsumerState<StoreScreen> {
   String _selectedCategory = 'All';
 
+  // Define colors based on the target design
+  static const Color limeGreen = Color(0xFFC4FF62);
+  static const Color darkBackground = Colors.black;
+  static const Color cardBackground = Color(0xFF1C1C1E); // Slightly off-black
+  static const Color chipUnselectedBackground = Color(0xFF2C2C2E);
+  static const Color lightTextColor = Colors.white;
+  static const Color darkTextColor = Colors.black;
+  static const Color greyTextColor = Colors.grey;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: darkBackground, // Set background to black
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFC4FF62),
-              Colors.black,
-            ],
-            stops: [0.0, 0.8],
-          ),
-        ),
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,7 +42,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: lightTextColor, // Changed to white
                       ),
                     ),
                     Container(
@@ -52,19 +51,20 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.1),
+                        color: chipUnselectedBackground, // Darker background
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.monetization_on, size: 20),
+                          const Icon(Icons.monetization_on,
+                              size: 20, color: Colors.amber), // Gold icon
                           const SizedBox(width: 4),
                           Text(
-                            '2,500',
+                            '2,500', // TODO: Replace with actual user coin data
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black.withOpacity(0.8),
+                              color: lightTextColor, // Changed to white
                             ),
                           ),
                         ],
@@ -99,22 +99,37 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                   padding: const EdgeInsets.all(16),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.75,
+                    childAspectRatio: 0.70, // Adjust aspect ratio if needed
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
-                  itemCount: 8,
+                  itemCount: 8, // Placeholder count
                   itemBuilder: (context, index) {
-                    if (_selectedCategory == 'All') {
-                      return Random().nextBool()
-                          ? _buildEquipmentCard()
-                          : _buildProductCard();
-                    } else if (_selectedCategory == 'Equipment') {
-                      return _buildEquipmentCard();
+                    // Simplified logic for demonstration, use actual product data
+                    if (_selectedCategory == 'All' ||
+                        _selectedCategory == 'Equipment') {
+                      return _buildProductCard(
+                        imageUrl: 'assets/images/nike.png',
+                        title: index % 2 == 0
+                            ? 'Training Equipment'
+                            : 'Premium Running Shoes',
+                        price: index % 2 == 0 ? '800' : '1,200',
+                      );
                     } else if (_selectedCategory == 'Clothes') {
-                      return _buildClothesCard();
+                      return _buildProductCard(
+                        imageUrl:
+                            'assets/images/slider.png', // Different image for variety
+                        title: 'Sports T-Shirt',
+                        price: '950',
+                      );
                     } else {
-                      return _buildAccessoriesCard();
+                      // Accessories
+                      return _buildProductCard(
+                        imageUrl:
+                            'assets/images/activity.png', // Different image
+                        title: 'Smart Watch Band',
+                        price: '600',
+                      );
                     }
                   },
                 ),
@@ -129,36 +144,47 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
   Widget _buildCategoryChip(String label, bool isSelected) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
-      child: FilterChip(
+      child: ChoiceChip(
         label: Text(label),
         selected: isSelected,
         onSelected: (bool selected) {
-          setState(() {
-            _selectedCategory = label;
-          });
+          if (selected) {
+            setState(() {
+              _selectedCategory = label;
+            });
+          }
         },
-        backgroundColor: Colors.white.withOpacity(0.9),
-        selectedColor: const Color(0xFFC4FF62),
+        backgroundColor: chipUnselectedBackground,
+        selectedColor: limeGreen,
         labelStyle: TextStyle(
-          color: isSelected ? Colors.black : Colors.black54,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? darkTextColor : lightTextColor,
+          fontWeight: FontWeight.bold, // Always bold for better visibility
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20), // Make it more oval/rounded
+          side: BorderSide.none, // Remove default border
         ),
+        showCheckmark: false, // Hide default checkmark
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
   }
 
-  Widget _buildProductCard() {
+  // Consolidated product card widget
+  Widget _buildProductCard({
+    required String imageUrl,
+    required String title,
+    required String price,
+  }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 255, 255, 255),
+        color: cardBackground, // Use dark card background
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
+          // Keep shadow or adjust/remove as needed
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -168,15 +194,17 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
         children: [
           // Product Image
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/nike.png'),
+            child: ClipRRect(
+              // Use ClipRRect for rounded corners on the image
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Container(
+                color:
+                    chipUnselectedBackground, // Dark background for image container
+                child: Image.asset(
+                  imageUrl,
                   fit: BoxFit.cover,
+                  width: double.infinity,
                 ),
               ),
             ),
@@ -187,16 +215,17 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Premium Running Shoes',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 14, // Slightly smaller font
+                    color: lightTextColor,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8), // Increased spacing
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -205,126 +234,40 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                         const Icon(
                           Icons.monetization_on,
                           size: 16,
-                          color: Colors.amber,
+                          color: Colors.amber, // Keep gold color
                         ),
                         const SizedBox(width: 4),
-                        const Text(
-                          '1,200',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFC4FF62),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Buy',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEquipmentCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 255, 255, 255),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/slider.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Training Equipment',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(
-                          Icons.monetization_on,
-                          size: 16,
-                          color: Colors.amber,
-                        ),
-                        SizedBox(width: 4),
                         Text(
-                          '800',
-                          style: TextStyle(
+                          price,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
+                            color: lightTextColor,
                           ),
                         ),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFC4FF62),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Buy',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
+                    // Updated Buy Button
+                    ElevatedButton(
+                      onPressed: () {
+                        // TODO: Implement buy logic
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: limeGreen,
+                          foregroundColor: darkTextColor,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4), // Adjust padding
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(8), // Match chip radius
+                          ),
+                          minimumSize:
+                              const Size(0, 30), // Smaller button height
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          )),
+                      child: const Text('Buy'),
                     ),
                   ],
                 ),
@@ -335,7 +278,4 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
       ),
     );
   }
-
-  Widget _buildClothesCard() => _buildProductCard();
-  Widget _buildAccessoriesCard() => _buildProductCard();
 }

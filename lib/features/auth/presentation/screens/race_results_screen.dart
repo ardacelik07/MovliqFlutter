@@ -136,23 +136,23 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         return true;
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
         appBar: AppBar(
           elevation: 0,
-          backgroundColor: const Color(0xFFC4FF62),
+          backgroundColor: const Color(0xFF1F3C18),
           foregroundColor: Colors.black,
           title: const Text(
             'Yarış Sonuçları',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF212121),
+              color: Color.fromARGB(255, 255, 255, 255),
             ),
           ),
           centerTitle: true,
           leading: IconButton(
-            icon:
-                const Icon(Icons.arrow_back_ios_new, color: Color(0xFF212121)),
+            icon: const Icon(Icons.arrow_back_ios_new,
+                color: Color.fromARGB(255, 255, 255, 255)),
             onPressed: () {
               // Filtreleri sıfırla
               setState(() {
@@ -175,7 +175,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
             // Filtreleme bölümü - Modern tasarım
             Container(
               decoration: const BoxDecoration(
-                color: Color(0xFFC4FF62),
+                color: Color(0xFF1F3C18),
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(24),
                   bottomRight: Radius.circular(24),
@@ -200,7 +200,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
-                        color: Color(0xFF212121),
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -229,8 +229,8 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: _selectedType == 'indoor'
-                                    ? Colors.black
-                                    : Colors.white,
+                                    ? const Color(0xFFC4FF62)
+                                    : const Color.fromARGB(255, 102, 102, 102),
                                 borderRadius: const BorderRadius.horizontal(
                                   left: Radius.circular(24),
                                 ),
@@ -243,7 +243,8 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                                     const Padding(
                                       padding: EdgeInsets.only(right: 6),
                                       child: Icon(Icons.check_circle,
-                                          color: Colors.white, size: 18),
+                                          color: Color.fromARGB(255, 0, 0, 0),
+                                          size: 18),
                                     ),
                                   Text(
                                     'Indoor',
@@ -251,8 +252,9 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                       color: _selectedType == 'indoor'
-                                          ? Colors.white
-                                          : Colors.black.withOpacity(0.7),
+                                          ? const Color.fromARGB(255, 0, 0, 0)
+                                          : const Color.fromARGB(
+                                              255, 255, 255, 255),
                                     ),
                                   ),
                                 ],
@@ -270,8 +272,8 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: _selectedType == 'outdoor'
-                                    ? Colors.black
-                                    : Colors.white,
+                                    ? const Color(0xFFC4FF62)
+                                    : const Color.fromARGB(255, 87, 87, 87),
                                 borderRadius: const BorderRadius.horizontal(
                                   right: Radius.circular(24),
                                 ),
@@ -284,7 +286,8 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                                     const Padding(
                                       padding: EdgeInsets.only(right: 6),
                                       child: Icon(Icons.check_circle,
-                                          color: Colors.white, size: 18),
+                                          color: Color.fromARGB(255, 0, 0, 0),
+                                          size: 18),
                                     ),
                                   Text(
                                     'Outdoor',
@@ -292,8 +295,9 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                       color: _selectedType == 'outdoor'
-                                          ? Colors.white
-                                          : Colors.black.withOpacity(0.7),
+                                          ? const Color.fromARGB(255, 0, 0, 0)
+                                          : const Color.fromARGB(
+                                              255, 255, 255, 255),
                                     ),
                                   ),
                                 ],
@@ -315,7 +319,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
-                        color: Color(0xFF212121),
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -364,171 +368,120 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                     itemBuilder: (context, index) {
                       final activity = activities[index];
 
-                      // Tarih ve saat formatı
+                      // Tarih ve saat formatı (Sadece Tarih ve Saat, alt alta değil)
                       final startTime = activity.startTime;
-                      final formattedDate =
-                          '${startTime.day} ${_getMonthName(startTime.month)}, ${startTime.year}';
-                      final formattedTime =
-                          '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
+                      final formattedDateTime =
+                          '${startTime.day} ${_getMonthName(startTime.month)} ${startTime.year}   ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
 
-                      // Süre formatı
+                      // Süre formatı (e.g., "10 Dakika")
                       final duration = activity.duration;
-                      final hours = duration ~/ 60;
-                      final minutes = duration % 60;
                       final formattedDuration =
-                          hours > 0 ? '${hours}s ${minutes}dk' : '${minutes}dk';
+                          '$duration Dakika'; // Target format
 
                       // Rank ile ilgili bilgiler
                       final rank = activity.rank ?? 0; // API'den gelen sıralama
                       final rankText =
-                          rank > 0 ? '$rank. Sıra' : 'Sıralama yok';
+                          rank > 0 ? '$rank. Sıra' : '-'; // Show '-' if no rank
+
+                      // Ana metrik (Conditional based on roomType)
+                      final Widget mainMetricWidget;
+                      if (activity.roomType == 'outdoor') {
+                        final distanceKm =
+                            activity.distancekm.toStringAsFixed(2);
+                        final steps = activity.steps;
+                        mainMetricWidget = Row(
+                          crossAxisAlignment: CrossAxisAlignment
+                              .baseline, // Align text baselines
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              '$distanceKm KM',
+                              style: const TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$steps Adım',
+                              style: TextStyle(
+                                fontSize: 14, // Smaller font for steps
+                                color: Colors.white
+                                    .withOpacity(0.7), // Dimmer color
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        );
+                      } else {
+                        // Indoor
+                        final steps = activity.steps;
+                        mainMetricWidget = Text(
+                          '$steps Adım',
+                          style: const TextStyle(
+                            fontSize: 26, // Larger font size
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        );
+                      }
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
-                        elevation: 1,
-                        surfaceTintColor: Colors.white,
-                        color: Colors.white,
+                        elevation: 0, // No elevation
+                        color: const Color(
+                            0xFF2A2A2A), // Dark background from image
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(
+                              12), // Slightly less rounded
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Üst kısım - Tarih ve Saat
+                              // Top Row: Date/Time and Duration
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  // Tarih ve saat
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF0F0F0),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Icon(
-                                          Icons.calendar_today,
-                                          size: 16,
-                                          color: Colors.grey[700],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '$formattedDate\n$formattedTime',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFF212121),
-                                        ),
-                                      ),
-                                    ],
+                                  Text(
+                                    formattedDateTime,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.white.withOpacity(0.7),
+                                    ),
                                   ),
-
-                                  // Sıralama
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      rankText,
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                  Text(
+                                    formattedDuration,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(
+                                          0xFFC4FF62), // Green color for duration
                                     ),
                                   ),
                                 ],
                               ),
 
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 10),
 
-                              // Alt kısım - Mesafe ve adım bilgisi
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  // Ana bilgi (indoor: adım, outdoor: mesafe+adım)
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: activity.roomType == 'indoor'
-                                              ? Colors.blue[50]
-                                              : Colors.green[50],
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Icon(
-                                          activity.roomType == 'indoor'
-                                              ? Icons.directions_walk
-                                              : Icons.terrain,
-                                          color: activity.roomType == 'indoor'
-                                              ? Colors.blue[700]
-                                              : Colors.green[700],
-                                          size: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        activity.roomType == 'indoor'
-                                            ? '${activity.steps} adım'
-                                            : '${activity.distancekm.toStringAsFixed(2)} km (${activity.steps} adım)',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.grey[800],
-                                        ),
-                                      ),
-                                      Text(
-                                        ' • ${activity.roomType == 'indoor' ? 'İç Mekan' : 'Dış Mekan'}',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                              // Middle: Main Metric (Steps or KM + Steps)
+                              mainMetricWidget, // Use the conditionally created widget
 
-                                  // İkinci bilgi (her iki tip için de süre)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.timer,
-                                          size: 14,
-                                          color: Colors.grey[700],
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          formattedDuration,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.grey[800],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                              const SizedBox(height: 4),
+
+                              // Bottom: Rank
+                              Text(
+                                rankText,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color:
+                                      Color(0xFFC4FF62), // Green color for rank
+                                ),
                               ),
                             ],
                           ),
@@ -614,7 +567,9 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
           height: 48,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.black : Colors.white,
+            color: isSelected
+                ? const Color(0xFFC4FF62)
+                : const Color.fromARGB(255, 136, 135, 135),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -629,7 +584,9 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
             title,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : Colors.black.withOpacity(0.7),
+              color: isSelected
+                  ? const Color.fromARGB(255, 0, 0, 0)
+                  : const Color.fromARGB(255, 255, 238, 238),
               fontSize: 15,
             ),
           ),

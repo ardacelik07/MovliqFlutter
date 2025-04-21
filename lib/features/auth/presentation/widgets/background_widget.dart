@@ -9,7 +9,7 @@ class BackgroundWidget extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         Image.asset(
-          'assets/images/loginbackground.jpg',
+          'assets/images/loginpagephoto.png',
           fit: BoxFit.cover,
         ),
         Container(
@@ -18,8 +18,8 @@ class BackgroundWidget extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.7),
-                Colors.black.withOpacity(0.5),
+                const Color.fromARGB(180, 22, 25, 17),
+                const Color.fromARGB(200, 172, 229, 73),
               ],
             ),
           ),

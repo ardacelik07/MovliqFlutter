@@ -48,6 +48,8 @@ dependencies:
   flutter_launcher_icons: ^0.14.3
   flutter_native_splash: ^2.4.4
   shared_preferences: ^2.5.2
+  avatar_glow: ^3.0.1
+  font_awesome_flutter: ^10.8.0
 
 dev_dependencies:
   flutter_test:
@@ -100,6 +102,27 @@ flutter:
     - assets/images/playstore.png
     - assets/images/loading.png
     - assets/images/onlycolor.jpeg
+    - assets/images/logo.png
+    - assets/images/registerpicture.png
+    - assets/images/loginpicture.png
+    - assets/images/welcome1.png
+    - assets/images/registration.png
+    - assets/images/birthday.png
+    - assets/images/uzunluk.png
+    - assets/images/agirlik.png
+    - assets/images/activity.png
+    - assets/images/finish1.png
+    - assets/images/loginpagephoto.png
+    - assets/images/movliq_blackxt.png
+    - assets/images/movliq_withtext.png
+    - assets/images/manOnRunningInside.png
+    - assets/images/womanRunOutside.png
+    - assets/images/waiting.png
+    - assets/images/slidebar1.jpeg
+    - assets/images/slidebar2.jpeg
+    - assets/images/slidebar3.jpeg
+    - assets/images/slidebar4.jpeg
+    - assets/images/slidebar5.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

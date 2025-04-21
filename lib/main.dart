@@ -6,6 +6,7 @@ import 'features/auth/presentation/screens/tabs.dart'; // HomePage yerine TabsSc
 import 'core/services/storage_service.dart';
 import 'core/services/http_interceptor.dart';
 import 'dart:convert';
+import 'features/auth/presentation/providers/user_data_provider.dart'; // Import userDataProvider
 
 // Global navigator anahtarı
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -50,7 +51,6 @@ class _MyAppState extends ConsumerState<MyApp> {
     try {
       final bool hasToken = await StorageService.hasToken();
 
-      // Eğer token var ama geçerli değilse, logout yap
       if (hasToken) {
         final tokenJson = await StorageService.getToken();
         if (tokenJson == null) {
@@ -75,6 +75,16 @@ class _MyAppState extends ConsumerState<MyApp> {
             });
             return;
           }
+          // Token geçerli, kullanıcı giriş yapmış durumda
+          setState(() {
+            _isLoggedIn = true; // Set logged in first
+            _isLoading = false;
+          });
+          // Kullanıcı giriş yapmışsa veriyi fetch et
+          ref
+              .read(userDataProvider.notifier)
+              .fetchUserData(); // Fetch user data
+          return; // Return after successful login check and data fetch initiation
         } catch (e) {
           // Parse hatası varsa tokeni sil
           print('Token parse hatası: $e');
@@ -85,12 +95,13 @@ class _MyAppState extends ConsumerState<MyApp> {
           });
           return;
         }
+      } else {
+        // No token found, user is not logged in
+        setState(() {
+          _isLoggedIn = false;
+          _isLoading = false;
+        });
       }
-
-      setState(() {
-        _isLoggedIn = hasToken;
-        _isLoading = false;
-      });
     } catch (e) {
       print('Login durumu kontrol edilirken hata: $e');
       setState(() {
