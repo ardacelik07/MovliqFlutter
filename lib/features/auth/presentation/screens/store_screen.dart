@@ -1,17 +1,20 @@
+import 'dart:convert'; // Gerekli import
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class StoreScreen extends ConsumerStatefulWidget {
+// Provider ve Model importları
+import 'package:my_flutter_project/features/auth/domain/models/product.dart';
+import 'package:my_flutter_project/features/auth/presentation/providers/product_provider.dart';
+
+// StoreScreen'i ConsumerWidget olarak değiştir
+class StoreScreen extends ConsumerWidget {
   const StoreScreen({super.key});
 
-  @override
-  ConsumerState<StoreScreen> createState() => _StoreScreenState();
-}
-
-class _StoreScreenState extends ConsumerState<StoreScreen> {
-  String _selectedCategory = 'All';
+  // State'i dışarı taşıyalım, çünkü ConsumerWidget stateful değil
+  static final StateProvider<String> _selectedCategoryProvider =
+      StateProvider((ref) => 'All');
 
   // Define colors based on the target design
   static const Color limeGreen = Color(0xFFC4FF62);
@@ -23,7 +26,12 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
   static const Color greyTextColor = Colors.grey;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Seçili kategoriyi ve ürün verisini izle
+    final String selectedCategory = ref.watch(_selectedCategoryProvider);
+    final AsyncValue<List<Product>> productsAsync =
+        ref.watch(productNotifierProvider);
+
     return Scaffold(
       backgroundColor: darkBackground, // Set background to black
       body: Container(
@@ -80,13 +88,14 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    _buildCategoryChip('All', _selectedCategory == 'All'),
+                    // Kategori chip'lerini ref kullanarak güncelle
+                    _buildCategoryChip('All', selectedCategory == 'All', ref),
                     _buildCategoryChip(
-                        'Equipment', _selectedCategory == 'Equipment'),
+                        'Equipment', selectedCategory == 'Equipment', ref),
                     _buildCategoryChip(
-                        'Clothes', _selectedCategory == 'Clothes'),
+                        'Clothes', selectedCategory == 'Clothes', ref),
                     _buildCategoryChip(
-                        'Accessories', _selectedCategory == 'Accessories'),
+                        'Accessories', selectedCategory == 'Accessories', ref),
                   ],
                 ),
               ),
@@ -95,43 +104,68 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
 
               // Products Grid
               Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.70, // Adjust aspect ratio if needed
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: 8, // Placeholder count
-                  itemBuilder: (context, index) {
-                    // Simplified logic for demonstration, use actual product data
-                    if (_selectedCategory == 'All' ||
-                        _selectedCategory == 'Equipment') {
-                      return _buildProductCard(
-                        imageUrl: 'assets/images/nike.png',
-                        title: index % 2 == 0
-                            ? 'Training Equipment'
-                            : 'Premium Running Shoes',
-                        price: index % 2 == 0 ? '800' : '1,200',
-                      );
-                    } else if (_selectedCategory == 'Clothes') {
-                      return _buildProductCard(
-                        imageUrl:
-                            'assets/images/slider.png', // Different image for variety
-                        title: 'Sports T-Shirt',
-                        price: '950',
-                      );
-                    } else {
-                      // Accessories
-                      return _buildProductCard(
-                        imageUrl:
-                            'assets/images/activity.png', // Different image
-                        title: 'Smart Watch Band',
-                        price: '600',
+                // AsyncValue durumunu ele al
+                child: productsAsync.when(
+                  data: (products) {
+                    // Seçili kategoriye göre ürünleri filtrele
+                    final filteredProducts = selectedCategory == 'All'
+                        ? products
+                        : products
+                            .where((p) => p.category == selectedCategory)
+                            .toList();
+
+                    // Eğer ürün yoksa veya filtre sonucu boşsa mesaj göster
+                    if (filteredProducts.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No products found in this category.',
+                          style: TextStyle(color: lightTextColor, fontSize: 16),
+                        ),
                       );
                     }
+
+                    // GridView'ı filtreli ürünlerle oluştur
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.70, // Adjust aspect ratio if needed
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemCount:
+                          filteredProducts.length, // API'den gelen ürün sayısı
+                      itemBuilder: (context, index) {
+                        final Product product = filteredProducts[index];
+                        // API'den gelen veriyi kullanarak product card oluştur
+                        return _buildProductCard(
+                          // API'den gelen ilk resmi kullan
+                          imageUrl: product.firstImageUrl,
+                          title: product.name,
+                          price: product.price
+                              .toStringAsFixed(0), // Fiyatı formatla
+                        );
+                      },
+                    );
                   },
+                  loading: () => const Center(
+                      child: CircularProgressIndicator(color: limeGreen)),
+                  error: (error, stackTrace) => Center(
+                    child: SelectableText.rich(
+                      TextSpan(
+                        text: 'Error loading products:\n',
+                        style: const TextStyle(color: Colors.red, fontSize: 16),
+                        children: <TextSpan>[
+                          TextSpan(
+                              text: error.toString(),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.normal))
+                        ],
+                      ),
+                      style: const TextStyle(color: Colors.red, fontSize: 16),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -141,7 +175,8 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
     );
   }
 
-  Widget _buildCategoryChip(String label, bool isSelected) {
+  // ref parametresi eklendi
+  Widget _buildCategoryChip(String label, bool isSelected, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
@@ -149,9 +184,8 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
         selected: isSelected,
         onSelected: (bool selected) {
           if (selected) {
-            setState(() {
-              _selectedCategory = label;
-            });
+            // StateProvider'ı güncelle
+            ref.read(_selectedCategoryProvider.notifier).state = label;
           }
         },
         backgroundColor: chipUnselectedBackground,
@@ -201,10 +235,21 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
               child: Container(
                 color:
                     chipUnselectedBackground, // Dark background for image container
-                child: Image.asset(
+                child: Image.network(
                   imageUrl,
                   fit: BoxFit.cover,
                   width: double.infinity,
+                  // Yükleme ve hata durumları için builder'lar
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                        child: CircularProgressIndicator(
+                      color: limeGreen,
+                      strokeWidth: 2.0,
+                    ));
+                  },
+                  errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Icon(Icons.error_outline, color: greyTextColor)),
                 ),
               ),
             ),

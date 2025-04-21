@@ -20,6 +20,9 @@ class ApiConfig {
   static const String userStreakTrackEndpoint =
       '$baseUrl/UserResults/UserStreakTrack';
 
+  // Ürünleri getirmek için yeni endpoint
+  static const String productsEndpoint = '$baseUrl/Products';
+
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
