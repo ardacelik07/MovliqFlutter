@@ -391,8 +391,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     Container(
                                       height: 200,
                                       decoration: BoxDecoration(
-                                        color: const Color.fromARGB(150, 31, 60,
-                                            24), // Updated background color
+                                        color: const Color.fromRGBO(30, 30, 30,
+                                            1), // Updated background color
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                       padding: const EdgeInsets.only(
@@ -1140,8 +1140,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       padding: const EdgeInsets.symmetric(
           horizontal: 8, vertical: 12), // Adjusted padding
       decoration: BoxDecoration(
-        color: const Color.fromARGB(
-            150, 31, 60, 24), // Darker container background
+        color:
+            const Color.fromRGBO(30, 30, 30, 1), // Darker container background
         borderRadius: BorderRadius.circular(16), // Slightly less rounded
       ),
       child: IntrinsicHeight(
