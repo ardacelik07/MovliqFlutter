@@ -3,120 +3,312 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart'; // smooth_page_indicator import edildi
+import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // FontAwesome import edildi
 
 // Provider ve Model importları
 import 'package:my_flutter_project/features/auth/domain/models/product.dart';
 import 'package:my_flutter_project/features/auth/presentation/providers/product_provider.dart';
+import './product_view_screen.dart'; // ProductViewScreen import edildi
 
 // StoreScreen'i ConsumerWidget olarak değiştir
 class StoreScreen extends ConsumerWidget {
-  const StoreScreen({super.key});
-
-  // State'i dışarı taşıyalım, çünkü ConsumerWidget stateful değil
-  static final StateProvider<String> _selectedCategoryProvider =
-      StateProvider((ref) => 'All');
+  StoreScreen({super.key});
 
   // Define colors based on the target design
-  static const Color limeGreen = Color(0xFFC4FF62);
+  static const Color limeGreen =
+      Color(0xFFC4FF62); // Or match the exact green from image if needed
   static const Color darkBackground = Colors.black;
-  static const Color cardBackground = Color(0xFF1C1C1E); // Slightly off-black
-  static const Color chipUnselectedBackground = Color(0xFF2C2C2E);
+  static const Color cardBackground =
+      Color(0xFF1A1A1A); // Darker card background from image
+  static const Color chipSelectedBackground =
+      limeGreen; // Chip background from image
+  static const Color chipUnselectedBackground =
+      Color(0xFF2C2C2E); // Unselected chip or other dark elements
   static const Color lightTextColor = Colors.white;
   static const Color darkTextColor = Colors.black;
-  static const Color greyTextColor = Colors.grey;
+  static const Color greyTextColor =
+      Color(0xFF8A8A8E); // Grey text color from image
+
+  // PageController for the carousel
+  final PageController _pageController = PageController(viewportFraction: 0.9);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Seçili kategoriyi ve ürün verisini izle
-    final String selectedCategory = ref.watch(_selectedCategoryProvider);
     final AsyncValue<List<Product>> productsAsync =
         ref.watch(productNotifierProvider);
 
     return Scaffold(
-      backgroundColor: darkBackground, // Set background to black
+      backgroundColor: darkBackground,
       body: Container(
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Store',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: lightTextColor, // Changed to white
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: chipUnselectedBackground, // Darker background
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header - Updated Design
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    // Changed to Column for subtitle
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start, // Align text left
+                    children: [
+                      Row(
+                        // Keep title and coins in a row
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.monetization_on,
-                              size: 20, color: Colors.amber), // Gold icon
-                          const SizedBox(width: 4),
-                          Text(
-                            '2,500', // TODO: Replace with actual user coin data
+                          const Text(
+                            'Mağaza', // Updated Text
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 28,
                               fontWeight: FontWeight.bold,
-                              color: lightTextColor, // Changed to white
+                              color: lightTextColor,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: chipUnselectedBackground,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.monetization_on,
+                                    size: 20,
+                                    color: Colors
+                                        .amber), // Keep original coin icon style
+                                const SizedBox(width: 4),
+                                Text(
+                                  '2,450', // Updated coin value from image
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: lightTextColor,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(
+                          height: 4), // Space between title and subtitle
+                      Text(
+                        // Subtitle added
+                        'Arda\'nın direttiği yazı burada yer alacak.', // Text from image
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: greyTextColor, // Use grey text color
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Carousel - Updated Design
+                SizedBox(
+                  height: 170, // Adjust height for the slider area
+                  child: PageView.builder(
+                    controller: _pageController, // Use the defined controller
+                    padEnds: false, // Don't add padding at the ends
+                    itemCount: 3, // Placeholder count for demonstration
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 8.0,
+                            vertical:
+                                8.0), // Add horizontal margin between cards
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20.0),
+                          // Apply gradient background from image
+                          gradient: LinearGradient(
+                            colors: [
+                              limeGreen
+                                  .withOpacity(0.8), // Adjust opacity as needed
+                              limeGreen.withOpacity(0.5),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // Carousel Indicator Dots
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                    child: SmoothPageIndicator(
+                      controller: _pageController,
+                      count: 3, // Must match itemCount in PageView
+                      effect: ExpandingDotsEffect(
+                        // Style from image
+                        activeDotColor: limeGreen,
+                        dotColor: greyTextColor.withOpacity(0.5),
+                        dotHeight: 8,
+                        dotWidth: 8,
+                        spacing: 6,
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
 
-              // Categories
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    // Kategori chip'lerini ref kullanarak güncelle
-                    _buildCategoryChip('All', selectedCategory == 'All', ref),
-                    _buildCategoryChip(
-                        'Equipment', selectedCategory == 'Equipment', ref),
-                    _buildCategoryChip(
-                        'Clothes', selectedCategory == 'Clothes', ref),
-                    _buildCategoryChip(
-                        'Accessories', selectedCategory == 'Accessories', ref),
-                  ],
+                // Special Offer Card - Updated Design
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.all(20), // Increased padding
+                  decoration: BoxDecoration(
+                    color: cardBackground, // Use dark card background
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    // Use Row for image and text side-by-side
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start, // Align items top
+                    children: [
+                      // Left Column: Chip and Image
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // "Bu Aya Özel" Chip
+                          Container(
+                            margin: const EdgeInsets.only(
+                                bottom: 8.0), // Add space below chip
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color:
+                                  chipSelectedBackground, // Lime green background
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Bu Aya Özel',
+                              style: TextStyle(
+                                color: darkTextColor, // Black text
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          // Image
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12.0),
+                            child: Image.asset(
+                              'assets/images/nike.png', // Use placeholder or actual image
+                              width: 80, // Adjust size as needed
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(
+                          width:
+                              12), // Reduced space between left and right columns
+
+                      // Right Column: Text and Price
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Product Title
+                            const Text(
+                              'Nike Air Zoom Pegasus 38', // Text from image
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: lightTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            // Product Description
+                            Text(
+                              'Yeni nesil Zoom Air teknolojisi ile her adımda maksimum enerji dönüşü.', // Text from image
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: greyTextColor,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(
+                                height: 16), // Pushes price to the bottom
+                            // Price Row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment
+                                  .end, // Align price to the right
+                              children: const [
+                                FaIcon(
+                                  FontAwesomeIcons.coins,
+                                  size: 18,
+                                  color: limeGreen,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  '8,500', // Price from image
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: limeGreen,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
+                const Padding(
+                  // Added Padding for alignment
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'Alışveriş', // Updated Text
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: lightTextColor,
+                    ),
+                  ),
+                ),
 
-              // Products Grid
-              Expanded(
-                // AsyncValue durumunu ele al
-                child: productsAsync.when(
+                // Products Grid - Expanded kaldırıldı
+                productsAsync.when(
                   data: (products) {
                     // Seçili kategoriye göre ürünleri filtrele
-                    final filteredProducts = selectedCategory == 'All'
+                    final filteredProducts = 'All' == 'All'
                         ? products
-                        : products
-                            .where((p) => p.category == selectedCategory)
-                            .toList();
+                        : products.where((p) => p.category == 'All').toList();
 
                     // Eğer ürün yoksa veya filtre sonucu boşsa mesaj göster
                     if (filteredProducts.isEmpty) {
                       return const Center(
+                        heightFactor: 3.0, // Yükseklik faktörü eklendi
                         child: Text(
                           'No products found in this category.',
                           style: TextStyle(color: lightTextColor, fontSize: 16),
@@ -124,9 +316,13 @@ class StoreScreen extends ConsumerWidget {
                       );
                     }
 
-                    // GridView'ı filtreli ürünlerle oluştur
+                    // GridView'ı filtreli ürünlerle oluştur - shrinkWrap eklendi
                     return GridView.builder(
                       padding: const EdgeInsets.all(16),
+                      physics:
+                          const NeverScrollableScrollPhysics(), // İçerdeki scrolling'i devre dışı bırak
+                      shrinkWrap:
+                          true, // GridView'ın içeriğine sığacak şekilde küçültür
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
@@ -139,19 +335,34 @@ class StoreScreen extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         final Product product = filteredProducts[index];
                         // API'den gelen veriyi kullanarak product card oluştur
-                        return _buildProductCard(
-                          // API'den gelen ilk resmi kullan
-                          imageUrl: product.firstImageUrl,
-                          title: product.name,
-                          price: product.price
-                              .toStringAsFixed(0), // Fiyatı formatla
+                        return InkWell(
+                          // Wrap with InkWell for tap detection
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ProductViewScreen(product: product),
+                              ),
+                            );
+                          },
+                          child: _buildProductCard(
+                            // API'den gelen ilk resmi kullan
+                            imageUrl: product.firstImageUrl,
+                            title: product.name,
+                            price: product.price
+                                .toStringAsFixed(0), // Fiyatı formatla
+                          ),
                         );
                       },
                     );
                   },
                   loading: () => const Center(
-                      child: CircularProgressIndicator(color: limeGreen)),
+                      heightFactor: 3.0, // Yükseklik faktörü eklendi
+                      child: CircularProgressIndicator(
+                          color: chipSelectedBackground)), // Use updated color
                   error: (error, stackTrace) => Center(
+                    heightFactor: 3.0, // Yükseklik faktörü eklendi
                     child: SelectableText.rich(
                       TextSpan(
                         text: 'Error loading products:\n',
@@ -167,39 +378,13 @@ class StoreScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ),
-            ],
+
+                // Bottom padding for better scrolling
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
-
-  // ref parametresi eklendi
-  Widget _buildCategoryChip(String label, bool isSelected, WidgetRef ref) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (bool selected) {
-          if (selected) {
-            // StateProvider'ı güncelle
-            ref.read(_selectedCategoryProvider.notifier).state = label;
-          }
-        },
-        backgroundColor: chipUnselectedBackground,
-        selectedColor: limeGreen,
-        labelStyle: TextStyle(
-          color: isSelected ? darkTextColor : lightTextColor,
-          fontWeight: FontWeight.bold, // Always bold for better visibility
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20), // Make it more oval/rounded
-          side: BorderSide.none, // Remove default border
-        ),
-        showCheckmark: false, // Hide default checkmark
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
   }
@@ -248,7 +433,8 @@ class StoreScreen extends ConsumerWidget {
                       strokeWidth: 2.0,
                     ));
                   },
-                  errorBuilder: (context, error, stackTrace) => const Center(
+                  errorBuilder: (context, error, stackTrace) => Center(
+                      // Use updated grey color
                       child: Icon(Icons.error_outline, color: greyTextColor)),
                 ),
               ),
@@ -264,55 +450,32 @@ class StoreScreen extends ConsumerWidget {
                   title,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14, // Slightly smaller font
+                    fontSize: 14,
                     color: lightTextColor,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8), // Increased spacing
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.monetization_on,
-                          size: 16,
-                          color: Colors.amber, // Keep gold color
-                        ),
-                        const SizedBox(width: 4),
                         Text(
                           price,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: lightTextColor,
+                            color: limeGreen,
                           ),
                         ),
                       ],
                     ),
-                    // Updated Buy Button
-                    ElevatedButton(
-                      onPressed: () {
-                        // TODO: Implement buy logic
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: limeGreen,
-                          foregroundColor: darkTextColor,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4), // Adjust padding
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(8), // Match chip radius
-                          ),
-                          minimumSize:
-                              const Size(0, 30), // Smaller button height
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          )),
-                      child: const Text('Buy'),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14,
+                      color: greyTextColor,
                     ),
                   ],
                 ),

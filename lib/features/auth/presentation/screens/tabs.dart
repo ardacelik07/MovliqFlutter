@@ -30,7 +30,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    const StoreScreen(),
+    StoreScreen(),
     const RecordScreen(),
     const LeaderboardScreen(),
     const ProfileScreen(),

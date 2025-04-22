@@ -52,6 +52,7 @@ dependencies:
   shared_preferences: ^2.5.2
   avatar_glow: ^3.0.1
   font_awesome_flutter: ^10.8.0
+  smooth_page_indicator: ^1.2.1
 
 dev_dependencies:
   flutter_test:
