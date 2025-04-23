@@ -7,8 +7,85 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:my_flutter_project/core/config/api_config.dart';
 import 'package:my_flutter_project/features/auth/domain/models/product.dart';
+import 'package:my_flutter_project/core/services/storage_service.dart'; // StorageService importu eklendi
 
 part 'product_provider.g.dart';
+
+// --- API Yanıt Modelleri (Taşınmalı: örn. lib/features/auth/domain/models/acquired_coupon_response.dart) ---
+class AcquiredCouponResponse {
+  final AcquiredCoupon? acquiredCoupon;
+  final String? productName;
+  final String? productUrl;
+  final int? productId;
+
+  AcquiredCouponResponse({
+    required this.acquiredCoupon,
+    required this.productName,
+    required this.productUrl,
+    required this.productId,
+  });
+
+  factory AcquiredCouponResponse.fromJson(Map<String, dynamic> json) {
+    print("Decoding AcquiredCouponResponse: $json"); // Debug log
+    return AcquiredCouponResponse(
+      acquiredCoupon: AcquiredCoupon.fromJson(
+          json['acquiredCoupon'] as Map<String, dynamic>? ?? {}),
+      productName: json['productName'] as String? ?? '',
+      productUrl: json['productUrl'] as String? ?? '',
+      productId: json['productId'] as int? ?? 0,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+        'acquiredCoupon': acquiredCoupon?.toJson() ?? {},
+        'productName': productName,
+        'productUrl': productUrl,
+        'productId': productId,
+      };
+}
+
+class AcquiredCoupon {
+  final int? id;
+  final String? code;
+  final bool? isActive; // JSON'da isActive, modelde isActive kullandım
+  final String? expirationDate;
+  final int? maxUses;
+  final int? usesCount;
+  final String? createdAt;
+
+  AcquiredCoupon({
+    required this.id,
+    required this.code,
+    required this.isActive,
+    required this.expirationDate,
+    required this.maxUses,
+    required this.usesCount,
+    required this.createdAt,
+  });
+
+  factory AcquiredCoupon.fromJson(Map<String, dynamic> json) {
+    print("Decoding AcquiredCoupon: $json"); // Debug log
+    return AcquiredCoupon(
+      id: json['id'] as int,
+      code: json['code'] as String,
+      isActive: json['isActive'] as bool, // JSON'daki anahtarla eşleşmeli
+      expirationDate: json['expirationDate'] as String?,
+      maxUses: json['maxUses'] as int?,
+      usesCount: json['usesCount'] as int,
+      createdAt: json['createdAt'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'code': code,
+        'isActive': isActive,
+        'expirationDate': expirationDate,
+        'maxUses': maxUses,
+        'usesCount': usesCount,
+        'createdAt': createdAt,
+      };
+}
+// --- Model Sonu ---
 
 @Riverpod(keepAlive: false)
 class ProductNotifier extends _$ProductNotifier {
@@ -119,6 +196,97 @@ class ProductNotifier extends _$ProductNotifier {
       print('Error caught in fetchMovliqProduct: $e');
       print('Stack trace: $stackTrace');
       throw Exception('Failed to load Movliq product due to an error: $e');
+    }
+  }
+
+  // Ürün Satın Alma Metodu
+  Future<AcquiredCouponResponse> purchaseProduct(int productId) async {
+    // Metoda gelen ID'yi logla
+    print('purchaseProduct called with productId: $productId');
+
+    final Uri uri =
+        Uri.parse('${ApiConfig.baseUrl}/Products/purchase/$productId');
+    // Oluşturulan tam URL'i logla
+    print('Requesting POST to: ${uri.toString()}');
+
+    // Token'ı al (Doğru null kontrolü ile)
+    final tokenJson = await StorageService.getToken();
+    if (tokenJson == null) {
+      print('Error: No token found in storage.');
+      throw Exception('Lütfen giriş yapın.');
+    }
+    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+    final String? token = tokenData['token'] as String?;
+    if (token == null) {
+      print('Error: Token key not found in stored JSON or token is null.');
+      throw Exception('Giriş bilgileri alınamadı. Lütfen tekrar giriş yapın.');
+    }
+    // print('Token: $token'); // Token'ı loglamaya gerek yok artık
+
+    // Header'ları oluştur
+    final Map<String, String> headers = {
+      ...ApiConfig.headers,
+      'Authorization': 'Bearer $token',
+    };
+
+    // print('Headers with token: $headers'); // Header'ları loglamaya gerek yok artık
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: headers,
+      );
+
+      print('Purchase API Response Status Code: ${response.statusCode}');
+      print('Purchase API Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Başarılı durum kodları
+        print('Purchase successful, decoding response...');
+        // Yanıt boş değilse decode et
+        if (response.body.isNotEmpty) {
+          final Map<String, dynamic> data = json.decode(response.body);
+          return AcquiredCouponResponse.fromJson(data);
+        } else {
+          // Yanıt boşsa ama başarılıysa (200 OK), belki kuponsuz bir başarı durumu?
+          // Bu senaryo API tasarımına bağlı, şimdilik hata fırlatabiliriz.
+          print('Purchase successful but response body is empty.');
+          throw Exception('Purchase successful but no coupon data received.');
+        }
+      } else if (response.statusCode == 400) {
+        // Örnek: Yetersiz Bakiye vb.
+        print('Purchase failed (400): ${response.body}');
+        // API'den gelen hata mesajını göstermek daha iyi olabilir
+        // Yanıtın JSON olup olmadığını kontrol et
+        Map<String, dynamic>? errorData;
+        try {
+          errorData = json.decode(response.body);
+        } catch (_) {
+          errorData = null; // JSON değilse null ata
+        }
+        final String errorMessage =
+            errorData?['message'] ?? response.body; // API'ye göre ayarla
+        throw Exception('Satın alma başarısız: $errorMessage');
+      } else if (response.statusCode == 401) {
+        // Özel 401 kontrolü
+        print(
+            'Purchase failed (401): Unauthorized. Token might be invalid or expired.');
+        throw Exception(
+            'Oturumunuz zaman aşımına uğradı veya geçersiz. Lütfen tekrar giriş yapın.');
+      } else {
+        print(
+            'Purchase failed with status code ${response.statusCode}: ${response.body}');
+        throw Exception(
+            'Failed to purchase product. Status code: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      print('Error caught in purchaseProduct: $e');
+      print('Stack trace: $stackTrace');
+      // Yakalanan Exception'ı tekrar fırlatmak veya daha kullanıcı dostu bir mesaj vermek
+      if (e is Exception) {
+        rethrow; // Zaten anlamlı bir Exception ise tekrar fırlat
+      }
+      throw Exception('Satın alma sırasında bir hata oluştu: $e');
     }
   }
 }
