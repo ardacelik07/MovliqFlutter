@@ -37,6 +37,8 @@ class StoreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AsyncValue<List<Product>> productsAsync =
         ref.watch(productNotifierProvider);
+    final AsyncValue<Product> movliqProductAsync =
+        ref.watch(movliqProductProvider);
 
     return Scaffold(
       backgroundColor: darkBackground,
@@ -167,118 +169,191 @@ class StoreScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // Special Offer Card - Updated Design
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  padding: const EdgeInsets.all(20), // Increased padding
-                  decoration: BoxDecoration(
-                    color: cardBackground, // Use dark card background
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    // Use Row for image and text side-by-side
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start, // Align items top
-                    children: [
-                      // Left Column: Chip and Image
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // "Bu Aya Özel" Chip
-                          Container(
-                            margin: const EdgeInsets.only(
-                                bottom: 8.0), // Add space below chip
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color:
-                                  chipSelectedBackground, // Lime green background
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Bu Aya Özel',
-                              style: TextStyle(
-                                color: darkTextColor, // Black text
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
+                // Special Offer Card - Updated with Movliq Product Data
+                movliqProductAsync.when(
+                  data: (product) {
+                    return InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ProductViewScreen(product: product),
                           ),
-                          // Image
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12.0),
-                            child: Image.asset(
-                              'assets/images/nike.png', // Use placeholder or actual image
-                              width: 80, // Adjust size as needed
-                              height: 80,
-                              fit: BoxFit.cover,
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.all(20), // Increased padding
+                        decoration: BoxDecoration(
+                          color: cardBackground, // Use dark card background
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(
-                          width:
-                              12), // Reduced space between left and right columns
-
-                      // Right Column: Text and Price
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          ],
+                        ),
+                        child: Row(
+                          // Use Row for image and text side-by-side
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start, // Align items top
                           children: [
-                            // Product Title
-                            const Text(
-                              'Nike Air Zoom Pegasus 38', // Text from image
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: lightTextColor,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            // Product Description
-                            Text(
-                              'Yeni nesil Zoom Air teknolojisi ile her adımda maksimum enerji dönüşü.', // Text from image
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: greyTextColor,
-                              ),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(
-                                height: 16), // Pushes price to the bottom
-                            // Price Row
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment
-                                  .end, // Align price to the right
-                              children: const [
-                                FaIcon(
-                                  FontAwesomeIcons.coins,
-                                  size: 18,
-                                  color: limeGreen,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  '8,500', // Price from image
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: limeGreen,
+                            // Left Column: Chip and Image
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // "Bu Aya Özel" Chip
+                                Container(
+                                  margin: const EdgeInsets.only(
+                                      bottom: 8.0), // Add space below chip
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        chipSelectedBackground, // Lime green background
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'Bu Aya Özel',
+                                    style: TextStyle(
+                                      color: darkTextColor, // Black text
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
+                                // Image
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12.0),
+                                  child: product.firstImageUrl.isNotEmpty
+                                      ? Image.network(
+                                          product.firstImageUrl,
+                                          width: 80,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  Icon(Icons.error_outline,
+                                                      color: greyTextColor,
+                                                      size: 80),
+                                        )
+                                      : Image.asset(
+                                          'assets/images/nike.png', // Fallback
+                                          width: 80,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
                               ],
+                            ),
+                            const SizedBox(
+                                width:
+                                    12), // Reduced space between left and right columns
+
+                            // Right Column: Text and Price
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Product Title
+                                  Text(
+                                    product.name,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: lightTextColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Product Description
+                                  Text(
+                                    product.description,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: greyTextColor,
+                                    ),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(
+                                      height: 16), // Pushes price to the bottom
+                                  // Price Row
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment
+                                        .end, // Align price to the right
+                                    children: [
+                                      const FaIcon(
+                                        FontAwesomeIcons.coins,
+                                        size: 18,
+                                        color: limeGreen,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        product.price.toStringAsFixed(0),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: limeGreen,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    ],
+                    );
+                  },
+                  loading: () => Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: cardBackground,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Center(
+                      child: SizedBox(
+                        height: 120,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: chipSelectedBackground,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  error: (error, stackTrace) => Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: cardBackground,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(
+                      child: SizedBox(
+                        height: 120,
+                        child: Center(
+                          child: SelectableText.rich(
+                            TextSpan(
+                              text: 'Error loading special product:\n',
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 14),
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: error.toString(),
+                                  style: const TextStyle(fontSize: 12),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
 
