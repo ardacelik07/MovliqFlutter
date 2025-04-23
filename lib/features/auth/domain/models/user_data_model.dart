@@ -20,6 +20,7 @@ class UserDataModel {
   final int? generalRank;
   final DateTime? birthday;
   final DateTime? createdAt;
+  final int? coins;
 
   UserDataModel({
     this.id,
@@ -43,7 +44,59 @@ class UserDataModel {
     this.generalRank,
     this.birthday,
     this.createdAt,
+    this.coins,
   });
+
+  // copyWith metodu
+  UserDataModel copyWith({
+    int? id,
+    String? name,
+    String? surname,
+    String? userName,
+    String? email,
+    String? phoneNumber,
+    String? address,
+    int? age,
+    double? height,
+    double? weight,
+    String? gender,
+    String? profilePicturePath,
+    int? runprefer,
+    int? active,
+    bool? isActive,
+    double? distancekm,
+    double? steps,
+    int? rank,
+    int? generalRank,
+    DateTime? birthday,
+    DateTime? createdAt,
+    int? coins,
+  }) {
+    return UserDataModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      surname: surname ?? this.surname,
+      userName: userName ?? this.userName,
+      email: email ?? this.email,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      address: address ?? this.address,
+      age: age ?? this.age,
+      height: height ?? this.height,
+      weight: weight ?? this.weight,
+      gender: gender ?? this.gender,
+      profilePicturePath: profilePicturePath ?? this.profilePicturePath,
+      runprefer: runprefer ?? this.runprefer,
+      active: active ?? this.active,
+      isActive: isActive ?? this.isActive,
+      distancekm: distancekm ?? this.distancekm,
+      steps: steps ?? this.steps,
+      rank: rank ?? this.rank,
+      generalRank: generalRank ?? this.generalRank,
+      birthday: birthday ?? this.birthday,
+      createdAt: createdAt ?? this.createdAt,
+      coins: coins ?? this.coins,
+    );
+  }
 
   factory UserDataModel.fromJson(Map<String, dynamic> json) {
     return UserDataModel(
@@ -70,6 +123,7 @@ class UserDataModel {
           json['birthDay'] != null ? DateTime.parse(json['birthDay']) : null,
       createdAt:
           json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      coins: json['coins'] ?? 0,
     );
   }
 

@@ -19,7 +19,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshCurrentLeaderboard();
       // Kullanıcı verilerini de yükle
-      ref.read(userDataProvider.notifier).fetchUserData();
+      //ref.read(userDataProvider.notifier).fetchUserData();Coini Sıfırlıyordu
     });
   }
 

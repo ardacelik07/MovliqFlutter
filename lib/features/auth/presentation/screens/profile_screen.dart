@@ -309,7 +309,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ],
                           ),
                         ),
-                        // Sağ üst köşede Ayarlar butonu (Positioned ile)
+                        // Sağ üst köşede coupon butonu (Positioned ile)
+                        Positioned(
+                          top: 64,
+                          right: 16,
+                          child: IconButton(
+                            icon: const Icon(
+                                Icons.discount_outlined, // Using outlined icon
+                                color: Color(
+                                    0xFF93C53E)), // Green color from image
+                            onPressed: () {},
+                          ),
+                        ),
                         Positioned(
                           top: 0,
                           right: 16,
@@ -1134,6 +1145,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   // İstatistikler için daha kompakt ve responsive container (Updated Style)
   Widget _buildStatsContainer(UserRanksModel? userRanks) {
+    final userCoinsAsync = ref.watch(userDataProvider).value?.coins;
     return Container(
       margin: const EdgeInsets.symmetric(
           horizontal: 16, vertical: 10), // Adjusted margin
@@ -1170,7 +1182,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _buildStatIcon(
               icon: Icons
                   .monetization_on_outlined, // Use outlined icon (closer to coin stack)
-              value: '32', // Value from image
+              value: userCoinsAsync.toString(), // Value from image
               label: 'Coin', // Label from image
               iconColor: const Color(0xFFFFD700), // Gold color for coin
               backgroundColor:

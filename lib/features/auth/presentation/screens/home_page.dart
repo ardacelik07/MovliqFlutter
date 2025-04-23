@@ -15,6 +15,7 @@ class HomePage extends ConsumerWidget {
     final userDataAsync = ref.watch(userDataProvider);
     final userStreakAsync =
         ref.watch(userStreakProvider); // Watch streak provider
+    final userCoinsAsync = userDataAsync.value?.coins;
 
     return Scaffold(
       backgroundColor: Colors.black, // Set background to black
@@ -144,9 +145,9 @@ class HomePage extends ConsumerWidget {
                           const Icon(Icons.monetization_on,
                               color: Colors.amber, size: 22),
                           const SizedBox(width: 4),
-                          const Text(
-                            '2,450', // Placeholder Coin Count
-                            style: TextStyle(
+                          Text(
+                            userCoinsAsync.toString(), // Placeholder Coin Count
+                            style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14),

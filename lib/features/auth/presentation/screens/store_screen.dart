@@ -8,7 +8,9 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // FontAwesome 
 
 // Provider ve Model importları
 import 'package:my_flutter_project/features/auth/domain/models/product.dart';
+import 'package:my_flutter_project/features/auth/domain/models/user_data_model.dart'; // UserDataModel importu eklendi
 import 'package:my_flutter_project/features/auth/presentation/providers/product_provider.dart';
+import 'package:my_flutter_project/features/auth/presentation/providers/user_data_provider.dart'; // UserDataProvider eklendi
 import './product_view_screen.dart'; // ProductViewScreen import edildi
 
 // StoreScreen ConsumerStatefulWidget olarak değiştirildi
@@ -56,6 +58,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
     // Tüm provider'ları zorla güncelle
     await ref.read(productNotifierProvider.notifier).refreshProducts();
     // MovliqProduct provider'ı otomatik olarak yenilenecektir (autoDispose sayesinde)
+    // Coin bilgisini de yenile
+    await ref.read(userDataProvider.notifier).fetchCoins();
   }
 
   @override
@@ -64,6 +68,9 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
         ref.watch(productNotifierProvider);
     final AsyncValue<Product> movliqProductAsync =
         ref.watch(movliqProductProvider);
+    // Kullanıcı verisini (ve coin'i) izle
+    final AsyncValue<UserDataModel?> userDataAsync =
+        ref.watch(userDataProvider);
 
     return Scaffold(
       backgroundColor: darkBackground,
@@ -116,12 +123,33 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                       color: Colors
                                           .amber), // Keep original coin icon style
                                   const SizedBox(width: 4),
-                                  Text(
-                                    '2,450', // Updated coin value from image
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: lightTextColor,
+                                  // Coin değerini UserData provider'dan al
+                                  userDataAsync.when(
+                                    data: (userData) => Text(
+                                      // userData null değilse coins'i göster, null ise veya coins null ise '0' göster
+                                      userData?.coins?.toString() ?? '0',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: lightTextColor,
+                                      ),
+                                    ),
+                                    loading: () => const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: lightTextColor,
+                                      ),
+                                    ),
+                                    error: (err, stack) => const Tooltip(
+                                      message:
+                                          'Coinler yüklenemedi', // Hata mesajı
+                                      child: Icon(
+                                        Icons.error_outline,
+                                        color: Colors.red,
+                                        size: 20,
+                                      ),
                                     ),
                                   ),
                                 ],

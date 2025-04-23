@@ -81,9 +81,9 @@ class _MyAppState extends ConsumerState<MyApp> {
             _isLoading = false;
           });
           // Kullanıcı giriş yapmışsa veriyi fetch et
-          ref
-              .read(userDataProvider.notifier)
-              .fetchUserData(); // Fetch user data
+          ref.read(userDataProvider.notifier).fetchUserData();
+          ref.read(userDataProvider.notifier).fetchCoins();
+          // Fetch user data
           return; // Return after successful login check and data fetch initiation
         } catch (e) {
           // Parse hatası varsa tokeni sil
