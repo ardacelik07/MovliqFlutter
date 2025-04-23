@@ -10,7 +10,7 @@ import 'package:my_flutter_project/features/auth/domain/models/product.dart';
 
 part 'product_provider.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: false)
 class ProductNotifier extends _$ProductNotifier {
   @override
   Future<List<Product>> build() async {
@@ -69,6 +69,18 @@ class ProductNotifier extends _$ProductNotifier {
     }
   }
 
+  // Manuel olarak verileri yenilemek için metot
+  Future<void> refreshProducts() async {
+    print('Manually refreshing products data');
+    state = const AsyncValue.loading();
+    try {
+      final products = await _fetchProducts();
+      state = AsyncValue.data(products);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
   // Fetch Movliq product by unique ID
   Future<Product> fetchMovliqProduct() async {
     final isMovliqProduct = true;
@@ -111,8 +123,8 @@ class ProductNotifier extends _$ProductNotifier {
   }
 }
 
-// Create a simple provider for Movliq product instead of using riverpod annotations
-final movliqProductProvider = FutureProvider<Product>((ref) async {
+// Create a provider for Movliq product with autoDispose to refresh on each access
+final movliqProductProvider = FutureProvider.autoDispose<Product>((ref) async {
   final productNotifier = ref.watch(productNotifierProvider.notifier);
   return await productNotifier.fetchMovliqProduct();
 });
