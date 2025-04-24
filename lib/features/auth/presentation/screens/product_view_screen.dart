@@ -6,6 +6,8 @@ import 'package:flutter/services.dart'; // Clipboard için
 import 'package:url_launcher/url_launcher.dart'; // URL açmak için
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod importu
 import 'package:my_flutter_project/features/auth/presentation/providers/product_provider.dart'; // Provider importu
+// ignore: depend_on_referenced_packages
+import 'package:intl/intl.dart'; // DateFormat için eklendi
 
 // Sabit renkleri ve stilleri tanımlayalım (StoreScreen'den alınabilir veya ortak bir yerden)
 const Color limeGreen = Color(0xFFC4FF62);
@@ -32,6 +34,38 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
 
   // Örnek beden listesi
   final List<String> _sizes = ['36', '37', '38', '39', '40', '41', '42'];
+
+  // Yeni: Kalan süreyi formatlayan yardımcı fonksiyon
+  String _formatRemainingTime(DateTime? expirationDate) {
+    if (expirationDate == null) {
+      return 'Süresiz'; // Return 'Süresiz' if no expiration date
+    }
+
+    final now = DateTime.now();
+    final difference = expirationDate.difference(now);
+
+    if (difference.isNegative) {
+      return 'Süre Doldu'; // Return 'Süre Doldu' if expired
+    }
+
+    final days = difference.inDays;
+    final hours = difference.inHours % 24;
+    final minutes = difference.inMinutes % 60;
+
+    final formattedString = StringBuffer();
+    if (days > 0) {
+      formattedString.write('$days gün ');
+    }
+    if (hours > 0) {
+      formattedString.write('$hours saat ');
+    }
+    if (minutes > 0 || (days == 0 && hours == 0)) {
+      // Show minutes if < 1 hour remaining
+      formattedString.write('$minutes dakika');
+    }
+
+    return formattedString.toString().trim();
+  }
 
   // Yeni Bottom Sheet (Promosyon Kodu Alındı)
   void _showAcquiredCouponBottomSheet(
@@ -137,22 +171,63 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                               style: TextStyle(color: lightTextColor)),
                           backgroundColor: cardBackground),
                     );
-                    // URL'yi açma (güvenlik kontrolü ile)
-                    final Uri uri = Uri.parse(response.productUrl!);
+
+                    // --- Detaylı Loglama ile URL Açma ---
+                    final String? urlString = response.productUrl;
+                    if (urlString == null || urlString.isEmpty) {
+                      print('Error: Product URL is null or empty.');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Geçerli bir ürün URL\'si bulunamadı.',
+                                style: TextStyle(color: Colors.red)),
+                            backgroundColor: cardBackground),
+                      );
+                      return; // URL yoksa devam etme
+                    }
+
+                    print('Raw URL string: $urlString');
+                    Uri? uri;
                     try {
-                      if (await canLaunchUrl(uri)) {
+                      uri = Uri.parse(urlString);
+                      print(
+                          'Parsed URI: ${uri.toString()}'); // Parsed URI'yi yazdır
+                    } catch (e) {
+                      print('Error parsing URI: $e');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('URL formatı geçersiz: $e',
+                                style: TextStyle(color: Colors.red)),
+                            backgroundColor: cardBackground),
+                      );
+                      return; // Parse edilemiyorsa devam etme
+                    }
+
+                    try {
+                      print('Checking if URL can be launched...');
+                      bool canLaunch = await canLaunchUrl(uri);
+                      print(
+                          'canLaunchUrl result: $canLaunch'); // canLaunchUrl sonucunu yazdır
+
+                      if (canLaunch) {
+                        print('Attempting to launch URL...');
                         await launchUrl(uri,
                             mode: LaunchMode.externalApplication);
+                        print(
+                            'launchUrl call completed.'); // Bu satır yazdırılıyor mu kontrol et
                       } else {
+                        print('URL cannot be launched.');
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                               content: Text(
-                                  'URL açılamadı: ${response.productUrl}',
+                                  'URL açılamadı: ${uri.toString()}', // Kullanılan URL'yi gösteriyor
                                   style: TextStyle(color: Colors.red)),
                               backgroundColor: cardBackground),
                         );
                       }
                     } catch (e) {
+                      print(
+                          'Error during launchUrl: $e'); // launchUrl hatasını yazdır
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                             content: Text('URL açılırken hata: $e',
@@ -253,9 +328,9 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                           size: 28), // İkon büyüdü
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Movliq Premium\'da %10 indirim fırsatı',
+                        widget.product.name,
                         style: TextStyle(
                           color: limeGreen,
                           fontWeight: FontWeight.bold,
@@ -278,12 +353,12 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                 ),
                 const SizedBox(height: 12), // Boşluk artırıldı
                 // Tanım Metni
-                const Expanded(
+                Expanded(
                   // Kalan alanı doldurması için Expanded
                   child: SingleChildScrollView(
                     // Uzun metinler için kaydırma
                     child: Text(
-                      'Lorem Ipsum, dizgi ve baskı endüstrisinde kullanılan mıgır metinlerdir. Lorem Ipsum, adı bilinmeyen bir matbaacının bir hurufat numune kitabı oluşturmak üzere bir yazı ............',
+                      widget.product.aboutProduct ?? '',
                       style: TextStyle(
                         color: lightTextColor,
                         fontSize: 15, // Biraz büyüdü
@@ -375,6 +450,18 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
         widget.product.photos?.map((photo) => photo.url).toList() ??
             []; // Null check ve fallback
 
+    // Özellikleri ayıklama (description'dan)
+    final List<String> features = widget.product.description
+            ?.split('\n')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        [];
+
+    // Fiyat formatlama
+    final formattedPrice =
+        NumberFormat("#,##0", "tr_TR").format(widget.product.price);
+
     return Scaffold(
       backgroundColor: darkBackground,
       appBar: AppBar(
@@ -409,59 +496,67 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Resim Alanı (PageView)
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.4, // Ekranın %40'ı
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  PageView.builder(
-                    controller: _imagePageController,
-                    itemCount: imageUrls.length,
-                    itemBuilder: (context, index) {
-                      return Image.network(
-                        imageUrls[index],
-                        fit: BoxFit.cover, // Resmi kapla
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(
-                              child:
-                                  CircularProgressIndicator(color: limeGreen));
-                        },
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Center(
-                                child: Icon(Icons.error_outline,
-                                    color: greyTextColor, size: 50)),
-                      );
-                    },
-                  ),
-                  // Resim noktaları (eğer birden fazla resim varsa)
-                  if (imageUrls.length > 1)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: SmoothPageIndicator(
+            // Resim Alanı (PageView) ve Altındaki Metin
+            Stack(
+              alignment: Alignment.bottomLeft, // Metni sola yaslamak için
+              children: [
+                SizedBox(
+                  height:
+                      MediaQuery.of(context).size.height * 0.4, // Ekranın %40'ı
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      PageView.builder(
                         controller: _imagePageController,
-                        count: imageUrls.length,
-                        effect: ExpandingDotsEffect(
-                          activeDotColor: limeGreen,
-                          dotColor: greyTextColor.withOpacity(0.5),
-                          dotHeight: 8,
-                          dotWidth: 8,
-                          spacing: 6,
-                        ),
+                        itemCount: imageUrls.length,
+                        itemBuilder: (context, index) {
+                          return Image.network(
+                            imageUrls[index],
+                            fit: BoxFit.cover, // Resmi kapla
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(
+                                  child: CircularProgressIndicator(
+                                      color: limeGreen));
+                            },
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Center(
+                                    child: Icon(Icons.error_outline,
+                                        color: greyTextColor, size: 50)),
+                          );
+                        },
                       ),
-                    ),
-                ],
-              ),
+                      // Resim noktaları (eğer birden fazla resim varsa)
+                      if (imageUrls.length > 1)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: SmoothPageIndicator(
+                            controller: _imagePageController,
+                            count: imageUrls.length,
+                            effect: ExpandingDotsEffect(
+                              activeDotColor: limeGreen,
+                              dotColor: greyTextColor.withOpacity(0.5),
+                              dotHeight: 8,
+                              dotWidth: 8,
+                              spacing: 6,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                // Yeni: Kaç kişinin aldığı bilgisi
+              ],
             ),
+            const SizedBox(height: 16), // Resim altı boşluk
 
-            // Ürün Bilgileri ve Beden Seçimi Alanı
+            // Ürün Bilgileri ve Yeni Bölümler Alanı
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Başlık
+                  // Başlık (Mevcut)
                   Text(
                     widget.product.name, // Dinamik başlık
                     style: const TextStyle(
@@ -471,7 +566,16 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // Açıklama
+                  Text(
+                    'Kalan kupon adeti: ${widget.product.stock.toString()}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: limeGreen,
+                    ),
+                  ),
+                  // Açıklama (Mevcut - ama yeni tasarımda kullanılmıyor, istersen kaldırabilirsin)
+                  /*const SizedBox(height: 8),
                   Text(
                     widget.product.description ??
                         'Ürün açıklaması bulunamadı.', // Dinamik açıklama
@@ -480,10 +584,142 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                       color: greyTextColor,
                       height: 1.4, // Satır yüksekliği
                     ),
+                  ),*/
+                  const SizedBox(height: 24),
+
+                  // Yeni: Kullanma Süresi Kartı
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: limeGreen, // Açık Yeşil Arka Plan
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'KULLANMA SÜRESİ',
+                          style: TextStyle(
+                            color: darkTextColor.withOpacity(0.7),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.access_time_filled,
+                                color: darkTextColor, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              // Metnin taşmasını engelle
+                              child: Text(
+                                // TODO: product modelinde expirationDate alanı varsa onu kullan
+                                _formatRemainingTime(widget.product
+                                    .expirationDate), // widget.product.expirationDate
+                                style: const TextStyle(
+                                  color: darkTextColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Yeni: Öne Çıkanlar Kartı
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: limeGreen, // Açık Yeşil Arka Plan
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Özellikler',
+                          style: TextStyle(
+                            color: darkTextColor.withOpacity(0.7),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Özellikleri listeleyen Column
+                        if (features.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: features
+                                .map((feature) => Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 8.0),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.check_circle,
+                                              color: darkTextColor, size: 18),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              feature,
+                                              style: const TextStyle(
+                                                color: darkTextColor,
+                                                fontSize:
+                                                    15, // Biraz daha küçük
+                                                fontWeight: FontWeight
+                                                    .w500, // Normalden biraz kalın
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ))
+                                .toList(),
+                          )
+                        else
+                          Text(
+                            // Eğer özellik yoksa
+                            'Öne çıkan özellik bulunamadı.',
+                            style: TextStyle(
+                                color: darkTextColor.withOpacity(0.8)),
+                          ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
 
-                  // Beden Seçimi
+                  // Yeni: Hakkında Bölümü
+                  const Text(
+                    'Hakkında',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: lightTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.product.aboutProduct ??
+                        'Ürün hakkında bilgi bulunamadı.',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: greyTextColor,
+                      height: 1.5, // Satır aralığı biraz artırıldı
+                    ),
+                    // maxLines: 5, // İstersen başlangıçta sınırlı satır gösterebilirsin
+                    // overflow: TextOverflow.ellipsis,
+                  ),
+                  // TODO: "Daha Fazlasını Gör" butonu eklenebilir
+                  // TextButton(onPressed: (){}, child: Text('Daha Fazlasını Gör >', style: TextStyle(color: limeGreen)))
+
+                  // Beden Seçimi (Yorum satırına alındı)
+                  /*
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -551,10 +787,13 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                       },
                     ),
                   ),
+                  */
                 ],
               ),
             ),
-            const SizedBox(height: 60), // Buton için altta boşluk
+            const SizedBox(
+                height:
+                    100), // Buton için altta daha fazla boşluk (bottomSheet yüksekliği kadar)
           ],
         ),
       ),
@@ -569,28 +808,11 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
           border: Border(top: BorderSide(color: greyTextColor, width: 0.2)),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Fiyat
-            Row(
-              children: [
-                const FaIcon(
-                  FontAwesomeIcons.coins,
-                  color: limeGreen,
-                  size: 24,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  widget.product.price.toStringAsFixed(0), // Dinamik fiyat
-                  style: const TextStyle(
-                    color: limeGreen,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            // Satın Al Butonu
+
+            // Satın Al Butonu (Metin Güncellendi)
             ElevatedButton(
               onPressed: () {
                 // Bottom sheet'i göster
@@ -599,8 +821,8 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: limeGreen,
                 foregroundColor: darkTextColor,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 64, vertical: 15), // Reduced horizontal padding
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -609,7 +831,18 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              child: const Text('Hemen Al'),
+              child: Row(
+                mainAxisSize: MainAxisSize.min, // Fit content
+                children: [
+                  FaIcon(
+                    FontAwesomeIcons.coins,
+                    color: darkTextColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text('$formattedPrice mCoin - Hemen Al'),
+                ],
+              ),
             ),
           ],
         ),
