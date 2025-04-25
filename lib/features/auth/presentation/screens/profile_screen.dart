@@ -1351,53 +1351,30 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
       final response = await _uploadProfileImage(image.path, tokenJson);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
+        // Başarılı yanıt alındı, verileri yeniden fetch et
         PaintingBinding.instance.imageCache.clear();
         PaintingBinding.instance.imageCache.clearLiveImages();
 
-        final userData = ref.read(userDataProvider).value;
-        if (userData != null) {
-          final updatedUserData = UserDataModel(
-              id: userData.id,
-              name: userData.name,
-              surname: userData.surname,
-              userName: userData.userName,
-              email: userData.email,
-              phoneNumber: userData.phoneNumber,
-              address: userData.address,
-              age: userData.age,
-              height: userData.height,
-              weight: userData.weight,
-              gender: userData.gender,
-              profilePicturePath:
-                  data['profilePictureUrl'] ?? userData.profilePicturePath,
-              runprefer: userData.runprefer,
-              active: userData.active,
-              isActive: userData.isActive,
-              distancekm: userData.distancekm,
-              steps: userData.steps,
-              rank: userData.rank,
-              generalRank: userData.generalRank,
-              birthday: userData.birthday,
-              createdAt: userData.createdAt);
+        // Kullanıcı verisini ve coinleri yeniden çek
 
-          ref.read(userDataProvider.notifier).updateUserData(updatedUserData);
-        }
+        ref.read(userDataProvider.notifier).fetchUserData();
+        ref.read(userDataProvider.notifier).fetchCoins();
 
         _showSuccessMessage(context, 'Profil fotoğrafı başarıyla güncellendi');
 
+        // Yeni veriyi yansıtmak için UI'ı yeniden çizmek için state'i güncelle
         setState(() {
-          _imageKey = UniqueKey();
+          _imageKey = UniqueKey(); // Ensure image rebuilds with new data
+          _localImageFile = null; // Clear local file reference
         });
       } else {
         _showErrorMessage(
             context, 'Profil fotoğrafı yüklenirken bir hata oluştu');
-        _localImageFile = null;
+        _localImageFile = null; // Hata durumunda yerel dosyayı temizle
       }
     } catch (e) {
       _showErrorMessage(context, 'Hata: $e');
-      _localImageFile = null;
+      _localImageFile = null; // Hata durumunda yerel dosyayı temizle
     } finally {
       if (mounted) {
         setState(() {

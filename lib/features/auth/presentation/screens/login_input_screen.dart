@@ -57,6 +57,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
           if (token != null) {
             print('Login successful! Token: $token');
             ref.read(userDataProvider.notifier).fetchUserData();
+            ref.read(userDataProvider.notifier).fetchCoins();
             ref.read(selectedTabProvider.notifier).state = 0;
             Navigator.pushReplacement(
               context,
