@@ -80,9 +80,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       });
 
     // Kullanıcı verilerini de yükle
-    Future.microtask(() {
-      ref.read(userDataProvider.notifier).fetchUserData();
-    });
+    //Future.microtask(() {
+    //  ref.read(userDataProvider.notifier).fetchUserData();
+    //});
 
     // Önce konum iznini kontrol et, sonra adım sayar iznini kontrol et
     _initPermissions();
