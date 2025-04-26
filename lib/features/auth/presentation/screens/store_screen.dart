@@ -237,7 +237,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  ProductViewScreen(product: product),
+                                  ProductViewScreen(productId: product.id!),
                             ),
                           );
                         },
@@ -480,7 +480,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      ProductViewScreen(product: product),
+                                      ProductViewScreen(productId: product.id!),
                                 ),
                               );
                             },

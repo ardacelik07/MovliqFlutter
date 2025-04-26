@@ -4,6 +4,8 @@ import 'dart:math'; // min fonksiyonu için eklendi
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'dart:async'; // For Timeout
+import 'package:flutter/foundation.dart'; // For @immutable
 
 import 'package:my_flutter_project/core/config/api_config.dart';
 import 'package:my_flutter_project/features/auth/domain/models/product.dart';
@@ -295,4 +297,90 @@ class ProductNotifier extends _$ProductNotifier {
 final movliqProductProvider = FutureProvider.autoDispose<Product>((ref) async {
   final productNotifier = ref.watch(productNotifierProvider.notifier);
   return await productNotifier.fetchMovliqProduct();
+});
+
+// --- Provider for fetching a SINGLE product by ID ---
+
+// Notifier for fetching product details by ID
+// Use AutoDisposeAsyncNotifier if the state should reset when not listened to
+class ProductDetailNotifier extends AutoDisposeAsyncNotifier<Product> {
+  // Store the ID for which details are being fetched
+  int _currentProductId = -1; // Initialize with an invalid ID
+
+  @override
+  Future<Product> build() async {
+    // Initially, we don't have an ID, so we can't fetch.
+    // We need a mechanism to pass the ID. A common way without family
+    // is to have a method like `fetchProductDetails(id)` called from UI.
+    // The initial build can return a loading/default state or throw.
+    // Let's throw to indicate it needs initialization via fetchProductDetails.
+    print(
+        "📦 ProductDetailProvider: Initial build - Waiting for ID via fetchProductDetails.");
+    // Return a future that never completes to keep it in loading state initially.
+    // fetchProductDetails will eventually update the state with data or error.
+    return Completer<Product>().future;
+  }
+
+  // Method to fetch details for a specific ID
+  Future<void> fetchProductDetails(int productId) async {
+    // If already fetching for this ID, do nothing
+    if (state is AsyncLoading && _currentProductId == productId) return;
+
+    _currentProductId = productId;
+    print(
+        "📦 ProductDetailProvider: Fetching details for product ID: $productId");
+    state = const AsyncValue.loading(); // Set loading state
+
+    state = await AsyncValue.guard(() async {
+      // Optional: Check if we already fetched this product and it's in a data state
+      // Note: This basic cache doesn't handle expiration or forced refresh well.
+      // if (state.hasValue && state.value?.id == productId) {
+      //   print("📦 ProductDetailProvider: Using cached product for ID $productId");
+      //   return state.value!;
+      // }
+
+      final String? tokenJson = await StorageService.getToken();
+      if (tokenJson == null) throw Exception("Token bulunamadı");
+
+      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+      final String? token = tokenData['token'] as String?;
+      if (token == null || token.isEmpty) throw Exception("Geçersiz token");
+
+      final Uri url = Uri.parse('${ApiConfig.baseUrl}/Products/$productId');
+      print("📦 ProductDetailProvider: API URL: $url");
+      final Map<String, String> headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      final response = await http
+          .get(url, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      print(
+          "📦 ProductDetailProvider: API response for ID $productId - Status: ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            jsonDecode(response.body) as Map<String, dynamic>;
+        // IMPORTANT: Parse using the correct Product.fromJson
+        final Product product = Product.fromJson(data);
+        print(
+            "📦 ProductDetailProvider: Product details fetched successfully for ID $productId");
+        return product;
+      } else {
+        print(
+            '❌ ProductDetailProvider: Failed to load product details for ID $productId: Status ${response.statusCode}, Body: ${response.body}');
+        throw Exception(
+            'Ürün detayları yüklenemedi: Sunucu Hatası ${response.statusCode}');
+      }
+    });
+  }
+}
+
+// Define the provider
+// Use AutoDispose to reset state when the screen is left
+final productDetailProvider =
+    AsyncNotifierProvider.autoDispose<ProductDetailNotifier, Product>(() {
+  return ProductDetailNotifier();
 });

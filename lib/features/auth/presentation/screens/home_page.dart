@@ -3,9 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 import '../providers/user_data_provider.dart';
 import '../providers/user_ranks_provider.dart'; // For streak
+import '../providers/latest_product_provider.dart'; // Import LatestProductProvider
+import '../../domain/models/latest_product_model.dart'; // Import LatestProductModel// For caching images
 import 'store_screen.dart'; // Import StoreScreen
 import 'package:avatar_glow/avatar_glow.dart'; // Import AvatarGlow
 import 'tabs.dart'; // Correct import for the provider defined in tabs.dart
+import './product_view_screen.dart'; // Assuming this screen exists
+import './product_view_screen.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -15,6 +19,8 @@ class HomePage extends ConsumerWidget {
     final userDataAsync = ref.watch(userDataProvider);
     final userStreakAsync =
         ref.watch(userStreakProvider); // Watch streak provider
+    final latestProductsAsync =
+        ref.watch(latestProductProvider); // Watch latest products
     final userCoinsAsync = userDataAsync.value?.coins;
 
     return Scaffold(
@@ -383,73 +389,41 @@ class HomePage extends ConsumerWidget {
                       const SizedBox(height: 12),
                       SizedBox(
                         height: 200, // Adjust height for product cards
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: 4, // Placeholder count
-                          itemBuilder: (context, index) {
-                            // Placeholder Product Card
-                            return Container(
-                              width: 150, // Adjust width
-                              margin: const EdgeInsets.only(right: 12.0),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[900],
-                                borderRadius: BorderRadius.circular(16.0),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(
-                                          top: Radius.circular(16.0)),
-                                      child: Image.asset(
-                                        'assets/images/nike.png', // Placeholder image
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          index % 2 == 0
-                                              ? 'Premium Nike'
-                                              : 'Sports T-shirt', // Placeholder title
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(Icons.monetization_on,
-                                                color: Colors.amber, size: 16),
-                                            SizedBox(width: 4),
-                                            Text(
-                                              index % 2 == 0
-                                                  ? '2500'
-                                                  : '1800', // Placeholder price
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        child: latestProductsAsync.when(
+                          data: (products) {
+                            if (products.isEmpty) {
+                              return const Center(
+                                child: Text(
+                                  'Gösterilecek ürün bulunamadı.',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                              );
+                            }
+                            return ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: products.length,
+                              itemBuilder: (context, index) {
+                                final LatestProductModel product =
+                                    products[index];
+                                // Wrap _ProductCard with Padding to add space between cards
+                                return Padding(
+                                  padding: const EdgeInsets.only(
+                                      right:
+                                          12.0), // Add space to the right of each card
+                                  child: _ProductCard(product: product),
+                                );
+                              },
                             );
                           },
+                          loading: () => const Center(
+                              child: CircularProgressIndicator(
+                                  color: Colors.white)),
+                          error: (error, stackTrace) => Center(
+                            child: Text(
+                              'Ürünler yüklenemedi: ${error.toString()}',
+                              style: const TextStyle(color: Colors.redAccent),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -640,6 +614,115 @@ class _AnimatedCentralButtonState extends ConsumerState<AnimatedCentralButton> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// Separate Product Card Widget
+class _ProductCard extends StatelessWidget {
+  final LatestProductModel product;
+
+  const _ProductCard({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    // Wrap the card with InkWell for tap feedback and navigation
+    return InkWell(
+      onTap: () {
+        print("📦 Tapped product: ${product.name} (ID: ${product.id})");
+        // Navigate to ProductViewScreen, passing only the product ID
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductViewScreen(productId: product.id),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(16.0), // Match card border radius
+      child: Container(
+        width: 150, // Adjust width
+        // Removed margin from Container, InkWell handles interaction area
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16.0)),
+                child: Image.network(
+                  product.mainImageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  loadingBuilder: (BuildContext context, Widget child,
+                      ImageChunkEvent? loadingProgress) {
+                    if (loadingProgress == null) return child; // Image loaded
+                    return Container(
+                      color: Colors.grey[800], // Placeholder background
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: Colors.white54,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (BuildContext context, Object exception,
+                      StackTrace? stackTrace) {
+                    print(
+                        "❌ Error loading image: ${product.mainImageUrl}, Error: $exception");
+                    return Container(
+                      color: Colors.grey[800],
+                      child: const Center(
+                          child: Icon(Icons.broken_image_outlined,
+                              color: Colors.redAccent)),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name, // Use product name
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.monetization_on,
+                          color: Colors.amber, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        product.price.toString(), // Use product price
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
