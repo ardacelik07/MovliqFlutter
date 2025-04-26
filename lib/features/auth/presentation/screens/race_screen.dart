@@ -635,11 +635,13 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
         return await _showLeaveConfirmationDialog();
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFF1E1E1E), // Dark background
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFF1E1E1E), // Dark background
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon:
+                const Icon(Icons.arrow_back, color: Colors.white), // White icon
             onPressed: () {
               _showLeaveConfirmationDialog();
             },
@@ -647,19 +649,23 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Race Room #${widget.roomId}',
-                style: const TextStyle(
-                  fontSize: 16,
+              const Text(
+                // Update title text
+                'Yarış Odası',
+                style: TextStyle(
+                  fontSize: 18, // Adjusted size
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Colors.white, // White text
                 ),
               ),
               Text(
-                _isRaceActive ? 'Race in progress' : 'Race ended',
+                // Update subtitle text and style
+                _isRaceActive ? 'Yarış devam ediyor' : 'Yarış bitti',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: _isRaceActive ? Colors.green : Colors.red,
+                  fontSize: 14, // Adjusted size
+                  color: _isRaceActive
+                      ? Colors.greenAccent
+                      : Colors.redAccent, // Accent colors
                 ),
               ),
             ],
@@ -669,11 +675,14 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
-                color: _isConnected ? Colors.green : Colors.red,
-                borderRadius: BorderRadius.circular(12),
+                color: _isConnected
+                    ? Colors.grey.shade700 // Darker grey for connected
+                    : Colors.red.shade700, // Darker red for disconnected
+                borderRadius: BorderRadius.circular(20), // More rounded
               ),
               child: Text(
-                _isConnected ? 'Connected' : 'Disconnected',
+                // Update button text and style
+                _isConnected ? 'Bağlandı' : 'Bağlantı Kesildi',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -684,113 +693,91 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
           ],
         ),
         body: Container(
+          // Remove gradient, use solid dark background
           width: double.infinity,
           height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              stops: [0.0, 0.95],
-              end: Alignment.bottomCenter,
-              colors: [
-                Color.fromARGB(255, 255, 255, 255),
-                Color(0xFFC4FF62),
-              ],
-            ),
-          ),
+          color: const Color(0xFF1E1E1E), // Dark background
           child: SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 8),
-                // İlerleme bilgisi
+                const SizedBox(height: 20), // Increased spacing
+                // İlerleme bilgisi - Updated Stats Section
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 20, horizontal: 10), // Adjusted padding
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    color: Colors.grey.shade800, // Darker card color
+                    borderRadius:
+                        BorderRadius.circular(16), // More rounded corners
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      // Timer display
                       _buildStatItem(
-                        icon: Icons.timer,
+                        icon: Icons.timer_outlined, // Use outlined icon
                         value: _isTimerInitialized
                             ? _formatDuration(_remainingRaceTime)
-                            : '00:00',
-                        label: 'Time Left',
+                            : '--:--', // Placeholder
+                        label: 'Kalan Süre', // Turkish label
+                        iconColor: Colors.redAccent, // Accent color
                         valueColor: _remainingRaceTime.inSeconds < 60
-                            ? Colors.red
-                            : null,
+                            ? Colors.redAccent
+                            : Colors.white, // White text
                       ),
-                      // Indoor yarış tipinde mesafe (km) gösterme
                       if (!widget.isIndoorRace)
                         _buildStatItem(
-                          icon: Icons.directions_run,
+                          icon: Icons
+                              .directions_run_outlined, // Use outlined icon
                           value: _myDistance.toStringAsFixed(2),
-                          label: 'Mesafe (km)',
+                          label: 'Mesafe (km)', // Turkish label
+                          iconColor: Colors.blueAccent, // Accent color
+                          valueColor: Colors.white, // White text
                         ),
                       _buildStatItem(
-                        icon: Icons.directions_walk,
+                        icon:
+                            Icons.directions_walk_outlined, // Use outlined icon
                         value: _mySteps.toString(),
-                        label: 'Adım',
+                        label: 'Adım', // Turkish label
+                        iconColor: Colors.greenAccent, // Accent color
+                        valueColor: Colors.white, // White text
                       ),
-                      // Indoor yarış tipinde hız metriğini (km/adım) gösterme
                       if (!widget.isIndoorRace)
                         _buildStatItem(
-                          icon: Icons.speed,
+                          icon: Icons.speed_outlined, // Use outlined icon
                           value: _mySteps > 0
-                              ? (_myDistance / _mySteps).toStringAsFixed(1)
+                              ? (_myDistance / _mySteps).toStringAsFixed(
+                                  2) // km per step - as per image label
                               : '0.0',
-                          label: 'Hız (km/adım)',
+                          label: 'Hız (km/adım)', // Turkish label from image
+                          iconColor: Colors.orangeAccent, // Accent color
+                          valueColor: Colors.white, // White text
                         ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                // Leaderboard başlığı
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFC4FF62), Colors.green],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+                const SizedBox(height: 25), // Increased spacing
+                // Leaderboard başlığı - Updated Title
+                Padding(
+                  // Use Padding for alignment
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
                     children: [
-                      Icon(Icons.emoji_events, color: Colors.amber),
-                      SizedBox(width: 8),
-                      Text(
-                        'Yarış Sıralaması',
+                      const Icon(Icons.emoji_events,
+                          color: Colors.amber, size: 28), // Larger icon
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Yarış Sıralaması', // Turkish title
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: 20, // Adjusted size
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Colors.white, // White text
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 15), // Adjusted spacing
                 Expanded(
                   child: _leaderboard.isEmpty
                       ? const Center(
@@ -833,54 +820,39 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     required IconData icon,
     required String value,
     required String label,
+    required Color iconColor, // Added required iconColor
     Color? valueColor,
   }) {
-    // İkon renklerini belirle
-    Color iconColor;
-    if (icon == Icons.timer) {
-      iconColor = Colors.red;
-    } else if (icon == Icons.directions_run) {
-      iconColor = Colors.blue;
-    } else if (icon == Icons.directions_walk) {
-      iconColor = Colors.green;
-    } else if (icon == Icons.speed) {
-      iconColor = Colors.orange;
-    } else {
-      iconColor = Colors.black87;
-    }
+    // Removed old color logic
 
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center, // Center content vertically
       children: [
-        // 3D efekti ile ikon
+        // Circular background for icon
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(12), // Increased padding
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: iconColor.withOpacity(0.2),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color:
+                iconColor.withOpacity(0.2), // Use provided color with opacity
+            shape: BoxShape.circle, // Make it circular
           ),
-          child: Icon(icon, size: 24, color: iconColor),
+          child: Icon(icon, size: 28, color: iconColor), // Use provided color
         ),
         const SizedBox(height: 8),
         Text(
           value,
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 20, // Increased size
             fontWeight: FontWeight.bold,
-            color: valueColor ?? Colors.black87,
+            color: valueColor ?? Colors.white, // Default to white
           ),
         ),
+        const SizedBox(height: 4), // Added spacing
         Text(
           label,
           style: const TextStyle(
             fontSize: 12,
-            color: Colors.black54,
+            color: Colors.grey, // Lighter grey label
           ),
         ),
       ],
@@ -1043,78 +1015,85 @@ class ParticipantTile extends StatelessWidget {
   Widget build(BuildContext context) {
     // Sıralamaya göre renkleri belirle
     Color rankColor;
+    Color rankTextColor = Colors.black87; // Default text color for rank badge
     if (participant.rank == 1) {
       rankColor = const Color(0xFFFFD700); // Altın
+      rankTextColor = Colors.black;
     } else if (participant.rank == 2) {
       rankColor = const Color(0xFFC0C0C0); // Gümüş
+      rankTextColor = Colors.black;
     } else if (participant.rank == 3) {
       rankColor = const Color(0xFFCD7F32); // Bronz
+      rankTextColor = Colors.white;
     } else {
-      rankColor = Colors.grey[300]!;
+      rankColor = Colors.grey.shade600; // Darker grey for others
     }
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      color: isMe ? const Color(0xFFC4FF62).withOpacity(0.2) : null,
-      shape: RoundedRectangleBorder(
+    // Use a Container instead of Card for more control over the border
+    return Container(
+      margin: const EdgeInsets.symmetric(
+          vertical: 6, horizontal: 0), // Adjusted margin
+      decoration: BoxDecoration(
+        color: Colors.grey.shade800, // Dark card background
         borderRadius: BorderRadius.circular(12),
-        side: participant.rank <= 3
-            ? BorderSide(color: rankColor, width: 2)
-            : BorderSide.none,
+        border: isMe
+            ? Border.all(
+                color: Colors.lightGreenAccent,
+                width: 2.5) // Highlight border for 'me'
+            : null, // No border otherwise
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(
+            vertical: 12.0, horizontal: 16.0), // Adjusted padding
         child: Row(
           children: [
             // Profil fotoğrafı ve sıralama
             Stack(
-              alignment: Alignment.center,
+              alignment: Alignment.center, // Center stack elements
+              clipBehavior: Clip.none, // Allow badge to overflow slightly
               children: [
                 // Avatar (profil fotoğrafı)
                 CircleAvatar(
-                  radius: 24,
-                  backgroundColor: rankColor,
-                  child: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.white,
-                    backgroundImage: profilePictureUrl != null
-                        ? NetworkImage(profilePictureUrl!)
-                        : null,
-                    child: profilePictureUrl == null
-                        ? Text(
-                            participant.userName[0].toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: participant.rank <= 3
-                                  ? rankColor
-                                  : Colors.black54,
-                            ),
-                          )
-                        : null,
-                  ),
+                  radius: 25, // Slightly larger avatar
+                  backgroundColor: Colors.grey.shade700, // Darker background
+                  backgroundImage: profilePictureUrl != null
+                      ? NetworkImage(profilePictureUrl!)
+                      : null,
+                  child: profilePictureUrl == null
+                      ? Text(
+                          participant.userName.isNotEmpty
+                              ? participant.userName[0].toUpperCase()
+                              : '?', // Handle empty username
+                          style: const TextStyle(
+                            fontSize: 22, // Larger initial
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white, // White initial
+                          ),
+                        )
+                      : null,
                 ),
 
-                // Sıralama rozeti
+                // Sıralama rozeti (Updated Positioned Badge)
                 Positioned(
-                  bottom: 0,
-                  right: 0,
+                  top: -4, // Position badge overlapping the top
+                  left: -4, // Position badge overlapping the left
                   child: Container(
-                    width: 20,
-                    height: 20,
+                    width: 22, // Badge size
+                    height: 22, // Badge size
                     decoration: BoxDecoration(
-                      color: rankColor,
+                      color: rankColor, // Use rank color
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                      border: Border.all(
+                          color: Colors.grey.shade800,
+                          width: 2), // Border matching card bg
                     ),
                     child: Center(
                       child: Text(
                         participant.rank.toString(),
-                        style: const TextStyle(
-                          fontSize: 10,
+                        style: TextStyle(
+                          fontSize: 11, // Adjusted size
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: rankTextColor, // Use dynamic text color
                         ),
                       ),
                     ),
@@ -1129,84 +1108,61 @@ class ParticipantTile extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+                      // Dot before username
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: participant.rank <= 3
+                              ? rankColor
+                              : Colors.lightGreenAccent, // Rank or green color
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Text(
                         participant.userName,
-                        style: TextStyle(
+                        style: const TextStyle(
+                          // Simpler style, color adjusted below
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color:
-                              participant.rank <= 3 ? rankColor : Colors.black,
+                          color: Colors.white, // White text
                         ),
                       ),
                       if (isMe)
                         const Padding(
-                          padding: EdgeInsets.only(left: 8.0),
+                          padding: EdgeInsets.only(left: 6.0),
                           child: Text(
                             '(Ben)',
                             style: TextStyle(
-                              fontStyle: FontStyle.italic,
+                              fontStyle: FontStyle.normal, // Not italic
                               fontSize: 14,
-                              color: Colors.black54,
+                              color: Colors.grey, // Grey text
                             ),
                           ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Bilgi kartları satırı
+                  // Bilgi kartları (Chips) satırı
                   Row(
                     children: [
-                      // Indoor yarışta mesafe gösterme, sadece adım sayısı göster
+                      // Distance Chip (conditionally shown)
                       if (!isIndoorRace)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.directions_run,
-                                  size: 14, color: Colors.blue),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${participant.distance.toStringAsFixed(2)} km',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ],
-                          ),
+                        _buildInfoChip(
+                          label:
+                              '${participant.distance.toStringAsFixed(2)} km',
+                          backgroundColor:
+                              Colors.blue.shade900.withOpacity(0.7),
+                          textColor: Colors.blue.shade100,
                         ),
-                      if (!isIndoorRace) const SizedBox(width: 8),
-                      // Adım bilgisi
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.directions_walk,
-                                size: 14, color: Colors.green),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Adım: ${participant.steps}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
+                      if (!isIndoorRace)
+                        const SizedBox(width: 8), // Spacer if distance is shown
+                      // Steps Chip
+                      _buildInfoChip(
+                        label: 'Adım: ${participant.steps}',
+                        backgroundColor: Colors.green.shade900.withOpacity(0.7),
+                        textColor: Colors.green.shade100,
                       ),
                     ],
                   ),
@@ -1214,6 +1170,30 @@ class ParticipantTile extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Helper widget for creating info chips like in the image
+  Widget _buildInfoChip({
+    required String label,
+    required Color backgroundColor,
+    required Color textColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: 10, vertical: 5), // Chip padding
+      decoration: BoxDecoration(
+        color: backgroundColor, // Chip background color
+        borderRadius: BorderRadius.circular(20), // Rounded stadium border
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.w500, // Medium weight
+          fontSize: 12, // Smaller font size
+          color: textColor, // Chip text color
         ),
       ),
     );
