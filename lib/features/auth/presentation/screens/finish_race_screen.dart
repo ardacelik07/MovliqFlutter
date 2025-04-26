@@ -21,20 +21,9 @@ class FinishRaceScreen extends ConsumerStatefulWidget {
 }
 
 class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
-  bool _showConfetti = true;
-
   @override
   void initState() {
     super.initState();
-
-    // 5 saniye sonra konfeti efektini kapat
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
-        setState(() {
-          _showConfetti = false;
-        });
-      }
-    });
   }
 
   // Mevcut kullanıcıyı tespit eden yardımcı metod
@@ -63,283 +52,191 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
         return false;
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFF1E1E1E), // Dark background
         body: Stack(
           children: [
             Container(
               width: double.infinity,
               height: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFFC4FF62),
-                    Colors.white,
-                  ],
-                ),
-              ),
+              color: const Color(0xFF1E1E1E), // Dark background
               child: SafeArea(
                 child: Column(
                   children: [
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 40), // Increased top spacing
                     // Başlık
                     const Text(
                       'Yarış Sona Erdi!',
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 28, // Keep size
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: Colors.white, // White text
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8), // Adjust spacing
                     // Alt başlık
                     if (currentUser != null)
                       Text(
-                        isWinner
-                            ? 'Tebrikler! Yarışı kazandınız 🎉'
-                            : 'Yarışı ${currentUser.rank}. sırada bitirdiniz.',
-                        style: TextStyle(
+                        // Use the rank in the subtitle as per image
+                        'Yarışı ${currentUser.rank}. sırada bitirdiniz.',
+                        style: const TextStyle(
                           fontSize: 16,
-                          color: isWinner
-                              ? const Color(0xFFC4FF62)
-                              : Colors.black87,
-                          fontWeight:
-                              isWinner ? FontWeight.bold : FontWeight.normal,
+                          color: Colors.grey, // Grey text
                         ),
                       ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 30), // Increased spacing
 
-                    // Kullanıcının kendi sonuçları
+                    // Kullanıcının kendi sonuçları - Updated Card
                     if (currentUser != null)
                       Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 20),
-                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 20, horizontal: 10),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                          color: Colors.grey.shade800, // Darker card color
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
+                          // Use Row directly
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            const Text(
-                              'Sizin Sonucunuz',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
+                            _buildResultItem(
+                              icon:
+                                  Icons.emoji_events_outlined, // Outlined icon
+                              value: currentUser.rank.toString(),
+                              label: 'Sıralama', // Turkish label
+                              iconColor: Colors.amber, // Amber color for rank
                             ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildResultItem(
-                                  icon: Icons.emoji_events,
-                                  value: currentUser.rank.toString(),
-                                  label: 'Sıralama',
-                                  color: currentUser.rank == 1
-                                      ? Colors.amber
-                                      : currentUser.rank == 2
-                                          ? Colors.grey
-                                          : currentUser.rank == 3
-                                              ? Colors.brown
-                                              : Colors.black87,
-                                ),
-                                // Indoor yarışta mesafe gösterme
-                                if (!widget.isIndoorRace)
-                                  _buildResultItem(
-                                    icon: Icons.directions_run,
-                                    value:
-                                        currentUser.distance.toStringAsFixed(2),
-                                    label: 'Mesafe (km)',
-                                    color: Colors.blue,
-                                  ),
-                                _buildResultItem(
-                                  icon: Icons.directions_walk,
-                                  value: currentUser.steps.toString(),
-                                  label: 'Adım',
-                                  color: Colors.green,
-                                ),
-                              ],
+                            // Indoor yarışta mesafe gösterme
+                            if (!widget.isIndoorRace)
+                              _buildResultItem(
+                                icon: Icons
+                                    .directions_run_outlined, // Outlined icon
+                                value: currentUser.distance.toStringAsFixed(2),
+                                label: 'Mesafe (km)', // Turkish label
+                                iconColor: Colors
+                                    .blueAccent, // Blue color for distance
+                              ),
+                            _buildResultItem(
+                              icon: Icons
+                                  .directions_walk_outlined, // Outlined icon
+                              value: currentUser.steps.toString(),
+                              label: 'Adım', // Turkish label
+                              iconColor:
+                                  Colors.greenAccent, // Green color for steps
                             ),
                           ],
                         ),
                       ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 30), // Increased spacing
 
-                    // Liderlik Tablosu
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 20),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Liderlik Tablosu',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: widget.leaderboard.length,
-                                itemBuilder: (context, index) {
-                                  final user = widget.leaderboard[index];
-                                  final isCurrentUser =
-                                      user.email == widget.myEmail;
-
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: isCurrentUser
-                                          ? const Color(0xFFC4FF62)
-                                              .withOpacity(0.2)
-                                          : Colors.grey.withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: isCurrentUser
-                                          ? Border.all(
-                                              color: const Color(0xFFC4FF62),
-                                              width: 2)
-                                          : null,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        // Sıralama
-                                        Container(
-                                          width: 32,
-                                          height: 32,
-                                          decoration: BoxDecoration(
-                                            color: user.rank == 1
-                                                ? Colors.amber
-                                                : user.rank == 2
-                                                    ? Colors.grey.shade300
-                                                    : user.rank == 3
-                                                        ? Colors.brown.shade300
-                                                        : Colors.grey.shade100,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              '${user.rank}',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: user.rank <= 3
-                                                    ? Colors.white
-                                                    : Colors.black54,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        // Kullanıcı adı
-                                        Expanded(
-                                          child: Text(
-                                            user.userName,
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: isCurrentUser
-                                                  ? FontWeight.bold
-                                                  : FontWeight.normal,
-                                            ),
-                                          ),
-                                        ),
-                                        // Mesafe (Indoor yarışta gösterme)
-                                        if (!widget.isIndoorRace)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  Colors.blue.withOpacity(0.1),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              '${user.distance.toStringAsFixed(2)} km',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
-                                                color: Colors.blue,
-                                              ),
-                                            ),
-                                          ),
-                                        if (!widget.isIndoorRace)
-                                          const SizedBox(width: 8),
-                                        // Adım sayısı
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                Colors.green.withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            '${user.steps} adım',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                              color: Colors.green,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
+                    // Liderlik Tablosu Title
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Liderlik Tablosu', // Turkish Title
+                          style: TextStyle(
+                            fontSize: 20, // Adjusted size
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white, // White text
+                          ),
                         ),
                       ),
                     ),
+                    const SizedBox(height: 15), // Adjusted spacing
 
-                    // Ana Sayfaya Dön Butonu
+                    // Liderlik Tablosu List - Updated List
+                    Expanded(
+                      // Remove outer container styling
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16), // Padding for list
+                        itemCount: widget.leaderboard.length,
+                        itemBuilder: (context, index) {
+                          final user = widget.leaderboard[index];
+                          final isCurrentUser = user.email == widget.myEmail;
+
+                          // Use ParticipantTile style from RaceScreen but adapt for finish screen
+                          return Container(
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12.0, horizontal: 16.0),
+                            decoration: BoxDecoration(
+                              // Highlight current user's tile slightly differently
+                              color: isCurrentUser
+                                  ? Colors.grey.shade700
+                                  : Colors.grey.shade800,
+                              borderRadius: BorderRadius.circular(12),
+                              // No special border needed here based on image
+                            ),
+                            child: Row(
+                              children: [
+                                // Rank Badge and Avatar (Similar to RaceScreen's ParticipantTile)
+                                _buildRankAvatar(user),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        user.userName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Simplified distance/steps text
+                                      Text(
+                                        // Combine distance (if applicable) and steps
+                                        widget.isIndoorRace
+                                            ? '${user.steps} adım'
+                                            : '${user.distance.toStringAsFixed(2)} km   ${user.steps} adım',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors
+                                              .grey, // Grey text for stats
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // Ana Sayfaya Dön Butonu - Updated Button Style
                     Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.fromLTRB(
+                          16, 16, 16, 24), // Adjusted padding
                       child: ElevatedButton(
                         onPressed: _navigateToHomePage,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFC4FF62),
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor:
+                              const Color(0xFFC4FF62), // Light green bg
+                          foregroundColor: Colors.black, // Black text/icon
+                          minimumSize: const Size(
+                              double.infinity, 50), // Full width, fixed height
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius:
+                                BorderRadius.circular(12), // Rounded corners
                           ),
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.home),
+                            Icon(Icons.home_outlined), // Outlined icon
                             SizedBox(width: 8),
                             Text('Ana Sayfaya Dön',
-                                style: TextStyle(fontSize: 16)),
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -348,16 +245,6 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
                 ),
               ),
             ),
-
-            // Konfeti efekti
-            if (_showConfetti)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: ConfettiPainter(),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -368,25 +255,99 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
     required IconData icon,
     required String value,
     required String label,
-    required Color color,
+    required Color iconColor, // Use iconColor for consistency
   }) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 24, color: color),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 28, color: iconColor),
+        ),
         const SizedBox(height: 8),
         Text(
           value,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: color,
+            color: Colors.white, // White text for value
           ),
         ),
+        const SizedBox(height: 4),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black54,
+            fontSize: 12,
+            color: Colors.grey, // Grey text for label
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRankAvatar(RaceParticipant participant) {
+    Color rankColor;
+    Color rankTextColor = Colors.black87;
+    if (participant.rank == 1) {
+      rankColor = const Color(0xFFFFD700); // Gold
+      rankTextColor = Colors.black;
+    } else if (participant.rank == 2) {
+      rankColor = const Color(0xFFC0C0C0); // Silver
+      rankTextColor = Colors.black;
+    } else if (participant.rank == 3) {
+      rankColor = const Color(0xFFCD7F32); // Bronze
+      rankTextColor = Colors.white;
+    } else {
+      rankColor = Colors.grey.shade600; // Darker grey for others
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        CircleAvatar(
+          radius: 25,
+          backgroundColor: Colors.grey.shade700,
+          // TODO: Add profile picture logic here if available
+          // backgroundImage: profilePictureUrl != null
+          //     ? NetworkImage(profilePictureUrl!)
+          //     : null,
+          child: /* profilePictureUrl == null ? */ Text(
+            participant.userName.isNotEmpty
+                ? participant.userName[0].toUpperCase()
+                : '?',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ) /* : null */,
+        ),
+        Positioned(
+          top: -4,
+          left: -4,
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              color: rankColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.grey.shade800, width: 2),
+            ),
+            child: Center(
+              child: Text(
+                participant.rank.toString(),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: rankTextColor,
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -399,50 +360,4 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
       (route) => false,
     );
   }
-}
-
-class ConfettiPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final random = math.Random();
-    final paint = Paint();
-
-    // 100 konfeti parçası çiz
-    for (int i = 0; i < 100; i++) {
-      // Rastgele renk belirle
-      paint.color = Color.fromRGBO(
-        random.nextInt(255),
-        random.nextInt(255),
-        random.nextInt(255),
-        random.nextDouble() * 0.7 + 0.3,
-      );
-
-      // Rastgele pozisyon ve boyut belirle
-      final x = random.nextDouble() * size.width;
-      final y = random.nextDouble() * size.height;
-      final width = random.nextDouble() * 10 + 5;
-      final height = random.nextDouble() * 10 + 5;
-
-      // Rastgele şekil seç (0: dikdörtgen, 1: daire)
-      final shape = random.nextInt(2);
-
-      if (shape == 0) {
-        // Dikdörtgen çiz
-        canvas.drawRect(
-          Rect.fromLTWH(x, y, width, height),
-          paint,
-        );
-      } else {
-        // Daire çiz
-        canvas.drawCircle(
-          Offset(x, y),
-          width / 2,
-          paint,
-        );
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
