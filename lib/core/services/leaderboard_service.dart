@@ -131,4 +131,74 @@ class LeaderboardService {
       throw Exception('Kullanıcı sıralaması alınamadı: ${e.toString()}');
     }
   }
+
+  Future<UserLeaderboardEntryDto?> getLeaderboardByUser(
+      String leaderboardType) async {
+    try {
+      final String? tokenJson = await StorageService.getToken();
+
+      if (tokenJson == null) {
+        // Return null or throw specific exception if token is required but missing
+        debugPrint('Authentication token not found.');
+        return null; // Or throw Exception('Authentication token not found');
+      }
+
+      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+      final String token = tokenData['token'];
+
+      final Uri uri = Uri.parse(
+          '${ApiConfig.leaderboardByUserEndpoint}?type=$leaderboardType');
+
+      debugPrint("Making request to get user leaderboard: $uri");
+
+      final Map<String, String> headers = {
+        ...ApiConfig.headers, // Include standard headers
+        'Authorization': 'Bearer $token', // Add auth token
+      };
+
+      final http.Response response = await http.get(uri, headers: headers);
+
+      debugPrint("User leaderboard response status: ${response.statusCode}");
+      debugPrint("User leaderboard response body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        if (response.body.isNotEmpty &&
+            (response.body.trim().startsWith('{') ||
+                response.body.trim().startsWith('['))) {
+          // Check for empty body or non-JSON body which might indicate no rank
+          try {
+            final Map<String, dynamic> data = jsonDecode(response.body);
+            // API returns a single object, not a list
+            return UserLeaderboardEntryDto.fromJson(data);
+          } catch (e) {
+            debugPrint("Error decoding user leaderboard JSON: $e");
+            // If decoding fails, it might mean the user isn't ranked or other issue
+            return null;
+          }
+        } else {
+          // Handle cases where the response is empty or not JSON (e.g., user not ranked)
+          debugPrint(
+              'Received empty or non-JSON response for user leaderboard.');
+          return null;
+        }
+      } else if (response.statusCode == 404) {
+        // Handle 404 specifically if the API uses it for 'user not found/ranked'
+        debugPrint('User leaderboard entry not found (404).');
+        return null;
+      } else {
+        // Handle other error status codes
+        debugPrint(
+            'Failed to load user leaderboard. Status: ${response.statusCode}');
+        // Optionally parse error message if available
+        // final errorBody = jsonDecode(response.body);
+        // throw Exception(errorBody['message'] ?? 'Failed to load user leaderboard');
+        return null; // Return null on error
+      }
+    } catch (e) {
+      debugPrint("Error in getLeaderboardByUser: $e");
+      // Re-throw or handle as appropriate for your app's error strategy
+      // throw Exception('Failed to load user leaderboard: ${e.toString()}');
+      return null; // Return null on exception
+    }
+  }
 }

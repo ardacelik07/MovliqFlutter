@@ -35,14 +35,19 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     // Provider'ları yenilemek için invalidate yerine refresh kullanalım
     if (isOutdoor) {
       ref.refresh(outdoorLeaderboardProvider);
+      ref.refresh(userLeaderboardEntryProvider);
     } else {
       ref.refresh(indoorLeaderboardProvider);
+      ref.refresh(userLeaderboardEntryProvider);
     }
+    // Also refresh the current user's leaderboard entry
   }
 
   @override
   Widget build(BuildContext context) {
     final isOutdoorSelected = ref.watch(isOutdoorSelectedProvider);
+    // Kullanıcının sıralama verisini izle
+    final userRankAsync = ref.watch(userLeaderboardEntryProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -155,6 +160,44 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             ),
 
             const SizedBox(height: 16),
+
+            // --- YENİ: Kullanıcı Sıralama Kartı ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: userRankAsync.when(
+                data: (userEntry) {
+                  // Veri null değilse kartı göster
+                  if (userEntry != null) {
+                    return _buildUserRankCard(userEntry, isOutdoorSelected);
+                  }
+                  // Kullanıcı sıralamada yoksa veya veri yoksa boş alan göster
+                  return const SizedBox.shrink();
+                },
+                loading: () => const SizedBox(
+                  // Yüklenirken küçük bir yükleme göstergesi
+                  height: 60, // Yüksekliği ayarla
+                  child: Center(
+                      child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFFC4FF62),
+                  )),
+                ),
+                error: (error, stackTrace) {
+                  // Hata durumunda (isteğe bağlı: loglama veya küçük bir hata mesajı)
+                  print("Error loading user rank: $error");
+                  return const SizedBox
+                      .shrink(); // Hata durumunda boş alan göster
+                },
+              ),
+            ),
+            // Kartın altına boşluk ekle (eğer veri varsa)
+            userRankAsync.maybeWhen(
+              data: (d) => d != null
+                  ? const SizedBox(height: 16)
+                  : const SizedBox.shrink(),
+              orElse: () => const SizedBox.shrink(),
+            ),
+            // --- Kullanıcı Sıralama Kartı Sonu ---
 
             // Leaderboard Content
             Expanded(
@@ -620,6 +663,83 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             ],
           ),
       ],
+    );
+  }
+
+  // --- YENİ: Kullanıcı Sıralama Kartı Oluşturucu ---
+  Widget _buildUserRankCard(UserLeaderboardEntryDto userEntry, bool isOutdoor) {
+    final String rankText = '#${userEntry.rank}';
+    // Veri modelinin hem indoorSteps hem de generalDistance içerdiğinden emin ol
+    final String valueText = isOutdoor
+        ? '${userEntry.generalDistance?.toStringAsFixed(2) ?? "0.00"} km'
+        : '${userEntry.indoorSteps ?? 0} steps';
+
+    return Container(
+      margin:
+          const EdgeInsets.only(bottom: 0), // Alt boşluğu Padding ile verdik
+      decoration: BoxDecoration(
+        color: const Color(0xFFC4FF62).withOpacity(0.2), // Vurgu rengi
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFFC4FF62), // Vurgu kenarlığı
+          width: 1.5,
+        ),
+      ),
+      child: ListTile(
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 30, // Sıralama için genişlik
+              child: Text(
+                rankText,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFFC4FF62),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            CircleAvatar(
+              radius: 20, // Avatar boyutu
+              backgroundColor: Colors.grey.shade800, // Arkaplan rengi
+              backgroundImage: userEntry.profilePicture != null &&
+                      userEntry.profilePicture!.isNotEmpty
+                  ? NetworkImage(userEntry.profilePicture!)
+                  : null, // AssetImage or default icon
+              child: (userEntry.profilePicture == null ||
+                      userEntry.profilePicture!.isEmpty)
+                  ? Text(
+                      userEntry.userName.isNotEmpty
+                          ? userEntry.userName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    )
+                  : null,
+            ),
+          ],
+        ),
+        title: Text(
+          userEntry.userName, // Kullanıcı adı
+          style: const TextStyle(
+            color: Color(0xFFC4FF62), // Vurgu rengi
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Text(
+          valueText, // Değer (km veya adım)
+          style: const TextStyle(
+            color: Colors.white, // Değer rengi
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        dense: true, // Daha kompakt görünüm
+      ),
     );
   }
 }

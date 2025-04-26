@@ -12,6 +12,10 @@ class ApiConfig {
   static const String leaderboardEndpoint =
       '$baseUrl/LeaderBoard/GetAllLeaderboard';
 
+  // Endpoint to get leaderboard by user type
+  static const String leaderboardByUserEndpoint =
+      '$baseUrl/LeaderBoard/GetAllLeaderboardByUser';
+
   // Son 3 aktiviteyi getirmek için yeni endpoint
   static const String lastThreeActivitiesEndpoint =
       '$baseUrl/UserResults/GetUserLastThreeActivities';
