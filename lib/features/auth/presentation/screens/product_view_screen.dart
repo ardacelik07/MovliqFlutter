@@ -118,7 +118,9 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                    color: limeGreen.withOpacity(0.1),
+                    color: const Color.from(
+                            alpha: 1, red: 0.769, green: 1, blue: 0.384)
+                        .withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: limeGreen)),
                 child: Row(

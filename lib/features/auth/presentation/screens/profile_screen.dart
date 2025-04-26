@@ -17,6 +17,7 @@ import 'race_results_screen.dart';
 import 'package:lottie/lottie.dart';
 import '../providers/user_ranks_provider.dart';
 import '../../domain/models/user_ranks_model.dart';
+import 'coupon_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -318,7 +319,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 Icons.discount_outlined, // Using outlined icon
                                 color: Color(
                                     0xFF93C53E)), // Green color from image
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CouponScreen(),
+                                ),
+                              );
+                            },
                           ),
                         ),
                         Positioned(
