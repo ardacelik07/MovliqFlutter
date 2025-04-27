@@ -27,6 +27,14 @@ class ApiConfig {
   // Ürünleri getirmek için yeni endpoint
   static const String productsEndpoint = '$baseUrl/Products';
 
+  // Şifre Sıfırlama Endpointleri
+  static const String requestPasswordResetEndpoint =
+      '$baseUrl/User/request-password-reset';
+  static const String verifyResetCodeEndpoint =
+      '$baseUrl/User/verify-reset-code';
+  static const String resetPasswordVerifiedEndpoint =
+      '$baseUrl/User/reset-password-verified';
+
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

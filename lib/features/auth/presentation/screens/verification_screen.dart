@@ -17,19 +17,29 @@ class VerificationScreen extends ConsumerStatefulWidget {
   ConsumerState<VerificationScreen> createState() => _VerificationScreenState();
 }
 
+// Enum to track verification steps
+enum VerificationStep { location, photo, completed }
+
 class _VerificationScreenState extends ConsumerState<VerificationScreen> {
-  String _selectedMethod = 'location'; // 'location' veya 'photo'
+  // Removed _selectedMethod
   bool _isVerifying = false;
+  String? _currentlyVerifying; // 'location' or 'photo'
   bool _hasLocationPermission = false;
   Position? _currentPosition;
-  String _errorMessage = '';
-  bool _verificationSuccess = false;
+
+  // Separate verification states
+  bool _locationVerified = false;
+  bool _photoVerified = false;
+
+  // Separate error messages
+  String _errorMessageLocation = '';
+  String _errorMessagePhoto = '';
 
   // Kamera ve fotoğraf değişkenleri
   final ImagePicker _picker = ImagePicker();
-  File? _imageFile;
-  String _imageAnalysisResult = '';
-  bool _hasRunningMachine = false;
+  File? _imageFile; // Keep for displaying the photo temporarily if needed
+  // Removed _imageAnalysisResult and _hasRunningMachine as separate states,
+  // _photoVerified handles success
 
   @override
   void initState() {
@@ -38,22 +48,24 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
   }
 
   Future<void> _checkLocationPermission() async {
+    // Reset states on re-check
+    setState(() {
+      _hasLocationPermission = false;
+      _errorMessageLocation = '';
+    });
+
     LocationPermission permission = await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
 
-    if (permission == LocationPermission.denied) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       setState(() {
         _hasLocationPermission = false;
-      });
-      return;
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      setState(() {
-        _hasLocationPermission = false;
+        _errorMessageLocation =
+            'Konum izni gerekli. Lütfen ayarlardan izin verin.';
       });
       return;
     }
@@ -64,34 +76,42 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
   }
 
   // Yakındaki fitness salonlarını kontrol et
-  Future<bool> _verifyNearbyGym() async {
+  Future<void> _verifyNearbyGym() async {
     setState(() {
       _isVerifying = true;
-      _errorMessage = '';
+      _currentlyVerifying = 'location';
+      _errorMessageLocation = ''; // Clear previous error
+      _locationVerified = false; // Reset verification status
     });
 
     try {
-      // Konumu al
       if (!_hasLocationPermission) {
         await _checkLocationPermission();
         if (!_hasLocationPermission) {
           throw Exception('Konum izni alınamadı');
         }
+        // If permission is granted now, get location
+        if (_hasLocationPermission) {
+          _currentPosition = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high);
+        } else {
+          throw Exception('Konum izni hala verilmedi.');
+        }
+      } else if (_currentPosition == null) {
+        _currentPosition = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
       }
-
-      _currentPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
 
       print(
           '📍 Konum alındı: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}');
 
-      // Google Places API ile yakındaki spor salonlarını ara
+      // Google Places API (Keep existing logic for now, consider security later)
       final apiKey = 'AIzaSyA79Tf7SPoGXrwx5WupR6G-67te9UGabLA';
-      final radius = 150; // 50 metre yarıçap - biraz daha gerçekçi bir değer
+      final radius = 350;
       final url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
           '?location=${_currentPosition!.latitude},${_currentPosition!.longitude}'
-          '&radius=1000' // API'ye daha geniş bir yarıçap ile sorgu yapıyoruz
+          '&radius=1000'
           '&type=gym'
           '&keyword=fitness,spor,gym,salon'
           '&key=$apiKey';
@@ -99,27 +119,23 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
       print('🔍 Google Places API isteği gönderiliyor: $url');
       print('📐 Gerçek filtreleme için kullanılacak yarıçap: $radius metre');
 
-      // Doğrulama debugları için
-      bool debugPrint = true; // Hata ayıklama modunda
-
       final response = await http.get(Uri.parse(url));
-
       print('📩 API yanıt status kodu: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         print(
             '🔍 API yanıt: ${response.body.substring(0, min(500, response.body.length))}...');
-
-        // API durumunu kontrol et
         final status = data['status'];
         if (status == 'REQUEST_DENIED') {
           print('⚠️ API yetkilendirme hatası: ${data['error_message']}');
-
-          // GELİŞTİRME AŞAMASINDA: API hatası olsa bile devam et
+          // DEVELOPMENT ONLY: Bypass API error
           print(
-              '⚠️ GEÇİCİ ÇÖZÜM: API doğrulaması atlanıyor, doğrulama başarılı kabul ediliyor');
-          return true;
+              '⚠️ GEÇİCİ ÇÖZÜM: API doğrulaması atlanıyor, KONUM başarılı kabul ediliyor');
+          setState(() {
+            _locationVerified = true; // Mark as verified for dev
+          });
+          return; // Exit function
         }
 
         final results = data['results'] as List;
@@ -127,85 +143,58 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
         print(
             '🏋️ API tarafından döndürülen fitness salonu sayısı: ${results.length}');
 
-        // Gerçek mesafeye göre filtreleme yapıyoruz
-        final filteredResults = <Map<String, dynamic>>[];
-
+        bool foundNearby = false;
         for (final gym in results) {
           final location = gym['geometry']['location'];
           final gymLat = location['lat'];
           final gymLng = location['lng'];
-
-          // Mekan ile kullanıcı arasındaki mesafe
           final distance = Geolocator.distanceBetween(
               _currentPosition!.latitude,
               _currentPosition!.longitude,
               gymLat,
               gymLng);
 
-          // Sadece belirtilen yarıçap içindeki sonuçları kabul et
           if (distance <= radius) {
-            // Yarıçap içindeyse kabul et
-            filteredResults.add(gym);
+            foundNearby = true;
             print(
-                '✅ KABUL EDİLDİ: "${gym['name']}" - Mesafe: ${distance.toStringAsFixed(2)} metre (Yarıçap: $radius m)');
+                '✅ KABUL EDİLDİ: "${gym['name']}" - Mesafe: ${distance.toStringAsFixed(2)} m');
+            break; // Found one, no need to check others
           } else {
-            // Yarıçap dışındaysa reddet
             print(
-                '❌ REDDEDİLDİ: "${gym['name']}" - Mesafe: ${distance.toStringAsFixed(2)} metre (Yarıçap: $radius m)');
+                '❌ REDDEDİLDİ: "${gym['name']}" - Mesafe: ${distance.toStringAsFixed(2)} m');
           }
         }
 
-        print(
-            '🏋️ Filtreleme sonrası kalan fitness salonu sayısı: ${filteredResults.length}');
-
-        if (filteredResults.isNotEmpty) {
-          // İlk bulunan spor salonunun detayları
-          final firstGym = filteredResults.first;
-          final gymName = firstGym['name'];
-          final gymVicinity = firstGym['vicinity'];
-          final gymRating = firstGym['rating'] ?? 'Değerlendirme yok';
-
-          print('🏢 En yakın geçerli fitness salonu: $gymName');
-          print('📌 Adres: $gymVicinity');
-          print('⭐ Değerlendirme: $gymRating');
-
-          // Mekan koordinatları
-          final location = firstGym['geometry']['location'];
-          final gymLat = location['lat'];
-          final gymLng = location['lng'];
-
-          // Mekan ile kullanıcı arasındaki mesafe
-          final distance = Geolocator.distanceBetween(
-              _currentPosition!.latitude,
-              _currentPosition!.longitude,
-              gymLat,
-              gymLng);
-
-          print('📏 Mesafe: ${distance.toStringAsFixed(2)} metre');
-          return true;
+        if (foundNearby) {
+          setState(() {
+            _locationVerified = true;
+          });
+          print('✅ Konum doğrulandı!');
         } else {
           print('❌ Belirtilen yarıçap içinde fitness salonu bulunamadı!');
           setState(() {
-            _errorMessage =
-                'Yakın çevrede (${radius}m içinde) bir fitness salonu bulunamadı. Lütfen bir fitness salonuna daha yakın olduğunuzdan emin olun ve tekrar deneyin.';
+            _errorMessageLocation =
+                'Yakın çevrede (${radius}m içinde) bir fitness salonu bulunamadı.';
           });
-          return false;
         }
       } else {
         print(
             '❌ API isteği başarısız! Status: ${response.statusCode}, Body: ${response.body}');
-        throw Exception('API isteği başarısız: ${response.statusCode}');
+        throw Exception('Places API isteği başarısız: ${response.statusCode}');
       }
     } catch (e) {
-      print('🚨 Doğrulama hatası: $e');
+      print('🚨 Konum doğrulama hatası: $e');
       setState(() {
-        _errorMessage = 'Doğrulama hatası: ${e.toString()}';
+        _errorMessageLocation = 'Konum doğrulama hatası: ${e.toString()}';
+        _locationVerified = false; // Ensure verification fails on error
       });
-      return false;
     } finally {
-      setState(() {
-        _isVerifying = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isVerifying = false;
+          _currentlyVerifying = null;
+        });
+      }
     }
   }
 
@@ -213,194 +202,199 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
   Future<void> _verifyWithPhoto() async {
     setState(() {
       _isVerifying = true;
-      _errorMessage = '';
-      _imageAnalysisResult = '';
-      _hasRunningMachine = false;
+      _currentlyVerifying = 'photo';
+      _errorMessagePhoto = '';
+      _photoVerified = false; // Reset verification status
+      _imageFile = null; // Clear previous image
     });
 
     try {
-      // Kameradan fotoğraf çek
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 80,
+        imageQuality: 80, // Keep reasonable quality
       );
 
       if (image == null) {
-        throw Exception('Fotoğraf çekilmedi');
-      }
-
-      setState(() {
-        _imageFile = File(image.path);
-      });
-
-      // Google Cloud Vision API ile fotoğraf analizi
-      final result = await _analyzeImageWithVisionAPI(_imageFile!);
-
-      setState(() {
-        _verificationSuccess = result;
-        if (result) {
-          _imageAnalysisResult =
-              'Koşu bandı tespit edildi! Doğrulama başarılı.';
-          _hasRunningMachine = true;
-        } else {
-          _errorMessage =
-              'Koşu bandı tespit edilemedi. Lütfen koşu bandı olan bir fotoğraf çekin.';
-        }
-      });
-
-      if (_hasRunningMachine) {
-        await Future.delayed(const Duration(
-            seconds: 2)); // Kullanıcının sonucu görmesi için bekle
+        // Don't throw exception, just return as user cancelled
+        print('Fotoğraf çekme iptal edildi.');
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const FilterScreen2()),
-          );
+          setState(() {
+            _isVerifying = false;
+            _currentlyVerifying = null;
+          });
         }
+        return;
       }
+
+      // Keep the image file temporarily if you want to display it
+      // setState(() { _imageFile = File(image.path); });
+
+      // Google Cloud Vision API (Keep existing logic, consider security later)
+      final result = await _analyzeImageWithVisionAPI(File(image.path));
+
+      setState(() {
+        _photoVerified = result;
+        if (!result) {
+          _errorMessagePhoto =
+              'Koşu bandı tespit edilemedi. Lütfen tekrar deneyin.';
+        } else {
+          print('✅ Fotoğraf doğrulandı!');
+        }
+      });
     } catch (e) {
       print('🚨 Fotoğraf doğrulama hatası: $e');
       setState(() {
-        _errorMessage = 'Fotoğraf doğrulama hatası: ${e.toString()}';
+        _errorMessagePhoto = 'Fotoğraf doğrulama hatası: ${e.toString()}';
+        _photoVerified = false; // Ensure verification fails on error
       });
     } finally {
-      setState(() {
-        _isVerifying = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isVerifying = false;
+          _currentlyVerifying = null;
+        });
+      }
     }
   }
 
-  // Google Cloud Vision API ile görüntü analizi
+  // Google Cloud Vision API (Keep existing logic)
   Future<bool> _analyzeImageWithVisionAPI(File imageFile) async {
-    final apiKey = 'AIzaSyD6U92Qbqn3T3BaOZRsMY6rxVYi7FamWbs';
+    final apiKey =
+        'AIzaSyD6U92Qbqn3T3BaOZRsMY6rxVYi7FamWbs'; // WARNING: Hardcoded API Key
     final visionApiUrl =
         'https://vision.googleapis.com/v1/images:annotate?key=$apiKey';
 
     try {
-      // Fotoğrafı Base64 formatına dönüştür
       final bytes = await imageFile.readAsBytes();
       final base64Image = base64Encode(bytes);
-
-      // API isteği için veri hazırla
       final body = jsonEncode({
+        /* ... existing Vision API request body ... */
         'requests': [
           {
-            'image': {
-              'content': base64Image,
-            },
+            'image': {'content': base64Image},
             'features': [
-              {
-                'type': 'OBJECT_LOCALIZATION',
-                'maxResults': 10,
-              },
-              {
-                'type': 'LABEL_DETECTION',
-                'maxResults': 10,
-              }
+              {'type': 'OBJECT_LOCALIZATION', 'maxResults': 10},
+              {'type': 'LABEL_DETECTION', 'maxResults': 10}
             ],
           },
         ],
       });
 
-      // API isteğini gönder
-      final response = await http.post(
-        Uri.parse(visionApiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: body,
-      );
+      final response = await http.post(Uri.parse(visionApiUrl),
+          headers: {'Content-Type': 'application/json'}, body: body);
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
         print(
-            '🔍 Vision API yanıtı: ${jsonResponse.toString().substring(0, min(500, jsonResponse.toString().length))}...');
+            '🔍 Vision API yanıtı (kısmi): ${jsonResponse.toString().substring(0, min(300, jsonResponse.toString().length))}...');
 
-        // Nesne algılama sonuçlarını kontrol et
         final objectAnnotations =
             jsonResponse['responses'][0]['localizedObjectAnnotations'] as List?;
         final labelAnnotations =
             jsonResponse['responses'][0]['labelAnnotations'] as List?;
-
-        // Tespit edilen nesneleri ve etiketleri yazdır
-        final detectedObjects = <String>[];
-        final detectedLabels = <String>[];
+        final detectedObjects = <String>{}; // Use Set for faster lookup
+        final detectedLabels = <String>{};
 
         if (objectAnnotations != null) {
           for (final object in objectAnnotations) {
             detectedObjects.add(object['name'].toString().toLowerCase());
-            print(
-                '🏋️ Tespit edilen nesne: ${object['name']} (${(object['score'] * 100).toStringAsFixed(1)}%)');
           }
         }
-
         if (labelAnnotations != null) {
           for (final label in labelAnnotations) {
             detectedLabels.add(label['description'].toString().toLowerCase());
-            print(
-                '🏷️ Tespit edilen etiket: ${label['description']} (${(label['score'] * 100).toStringAsFixed(1)}%)');
           }
         }
+        print('🔭 Tespit edilen nesneler: $detectedObjects');
+        print('🏷️ Tespit edilen etiketler: $detectedLabels');
 
-        // Koşu bandı veya benzeri nesnelerin tespitini kontrol et
-        final runningMachineKeywords = [
+        final runningMachineKeywords = {
           'treadmill',
           'running machine',
           'koşu bandı',
-          'kosu bandi',
-        ];
+          'kosu bandi'
+        };
 
-        // Nesneler veya etiketler arasında koşu bandı var mı kontrol et
-        for (final keyword in runningMachineKeywords) {
-          if (detectedObjects.any((object) => object.contains(keyword)) ||
-              detectedLabels.any((label) => label.contains(keyword))) {
-            print('✅ Koşu bandı tespit edildi!');
-            return true;
-          }
+        // Check if any keyword exists in detected objects or labels
+        if (detectedObjects.any(runningMachineKeywords.contains) ||
+            detectedLabels.any(runningMachineKeywords.contains)) {
+          print('✅ Vision API: Koşu bandı tespit edildi!');
+          return true;
         }
 
-        print('❌ Koşu bandı tespit edilemedi');
+        print('❌ Vision API: Koşu bandı tespit edilemedi');
         return false;
       } else {
-        print(
-            '❌ Vision API isteği başarısız! Status: ${response.statusCode}, Body: ${response.body}');
+        print('❌ Vision API isteği başarısız! Status: ${response.statusCode}');
         throw Exception('Vision API isteği başarısız: ${response.statusCode}');
       }
     } catch (e) {
       print('🚨 Vision API hatası: $e');
-      throw Exception('Vision API hatası: ${e.toString()}');
+      rethrow; // Rethrow to be caught in _verifyWithPhoto
     }
   }
 
-  Future<void> _startVerification() async {
-    if (_selectedMethod == 'location') {
-      final isSuccess = await _verifyNearbyGym();
-      if (isSuccess) {
-        setState(() {
-          _verificationSuccess = true;
-        });
-
-        // Başarılı doğrulama sonrası yönlendir
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const FilterScreen2()),
-          );
-        }
-      }
-    } else if (_selectedMethod == 'photo') {
+  // Handles the logic for the main button press
+  Future<void> _handleNextStep() async {
+    if (!_locationVerified) {
+      await _verifyNearbyGym();
+      // If location fails, do nothing further until user tries again
+    } else if (!_photoVerified) {
       await _verifyWithPhoto();
+      // If photo fails, do nothing further
+    }
+
+    // Check if both are verified AFTER the attempts
+    if (_locationVerified && _photoVerified) {
+      print('✅✅ Her iki doğrulama da tamamlandı. Yönlendiriliyor...');
+      // Navigate only if both are successful
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const FilterScreen2()),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Determine current step based on verification status
+    VerificationStep currentStep;
+    if (!_locationVerified) {
+      currentStep = VerificationStep.location;
+    } else if (!_photoVerified) {
+      currentStep = VerificationStep.photo;
+    } else {
+      currentStep = VerificationStep.completed;
+    }
+
+    // Determine button text and if it should be enabled
+    String buttonText;
+    bool isButtonEnabled = !_isVerifying; // Disable while any verification runs
+
+    switch (currentStep) {
+      case VerificationStep.location:
+        buttonText = 'Konum ile Doğrula';
+        if (!_hasLocationPermission && _errorMessageLocation.isNotEmpty) {
+          // Disable button if permission is denied and error shown
+          isButtonEnabled = false;
+        }
+        break;
+      case VerificationStep.photo:
+        buttonText = 'Fotoğraf Çek ve Doğrula';
+        break;
+      case VerificationStep.completed:
+        buttonText = 'Devam Et';
+        break;
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text(
-          'Konum Doğrulama',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('Konum Doğrulama',
+            style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
@@ -409,131 +403,108 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "İç Mekan Koşusu için Doğrulama",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+              const Text("İç Mekan Koşusu için Doğrulama",
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white)),
               const SizedBox(height: 8),
               const Text(
-                "İç mekan koşusu için bir fitness salonunda olduğunuzu doğrulamamız gerekiyor.",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
+                  "Lütfen aşağıdaki adımları tamamlayarak bir fitness salonunda olduğunuzu doğrulayın.",
+                  style: TextStyle(fontSize: 14, color: Colors.grey)),
               const SizedBox(height: 32),
 
-              // Doğrulama yöntemleri
-              const Text(
-                "Doğrulama Yöntemi Seçin",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Konum ile doğrulama
+              // Step 1: Location Verification
               _buildVerificationMethodCard(
-                title: 'Konum ile Doğrulama',
+                title: '1. Adım: Konum Doğrulama',
                 description:
-                    'Konumunuzu kullanarak yakındaki fitness salonlarını kontrol edeceğiz',
+                    'Fitness salonunda olduğunuzu konum ile doğrulayın.',
                 icon: Icons.location_on,
-                value: 'location',
+                isVerified: _locationVerified, // Pass verification state
+                isLoading: _isVerifying &&
+                    _currentlyVerifying ==
+                        'location', // Show loading specific to this step
+                onTap: (_isVerifying || _locationVerified)
+                    ? null
+                    : _verifyNearbyGym, // Allow re-try if not verifying/verified
               ),
+              if (_errorMessageLocation.isNotEmpty && !_locationVerified)
+                Padding(
+                  padding: const EdgeInsets.only(
+                      top: 8.0, left: 58), // Indent error message
+                  child: Text(_errorMessageLocation,
+                      style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ),
               const SizedBox(height: 16),
 
-              // Fotoğraf ile doğrulama
+              // Step 2: Photo Verification
               _buildVerificationMethodCard(
-                title: 'Fotoğraf ile Doğrulama',
-                description:
-                    'Fitness salonundaki koşu bandının fotoğrafını çekerek doğrulama yapın',
+                title: '2. Adım: Fotoğraf Doğrulama',
+                description: 'Koşu bandının fotoğrafını çekerek doğrulayın.',
                 icon: Icons.camera_alt,
-                value: 'photo',
+                isVerified: _photoVerified, // Pass verification state
+                isLoading: _isVerifying &&
+                    _currentlyVerifying ==
+                        'photo', // Show loading specific to this step
+                onTap: (_isVerifying || !_locationVerified || _photoVerified)
+                    ? null
+                    : _verifyWithPhoto, // Enable only after location verified & not currently verifying/verified
               ),
-
-              // Doğrulama sonucu
-              if (_hasRunningMachine)
+              if (_errorMessagePhoto.isNotEmpty && !_photoVerified)
                 Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _imageAnalysisResult,
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
+                  padding: const EdgeInsets.only(
+                      top: 8.0, left: 58), // Indent error message
+                  child: Text(_errorMessagePhoto,
+                      style: const TextStyle(color: Colors.red, fontSize: 12)),
                 ),
 
-              if (_errorMessage.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _errorMessage,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
+              const Spacer(), // Pushes button to bottom
 
-              const Spacer(),
-
-              // Doğrulama butonu
+              // Action button
               SizedBox(
                 width: double.infinity,
-                child: _isVerifying
-                    ? const Center(
-                        child: Column(
-                          children: [
-                            CircularProgressIndicator(color: Color(0xFFC4FF62)),
-                            SizedBox(height: 16),
-                            Text(
-                              "Doğrulama yapılıyor...",
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFC4FF62),
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC4FF62),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    // Disable button based on verification status or loading state
+                    disabledBackgroundColor: Colors.grey.shade800,
+                    disabledForegroundColor: Colors.grey.shade500,
+                  ),
+                  // Determine onPressed action based on currentStep
+                  onPressed: !isButtonEnabled
+                      ? null
+                      : () {
+                          if (currentStep == VerificationStep.location) {
+                            _verifyNearbyGym();
+                          } else if (currentStep == VerificationStep.photo) {
+                            _verifyWithPhoto();
+                          } else if (currentStep ==
+                              VerificationStep.completed) {
+                            // Navigate if completed
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const FilterScreen2()),
+                            );
+                          }
+                        },
+                  child: _isVerifying
+                      ? SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.black,
+                            strokeWidth: 3,
                           ),
-                        ),
-                        onPressed: _startVerification,
-                        child: Text(
-                          _selectedMethod == 'location'
-                              ? 'Konum ile Doğrula'
-                              : 'Fotoğraf Çek',
+                        )
+                      : Text(buttonText,
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
               ),
             ],
           ),
@@ -542,73 +513,71 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
     );
   }
 
+  // Updated Card Widget
   Widget _buildVerificationMethodCard({
     required String title,
     required String description,
     required IconData icon,
-    required String value,
+    required bool isVerified,
+    bool isLoading = false, // Added loading indicator for the card
+    VoidCallback? onTap, // Added onTap for retrying
   }) {
-    final bool isSelected = _selectedMethod == value;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedMethod = value;
-          _errorMessage = '';
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1F2922),
-          borderRadius: BorderRadius.circular(12),
-          border: isSelected
-              ? Border.all(color: const Color(0xFFC4FF62), width: 2)
-              : null,
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFC4FF62).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
+    return Opacity(
+      // Dim the card slightly if its action is not available yet or completed
+      opacity: onTap == null && !isVerified ? 0.6 : 1.0,
+      child: InkWell(
+        // Changed GestureDetector to InkWell for feedback
+        onTap: onTap, // Allow tapping to retry
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1F2922),
+            borderRadius: BorderRadius.circular(12),
+            // Remove border, use checkmark or loading indicator
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC4FF62).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: const Color(0xFFC4FF62)),
               ),
-              child: Icon(
-                icon,
-                color: const Color(0xFFC4FF62),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white)),
+                    const SizedBox(height: 4),
+                    Text(description,
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: Color(0xFFC4FF62),
-              ),
-          ],
+              // Show loading or checkmark
+              if (isLoading)
+                const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                        color: Color(0xFFC4FF62), strokeWidth: 2))
+              else if (isVerified)
+                const Icon(Icons.check_circle, color: Color(0xFFC4FF62))
+              else
+                const SizedBox(
+                    width:
+                        24), // Placeholder for alignment when neither is shown
+            ],
+          ),
         ),
       ),
     );

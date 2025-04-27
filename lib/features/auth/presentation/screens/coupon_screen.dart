@@ -12,6 +12,15 @@ class CouponScreen extends ConsumerWidget {
     final AsyncValue<List<CouponModel>> couponsAsyncValue =
         ref.watch(couponProvider);
 
+    // Hata ayıklama mesajları
+    print('🎫 CouponScreen: Provider durumu: ${couponsAsyncValue}');
+    if (couponsAsyncValue is AsyncData) {
+      print(
+          '📋 CouponScreen: Kupon sayısı: ${couponsAsyncValue.value?.length}');
+    } else if (couponsAsyncValue is AsyncError) {
+      print('❌ CouponScreen: Provider hatası: ${couponsAsyncValue.error}');
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Kuponlarım'),
@@ -40,11 +49,36 @@ class CouponScreen extends ConsumerWidget {
               child: couponsAsyncValue.when(
                 data: (coupons) {
                   if (coupons.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Henüz kuponunuz bulunmamaktadır.',
-                        style: TextStyle(
-                            color: Colors.white70), // Apply light grey text
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.local_activity_outlined,
+                            color: Colors.white54,
+                            size: 64,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Henüz kuponunuz bulunmamaktadır.',
+                            style: TextStyle(
+                                color: Colors.white70), // Apply light grey text
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFC4FF62),
+                              foregroundColor: Colors.black,
+                            ),
+                            onPressed: () {
+                              // Provider'ı yenile
+                              ref
+                                  .read(couponProvider.notifier)
+                                  .refreshCoupons();
+                            },
+                            child: const Text('Yenile'),
+                          ),
+                        ],
                       ),
                     );
                   }
@@ -64,22 +98,55 @@ class CouponScreen extends ConsumerWidget {
                 },
                 loading: () => const Center(
                     child: CircularProgressIndicator(
-                        color: Colors.white)), // White loader
+                        color:
+                            Color(0xFFC4FF62))), // Green loader to match theme
                 error: (error, stackTrace) => Center(
-                  child: SelectableText.rich(
-                    TextSpan(
-                      text: 'Bir hata oluştu: \n',
-                      style: const TextStyle(color: Colors.white), // White text
-                      children: <TextSpan>[
-                        TextSpan(
-                          text: error.toString(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        SelectableText.rich(
+                          TextSpan(
+                            text: 'API Hatası: \n',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold), // White text
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: error.toString(),
+                                style: const TextStyle(
+                                    color: Colors.redAccent,
+                                    fontWeight:
+                                        FontWeight.normal), // Brighter red
+                              ),
+                            ],
+                          ),
                           style: const TextStyle(
-                              color: Colors.redAccent), // Brighter red
+                              color: Colors
+                                  .white), // Ensure base error text is white
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFC4FF62),
+                            foregroundColor: Colors.black,
+                          ),
+                          onPressed: () {
+                            // Provider'ı yenile
+                            ref.read(couponProvider.notifier).refreshCoupons();
+                          },
+                          child: const Text('Tekrar Dene'),
                         ),
                       ],
                     ),
-                    style: const TextStyle(
-                        color: Colors.white), // Ensure base error text is white
                   ),
                 ),
               ),

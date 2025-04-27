@@ -25,6 +25,8 @@ class CouponModel {
 
   // Manual factory constructor for JSON deserialization
   factory CouponModel.fromJson(Map<String, dynamic> json) {
+    print('🔍 CouponModel.fromJson: Gelen JSON: $json');
+
     // Helper function to parse date strings safely
     DateTime _parseDate(String? dateString) {
       if (dateString == null || dateString.isEmpty) {
@@ -46,17 +48,47 @@ class CouponModel {
       }
     }
 
-    return CouponModel(
-      userPurchaseId:
-          json['userPurchaseId'] as int? ?? 0, // Provide default or handle null
-      purchaseDate: _parseDate(json['purchaseDate'] as String?),
-      productId: json['productId'] as int? ?? 0,
-      productName: json['productName'] as String? ?? 'N/A', // Provide default
-      productMainImageUrl: json['productMainImageUrl'] as String?,
-      acquiredCouponId: json['acquiredCouponId'] as int? ?? 0,
-      acquiredCouponCode: json['acquiredCouponCode'] as String? ?? 'N/A',
-      expirationDate: _parseDate(json['expirationDate'] as String?),
-    );
+    // API'den gelen anahtarların varlığını kontrol et
+    final expectedKeys = [
+      'userPurchaseId',
+      'purchaseDate',
+      'productId',
+      'productName',
+      'acquiredCouponId',
+      'acquiredCouponCode',
+      'expirationDate'
+    ];
+    final missingKeys =
+        expectedKeys.where((key) => !json.containsKey(key)).toList();
+
+    if (missingKeys.isNotEmpty) {
+      print('⚠️ CouponModel: JSON\'da eksik anahtarlar var: $missingKeys');
+    }
+
+    // API'den gelen tüm anahtarları listele (debug için)
+    print(
+        '📋 CouponModel: JSON\'daki mevcut anahtarlar: ${json.keys.toList()}');
+
+    try {
+      final coupon = CouponModel(
+        userPurchaseId: json['userPurchaseId'] as int? ??
+            0, // Provide default or handle null
+        purchaseDate: _parseDate(json['purchaseDate'] as String?),
+        productId: json['productId'] as int? ?? 0,
+        productName: json['productName'] as String? ?? 'N/A', // Provide default
+        productMainImageUrl: json['productMainImageUrl'] as String?,
+        acquiredCouponId: json['acquiredCouponId'] as int? ?? 0,
+        acquiredCouponCode: json['acquiredCouponCode'] as String? ?? 'N/A',
+        expirationDate: _parseDate(json['expirationDate'] as String?),
+      );
+
+      print(
+          '✅ CouponModel: Başarıyla ayrıştırıldı: ${coupon.productName} - ${coupon.acquiredCouponCode}');
+      return coupon;
+    } catch (e) {
+      print('❌ CouponModel.fromJson: Ayrıştırma hatası: $e');
+      rethrow; // Hatayı yakalaması için yeniden fırlat
+    }
   }
 
   // Manual method for JSON serialization (if needed)
