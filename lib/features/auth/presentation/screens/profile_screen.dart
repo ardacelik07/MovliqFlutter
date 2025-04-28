@@ -18,6 +18,9 @@ import 'package:lottie/lottie.dart';
 import '../providers/user_ranks_provider.dart';
 import '../../domain/models/user_ranks_model.dart';
 import 'coupon_screen.dart';
+import '../widgets/network_error_widget.dart';
+import 'package:http/http.dart' show ClientException;
+import 'dart:io' show SocketException;
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -642,38 +645,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   ],
                                 );
                               },
-                              loading: () => Container(
-                                // Maintain height during loading
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2A2A2A),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Color(0xFF93C53E),
-                                  ),
+                              loading: () => const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF93C53E),
                                 ),
                               ),
-                              error: (error, stackTrace) => Container(
-                                // Maintain height on error
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2A2A2A),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Text(
-                                      'Hata: $error',
-                                      style: const TextStyle(
-                                          color: Colors.redAccent),
-                                      textAlign: TextAlign.center,
+                              error: (error, stackTrace) {
+                                // ALWAYS show NetworkErrorWidget for activity data errors
+                                return SizedBox(
+                                  height: 200, // Maintain height
+                                  child: Center(
+                                    child: NetworkErrorWidget(
+                                      title: 'Aktivite Verisi Yüklenemedi',
+                                      message:
+                                          'Grafik verileri alınamadı, tekrar deneyin.',
+                                      onRetry: () {
+                                        // Retry fetching activity data
+                                        ref.invalidate(activityProfileProvider);
+                                        _fetchActivityData(); // Call the fetch function again
+                                      },
                                     ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             );
                           },
                         ),
@@ -934,46 +928,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           },
           loading: () => const Center(
               child: CircularProgressIndicator(color: Color(0xFF93C53E))),
-          error: (error, stackTrace) => Center(
-            // Consistent error display
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-                  const SizedBox(height: 16),
-                  Text('Profil bilgileri yüklenemedi.',
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  SelectableText(
-                    // Use SelectableText for errors
-                    'Hata: $error',
-                    style:
-                        const TextStyle(color: Colors.redAccent, fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Yeniden Dene'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.black,
-                        backgroundColor:
-                            const Color(0xFF93C53E), // Button text color
-                      ),
-                      onPressed: () {
-                        ref.invalidate(
-                            userDataProvider); // Invalidate to force refetch
-                        ref.invalidate(userRanksProvider);
-                        ref.invalidate(activityProfileProvider);
-                        ref.invalidate(userStreakProvider);
-                      }),
-                ],
+          error: (error, stackTrace) {
+            // ALWAYS show NetworkErrorWidget for any full-screen error
+            return Center(
+              child: NetworkErrorWidget(
+                // Provide generic title/message for all errors
+                title: 'Profil Yüklenemedi',
+                message: 'Profil bilgileri alınamadı, lütfen tekrar deneyin.',
+                onRetry: () {
+                  ref.invalidate(
+                      userDataProvider); // Invalidate to force refetch
+                  ref.invalidate(userRanksProvider);
+                  ref.invalidate(activityProfileProvider);
+                  ref.invalidate(userStreakProvider);
+                },
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
