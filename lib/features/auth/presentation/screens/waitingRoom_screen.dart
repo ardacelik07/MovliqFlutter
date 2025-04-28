@@ -11,6 +11,7 @@ import 'package:my_flutter_project/features/auth/domain/models/leave_room_reques
 import '../../../../core/config/api_config.dart';
 import '../screens/tabs.dart';
 import 'package:my_flutter_project/features/auth/domain/models/room_participant.dart';
+import '../widgets/user_profile_avatar.dart';
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -775,29 +776,20 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     if (_participants.isNotEmpty) {
       for (int i = 0; i < visibleCount; i++) {
         final participant = _participants[i];
+        // Get profile URL from participant or cache
         final profileUrl = participant.profilePictureUrl ??
             _profilePictureCache[participant.userName];
+
         avatarWidgets.add(
           Positioned(
             left: i * (avatarRadius * 2 - overlap),
+            // Use UserProfileAvatar wrapped with a border CircleAvatar
             child: CircleAvatar(
               radius: avatarRadius,
               backgroundColor: _accentColor, // Border color
-              child: CircleAvatar(
-                radius: avatarRadius - 2, // Inner circle
-                backgroundColor: _secondaryTextColor, // Fallback bg
-                backgroundImage:
-                    profileUrl != null ? NetworkImage(profileUrl) : null,
-                child: profileUrl == null
-                    ? Text(
-                        participant.userName.isNotEmpty
-                            ? participant.userName[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                            color: _backgroundColor,
-                            fontWeight: FontWeight.bold),
-                      )
-                    : null,
+              child: UserProfileAvatar(
+                imageUrl: profileUrl, // Pass the URL
+                radius: avatarRadius - 2, // Inner radius
               ),
             ),
           ),

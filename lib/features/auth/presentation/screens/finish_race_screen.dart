@@ -3,17 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../screens/tabs.dart';
 import 'dart:math' as math;
+import '../widgets/user_profile_avatar.dart';
 
 class FinishRaceScreen extends ConsumerStatefulWidget {
   final List<RaceParticipant> leaderboard;
   final String? myEmail;
   final bool isIndoorRace; // Indoor yarış tipini belirten parametre ekledik
+  final Map<String, String?> profilePictureCache;
 
   const FinishRaceScreen({
     super.key,
     required this.leaderboard,
     this.myEmail,
     required this.isIndoorRace, // Constructor'a ekledik
+    required this.profilePictureCache,
   });
 
   @override
@@ -305,27 +308,18 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
       rankColor = Colors.grey.shade600; // Darker grey for others
     }
 
+    // Get the profile picture URL from the passed cache using userName
+    final String? profilePicUrl =
+        widget.profilePictureCache[participant.userName];
+
     return Stack(
       alignment: Alignment.center,
       clipBehavior: Clip.none,
       children: [
-        CircleAvatar(
+        // Use UserProfileAvatar with the URL from the cache
+        UserProfileAvatar(
+          imageUrl: profilePicUrl, // Use URL from cache
           radius: 25,
-          backgroundColor: Colors.grey.shade700,
-          // TODO: Add profile picture logic here if available
-          // backgroundImage: profilePictureUrl != null
-          //     ? NetworkImage(profilePictureUrl!)
-          //     : null,
-          child: /* profilePictureUrl == null ? */ Text(
-            participant.userName.isNotEmpty
-                ? participant.userName[0].toUpperCase()
-                : '?',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ) /* : null */,
         ),
         Positioned(
           top: -4,

@@ -9,7 +9,7 @@ import 'store_screen.dart'; // Import StoreScreen
 import 'package:avatar_glow/avatar_glow.dart'; // Import AvatarGlow
 import 'tabs.dart'; // Correct import for the provider defined in tabs.dart
 import './product_view_screen.dart'; // Assuming this screen exists
-import './product_view_screen.dart';
+import '../widgets/user_profile_avatar.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -50,21 +50,11 @@ class HomePage extends ConsumerWidget {
                       horizontal: 16.0, vertical: 12.0),
                   child: Row(
                     children: [
-                      // Profile picture
+                      // Profile picture - Updated to use UserProfileAvatar
                       userDataAsync.when(
-                        data: (userData) => CircleAvatar(
+                        data: (userData) => UserProfileAvatar(
+                          imageUrl: userData?.profilePictureUrl,
                           radius: 24,
-                          backgroundColor: Colors.grey[800],
-                          backgroundImage:
-                              userData?.profilePictureUrl != null &&
-                                      userData!.profilePictureUrl!.isNotEmpty
-                                  ? NetworkImage(userData.profilePictureUrl!)
-                                  : null, // Handle null/empty URL
-                          child: (userData?.profilePictureUrl == null ||
-                                  userData!.profilePictureUrl!.isEmpty)
-                              ? const Icon(Icons.person,
-                                  size: 24, color: Colors.white70)
-                              : null,
                         ),
                         loading: () => const CircleAvatar(
                           radius: 24,
@@ -75,11 +65,10 @@ class HomePage extends ConsumerWidget {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white)),
                         ),
-                        error: (_, __) => const CircleAvatar(
+                        error: (_, __) => const UserProfileAvatar(
+                          // Show default avatar on error as well
+                          imageUrl: null,
                           radius: 24,
-                          backgroundColor: Colors.grey,
-                          child: Icon(Icons.error_outline,
-                              color: Colors.red, size: 24),
                         ),
                       ),
                       const SizedBox(width: 12),

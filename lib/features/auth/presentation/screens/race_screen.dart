@@ -13,6 +13,7 @@ import '../../../../core/services/signalr_service.dart';
 import '../screens/tabs.dart';
 import '../../../../core/services/storage_service.dart';
 import 'finish_race_screen.dart';
+import '../widgets/user_profile_avatar.dart';
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
@@ -444,6 +445,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
           leaderboard: _leaderboard,
           myEmail: _myEmail,
           isIndoorRace: widget.isIndoorRace, // Indoor yarış parametresini geçir
+          profilePictureCache: Map<String, String?>.from(
+              widget.profilePictureCache), // Use widget.profilePictureCache
         ),
       ),
     );
@@ -1052,25 +1055,11 @@ class ParticipantTile extends StatelessWidget {
               alignment: Alignment.center, // Center stack elements
               clipBehavior: Clip.none, // Allow badge to overflow slightly
               children: [
-                // Avatar (profil fotoğrafı)
-                CircleAvatar(
+                // Avatar (profil fotoğrafı) - Updated to use UserProfileAvatar
+                UserProfileAvatar(
+                  imageUrl:
+                      profilePictureUrl, // Pass the URL from cache/participant
                   radius: 25, // Slightly larger avatar
-                  backgroundColor: Colors.grey.shade700, // Darker background
-                  backgroundImage: profilePictureUrl != null
-                      ? NetworkImage(profilePictureUrl!)
-                      : null,
-                  child: profilePictureUrl == null
-                      ? Text(
-                          participant.userName.isNotEmpty
-                              ? participant.userName[0].toUpperCase()
-                              : '?', // Handle empty username
-                          style: const TextStyle(
-                            fontSize: 22, // Larger initial
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white, // White initial
-                          ),
-                        )
-                      : null,
                 ),
 
                 // Sıralama rozeti (Updated Positioned Badge)
