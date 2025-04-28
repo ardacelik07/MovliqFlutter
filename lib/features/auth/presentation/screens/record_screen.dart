@@ -145,34 +145,51 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   // Konum izinlerini kontrol eden fonksiyon
   Future<void> _checkLocationPermission() async {
-    try {
-      final LocationPermission permission = await Geolocator.checkPermission();
+    // Use permission_handler for requesting always permission
+    final status = await Permission.locationAlways.request();
 
-      if (permission == LocationPermission.denied) {
-        final LocationPermission requestedPermission =
-            await Geolocator.requestPermission();
+    setState(() {
+      _hasLocationPermission = status.isGranted || status.isLimited;
+    });
 
-        setState(() {
-          _hasLocationPermission =
-              requestedPermission != LocationPermission.denied &&
-                  requestedPermission != LocationPermission.deniedForever;
-        });
-      } else {
-        setState(() {
-          _hasLocationPermission = permission != LocationPermission.denied &&
-              permission != LocationPermission.deniedForever;
-        });
+    print('Konum izin durumu (Always): $status');
+    print('Konum izni var mı?: $_hasLocationPermission');
+
+    if (_hasLocationPermission) {
+      // İzin varsa konumu al
+      await _getCurrentLocation();
+    } else {
+      // İzin verilmediyse kullanıcıyı bilgilendir (Opsiyonel)
+      if (status.isDenied || status.isPermanentlyDenied) {
+        _showLocationPermissionDeniedDialog();
       }
-
-      print('Konum izin durumu: $_hasLocationPermission');
-
-      if (_hasLocationPermission) {
-        // İzin varsa konumu al
-        await _getCurrentLocation();
-      }
-    } catch (e) {
-      print('Konum izni hatası: $e');
     }
+  }
+
+  // Kullanıcı izin vermediğinde gösterilecek dialog (Opsiyonel)
+  void _showLocationPermissionDeniedDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konum İzni Gerekli'),
+        content: const Text(
+            'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir. Lütfen uygulama ayarlarından bu izni verin.'),
+        actions: [
+          TextButton(
+            child: const Text('Ayarları Aç'),
+            onPressed: () {
+              openAppSettings(); // Open app settings
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: const Text('İptal'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
   }
 
   // Mevcut konumu al ve haritayı oraya taşı

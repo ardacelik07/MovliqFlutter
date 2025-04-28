@@ -3,6 +3,12 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <!-- Arka Plan Konum İzni -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- Ön Plan Hizmeti İzinleri (Güvenilir arka plan çalışması için önerilir) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Android 12+ için Ön Plan Hizmeti Konum İzni -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     
     <application
         android:label="Movliq"

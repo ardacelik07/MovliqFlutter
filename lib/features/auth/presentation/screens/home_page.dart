@@ -10,12 +10,122 @@ import 'package:avatar_glow/avatar_glow.dart'; // Import AvatarGlow
 import 'tabs.dart'; // Correct import for the provider defined in tabs.dart
 import './product_view_screen.dart'; // Assuming this screen exists
 import '../widgets/user_profile_avatar.dart';
+import 'package:permission_handler/permission_handler.dart'; // Import permission_handler
+import 'dart:io'; // Import Platform
 
-class HomePage extends ConsumerWidget {
+// Change to ConsumerStatefulWidget
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+// Create State class
+class _HomePageState extends ConsumerState<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Request permissions when the home page initializes
+    _checkAndRequestPermissionsSequentially();
+  }
+
+  // Request permissions sequentially
+  Future<void> _checkAndRequestPermissionsSequentially() async {
+    await _checkAndRequestLocationPermission();
+    // Ensure activity permission is checked *after* location is handled
+    if (mounted) {
+      await _checkAndRequestActivityPermission();
+    }
+  }
+
+  // Function to check and request location permission (directly requesting Always)
+  Future<void> _checkAndRequestLocationPermission() async {
+    final status = await Permission.locationAlways.status;
+    print('Ana Sayfa - Konum İzin Durumu (Always): $status');
+
+    if (!status.isGranted && !status.isLimited) {
+      final requestedStatus = await Permission.locationAlways.request();
+      print('Ana Sayfa - İzin İstenen Durum (Always): $requestedStatus');
+
+      if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+        if (mounted) {
+          _showSettingsDialog('Konum İzni Gerekli',
+              'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir.');
+        }
+      }
+    } else {
+      print('Ana Sayfa - Konum izni zaten verilmiş.');
+    }
+    // Do not call activity check here, call it sequentially after this function returns
+  }
+
+  // Function to check and request Activity Recognition/Motion permission
+  Future<void> _checkAndRequestActivityPermission() async {
+    Permission activityPermission;
+    String permissionName;
+    String rationale;
+
+    if (Platform.isAndroid) {
+      activityPermission = Permission.activityRecognition;
+      permissionName = 'Fiziksel Aktivite İzni';
+      rationale =
+          'Adımlarınızı sayabilmemiz için fiziksel aktivite izni gereklidir.';
+    } else if (Platform.isIOS) {
+      activityPermission = Permission.sensors; // Use sensors for motion on iOS
+      permissionName = 'Hareket ve Fitness İzni';
+      rationale =
+          'Adımlarınızı sayabilmemiz için hareket ve fitness izni gereklidir.';
+    } else {
+      return; // Platform not supported
+    }
+
+    final status = await activityPermission.status;
+    print('Ana Sayfa - Aktivite İzin Durumu: $status');
+
+    if (!status.isGranted) {
+      // Request the permission if not granted
+      final requestedStatus = await activityPermission.request();
+      print('Ana Sayfa - İzin İstenen Durum (Aktivite): $requestedStatus');
+
+      // If denied after request, show settings dialog
+      if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+        if (mounted) {
+          _showSettingsDialog(permissionName, rationale);
+        }
+      }
+    } else {
+      print('Ana Sayfa - Aktivite izni zaten verilmiş.');
+    }
+  }
+
+  // Dialog to show if permission is denied (Consolidated for Settings)
+  void _showSettingsDialog(String title, String content) {
+    if (!mounted) return; // Check again before showing dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text('$content Lütfen uygulama ayarlarından bu izni verin.'),
+        actions: [
+          TextButton(
+            child: const Text('Ayarları Aç'),
+            onPressed: () {
+              openAppSettings(); // Open app settings
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: const Text('İptal'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userDataAsync = ref.watch(userDataProvider);
     final userStreakAsync =
         ref.watch(userStreakProvider); // Watch streak provider
