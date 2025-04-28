@@ -994,7 +994,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _lastDistance = _distance;
       _lastSteps = _steps;
       _lastCalorieCalculationTime = now;
-      // İlk hesaplamada kalori değeri 0 olmalı
       setState(() {
         _calories = 0;
       });
@@ -1004,142 +1003,142 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     // Son hesaplamadan bu yana geçen süre (saniye)
     final elapsedSeconds =
         now.difference(_lastCalorieCalculationTime!).inSeconds;
-    if (elapsedSeconds < 1)
-      return; // Çok kısa sürede tekrar hesaplama yapılmasını engelle
+    if (elapsedSeconds < 1) return; // Avoid rapid recalculation
 
     // Son hesaplamadan bu yana kat edilen mesafe ve adım farkı
     final distanceDifference = _distance - _lastDistance;
     final stepsDifference = _steps - _lastSteps;
 
-    // Hareket tespiti - eğer mesafe veya adım artışı yoksa hareket yok kabul et
+    // Hareket tespiti
     final bool isMoving = distanceDifference > 0.001 || stepsDifference > 0;
 
     debugPrint(
         '📊 Hareket kontrolü: Mesafe farkı=${distanceDifference.toStringAsFixed(4)} km, Adım farkı=$stepsDifference, Hareket=${isMoving ? "VAR" : "YOK"}');
+
+    // Son periyottaki anlık hızı hesapla (km/saat)
+    // distanceDifference km cinsinden, elapsedSeconds saniye cinsinden
+    final double currentPaceKmH = distanceDifference > 0 && elapsedSeconds > 0
+        ? (distanceDifference) / (elapsedSeconds / 3600.0)
+        : 0;
+    debugPrint('⚡ Anlık Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
 
     // UserDataProvider'dan kullanıcı verilerini al
     final userDataAsync = ref.read(userDataProvider);
 
     userDataAsync.whenOrNull(
       data: (userData) {
-        // Kullanıcı verileri varsa kalori hesapla
         if (userData != null) {
-          final weight = userData.weight ?? 70.0; // Varsayılan kilo: 70 kg
-          final height = userData.height ?? 170.0; // Varsayılan boy: 170 cm
+          final weight = userData.weight ?? 70.0;
+          final height = userData.height ?? 170.0;
 
-          // Aktivite tipine göre MET değeri belirle
-          // MET değerleri: https://sites.google.com/site/compendiumofphysicalactivities/
+          // Aktivite tipine ve ANLIK HIZA göre MET değeri belirle
+          // TODO: Bu MET değerlerini Compendium of Physical Activities (CPA) gibi güvenilir bir kaynaktan almak daha doğru olur.
           double metValue;
 
           if (!isMoving) {
-            // Hareketsiz durumda çok düşük bir MET değeri kullan (durağan oturma)
-            metValue = 1.0;
+            metValue = 1.0; // Resting MET
           } else {
-            // Hareket varsa, aktivite tipine ve hıza göre MET değeri belirle
             switch (_activityType) {
               case 'Running':
-                // Koşu hızına göre MET değeri ayarla (hız km/saat cinsinden)
-                if (_pace < 8.0) {
-                  // Yavaş koşu
-                  metValue = 6.0;
-                } else if (_pace < 12.0) {
-                  // Orta tempo koşu
-                  metValue = 9.8;
-                } else {
-                  // Hızlı koşu
-                  metValue = 12.3;
-                }
+                // Anlık koşu hızına göre MET
+                if (currentPaceKmH < 6.5)
+                  metValue = 6.0; // ~10 min/mile or slower
+                else if (currentPaceKmH < 8.0)
+                  metValue = 8.3; // ~12 km/h - 7.5 min/mile
+                else if (currentPaceKmH < 10.0)
+                  metValue = 10.0; // ~10 km/h - 6 min/mile
+                else if (currentPaceKmH < 12.0)
+                  metValue = 11.5;
+                else
+                  metValue = 12.8; // Faster running
                 break;
               case 'Walking':
-                // Yürüyüş hızına göre MET değeri ayarla
-                if (_pace < 4.0) {
-                  // Yavaş yürüyüş
-                  metValue = 2.5;
-                } else if (_pace < 6.5) {
-                  // Normal yürüyüş
-                  metValue = 3.5;
-                } else {
-                  // Hızlı yürüyüş
-                  metValue = 5.0;
-                }
+                // Anlık yürüyüş hızına göre MET
+                if (currentPaceKmH < 3.0)
+                  metValue = 2.0; // Slow walk
+                else if (currentPaceKmH < 5.0)
+                  metValue = 3.0; // Moderate walk
+                else if (currentPaceKmH < 6.5)
+                  metValue = 3.8; // Brisk walk
+                else
+                  metValue = 5.0; // Very brisk walk
                 break;
               case 'Cycling':
-                // Bisiklet hızına göre MET değeri ayarla
-                if (_pace < 16.0) {
-                  // Yavaş bisiklet
-                  metValue = 4.5;
-                } else if (_pace < 22.0) {
-                  // Normal bisiklet
+                // Anlık bisiklet hızına göre MET
+                if (currentPaceKmH < 16.0)
+                  metValue = 4.0; // Leisurely cycling
+                else if (currentPaceKmH < 20.0)
+                  metValue = 6.8; // Moderate cycling
+                else if (currentPaceKmH < 24.0)
                   metValue = 8.0;
-                } else {
-                  // Hızlı bisiklet
-                  metValue = 10.0;
-                }
+                else
+                  metValue = 10.0; // Faster cycling
                 break;
               default:
-                metValue = 6.0;
+                metValue = 5.0; // Default generic MET
             }
           }
 
-          // Kalori hesaplama formülü:
-          // Kalori = Ağırlık (kg) × MET değeri × Süre (saat)
-          double hours = elapsedSeconds / 3600.0; // Saniyeyi saate çevir
+          // Kalori hesaplama formülü: Kalori = Ağırlık (kg) × MET değeri × Süre (saat)
+          double hours = elapsedSeconds / 3600.0;
           int newCalories = (weight * metValue * hours).round();
 
-          // BMI faktörünü ekleyerek hafif bir düzeltme yap
-          // BMI = Ağırlık (kg) / (Boy (m) * Boy (m))
-          double heightInMeters = height / 100.0;
-          double bmi = weight / (heightInMeters * heightInMeters);
+          // BMI faktörünü kaldırdık - daha basit ve MET odaklı
+          // double heightInMeters = height / 100.0;
+          // double bmi = weight / (heightInMeters * heightInMeters);
+          // if (bmi > 25) {
+          //   double bmiFactor = 1.0 + ((bmi - 25) * 0.01);
+          //   newCalories = (newCalories * bmiFactor).round();
+          // }
 
-          // BMI 25'ten yüksekse kalori yakımını biraz arttır
-          if (bmi > 25) {
-            double bmiFactor = 1.0 + ((bmi - 25) * 0.01); // %1'lik artış
-            newCalories = (newCalories * bmiFactor).round();
-          }
-
-          // Minimum değer kontrolü
           if (newCalories < 0) newCalories = 0;
 
           setState(() {
-            // Yeni kalorileri mevcut değere ekle
             _calories += newCalories;
           });
 
           debugPrint(
-              'Kalori hesaplandı: +$newCalories kal eklendi (Toplam: $_calories) - Hareket: ${isMoving ? "VAR" : "YOK"}, MET: $metValue, Süre: $hours saat');
+              'Kalori hesaplandı: +$newCalories kal eklendi (Toplam: $_calories) - Hareket: ${isMoving ? "VAR" : "YOK"}, MET: $metValue, Süre: $hours saat, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
         } else {
-          // Kullanıcı verileri yoksa eski basit hesaplamayı kullan
-          // Ama sadece hareket varsa
-          if (isMoving) {
-            setState(() {
-              _calories += (distanceDifference * 60).toInt();
-            });
-            debugPrint(
-                'Kullanıcı verileri yok, basit hesaplama: +${(distanceDifference * 60).toInt()} kal eklendi (Toplam: $_calories)');
-          }
-        }
-      },
-      loading: () {
-        // Veriler yüklenirken basit hesaplama kullan
-        // Ama sadece hareket varsa
-        if (isMoving) {
+          // Kullanıcı verisi yoksa veya hata varsa fallback mantığı
+          // Eski distanceDifference * 60 yerine daha tutarlı bir varsayılan MET kullanalım
+          double fallbackMet =
+              isMoving ? 3.5 : 1.0; // Ortalama yürüyüş veya dinlenme
+          double defaultWeight = 70.0;
+          double hours = elapsedSeconds / 3600.0;
+          int newCalories = (defaultWeight * fallbackMet * hours).round();
+          if (newCalories < 0) newCalories = 0;
           setState(() {
-            _calories += (distanceDifference * 60).toInt();
+            _calories += newCalories;
           });
           debugPrint(
-              'Kullanıcı verileri yükleniyor, basit hesaplama: +${(distanceDifference * 60).toInt()} kal eklendi (Toplam: $_calories)');
+              'Kullanıcı verisi yok/hatalı, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
         }
+      },
+      // loading ve error durumlarında da fallback mantığını kullanalım
+      loading: () {
+        double fallbackMet = isMoving ? 3.5 : 1.0;
+        double defaultWeight = 70.0;
+        double hours = elapsedSeconds / 3600.0;
+        int newCalories = (defaultWeight * fallbackMet * hours).round();
+        if (newCalories < 0) newCalories = 0;
+        setState(() {
+          _calories += newCalories;
+        });
+        debugPrint(
+            'Kullanıcı verisi yükleniyor, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
       },
       error: (_, __) {
-        // Hata durumunda basit hesaplama kullan
-        // Ama sadece hareket varsa
-        if (isMoving) {
-          setState(() {
-            _calories += (distanceDifference * 60).toInt();
-          });
-          debugPrint(
-              'Kullanıcı verileri alınamadı, basit hesaplama: +${(distanceDifference * 60).toInt()} kal eklendi (Toplam: $_calories)');
-        }
+        double fallbackMet = isMoving ? 3.5 : 1.0;
+        double defaultWeight = 70.0;
+        double hours = elapsedSeconds / 3600.0;
+        int newCalories = (defaultWeight * fallbackMet * hours).round();
+        if (newCalories < 0) newCalories = 0;
+        setState(() {
+          _calories += newCalories;
+        });
+        debugPrint(
+            'Kullanıcı verisi hatası, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
       },
     );
 
