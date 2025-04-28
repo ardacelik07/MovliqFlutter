@@ -27,12 +27,10 @@ class NetworkErrorWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            const Icon(
-              // Keep the network icon, or make it dynamic too?
-              // For now, keep it as is for visual consistency requested.
-              Icons.signal_wifi_off_rounded,
-              size: 64.0,
-              color: Colors.grey, // Keep grey color for consistency
+            Image.asset(
+              'assets/images/sifremiunuttum2.png',
+              width: 250,
+              height: 250,
             ),
             const SizedBox(height: 24.0),
             Text(

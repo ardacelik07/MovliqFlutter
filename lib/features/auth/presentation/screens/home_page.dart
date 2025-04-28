@@ -447,7 +447,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
-                            height: 200, // Adjust height for product cards
+                            // height: 200, // REMOVE fixed height constraint
                             // Keep the specific error handling for products here
                             child: latestProductsAsync.when(
                               data: (products) {
@@ -459,18 +459,23 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     ),
                                   );
                                 }
-                                return ListView.builder(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: products.length,
-                                  itemBuilder: (context, index) {
-                                    final LatestProductModel product =
-                                        products[index];
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 12.0),
-                                      child: _ProductCard(product: product),
-                                    );
-                                  },
+                                // Wrap the ListView.builder with SizedBox when there's data
+                                return SizedBox(
+                                  height:
+                                      200, // Restore height constraint for the list
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: products.length,
+                                    itemBuilder: (context, index) {
+                                      final LatestProductModel product =
+                                          products[index];
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 12.0),
+                                        child: _ProductCard(product: product),
+                                      );
+                                    },
+                                  ),
                                 );
                               },
                               loading: () => const Center(
