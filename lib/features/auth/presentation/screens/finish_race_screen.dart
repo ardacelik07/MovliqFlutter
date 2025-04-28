@@ -4,6 +4,7 @@ import '../../../../core/services/signalr_service.dart';
 import '../screens/tabs.dart';
 import 'dart:math' as math;
 import '../widgets/user_profile_avatar.dart';
+import '../../../../features/auth/presentation/providers/user_data_provider.dart';
 
 class FinishRaceScreen extends ConsumerStatefulWidget {
   final List<RaceParticipant> leaderboard;
@@ -27,6 +28,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
   @override
   void initState() {
     super.initState();
+    ref.read(userDataProvider.notifier).fetchCoins();
   }
 
   // Mevcut kullanıcıyı tespit eden yardımcı metod
