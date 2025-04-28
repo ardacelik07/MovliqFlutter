@@ -652,19 +652,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                               error: (error, stackTrace) {
                                 // ALWAYS show NetworkErrorWidget for activity data errors
-                                return SizedBox(
-                                  height: 200, // Maintain height
-                                  child: Center(
-                                    child: NetworkErrorWidget(
-                                      title: 'Aktivite Verisi Yüklenemedi',
-                                      message:
-                                          'Grafik verileri alınamadı, tekrar deneyin.',
-                                      onRetry: () {
-                                        // Retry fetching activity data
-                                        ref.invalidate(activityProfileProvider);
-                                        _fetchActivityData(); // Call the fetch function again
-                                      },
-                                    ),
+                                return Center(
+                                  child: NetworkErrorWidget(
+                                    title: 'Aktivite Verisi Yüklenemedi',
+                                    message:
+                                        'Grafik verileri alınamadı, tekrar deneyin.',
+                                    onRetry: () {
+                                      // Retry fetching activity data
+                                      ref.invalidate(activityProfileProvider);
+                                      _fetchActivityData(); // Call the fetch function again
+                                    },
                                   ),
                                 );
                               },
