@@ -140,7 +140,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     Container(
                       height: MediaQuery.of(context).size.height * 0.35,
                       child: Image.asset(
-                        'assets/images/loginpicture.png',
+                        'assets/images/sifremiunuttum1.png',
                         fit: BoxFit
                             .contain, // Or BoxFit.cover based on preference
                       ), // Use the same image as login

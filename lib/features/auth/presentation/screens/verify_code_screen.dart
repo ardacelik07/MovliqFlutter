@@ -134,7 +134,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                     Container(
                       height: MediaQuery.of(context).size.height * 0.35,
                       child: Image.asset(
-                        'assets/images/loginpicture.png',
+                        'assets/images/sifremiunuttum2.png',
                         fit: BoxFit.contain,
                       ),
                     ),

@@ -151,7 +151,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     Container(
                       height: MediaQuery.of(context).size.height * 0.35,
                       child: Image.asset(
-                        'assets/images/loginpicture.png',
+                        'assets/images/sifremiunuttum3.png',
                         fit: BoxFit.contain,
                       ),
                     ),
