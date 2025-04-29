@@ -21,6 +21,7 @@ import 'coupon_screen.dart';
 import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException;
 import 'dart:io' show SocketException;
+import 'update_user_info_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -333,6 +334,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                         Positioned(
+                          top: 128,
+                          right: 16,
+                          child: IconButton(
+                            icon: const Icon(
+                                Icons.person_outline, // Using outlined icon
+                                color: Color(
+                                    0xFF93C53E)), // Green color from image
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const UpdateUserInfoScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        Positioned(
                           top: 0,
                           right: 16,
                           child: IconButton(
@@ -353,6 +373,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ],
                     ),
                   ),
+                  //update user info button
 
                   // İstatistikler (Updated Style)
                   userRanksAsync.maybeWhen(

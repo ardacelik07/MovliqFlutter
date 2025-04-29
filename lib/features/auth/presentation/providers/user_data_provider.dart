@@ -146,6 +146,89 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
   void clearUserData() {
     state = const AsyncValue.data(null);
   }
+
+  // Kullanıcı profilini API'de güncelle
+  Future<bool> updateUserProfile(UserDataModel updatedData) async {
+    if (state.value == null) {
+      print("❌ UserDataNotifier: Güncellenecek mevcut kullanıcı verisi yok.");
+      return false; // Veya fetchUserData çağırıp tekrar denenebilir
+    }
+
+    // Mevcut state'i alıp loading state'ine geçirelim (UI'da göstermek için)
+    final previousState = state;
+    state = const AsyncValue.loading();
+
+    try {
+      final tokenJson = await StorageService.getToken();
+      if (tokenJson == null) {
+        print("❌ UserDataNotifier: Token bulunamadı (updateUserProfile).");
+        state = AsyncValue.error("Token bulunamadı", StackTrace.current);
+        return false;
+      }
+
+      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+      final String currentToken = tokenData['token'];
+
+      // HttpInterceptor ile PUT isteği gönder
+      final response = await HttpInterceptor.put(
+        Uri.parse(ApiConfig.updateProfileEndpoint),
+        headers: {
+          'Authorization': 'Bearer $currentToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(updatedData.toJson()), // Modeli JSON'a çevir
+      );
+
+      print(
+          "🔄 UserDataNotifier: Update API yanıtı - Status ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        if (responseBody['token'] != null) {
+          final newToken = responseBody['token'];
+          // Token'ı JSON formatında sakla (orijinal yapıya uygun)
+          await StorageService.saveToken(jsonEncode({'token': newToken}));
+          print("✅ UserDataNotifier: Yeni token kaydedildi.");
+
+          // State'i güncellenmiş veri ile eski haline getir (API yeni veri dönmüyor)
+          // Sadece token güncellendi, lokaldeki güncel veriyi kullan
+          state = AsyncValue.data(updatedData);
+          print(
+              "✅ UserDataNotifier: Profil başarıyla güncellendi (state güncellendi).");
+          return true; // Başarılı
+        } else {
+          print("❌ UserDataNotifier: Yanıtta yeni token bulunamadı.");
+          state = previousState; // Hata durumunda eski state'e dön
+          return false; // Başarısız (token yok)
+        }
+      } else {
+        print(
+            "❌ UserDataNotifier: Profil güncellenemedi - HTTP ${response.statusCode}");
+        print("❌ Yanıt: ${response.body}");
+        // Hata mesajını state'e yansıt
+        String errorMessage = "Profil güncellenemedi: ${response.statusCode}";
+        try {
+          // API'den gelen hata mesajını parse etmeyi dene
+          final errorBody = jsonDecode(response.body);
+          if (errorBody is Map && errorBody.containsKey('message')) {
+            errorMessage = errorBody['message'];
+          } else if (errorBody is String) {
+            errorMessage = errorBody;
+          }
+        } catch (_) {
+          // JSON parse edilemezse veya format farklıysa, ham yanıtı kullan
+          errorMessage = response.body;
+        }
+
+        state = AsyncValue.error(errorMessage, StackTrace.current);
+        return false; // Başarısız
+      }
+    } catch (e, stackTrace) {
+      print("❌ UserDataNotifier: Profil güncelleme hatası: $e");
+      state = AsyncValue.error(e, stackTrace);
+      return false; // Başarısız
+    }
+  }
 }
 
 // Kullanıcı streak sayısını getiren provider
