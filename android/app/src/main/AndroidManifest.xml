@@ -4,11 +4,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <!-- Arka Plan Konum İzni -->
+    
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <!-- Ön Plan Hizmeti İzinleri (Güvenilir arka plan çalışması için önerilir) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Android 12+ için Ön Plan Hizmeti Konum İzni -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" /> 
+    <!-- Android 13+ Bildirim İzni -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    
     
     <application
         android:label="Movliq"
@@ -36,6 +41,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- Foreground Service Tanımı -->
+        <service
+            android:name=".RaceForegroundService" 
+            android:foregroundServiceType="location" 
+            android:exported="false" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
