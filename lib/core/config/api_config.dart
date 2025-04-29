@@ -35,6 +35,10 @@ class ApiConfig {
   static const String resetPasswordVerifiedEndpoint =
       '$baseUrl/User/reset-password-verified';
 
+  // Endpoint to get user activity statistics based on type and period
+  static const String userActivityStatsEndpoint =
+      '$baseUrl/UserResults/GetUserActivityStats';
+
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

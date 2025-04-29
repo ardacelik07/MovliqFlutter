@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 import '../../../../core/config/api_config.dart';
 import '../../../../core/services/storage_service.dart';
 import '../providers/activity_provider.dart';
+import '../providers/activity_stats_provider.dart';
+import '../../domain/models/activity_stats_model.dart';
+import '../widgets/network_error_widget.dart';
 
 // Aktivite tipine göre yarış sonuçlarını çekmek için provider
 final raceResultsProvider =
@@ -334,6 +337,88 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
               ),
             ),
 
+            // ------------ Activity Stats Section ------------
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final statsAsync = ref.watch(activityStatsProvider(
+                    ActivityStatsParams(
+                        type: _selectedType, period: _selectedPeriod),
+                  ));
+
+                  return statsAsync.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFFC4FF62)),
+                      ),
+                    ),
+                    error: (error, stackTrace) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SelectableText.rich(
+                              TextSpan(
+                                children: [
+                                  const TextSpan(
+                                    text: 'İstatistikler yüklenemedi:\n',
+                                    style: TextStyle(
+                                        color: Colors.white, fontSize: 16),
+                                  ),
+                                  TextSpan(
+                                    text: error.toString(),
+                                    style: const TextStyle(
+                                        color: Colors.redAccent, fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 10),
+                            ElevatedButton(
+                              onPressed: () =>
+                                  ref.invalidate(activityStatsProvider(
+                                ActivityStatsParams(
+                                    type: _selectedType,
+                                    period: _selectedPeriod),
+                              )),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFFC4FF62),
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('Tekrar Dene'),
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                    data: (stats) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1F3C18),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatItem('Toplam Mesafe',
+                                '${stats.totalDistance.toStringAsFixed(2)} km'),
+                            _buildStatItem('Ort. Mesafe/dk',
+                                '${stats.avgDistancePerMinute.toStringAsFixed(2)} km/dk'),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            // ------------ End of Activity Stats Section ------------
+
             // Sonuçlar listesi
             Expanded(
               child: activitiesAsync.when(
@@ -612,5 +697,30 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
       'Aralık'
     ];
     return months[month - 1];
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Color(0xFFC4FF62),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
   }
 }
