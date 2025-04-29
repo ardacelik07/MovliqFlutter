@@ -121,8 +121,11 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.monetization_on,
-                                        size: 20, color: Colors.amber),
+                                    Image.asset(
+                                      'assets/images/mCoin.png',
+                                      width: 25,
+                                      height: 25,
+                                    ),
                                     const SizedBox(width: 4),
                                     userDataAsync.when(
                                       data: (userData) => Text(
@@ -134,8 +137,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                         ),
                                       ),
                                       loading: () => const SizedBox(
-                                        width: 20,
-                                        height: 20,
+                                        width: 25,
+                                        height: 25,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           color: lightTextColor,
@@ -358,19 +361,24 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                         mainAxisAlignment: MainAxisAlignment
                                             .end, // Align price to the right
                                         children: [
-                                          const FaIcon(
-                                            FontAwesomeIcons.coins,
-                                            size: 18,
-                                            color: limeGreen,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            product.price.toStringAsFixed(0),
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              color: limeGreen,
-                                            ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                product.price
+                                                    .toStringAsFixed(0),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                  color: limeGreen,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Image.asset(
+                                                'assets/images/mCoin.png',
+                                                width: 25,
+                                                height: 25,
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -587,6 +595,12 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                             fontSize: 14,
                             color: limeGreen,
                           ),
+                        ),
+                        const SizedBox(width: 4),
+                        Image.asset(
+                          'assets/images/mCoin.png',
+                          width: 25,
+                          height: 25,
                         ),
                       ],
                     ),

@@ -703,8 +703,11 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    FaIcon(FontAwesomeIcons.coins,
-                        color: darkTextColor, size: 20),
+                    Image.asset(
+                      'assets/images/mCoin.png',
+                      width: 30,
+                      height: 30,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                         '${NumberFormat("#,##0", "tr_TR").format(product.price)} mCoin - Hemen Al'),

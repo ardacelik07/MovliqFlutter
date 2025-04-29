@@ -1070,7 +1070,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   // Yeni icon stat widget'ı (Updated Style)
   Widget _buildStatIcon({
-    required IconData icon,
+    IconData? icon,
+    Widget? iconWidget,
     required String value,
     required String label,
     required Color iconColor,
@@ -1087,11 +1088,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Colors.white.withOpacity(0.1), // Use provided bg or default
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 20, // Reduced icon size
-            ),
+            child: iconWidget ??
+                Icon(
+                  icon,
+                  color: iconColor,
+                  size: 20, // Reduced icon size
+                ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1156,8 +1158,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             _buildStreakStatIcon(), // Uses its own styling logic
             _buildStatIcon(
-              icon: Icons
-                  .monetization_on_outlined, // Use outlined icon (closer to coin stack)
+              iconWidget: Image.asset(
+                'assets/images/mCoin.png',
+                width: 24,
+                height: 24,
+              ),
               value: userCoinsAsync.toString(), // Value from image
               label: 'Coin', // Label from image
               iconColor: const Color(0xFFFFD700), // Gold color for coin

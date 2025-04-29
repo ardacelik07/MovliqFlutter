@@ -206,8 +206,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                               ),
                               const SizedBox(width: 12),
                               // Coin Icon & Count
-                              const Icon(Icons.monetization_on,
-                                  color: Colors.amber, size: 22),
+                              Image.asset(
+                                'assets/images/mCoin.png',
+                                width: 25,
+                                height: 25,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 userCoins?.toString() ?? '0', // Show coins or 0
@@ -818,8 +821,11 @@ class _ProductCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.monetization_on,
-                          color: Colors.amber, size: 16),
+                      Image.asset(
+                        'assets/images/mCoin.png',
+                        width: 16,
+                        height: 16,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         product.price.toString(), // Use product price

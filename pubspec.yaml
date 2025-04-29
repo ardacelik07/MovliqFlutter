@@ -134,6 +134,7 @@ flutter:
     - assets/images/sifremiunuttum1.png
     - assets/images/sifremiunuttum2.png
     - assets/images/sifremiunuttum3.png
+    - assets/images/mCoin.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
