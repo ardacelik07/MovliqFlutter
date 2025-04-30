@@ -135,6 +135,7 @@ flutter:
     - assets/images/sifremiunuttum2.png
     - assets/images/sifremiunuttum3.png
     - assets/images/mCoin.png
+    - assets/images/iclauncher.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -166,5 +167,5 @@ flutter:
 flutter_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/playstore.png"
+  image_path: "assets/images/iclauncher.png"
   min_sdk_android: 21
