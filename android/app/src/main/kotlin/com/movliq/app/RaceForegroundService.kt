@@ -71,6 +71,9 @@
         private val signalRScope = CoroutineScope(Dispatchers.IO + signalRJob) // IO thread'i
         private val gson = Gson() // JSON parse için Gson instance
 
+        // Liderlik tablosunu tutmak için yeni değişken
+        private var currentLeaderboard: List<Map<String, Any?>> = emptyList()
+
         // --- Service Lifecycle ---
         override fun onCreate() {
             super.onCreate()
@@ -82,23 +85,36 @@
         }
 
         override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-            Log.d("RaceService", "onStartCommand")
-            currentRoomId = intent?.getIntExtra("roomId", -1)?.takeIf { it != -1 }
-            totalDurationSeconds = intent?.getIntExtra("duration", -1)?.takeIf { it > 0 }
+            Log.d("RaceService", "onStartCommand - Intent received: $intent, Extras: ${intent?.extras}") // Intent ve Ekstraları Logla
+            if (intent == null) {
+                Log.e("RaceService", "onStartCommand - Intent is null. Stopping service.")
+                stopSelf()
+                return START_NOT_STICKY
+            }
 
-            if (currentRoomId == null) {
-                 Log.e("RaceService", "roomId is missing in intent. Stopping service.")
+            currentRoomId = intent.getIntExtra("roomId", -1).takeIf { it != -1 }
+            totalDurationSeconds = intent.getIntExtra("duration", -1).takeIf { it > 0 }
+            val token = intent.getStringExtra("token") // Token'ı null check sonrası al
+
+            Log.d("RaceService", "onStartCommand - Extracted values - RoomId: $currentRoomId, Duration: $totalDurationSeconds, Token: $token") // Değerleri logla
+
+            if (currentRoomId == null || token == null || token.isEmpty()) { // isEmpty kontrolü eklendi
+                 Log.e("RaceService", "onStartCommand - RoomId or Token is null/empty after extraction. Stopping service.")
                  stopSelf()
                  return START_NOT_STICKY
             }
-            Log.i("RaceService", "Service started for roomId: $currentRoomId, duration: $totalDurationSeconds")
+            Log.i("RaceService", "Service starting prerequisites met for roomId: $currentRoomId") // Başlama logu
 
             createNotificationChannel()
-            startForeground(NOTIFICATION_ID, createNotification("Movliq Yarış", "Başlatılıyor..."))
+            // İlk bildirimi daha açıklayıcı yapalım
+            startForeground(NOTIFICATION_ID, createNotification("Movliq Yarış Başladı!", "Veriler hesaplanıyor..."))
 
-            setupSignalR()
+            // setupSignalR'ı token ile çağır
+            setupSignalR(token) // Null olmayacağından eminiz
             resetState()
             startTracking()
+            // Takip başladıktan hemen sonra bildirimi güncelle
+            updateNotification()
             connectSignalR()
 
             return START_STICKY
@@ -258,7 +274,8 @@
                         // Periyodik güncelleme
                         val currentData = createCurrentRaceDataMap("running")
                         Log.v("RaceService", "Timer tick. Sending periodic data: $currentData") // Log eklendi (Verbose)
-                        sendDataToFlutter(currentData.filterKeys { it != "leaderboard" })
+                        // Filtreyi kaldırıyoruz, tüm veriyi gönder
+                        sendDataToFlutter(currentData)
                         sendDataToSignalR(currentData)
                         updateNotification()
                         handler.postDelayed(this, 1000)
@@ -370,30 +387,41 @@
 
 
         // --- SignalR ---
-        private fun setupSignalR() {
-            val token = getTokenFromStorage()
-            if (token == null) {
-                Log.e("RaceService", "SignalR setup failed: Token not found")
-                sendErrorToFlutter("Kimlik doğrulama bilgisi bulunamadı.")
-                return
-            }
-             val hubUrl = "http://movliq.mehmetalicakir.tr:5000/racehub"
-            Log.i("RaceService", "Setting up SignalR for URL: $hubUrl") // Log level artırıldı
+        private fun setupSignalR(token: String) {
+            // !! ÖNEMLİ: Token null veya boş ise buraya hiç gelmemeli (onStartCommand kontrolü sayesinde)
+            Log.d("RaceService", "setupSignalR - Method called with non-null/non-empty token: $token")
+
+            val hubUrl = "http://movliq.mehmetalicakir.tr:5000/racehub"
+            Log.i("RaceService", "Setting up SignalR for URL: $hubUrl") // URL Log
             try {
                 hubConnection = HubConnectionBuilder.create(hubUrl)
-                    .withAccessTokenProvider(Single.defer<String> { Single.just(token ?: "") })
+                    .withAccessTokenProvider(Single.defer<String> { Single.just(token) }) // Doğrudan parametre token kullanılır
                     .build()
                 Log.i("RaceService", "HubConnection created.") // Başarı logu
+
+                // !!! LOG 1: .onClosed kurulumundan ÖNCE !!!
+                Log.d("RaceService", "[DEBUG] Reached point before setting up .onClosed listener.")
 
                 hubConnection?.onClosed { error ->
                     Log.e("RaceService", "SignalR Connection closed: ${error?.message}")
                     sendErrorToFlutter("Sunucu bağlantısı kapandı: ${error?.message}")
                 }
 
-                hubConnection?.on("LeaderboardUpdated", { message ->
-                    Log.d("RaceService", "Received LeaderboardUpdated event.")
-                    signalRScope.launch { _handleLeaderboardUpdated(message) }
-                 }, String::class.java)
+                // !!! LOG 2: .onClosed kurulumundan SONRA, .on(LeaderboardUpdated) kurulumundan ÖNCE !!!
+                Log.d("RaceService", "[DEBUG] Reached point after setting up .onClosed, before .on(LeaderboardUpdated).")
+
+                // !!! TEST: Daha genel bir dinleyici kullanalım !!!
+                hubConnection?.on("LeaderboardUpdated", { args ->
+                     // Gelen argümanların tipini ve içeriğini loglayalım
+                     val argTypes = args?.map { it?.javaClass?.name ?: "null" }?.joinToString()
+                     Log.i("RaceService", "[SignalR Event GENERIC] LeaderboardUpdated Callback TRIGGERED! Arg Count: ${args?.size}, Types: [$argTypes], Args: ${args?.contentToString()}")
+
+                     // Şimdilik _handleLeaderboardUpdated çağırmayalım
+                     // if (args != null && args.isNotEmpty() && args[0] is String) {
+                     //    signalRScope.launch { _handleLeaderboardUpdated(args[0] as String) }
+                     // }
+
+                }, Array<Any?>::class.java ) // Array<Any?> olarak almayı dene
 
              } catch (e: Exception) {
                  Log.e("RaceService", "FATAL: Error setting up SignalR HubConnection!", e)
@@ -406,19 +434,30 @@
                 Log.w("RaceService", "Received empty or null leaderboard JSON.")
                 return
             }
-            Log.d("RaceService", "Raw Leaderboard JSON: $leaderboardJson")
+            Log.d("RaceService", "[Leaderboard Handler] Raw JSON received: $leaderboardJson") // Ham JSON'ı logla
             try {
-                val typeToken: Type = object : TypeToken<List<Map<String, Any?>>>() {}.type
-                val leaderboardMapList: List<Map<String, Any?>> = gson.fromJson(leaderboardJson, typeToken)
-                Log.d("RaceService", "Parsed Leaderboard Map List: $leaderboardMapList")
+                // JSON String mi kontrol edelim
+                if (leaderboardJson.startsWith("[") && leaderboardJson.endsWith("]")) {
+                     val typeToken: Type = object : TypeToken<List<Map<String, Any?>>>() {}.type
+                     // !!! YENİ: Gson parse işlemini try-catch içine alalım !!!
+                     try {
+                         val leaderboardMapList: List<Map<String, Any?>> = gson.fromJson(leaderboardJson, typeToken)
+                         Log.d("RaceService", "[Leaderboard Handler] Successfully parsed JSON: $leaderboardMapList") // Başarılı parse logu
 
-                val leaderboardUpdateData = mapOf("leaderboard" to leaderboardMapList)
-                sendDataToFlutter(leaderboardUpdateData)
-                Log.i("RaceService", "Processed and broadcasted leaderboard update.")
+                         // Gelen liderlik tablosunu değişkende sakla
+                         this.currentLeaderboard = leaderboardMapList
+                         Log.i("RaceService", "[Leaderboard Handler] Stored leaderboard update with ${leaderboardMapList.size} participants.")
+                     } catch (gsonError: Exception) {
+                         Log.e("RaceService", "[Leaderboard Handler] GSON parsing error", gsonError)
+                         sendErrorToFlutter("Liderlik tablosu JSON parse hatası: ${gsonError.message}")
+                     }
+                 } else {
+                    Log.w("RaceService", "[Leaderboard Handler] Received data is not a valid JSON array string: $leaderboardJson")
+                 }
 
-            } catch (e: Exception) {
-                Log.e("RaceService", "Error processing leaderboard JSON", e)
-                sendErrorToFlutter("Liderlik tablosu verisi işlenemedi.")
+            } catch (e: Exception) { // Genel try-catch _handleLeaderboardUpdated için
+                Log.e("RaceService", "[Leaderboard Handler] General error processing leaderboard data", e)
+                sendErrorToFlutter("Liderlik tablosu verisi işlenemedi: ${e.message}")
             }
         }
 
@@ -436,9 +475,32 @@
                     return@launch
                 }
                 try {
-                    hubConnection?.start()?.await()
-                    Log.i("RaceService", "### SignalR Connected successfully! State: ${hubConnection?.connectionState} ###")
-                    // JoinRoom çağrısı yok
+                    hubConnection?.start()?.await() // Start connection and wait
+                    Log.i("RaceService", "### SignalR Connected successfully! State after await: ${hubConnection?.connectionState} ###") // Log state AFTER await
+
+                    // !!! YENİ LOG !!! Check if execution reaches here
+                    Log.d("RaceService", "[DEBUG] Code execution reached after start().await()")
+
+                    // Bağlantı başarılı olduktan sonra odaya katıl
+                    if (hubConnection?.connectionState == HubConnectionState.CONNECTED && currentRoomId != null) {
+                        // !!! YENİ LOG !!! Check if condition is met
+                        Log.d("RaceService", "[DEBUG] Connection state is CONNECTED and roomId is not null. Proceeding to JoinRoom.")
+
+                        Log.i("RaceService", "Attempting to join SignalR group: room-$currentRoomId")
+                        try {
+                            // JoinRoom metodunu çağır (await ekleyerek deneyelim)
+                            hubConnection?.invoke("JoinRoom", currentRoomId)?.await()
+                            Log.i("RaceService", "Successfully invoked JoinRoom for room-$currentRoomId")
+                        } catch (joinError: Exception) {
+                            Log.e("RaceService", "Error invoking JoinRoom for room-$currentRoomId", joinError)
+                            sendErrorToFlutter("Sunucu odasına katılım sağlanamadı: ${joinError.message}")
+                        }
+                    } else {
+                        // !!! YENİ LOG !!! Log why JoinRoom is skipped
+                        Log.w("RaceService", "[DEBUG] Skipping JoinRoom. Connection state: ${hubConnection?.connectionState}, RoomId: $currentRoomId")
+                    }
+                    // !!! YENİ LOG !!! Check if execution reaches the end of the try block
+                    Log.d("RaceService", "[DEBUG] Reached end of connectSignalR try block.")
                 } catch (e: Exception) {
                     Log.e("RaceService", "### SignalR Connection failed! ###", e)
                     sendErrorToFlutter("Sunucu bağlantısı kurulamadı (arka plan): ${e.message}")
@@ -499,20 +561,7 @@
          }
 
         // --- Helper Fonksiyonlar ---
-         private fun getTokenFromStorage(): String? {
-            val prefs = applicationContext.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val tokenJson = prefs.getString("flutter.token", null)
-             return try {
-                 if (tokenJson != null) {
-                     JSONObject(tokenJson).getString("token")
-                 } else {
-                     null
-                 }
-             } catch (e: Exception) {
-                 Log.e("RaceService", "Error parsing token from storage", e)
-                 null
-             }
-         }
+         // private fun getTokenFromStorage(): String? { ... } // BU METOT SİLİNDİ
 
          // Yarış verilerini Map olarak oluşturan yardımcı fonksiyon
         private fun createCurrentRaceDataMap(status: String): Map<String, Any?> {
@@ -526,8 +575,15 @@
                 "distanceKm" to totalDistanceMeters / 1000.0,
                 "steps" to totalSteps,
                 "speedKmh" to speedKmh,
+                "leaderboard" to currentLeaderboard, // Liderlik tablosunu ekle
                 "error" to null // Hata yoksa null
             )
+        }
+
+        // --- onBind Method ---
+        override fun onBind(intent: Intent?): IBinder? {
+            // Bu servis bağlanmayı desteklemiyor, null döndür.
+            return null
         }
 
     }

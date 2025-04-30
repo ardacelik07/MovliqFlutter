@@ -39,6 +39,21 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     super.initState();
     log('RaceScreen initState for roomId: ${widget.roomId}',
         name: 'RaceScreen');
+
+    // !!! YENİ EKLENEN KOD BAŞLANGICI !!!
+    // Gecikme olmadan hemen servisi başlatmayı tetikle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      log('RaceScreen: Triggering startRace from initState postFrameCallback',
+          name: 'RaceScreen');
+      ref.read(raceProvider.notifier).startRace(
+            roomId: widget.roomId,
+            // Süreli yarışsa duration'ı da ekleyebiliriz, null değilse
+            duration: widget.raceDuration != null
+                ? Duration(minutes: widget.raceDuration!)
+                : null,
+          );
+    });
+    // !!! YENİ EKLENEN KOD SONU !!!
   }
 
   Future<bool> _checkAndRequestPermissions() async {

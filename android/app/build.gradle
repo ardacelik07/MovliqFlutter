@@ -60,6 +60,9 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-rx2:1.7.3" // Coroutine RxJava2 Interop
     // ================================================
 
+    // LocalBroadcastManager bağımlılığı eklendi
+    implementation "androidx.localbroadcastmanager:localbroadcastmanager:1.1.0"
+
     // Diğer mevcut bağımlılıklarınız varsa buraya eklenir
     // implementation "androidx.core:core-ktx:1.9.0"
     // ...

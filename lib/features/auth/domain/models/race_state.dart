@@ -18,17 +18,33 @@ class RaceParticipant extends Equatable {
     // this.profilePictureUrl,
   });
 
-  // Native taraftan gelen Map'ten parse etmek için factory constructor
+  // Native taraftan gelen Map'ten veya Backend'den gelen Map'ten parse etmek için factory constructor
   factory RaceParticipant.fromJson(Map<String, dynamic> json) {
-    // Anahtarların native taraftan gönderilenlerle EŞLEŞTİĞİNDEN EMİN OLUN!
+    // Anahtarların Native ve Backend'den gelenlerle EŞLEŞTİĞİNDEN EMİN OLUN!
+    // Backend'den büyük harfle (Distance, Steps), Native'den küçük harfle (distanceKm, steps) gelebilir.
     return RaceParticipant(
-      email: json['email'] as String? ?? '',
-      userName: json['userName'] as String? ?? 'Bilinmiyor',
-      // Mesafe birimini kontrol et (km varsayalım)
-      distance: (json['distanceKm'] as num? ?? json['distance'] as num? ?? 0.0)
+      // Email ve UserName genellikle tutarlıdır
+      email: json['email'] as String? ?? json['Email'] as String? ?? '',
+      userName: json['userName'] as String? ??
+          json['UserName'] as String? ??
+          'Bilinmiyor',
+
+      // Mesafe: Önce 'Distance' (Backend), sonra 'distanceKm' (Native), sonra 'distance' (Eski Native?)
+      distance: (json['Distance'] as num? ?? // Backend'den gelen büyük harfli
+              json['distanceKm']
+                  as num? ?? // Native servisten gelen küçük harfli
+              json['distance'] as num? ?? // Eski/Diğer ihtimal
+              0.0)
           .toDouble(),
-      steps: json['steps'] as int? ?? 0,
-      rank: json['rank'] as int? ?? 0,
+
+      // Adım: Önce 'Steps' (Backend), sonra 'steps' (Native)
+      steps: json['Steps'] as int? ?? // Backend'den gelen büyük harfli
+          json['steps'] as int? ?? // Native servisten gelen küçük harfli
+          0,
+
+      // Rank genellikle tutarlıdır
+      rank: json['rank'] as int? ?? json['Rank'] as int? ?? 0,
+
       // profilePictureUrl: json['profilePictureUrl'] as String?,
     );
   }

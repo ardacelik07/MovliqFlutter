@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">movliq.mehmetalicakir.tr</domain>
+        <!-- Başka domainler gerekirse buraya eklenebilir -->
+    </domain-config>
+    <!-- Diğer domainler için varsayılan ayarları korumak iyi olabilir -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

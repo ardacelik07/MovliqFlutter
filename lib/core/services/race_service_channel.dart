@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/services.dart';
 
@@ -15,13 +16,16 @@ class RaceServiceChannel {
   static Future<void> startRaceService({
     Duration? duration,
     required int roomId,
+    required String token,
   }) async {
     try {
-      final Map<String, dynamic> args = {};
+      final Map<String, dynamic> args = {
+        'roomId': roomId,
+        'token': token,
+      };
       if (duration != null) {
         args['duration'] = duration.inSeconds;
       }
-      args['roomId'] = roomId;
 
       await _controlChannel.invokeMethod('start', args);
     } on PlatformException catch (e) {
@@ -48,15 +52,22 @@ class RaceServiceChannel {
   // Servisten gelen veri akışını dinle
   // Dönen veri Map<String, dynamic> formatında olacak
   static Stream<Map<String, dynamic>> get raceUpdateStream {
+    log('[RaceServiceChannel] raceUpdateStream getter accessed. Listening to EventChannel...',
+        name: 'RaceServiceChannel');
     return _updateChannel.receiveBroadcastStream().map((event) {
+      log('[RaceServiceChannel] Received raw event from native: $event',
+          name: 'RaceServiceChannel');
       if (event is String) {
         try {
           // ÖNEMLİ: Dart'ın jsonDecode'u kullanılıyor
           // Native tarafta JSONObject kullandığımız için format uyumlu olmalı
           final Map<String, dynamic> decoded = jsonDecode(event);
+          log('[RaceServiceChannel] Decoded event to Map: $decoded',
+              name: 'RaceServiceChannel');
           return decoded;
         } catch (e) {
-          print("Flutter: Error decoding race update JSON: $e");
+          log("[RaceServiceChannel] Error decoding race update JSON: $e",
+              name: 'RaceServiceChannel');
           // Hatalı JSON gelirse boş map veya hata içeren map dönebiliriz
           return {
             'status': 'error',
@@ -64,7 +75,8 @@ class RaceServiceChannel {
           };
         }
       } else {
-        print("Flutter: Received non-string event from race_updates: $event");
+        log("[RaceServiceChannel] Received non-string event: $event",
+            name: 'RaceServiceChannel');
         // Beklenmedik tip gelirse hata map'i dönelim
         return {'status': 'error', 'error': 'Unexpected data type from native'};
       }

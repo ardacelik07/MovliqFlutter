@@ -422,6 +422,19 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     debugPrint('🚀 1. WaitingRoom -> RaceScreen geçişi başlıyor');
     debugPrint('🚀 2. Mevcut _myUsername değeri: $_myUsername');
 
+    // !!! YENİ EKLENEN KOD BAŞLANGICI !!!
+    // RaceScreen'e gitmeden ÖNCE Flutter SignalR bağlantısını kes
+    try {
+      debugPrint('🔌 Flutter SignalR bağlantısı kesiliyor...');
+      final signalRService = ref.read(signalRServiceProvider);
+      await signalRService.disconnect(); // VEYA resetConnection() ?
+      debugPrint('🔌 Flutter SignalR bağlantısı başarıyla kesildi.');
+    } catch (e) {
+      debugPrint('🔌 Flutter SignalR bağlantısını keserken hata: $e');
+      // Hata olsa bile devam etmeye çalışalım?
+    }
+    // !!! YENİ EKLENEN KOD SONU !!!
+
     // Eğer zaten RaceScreen'e geçiş başladıysa tekrar başlatma
     if (!mounted || _isRaceStarting == false) {
       debugPrint(

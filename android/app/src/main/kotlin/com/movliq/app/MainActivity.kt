@@ -10,6 +10,7 @@
     import androidx.localbroadcastmanager.content.LocalBroadcastManager
     import android.content.BroadcastReceiver
     import android.content.Context
+    import io.flutter.plugin.common.EventChannel
 
 
     class MainActivity: FlutterActivity() {
@@ -32,18 +33,26 @@
                     "start" -> {
                         val duration = call.argument<Int>("duration")
                         val roomId = call.argument<Int>("roomId")
-                        if (roomId == null) {
-                             Log.e("MainActivity", "roomId is null, cannot start service.")
-                             result.error("INVALID_ARGUMENT", "roomId cannot be null", null)
+                        val token = call.argument<String>("token")
+                        Log.d("MainActivity", "[DEBUG] Received arguments - roomId: $roomId, duration: $duration, token: $token")
+
+                        if (roomId == null || token == null || token.isEmpty()) {
+                             Log.e("MainActivity", "roomId or token is null/empty, cannot start service.")
+                             result.error("INVALID_ARGUMENT", "roomId and token cannot be null or empty", null)
                              return@setMethodCallHandler
                         }
-                        Log.d("MainActivity", "Starting service via MethodChannel with roomId: $roomId, duration: $duration")
-                        raceServiceIntent?.putExtra("duration", duration)
-                        raceServiceIntent?.putExtra("roomId", roomId)
+
+                        val intent = Intent(this, RaceForegroundService::class.java).apply {
+                            putExtra("duration", duration)
+                            putExtra("roomId", roomId)
+                            putExtra("token", token)
+                        }
+                        Log.d("MainActivity", "Starting service via MethodChannel with Intent: $intent, Extras: ${intent.extras}")
+
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(raceServiceIntent)
+                            startForegroundService(intent)
                         } else {
-                            startService(raceServiceIntent)
+                            startService(intent)
                         }
                         result.success(null)
                     }
