@@ -12,6 +12,7 @@ import '../../../../core/config/api_config.dart';
 import '../screens/tabs.dart';
 import 'package:my_flutter_project/features/auth/domain/models/room_participant.dart';
 import '../widgets/user_profile_avatar.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -66,6 +67,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       final bool confirm = await _showLeaveConfirmationDialog();
       if (!confirm) return;
     }
+    WakelockPlus.disable();
+    debugPrint('Wakelock disabled for WaitingRoomScreen');
 
     _countdownTimer?.cancel(); // Cancel timer if leaving
 
@@ -181,6 +184,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     _hasStartTime = widget.startTime != null;
     _participants = []; // Boş liste ile başlat
     debugPrint('🔄 WaitingRoom initState - Başlangıç durumu:');
@@ -428,6 +432,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           '🚫 Geçiş zaten başlamış veya widget artık mounted değil. Geçiş iptal edildi.');
       return;
     }
+    WakelockPlus.disable();
+    debugPrint('Wakelock disabled for WaitingRoomScreen');
 
     // Kullanıcı adı null ise, yüklemeyi deneyelim
     if (_myUsername == null) {
@@ -523,6 +529,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   @override
   void dispose() {
     debugPrint('WaitingRoomScreen dispose ediliyor...');
+    WakelockPlus.disable();
+    debugPrint('Wakelock disabled for WaitingRoomScreen');
 
     // Tüm stream subscriptionları temizle
     for (var subscription in _subscriptions) {
