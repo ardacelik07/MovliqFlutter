@@ -5,7 +5,7 @@ class ActivityStatsModel {
   final double? totalDistance;
   final double? avgDistancePerMinute;
   final int? totalSteps;
-  final int? avgStepsPerMinute;
+  final double? avgStepsPerMinute;
 
   const ActivityStatsModel({
     // Required kaldırıldı, null olabilirler
@@ -28,14 +28,14 @@ class ActivityStatsModel {
 
     // Indoor verileri (steps)
     final int? totalSteps = int.tryParse(json['totalSteps']?.toString() ?? '');
-    final int? avgStepsPerMinute =
-        int.tryParse(json['avgStepsPerMinute']?.toString() ?? '');
+    final double? avgStepsPerMinute =
+        double.tryParse(json['avgStepsPerMinute']?.toString() ?? '');
 
     return ActivityStatsModel(
       totalDistance: totalDistance,
       avgDistancePerMinute: avgDistancePerMinute,
       totalSteps: totalSteps,
-      avgStepsPerMinute: avgStepsPerMinute,
+      avgStepsPerMinute: avgStepsPerMinute?.toDouble(),
     );
   }
 

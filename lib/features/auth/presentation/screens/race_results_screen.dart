@@ -553,7 +553,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
     // Outdoor için ek metrik (Mesafe)
     final bool isOutdoor = activity.roomType == 'outdoor';
     final String distanceText = isOutdoor
-        ? '${activity.distancekm.toStringAsFixed(1)} km' // Outdoor ise mesafeyi göster
+        ? '${activity.distancekm.toStringAsFixed(2)} km' // Outdoor ise mesafeyi göster
         : '';
 
     return Container(
