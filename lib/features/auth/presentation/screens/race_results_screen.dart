@@ -546,15 +546,29 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
     final rank = activity.rank ?? 0;
     final rankText = rank > 0 ? '$rank. Sıra' : '-';
 
-    // Ana metrik (Adım sayısı)
-    final steps = activity.steps;
-    final mainMetricText = '$steps Adım';
-
-    // Outdoor için ek metrik (Mesafe)
+    // Ana metrik (Adım sayısı veya Mesafe)
+    final steps = activity.steps; // Adım sayısını al
+    final distance = activity.distancekm; // Mesafeyi al
     final bool isOutdoor = activity.roomType == 'outdoor';
-    final String distanceText = isOutdoor
-        ? '${activity.distancekm.toStringAsFixed(2)} km' // Outdoor ise mesafeyi göster
-        : '';
+
+    String primaryMetricText = '-'; // Varsayılan olarak tire göster
+    String secondaryMetricText = ''; // İkincil metrik başlangıçta boş
+
+    if (isOutdoor) {
+      // Dış Mekan: Ana metrik Mesafe, ikincil metrik Adım
+      primaryMetricText = '${(distance ?? 0.0).toStringAsFixed(2)} km';
+      if (steps != null && steps > 0) {
+        // Adım varsa göster
+        secondaryMetricText = '$steps Adım';
+      }
+    } else {
+      // İç Mekan: Ana metrik Adım
+      if (steps != null && steps >= 0) {
+        // Adım null değilse ve 0 veya daha büyükse göster
+        primaryMetricText = '$steps Adım';
+      }
+      // İç mekan için ikincil metrik yok (veya isterseniz eklenebilir)
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -595,17 +609,18 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                mainMetricText,
+                primaryMetricText, // Hesaplanan ana metriği göster
                 style: const TextStyle(
                   fontSize: 24, // Daha büyük
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-              if (isOutdoor && distanceText.isNotEmpty) ...[
+              if (secondaryMetricText.isNotEmpty) ...[
+                // İkincil metrik varsa göster (sadece outdoor için adım)
                 const SizedBox(width: 8),
                 Text(
-                  distanceText,
+                  secondaryMetricText,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
