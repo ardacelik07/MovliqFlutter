@@ -84,7 +84,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     //  ref.read(userDataProvider.notifier).fetchUserData();
     //});
 
-    // Önce konum iznini kontrol et, sonra adım sayar iznini kontrol et
+    // İzinleri başlat
     _initPermissions();
   }
 
@@ -100,6 +100,23 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   // Tüm izinleri başlatan fonksiyon
   Future<void> _initPermissions() async {
+    // --- Bildirim İzni İsteği (Android 13+) ---
+    if (Platform.isAndroid) {
+      // Cihazın SDK versiyonunu almak için device_info_plus gerekebilir,
+      // ancak permission_handler genellikle bunu kendi içinde yönetir.
+      // Direkt olarak izni isteyebiliriz.
+      final notificationStatus = await Permission.notification.request();
+      print('Bildirim İzin Durumu: $notificationStatus');
+      if (notificationStatus.isPermanentlyDenied) {
+        // Kullanıcı kalıcı olarak reddettiyse ayarlara yönlendirme gösterilebilir.
+        // _showSettingsDialog("Bildirim İzni", "Uygulamanın bildirim gönderebilmesi için izin gereklidir.");
+      } else if (notificationStatus.isDenied) {
+        // Kullanıcı reddettiyse, belki bir açıklama gösterilebilir.
+        print('Bildirim izni reddedildi.');
+      }
+    }
+    // --- Bildirim İzni İsteği Bitişi ---
+
     // Konum servislerinin açık olup olmadığını kontrol et
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -236,15 +253,51 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
     try {
       print('Konum takibi başlatılıyor...');
+
+      // --- Platforma Özel LocationSettings ---
+      LocationSettings locationSettings;
+
+      if (Platform.isAndroid) {
+        locationSettings = AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5,
+          // intervalDuration: const Duration(seconds: 10), // Optional
+          foregroundNotificationConfig: const ForegroundNotificationConfig(
+              notificationText:
+                  "Movliq aktivitenizi kaydederken konumunuzu takip ediyor.",
+              notificationTitle: "Movliq Kayıt Devam Ediyor",
+              enableWakeLock: true,
+              notificationIcon: AndroidResource(
+                  name: 'launcher_icon', defType: 'mipmap') // App icon
+              ),
+        );
+      } else if (Platform.isIOS) {
+        locationSettings = AppleSettings(
+          accuracy: LocationAccuracy.high,
+          activityType: ActivityType.fitness, // Specify activity type
+          distanceFilter: 5,
+          pauseLocationUpdatesAutomatically:
+              false, // Prevent iOS from pausing updates
+          showBackgroundLocationIndicator:
+              true, // Show blue indicator bar on iOS
+        );
+      } else {
+        // Default settings for other platforms
+        locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5,
+        );
+      }
+      // --- Platforma Özel LocationSettings Bitişi ---
+
       // En az 5 metrede bir konum güncellemesi al
       _positionStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 5, // metre cinsinden minimum mesafe değişikliği
-        ),
+        // Güncellenmiş locationSettings'i kullan
+        locationSettings: locationSettings,
       ).listen((Position position) {
         print('Konum güncellendi: ${position.latitude}, ${position.longitude}');
-        if (mounted) {
+        if (mounted && _isRecording && !_isPaused) {
+          // Only update if recording and not paused
           setState(() {
             // Eski konum varsa, iki nokta arasındaki mesafeyi hesapla
             if (_currentPosition != null) {

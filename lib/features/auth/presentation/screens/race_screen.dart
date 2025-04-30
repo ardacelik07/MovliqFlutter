@@ -82,13 +82,23 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     // });
 
     _setupSignalR();
-    _initPermissions(); // Konum ve adım izinlerini başlat
+    _initPermissions(); // Konum, aktivite ve bildirim izinlerini başlat
     _initializeRaceTimer();
     _initializeAntiCheatSystem(); // Hile kontrol sistemini başlat
   }
 
   // Tüm izinleri başlatan fonksiyon
   Future<void> _initPermissions() async {
+    // --- Bildirim İzni İsteği (Android 13+) ---
+    if (Platform.isAndroid) {
+      final notificationStatus = await Permission.notification.request();
+      debugPrint('RaceScreen - Bildirim İzin Durumu: $notificationStatus');
+      // Kalıcı reddetme veya reddetme durumları için ek mantık eklenebilir
+      // if (notificationStatus.isPermanentlyDenied) { ... }
+      // else if (notificationStatus.isDenied) { ... }
+    }
+    // --- Bildirim İzni İsteği Bitişi ---
+
     // Indoor yarış ise sadece adım sayar izni al, GPS izni alma
     if (widget.isIndoorRace) {
       await _checkActivityPermission();
@@ -365,28 +375,60 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     // Indoor yarış ise konum takibini kesinlikle engelle
     if (widget.isIndoorRace) {
       debugPrint('🚫 Indoor yarış - GPS konum takibi tamamen devre dışı');
-      // Eğer bir şekilde başlatılmış olan konum takibi varsa durdur
       _stopLocationUpdates();
       return;
     }
 
-    // Bundan sonraki kod sadece outdoor yarışlarda çalışacak
     if (!_hasLocationPermission) {
       _checkLocationPermission();
       return;
     }
 
-    // Normal konum takibi kodu...
     try {
       debugPrint('Konum takibi başlatılıyor...');
 
-      // RecordScreen ile tamamen aynı:
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
+      // --- Platforma Özel LocationSettings ---
+      LocationSettings locationSettings;
+
+      if (Platform.isAndroid) {
+        locationSettings = AndroidSettings(
           accuracy: LocationAccuracy.high,
           distanceFilter: 5, // RecordScreen ile birebir aynı
-        ),
+          // intervalDuration: const Duration(seconds: 10), // Optional
+          foregroundNotificationConfig: const ForegroundNotificationConfig(
+              notificationText:
+                  "Movliq yarış sırasında konumunuzu takip ediyor.",
+              notificationTitle: "Movliq Yarışı Devam Ediyor",
+              enableWakeLock: true, // CPU'yu uyanık tut
+              notificationIcon: AndroidResource(
+                  name: 'launcher_icon', defType: 'mipmap') // Uygulama ikonu
+              ),
+        );
+      } else if (Platform.isIOS) {
+        locationSettings = AppleSettings(
+          accuracy: LocationAccuracy.high,
+          activityType:
+              ActivityType.fitness, // Fitness aktivitesi olarak belirt
+          distanceFilter: 5, // RecordScreen ile birebir aynı
+          pauseLocationUpdatesAutomatically:
+              false, // Otomatik duraklatmayı kapat
+          showBackgroundLocationIndicator:
+              true, // iOS 11+ mavi durum çubuğu göstergesi
+        );
+      } else {
+        // Diğer platformlar için varsayılan ayarlar
+        locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5, // RecordScreen ile birebir aynı
+        );
+      }
+      // --- Platforma Özel LocationSettings Bitişi ---
+
+      // Konum güncellemelerini dinle
+      _positionStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: locationSettings, // Güncellenmiş ayarları kullan
       ).listen((Position position) {
+        // Sadece yarış aktifse ve widget hala bağlıysa işlem yap
         if (!mounted || !_isRaceActive) return;
 
         debugPrint(
@@ -394,6 +436,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 
         setState(() {
           // Indoor yarış değilse mesafe hesapla
+          // Not: widget.isIndoorRace kontrolü zaten başta yapıldığı için
+          // burada tekrar kontrol etmek gereksiz olabilir ama zarar vermez.
           if (!widget.isIndoorRace && _currentPosition != null) {
             double newDistance = Geolocator.distanceBetween(
               _currentPosition!.latitude,
@@ -410,6 +454,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
           _currentPosition = position;
 
           // Konum güncellemesi gönder
+          // Bu fonksiyon içinde zaten widget.isIndoorRace kontrolü var
           _updateLocation();
         });
       }, onError: (e) {

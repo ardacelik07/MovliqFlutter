@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Android 12+ için Ön Plan Hizmeti Konum İzni -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- CPU'yu uyanık tutmak için gerekli izin -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Android 13+ Bildirim İzni -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     
     <application
         android:label="Movliq"
