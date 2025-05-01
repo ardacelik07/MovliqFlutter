@@ -192,8 +192,15 @@ class RaceNotifier extends _$RaceNotifier {
     }
 
     // Konum takibini başlat (izin varsa ve indoor değilse)
+    debugPrint(
+        '--- RaceNotifier: Checking conditions before starting location updates... Indoor: ${state.isIndoorRace}, LocationPerm: ${state.hasLocationPermission}');
     if (state.hasLocationPermission && !state.isIndoorRace) {
+      debugPrint(
+          '--- RaceNotifier: Conditions met. Calling _startLocationUpdates... ---');
       _startLocationUpdates();
+    } else {
+      debugPrint(
+          '--- RaceNotifier: Conditions NOT met. Skipping _startLocationUpdates. ---');
     }
   }
 
@@ -369,9 +376,13 @@ class RaceNotifier extends _$RaceNotifier {
   }
 
   void _startLocationUpdates() {
+    debugPrint(
+        '--- RaceNotifier: _startLocationUpdates CALLED ---'); // Log start of function
     if (state.isIndoorRace ||
         !state.hasLocationPermission ||
         !state.isRaceActive) {
+      debugPrint(
+          '--- RaceNotifier: _startLocationUpdates - Conditions check failed (indoor/perm/active). Returning. ---');
       return;
     }
     _positionStreamSubscription?.cancel();
@@ -405,9 +416,13 @@ class RaceNotifier extends _$RaceNotifier {
     }
 
     Position? lastPosition;
+    debugPrint(
+        '--- RaceNotifier: About to call Geolocator.getPositionStream... ---'); // Log before stream
     _positionStreamSubscription = Geolocator.getPositionStream(
       locationSettings: locationSettings,
     ).listen((Position position) {
+      debugPrint(
+          '--- RaceNotifier: Received position update from stream. Latitude: ${position.latitude} ---'); // Log inside stream listen
       if (!state.isRaceActive) return;
 
       double newDistancePortion = 0.0;

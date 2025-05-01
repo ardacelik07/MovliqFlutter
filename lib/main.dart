@@ -11,6 +11,7 @@ import 'features/auth/presentation/providers/race_provider.dart'; // RaceNotifie
 import 'features/auth/presentation/screens/race_screen.dart'; // RaceScreen import
 import 'core/theme/app_theme.dart'; // AppTheme import (varsayılan tema için)
 import 'features/auth/presentation/screens/welcome_screen.dart'; // WelcomeScreen import
+import 'features/auth/presentation/screens/finish_race_screen.dart'; // FinishRaceScreen import
 
 // Global navigator anahtarı
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -116,8 +117,40 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         } else {
           debugPrint('[AppLifecycle] Kullanıcı zaten RaceScreende.');
         }
+      } else if (raceState.isRaceFinished) {
+        debugPrint(
+            '[AppLifecycle] Bitmiş yarış tespit edildi. Oda: ${raceState.roomId}');
+        // Check current route
+        String? currentRouteName;
+        navigator.popUntil((route) {
+          currentRouteName = route.settings.name;
+          return true; // Just get the name
+        });
+
+        final bool isOnFinishScreen = currentRouteName == '/finish';
+
+        if (!isOnFinishScreen) {
+          debugPrint(
+              '[AppLifecycle] Kullanıcı FinishScreende değil, yönlendiriliyor...');
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              settings:
+                  const RouteSettings(name: '/finish'), // <-- Set route name
+              builder: (context) => FinishRaceScreen(
+                // Get data from the finished state
+                leaderboard: raceState.leaderboard,
+                myEmail: raceState.userEmail,
+                isIndoorRace: raceState.isIndoorRace,
+                profilePictureCache: raceState.profilePictureCache,
+              ),
+            ),
+            (route) => false,
+          );
+        } else {
+          debugPrint('[AppLifecycle] Kullanıcı zaten FinishScreende.');
+        }
       } else {
-        debugPrint('[AppLifecycle] Aktif yarış yok.');
+        debugPrint('[AppLifecycle] Aktif veya bitmiş yarış yok.');
       }
     } catch (e) {
       debugPrint('[AppLifecycle] Provider container alınırken hata: $e');
@@ -212,6 +245,13 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
               // Route'un var olması için geçici değerler
               roomId: 0,
               // profilePictureCache: const {}, // Removed
+            ),
+        // Add FinishRaceScreen route
+        '/finish': (context) => const FinishRaceScreen(
+              // Placeholder data for route definition
+              leaderboard: [],
+              isIndoorRace: false,
+              profilePictureCache: {},
             ),
         // Diğer route tanımlarınız...
       },
