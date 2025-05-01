@@ -31,6 +31,8 @@ class RaceState with _$RaceState {
 
     // Hile kontrolü
     @Default(0) int violationCount,
+    @Default(false)
+    bool showFirstCheatWarning, // <-- İlk hile uyarısını göstermek için
 
     // Hata durumu
     @Default(null) String? errorMessage,

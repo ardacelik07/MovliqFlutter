@@ -44,7 +44,10 @@ mixin _$RaceState {
   Map<String, String?> get profilePictureCache =>
       throw _privateConstructorUsedError; // <-- Add cache map
 // Hile kontrolü
-  int get violationCount => throw _privateConstructorUsedError; // Hata durumu
+  int get violationCount => throw _privateConstructorUsedError;
+  bool get showFirstCheatWarning =>
+      throw _privateConstructorUsedError; // <-- İlk hile uyarısını göstermek için
+// Hata durumu
   String? get errorMessage => throw _privateConstructorUsedError;
 
   /// Create a copy of RaceState
@@ -78,6 +81,7 @@ abstract class $RaceStateCopyWith<$Res> {
       List<RaceParticipant> leaderboard,
       Map<String, String?> profilePictureCache,
       int violationCount,
+      bool showFirstCheatWarning,
       String? errorMessage});
 }
 
@@ -114,6 +118,7 @@ class _$RaceStateCopyWithImpl<$Res, $Val extends RaceState>
     Object? leaderboard = null,
     Object? profilePictureCache = null,
     Object? violationCount = null,
+    Object? showFirstCheatWarning = null,
     Object? errorMessage = freezed,
   }) {
     return _then(_value.copyWith(
@@ -189,6 +194,10 @@ class _$RaceStateCopyWithImpl<$Res, $Val extends RaceState>
           ? _value.violationCount
           : violationCount // ignore: cast_nullable_to_non_nullable
               as int,
+      showFirstCheatWarning: null == showFirstCheatWarning
+          ? _value.showFirstCheatWarning
+          : showFirstCheatWarning // ignore: cast_nullable_to_non_nullable
+              as bool,
       errorMessage: freezed == errorMessage
           ? _value.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
@@ -224,6 +233,7 @@ abstract class _$$RaceStateImplCopyWith<$Res>
       List<RaceParticipant> leaderboard,
       Map<String, String?> profilePictureCache,
       int violationCount,
+      bool showFirstCheatWarning,
       String? errorMessage});
 }
 
@@ -258,6 +268,7 @@ class __$$RaceStateImplCopyWithImpl<$Res>
     Object? leaderboard = null,
     Object? profilePictureCache = null,
     Object? violationCount = null,
+    Object? showFirstCheatWarning = null,
     Object? errorMessage = freezed,
   }) {
     return _then(_$RaceStateImpl(
@@ -333,6 +344,10 @@ class __$$RaceStateImplCopyWithImpl<$Res>
           ? _value.violationCount
           : violationCount // ignore: cast_nullable_to_non_nullable
               as int,
+      showFirstCheatWarning: null == showFirstCheatWarning
+          ? _value.showFirstCheatWarning
+          : showFirstCheatWarning // ignore: cast_nullable_to_non_nullable
+              as bool,
       errorMessage: freezed == errorMessage
           ? _value.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
@@ -363,6 +378,7 @@ class _$RaceStateImpl implements _RaceState {
       final List<RaceParticipant> leaderboard = const [],
       final Map<String, String?> profilePictureCache = const {},
       this.violationCount = 0,
+      this.showFirstCheatWarning = false,
       this.errorMessage = null})
       : _leaderboard = leaderboard,
         _profilePictureCache = profilePictureCache;
@@ -446,6 +462,10 @@ class _$RaceStateImpl implements _RaceState {
   @override
   @JsonKey()
   final int violationCount;
+  @override
+  @JsonKey()
+  final bool showFirstCheatWarning;
+// <-- İlk hile uyarısını göstermek için
 // Hata durumu
   @override
   @JsonKey()
@@ -453,7 +473,7 @@ class _$RaceStateImpl implements _RaceState {
 
   @override
   String toString() {
-    return 'RaceState(isRaceActive: $isRaceActive, isPreRaceCountdownActive: $isPreRaceCountdownActive, preRaceCountdownValue: $preRaceCountdownValue, roomId: $roomId, raceStartTime: $raceStartTime, raceDuration: $raceDuration, remainingTime: $remainingTime, isIndoorRace: $isIndoorRace, isRaceFinished: $isRaceFinished, hasLocationPermission: $hasLocationPermission, hasPedometerPermission: $hasPedometerPermission, currentDistance: $currentDistance, currentSteps: $currentSteps, initialSteps: $initialSteps, userEmail: $userEmail, leaderboard: $leaderboard, profilePictureCache: $profilePictureCache, violationCount: $violationCount, errorMessage: $errorMessage)';
+    return 'RaceState(isRaceActive: $isRaceActive, isPreRaceCountdownActive: $isPreRaceCountdownActive, preRaceCountdownValue: $preRaceCountdownValue, roomId: $roomId, raceStartTime: $raceStartTime, raceDuration: $raceDuration, remainingTime: $remainingTime, isIndoorRace: $isIndoorRace, isRaceFinished: $isRaceFinished, hasLocationPermission: $hasLocationPermission, hasPedometerPermission: $hasPedometerPermission, currentDistance: $currentDistance, currentSteps: $currentSteps, initialSteps: $initialSteps, userEmail: $userEmail, leaderboard: $leaderboard, profilePictureCache: $profilePictureCache, violationCount: $violationCount, showFirstCheatWarning: $showFirstCheatWarning, errorMessage: $errorMessage)';
   }
 
   @override
@@ -497,6 +517,8 @@ class _$RaceStateImpl implements _RaceState {
                 .equals(other._profilePictureCache, _profilePictureCache) &&
             (identical(other.violationCount, violationCount) ||
                 other.violationCount == violationCount) &&
+            (identical(other.showFirstCheatWarning, showFirstCheatWarning) ||
+                other.showFirstCheatWarning == showFirstCheatWarning) &&
             (identical(other.errorMessage, errorMessage) ||
                 other.errorMessage == errorMessage));
   }
@@ -522,6 +544,7 @@ class _$RaceStateImpl implements _RaceState {
         const DeepCollectionEquality().hash(_leaderboard),
         const DeepCollectionEquality().hash(_profilePictureCache),
         violationCount,
+        showFirstCheatWarning,
         errorMessage
       ]);
 
@@ -554,6 +577,7 @@ abstract class _RaceState implements RaceState {
       final List<RaceParticipant> leaderboard,
       final Map<String, String?> profilePictureCache,
       final int violationCount,
+      final bool showFirstCheatWarning,
       final String? errorMessage}) = _$RaceStateImpl;
 
 // Yarışın genel durumu
@@ -594,7 +618,10 @@ abstract class _RaceState implements RaceState {
   Map<String, String?> get profilePictureCache; // <-- Add cache map
 // Hile kontrolü
   @override
-  int get violationCount; // Hata durumu
+  int get violationCount;
+  @override
+  bool get showFirstCheatWarning; // <-- İlk hile uyarısını göstermek için
+// Hata durumu
   @override
   String? get errorMessage;
 

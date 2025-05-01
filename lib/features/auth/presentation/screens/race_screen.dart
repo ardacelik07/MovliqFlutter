@@ -59,10 +59,22 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
       if (_navigationTriggered) return;
 
       debugPrint(
-          '[RaceScreen Listener] State changed: isRaceFinished=${next.isRaceFinished}, errorMessage=${next.errorMessage}');
+          '[RaceScreen Listener] State changed: isRaceFinished=${next.isRaceFinished}, errorMessage=${next.errorMessage}, showWarning=${next.showFirstCheatWarning}');
 
-      // Check if race finished normally
-      if (next.isRaceFinished == true &&
+      // Check for first cheat warning
+      if (next.showFirstCheatWarning == true &&
+          (previous == null || previous.showFirstCheatWarning == false)) {
+        debugPrint(
+            '[RaceScreen Listener] Showing first cheat warning dialog...');
+        if (mounted) {
+          // Show the first warning dialog
+          _showFirstCheatWarningDialog(context, ref);
+          // Do not navigate yet, just show the dialog
+        }
+      }
+      // Check if race finished normally (ensure no warning is active)
+      else if (next.isRaceFinished == true &&
+          !next.showFirstCheatWarning &&
           (previous == null || previous.isRaceFinished == false)) {
         debugPrint(
             '[RaceScreen Listener] Race finished normally. Navigating to FinishRaceScreen...');
@@ -80,9 +92,12 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
             ),
           );
         }
-      } else if (next.errorMessage != null &&
+      }
+      // Check for error state change (ensure no warning is active)
+      else if (next.errorMessage != null &&
+          !next.showFirstCheatWarning &&
           (previous == null || previous.errorMessage != next.errorMessage)) {
-        // Handle errors
+        // Handle errors (like the second cheat violation)
         debugPrint(
             '[RaceScreen Listener] Error detected: ${next.errorMessage}. Navigating to TabsScreen...');
         if (mounted) {
@@ -305,6 +320,41 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   }
 
   // --- UI Yardımcıları ---
+
+  // --- Yeni Dialog: İlk Hile Uyarısı ---
+  Future<void> _showFirstCheatWarningDialog(
+      BuildContext context, WidgetRef ref) async {
+    // Get the state to display details in the dialog
+    // final state = ref.read(raceNotifierProvider);
+    // final distance = (state.currentDistance - state.lastCheckDistance) * 1000; // Removed
+    // Let's use a generic message for now
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must acknowledge
+      builder: (context) => AlertDialog(
+        title: const Text('Anormal Aktivite Tespit Edildi'),
+        content: const SingleChildScrollView(
+          // Use ScrollView for potentially long text
+          child: Text(
+            'Adım ve mesafe verileriniz arasında bir tutarsızlık tespit edildi. Lütfen adımlarınıza uygun hızda koşmaya devam edin. Tekrarlanan ihlaller yarıştan çıkarılmanıza neden olabilir.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // Dismiss the warning in the notifier state
+              ref
+                  .read(raceNotifierProvider.notifier)
+                  .dismissFirstCheatWarning();
+              Navigator.of(context).pop(); // Close the dialog
+            },
+            child: const Text('Anladım'),
+          ),
+        ],
+      ),
+    );
+  }
 
   // Ayrılma onayı (Notifier'ı çağıracak şekilde güncellendi)
   Future<bool> _showLeaveConfirmationDialog(

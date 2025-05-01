@@ -339,20 +339,32 @@ class RaceNotifier extends _$RaceNotifier {
 
     if (violation) {
       final newViolationCount = state.violationCount + 1;
-      state = state.copyWith(violationCount: newViolationCount);
+      // state = state.copyWith(violationCount: newViolationCount); // Update state later based on count
       debugPrint(
           'RaceNotifier ❌ Hile ihlali tespit edildi: $newViolationCount');
-      if (newViolationCount >= 2) {
-        debugPrint('RaceNotifier: Hile limiti aşıldı, yarıştan atılıyor.');
-        // Kullanıcıyı atma işlemi burada tetiklenmeli (örn. leaveRace çağırılabilir)
-        // Veya UI'a özel bir state gönderilebilir.
+
+      if (newViolationCount == 1) {
+        // First violation: Set flag to show warning
+        debugPrint(
+            'RaceNotifier: First cheat violation detected. Setting warning flag.');
         state = state.copyWith(
-            errorMessage: 'Hile limiti aşıldı.'); // Hata mesajı ekle
-        leaveRace(); // Yarıştan çıkar
-      } else {
-        // İlk ihlalde UI'ı bilgilendirmek için state güncellenebilir
-        // state = state.copyWith(showCheatWarning: true); gibi
+            violationCount: newViolationCount, showFirstCheatWarning: true);
+        // Do not kick yet
+      } else if (newViolationCount >= 2) {
+        // Second violation: Kick the user
+        debugPrint('RaceNotifier: Hile limiti aşıldı, yarıştan atılıyor.');
+        state = state.copyWith(
+            violationCount: newViolationCount,
+            showFirstCheatWarning: false, // Ensure warning flag is off
+            errorMessage:
+                'Anormal aktivite nedeniyle yarıştan çıkarıldınız.' // More specific message
+            );
+        leaveRace(); // Kick the user
       }
+    } else {
+      // Reset violation count if no violation detected in this check?
+      // Or keep it accumulating? Current logic keeps it accumulating.
+      // If reset is needed: state = state.copyWith(violationCount: 0);
     }
 
     _lastCheckDistance = state.currentDistance;
@@ -495,5 +507,13 @@ class RaceNotifier extends _$RaceNotifier {
     _raceEndedSubscription = null;
 
     await WakelockPlus.disable(); // Wakelock'u kapat
+  }
+
+  // --- Yeni Metod: İlk Hile Uyarısını Kapatma ---
+  void dismissFirstCheatWarning() {
+    if (state.showFirstCheatWarning) {
+      debugPrint('RaceNotifier: Dismissing first cheat warning.');
+      state = state.copyWith(showFirstCheatWarning: false);
+    }
   }
 }
