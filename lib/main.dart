@@ -7,6 +7,10 @@ import 'core/services/storage_service.dart';
 import 'core/services/http_interceptor.dart';
 import 'dart:convert';
 import 'features/auth/presentation/providers/user_data_provider.dart'; // Import userDataProvider
+import 'features/auth/presentation/providers/race_provider.dart'; // RaceNotifier Provider import
+import 'features/auth/presentation/screens/race_screen.dart'; // RaceScreen import
+import 'core/theme/app_theme.dart'; // AppTheme import (varsayılan tema için)
+import 'features/auth/presentation/screens/welcome_screen.dart'; // WelcomeScreen import
 
 // Global navigator anahtarı
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -26,7 +30,8 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> {
+// WidgetsBindingObserver ekliyoruz
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _isLoggedIn = false;
 
@@ -34,6 +39,25 @@ class _MyAppState extends ConsumerState<MyApp> {
   void initState() {
     super.initState();
     _checkLoginStatus();
+    // Observer'ı ekle
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    // Observer'ı kaldır
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Uygulama ön plana geldiğinde kontrol et (küçük gecikmeyle)
+      Future.delayed(
+          const Duration(milliseconds: 100), _checkActiveRaceAndNavigate);
+    }
   }
 
   @override
@@ -47,6 +71,60 @@ class _MyAppState extends ConsumerState<MyApp> {
     });
   }
 
+  void _checkActiveRaceAndNavigate() {
+    // Navigator ve context'in hazır olduğundan emin ol
+    final navigator = navigatorKey.currentState;
+    final currentContext = navigatorKey.currentContext;
+    if (navigator == null || currentContext == null) {
+      debugPrint('[AppLifecycle] Navigator or context not ready yet.');
+      return;
+    }
+
+    // Provider container'ını al
+    try {
+      final container = ProviderScope.containerOf(currentContext);
+      final raceState = container.read(raceNotifierProvider);
+
+      if (raceState.isRaceActive || raceState.isPreRaceCountdownActive) {
+        debugPrint(
+            '[AppLifecycle] Aktif yarış tespit edildi. Oda: ${raceState.roomId}');
+
+        // Mevcut route'u kontrol et
+        String? currentRouteName;
+        navigator.popUntil((route) {
+          currentRouteName = route.settings.name;
+          return true; // Sadece ismi al
+        });
+
+        final bool isOnRaceScreen = currentRouteName == '/race';
+
+        if (!isOnRaceScreen) {
+          debugPrint(
+              '[AppLifecycle] Kullanıcı RaceScreende değil, yönlendiriliyor...');
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              settings: const RouteSettings(name: '/race'), // Route'a isim ver
+              builder: (context) => RaceScreen(
+                // Sadece gerekli başlangıç parametreleri
+                roomId: raceState.roomId!,
+                // myUsername artık RaceScreen içinde kullanılmıyor gibi
+                // myUsername: raceState.userEmail?.split('@')[0],
+                profilePictureCache: const {}, // Geçici boş cache
+              ),
+            ),
+            (route) => false,
+          );
+        } else {
+          debugPrint('[AppLifecycle] Kullanıcı zaten RaceScreende.');
+        }
+      } else {
+        debugPrint('[AppLifecycle] Aktif yarış yok.');
+      }
+    } catch (e) {
+      debugPrint('[AppLifecycle] Provider container alınırken hata: $e');
+    }
+  }
+
   Future<void> _checkLoginStatus() async {
     try {
       final bool hasToken = await StorageService.hasToken();
@@ -54,8 +132,8 @@ class _MyAppState extends ConsumerState<MyApp> {
       if (hasToken) {
         final tokenJson = await StorageService.getToken();
         if (tokenJson == null) {
-          // Token var ama okunamıyorsa sil
           await StorageService.deleteToken();
+          if (!mounted) return;
           setState(() {
             _isLoggedIn = false;
             _isLoading = false;
@@ -64,31 +142,30 @@ class _MyAppState extends ConsumerState<MyApp> {
         }
 
         try {
-          // Token'ı parse etmeyi dene
           final tokenData = jsonDecode(tokenJson);
-          if (!tokenData.containsKey('token') || tokenData['token'] == null) {
-            // Token geçersizse sil
+          if (!tokenData.containsKey('token') ||
+              tokenData['token'] == null ||
+              tokenData['token'].isEmpty) {
             await StorageService.deleteToken();
+            if (!mounted) return;
             setState(() {
               _isLoggedIn = false;
               _isLoading = false;
             });
             return;
           }
-          // Token geçerli, kullanıcı giriş yapmış durumda
+          if (!mounted) return;
           setState(() {
-            _isLoggedIn = true; // Set logged in first
+            _isLoggedIn = true;
             _isLoading = false;
           });
-          // Kullanıcı giriş yapmışsa veriyi fetch et
           ref.read(userDataProvider.notifier).fetchUserData();
           ref.read(userDataProvider.notifier).fetchCoins();
-          // Fetch user data
-          return; // Return after successful login check and data fetch initiation
+          return;
         } catch (e) {
-          // Parse hatası varsa tokeni sil
           print('Token parse hatası: $e');
           await StorageService.deleteToken();
+          if (!mounted) return;
           setState(() {
             _isLoggedIn = false;
             _isLoading = false;
@@ -96,7 +173,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           return;
         }
       } else {
-        // No token found, user is not logged in
+        if (!mounted) return;
         setState(() {
           _isLoggedIn = false;
           _isLoading = false;
@@ -104,6 +181,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       }
     } catch (e) {
       print('Login durumu kontrol edilirken hata: $e');
+      if (!mounted) return;
       setState(() {
         _isLoggedIn = false;
         _isLoading = false;
@@ -117,19 +195,27 @@ class _MyAppState extends ConsumerState<MyApp> {
       title: 'Movliq',
       navigatorKey: navigatorKey, // Global navigatorKey'i kullan
       theme: ThemeData(
+        // Orijinal tema yapısı
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
+      initialRoute: '/', // initialRoute tanımlıyoruz
       routes: {
         '/': (context) => _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _isLoggedIn
-                ? const TabsScreen() // Ana ekranı göster (TabsScreen kullanıyoruz)
-                : const LoginScreen(), // Login ekranını göster
+                ? const TabsScreen() // Giriş yapılmışsa TabsScreen
+                : const LoginScreen(), // Giriş yapılmamışsa LoginScreen (orijinaldeki gibi)
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const TabsScreen(),
+        // RaceScreen için route tanımı ekliyoruz
+        '/race': (context) => RaceScreen(
+              // Route'un var olması için geçici değerler
+              roomId: 0,
+              profilePictureCache: const {},
+            ),
+        // Diğer route tanımlarınız...
       },
-      initialRoute: '/',
     );
   }
 }

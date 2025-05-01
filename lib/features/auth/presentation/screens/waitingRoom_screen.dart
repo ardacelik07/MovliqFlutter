@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:my_flutter_project/features/auth/presentation/providers/race_provider.dart'; // RaceNotifier için import
+import 'package:my_flutter_project/features/auth/presentation/providers/race_state.dart'; // RaceState için import
 import 'package:my_flutter_project/features/auth/presentation/screens/race_screen.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/services/storage_service.dart';
@@ -327,25 +329,105 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         }
       }));
 
-      // Yarış başlama olayını dinle ve geri sayım süresi sonunda otomatik geçiş yap
+      // Yarış başlama olayını dinle
       _subscriptions.add(signalRService.raceStartingStream.listen((data) {
-        if (!mounted || _isRaceStarting)
-          return; // Eğer yarış başlama süreci başladıysa çıkış yap
+        debugPrint(
+            '--- WaitingRoom: RaceStarting event RECEIVED --- Data: $data');
 
-        debugPrint('Yarış başlama olayı alındı: $data');
+        if (!mounted) {
+          debugPrint(
+              '--- WaitingRoom: RaceStarting - Widget not mounted, skipping. ---');
+          return;
+        }
+        // Yarış zaten UI tarafında başladıysa tekrar tetikleme (güvenlik)
+        if (_isRaceStarting) {
+          debugPrint(
+              '--- WaitingRoom: RaceStarting - UI already starting, skipping notifier call. ---');
+          return;
+        }
+
         final int roomId = data['roomId'];
-        final int countdownSeconds =
-            data['countdownSeconds'] ?? 10; // Varsayılan 10 saniye
+        final int countdownSeconds = data['countdownSeconds'] ?? 10;
+        debugPrint(
+            '--- WaitingRoom: RaceStarting - Parsed Room ID: $roomId, Countdown: $countdownSeconds ---');
 
         if (roomId == widget.roomId) {
           debugPrint(
-              'Yarış başlıyor: Oda $roomId, $countdownSeconds saniye sonra');
+              '--- WaitingRoom: RaceStarting - Event matches current room ID. ---');
 
-          // Standart yarış başlama süreci - tüm telefonlarda aynı süre
-          _startRaceCountdown(countdownSeconds);
+          // --- DEĞİŞİKLİK: RaceNotifier'ı Tetikle ---
+          final raceNotifier = ref.read(raceNotifierProvider.notifier);
+          final raceSettings = ref.read(raceSettingsProvider);
+          final bool isIndoor =
+              raceSettings.roomType?.toLowerCase().contains('indoor') ?? false;
+          final int durationMinutes =
+              raceSettings.duration ?? 10; // Varsayılan 10 dk
+
+          debugPrint(
+              '--- WaitingRoom: RaceStarting - Preparing to call notifier. Email: $_myEmail, Indoor: $isIndoor, Duration: $durationMinutes ---');
+
+          if (_myEmail == null) {
+            debugPrint(
+                '--- WaitingRoom: HATA - Kullanıcı email bilgisi null! Yarış başlatılamıyor. ---');
+            _showErrorMessage(
+                'Kullanıcı bilgileri yüklenemediği için yarış başlatılamadı.');
+            return;
+          }
+
+          // RaceNotifier üzerinden yarışı başlat
+          debugPrint(
+              '--- WaitingRoom: >>> Calling raceNotifier.startRace... ---');
+          raceNotifier.startRace(
+            roomId: roomId,
+            countdownSeconds: countdownSeconds,
+            raceDurationMinutes: durationMinutes,
+            isIndoorRace: isIndoor,
+            userEmail: _myEmail!,
+          );
+          debugPrint('--- WaitingRoom: raceNotifier.startRace CALLED. ---');
+          // --- DEĞİŞİKLİK SONU ---
+
+          // --- UI GÜNCELLEMESİ (Navigasyon kaldırıldı) ---
+          setState(() {
+            _isRaceStarting = true; // UI'ın yarışın başladığını bilmesi için
+            _countdownSeconds = countdownSeconds; // UI geri sayımı için
+          });
+
+          // UI geri sayım timer'ını başlat
+          _countdownTimer?.cancel();
+          _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+            if (!mounted) {
+              timer.cancel();
+              return;
+            }
+            setState(() {
+              if (_countdownSeconds != null && _countdownSeconds! > 0) {
+                _countdownSeconds = _countdownSeconds! - 1;
+              } else {
+                timer.cancel();
+              }
+            });
+          });
+          debugPrint(
+              '--- WaitingRoom: UI countdown started. Waiting for notifier state change for navigation. ---');
+
+          // ----- NAVİGASYON KODU KALDIRILDI -----
+          /* 
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => RaceScreen(
+                 roomId: widget.roomId, 
+                 myUsername: _myUsername, 
+                 profilePictureCache: Map<String, String?>.from(_profilePictureCache),
+              ),
+            ),
+            (route) => false,
+          );
+          */
+          // --- UI GÜNCELLEMESİ SONU (Navigasyon kaldırıldı) ---
         } else {
           debugPrint(
-              'Başka bir oda için yarış başlıyor: $roomId (bizim oda: ${widget.roomId})');
+              'WaitingRoom: Başka oda için yarış başlıyor: $roomId (bizim oda: ${widget.roomId})');
         }
       }));
     } catch (e) {
@@ -487,10 +569,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             builder: (context) => RaceScreen(
               roomId: widget.roomId,
               myUsername: _myUsername,
-              raceDuration: ref.read(raceSettingsProvider).duration,
               profilePictureCache: Map<String, String?>.from(
                   _profilePictureCache), // Cache'i burada da ekliyoruz
-              isIndoorRace: isIndoorRace, // Indoor/Outdoor tipini iletiyoruz
             ),
           ),
           (route) => false,
@@ -507,11 +587,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                   builder: (context) => RaceScreen(
                     roomId: widget.roomId,
                     myUsername: _myUsername,
-                    raceDuration: ref.read(raceSettingsProvider).duration,
                     profilePictureCache: Map<String, String?>.from(
                         _profilePictureCache), // Cache'i burada da ekliyoruz
-                    isIndoorRace:
-                        isIndoorRace, // Indoor/Outdoor tipini iletiyoruz
                   ),
                 ),
                 (route) => false,
@@ -586,6 +663,44 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // --- Notifier Dinleme ve Navigasyon ---
+    ref.listen<RaceState>(raceNotifierProvider,
+        (RaceState? previousState, RaceState newState) {
+      // newState'in RaceState olduğundan eminiz.
+      // previousState null olabilir (ilk dinleme anında).
+
+      // Yarış durumu aktif hale geldiğinde (geri sayım bittiğinde) kontrol et
+      if (previousState?.isPreRaceCountdownActive == true &&
+          !newState.isPreRaceCountdownActive &&
+          newState.isRaceActive) {
+        debugPrint(
+            '--- WaitingRoom: Notifier state changed to active race. Navigating to RaceScreen... ---');
+
+        if (mounted) {
+          // newState'den roomId null değilse devam et
+          if (newState.roomId == null) {
+            debugPrint(
+                '--- WaitingRoom: HATA - newState.roomId null! Navigasyon yapılamıyor. ---');
+            _showErrorMessage('Yarış bilgileri eksik, ekrana geçilemiyor.');
+            return;
+          }
+
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => RaceScreen(
+                roomId: newState.roomId!,
+                myUsername: _myUsername,
+                profilePictureCache:
+                    Map<String, String?>.from(_profilePictureCache),
+              ),
+            ),
+            (route) => false,
+          );
+        }
+      }
+    });
+    // --- Dinleme Sonu ---
+
     final raceSettings = ref.watch(raceSettingsProvider);
     final String displayActivityType = widget.activityType ??
         (raceSettings.roomType?.toLowerCase().contains('indoor') == true
