@@ -99,20 +99,32 @@ class RaceNotifier extends _$RaceNotifier {
 
   Future<void> leaveRace() async {
     debugPrint('RaceNotifier: Yarıştan ayrılınıyor...');
-    await _cleanup(); // Tüm kaynakları temizle
-    state = const RaceState(); // State'i başlangıç durumuna döndür
 
-    // SignalR'dan da ayrıl
+    // Önce SignalR'dan ayrılmayı dene
     try {
       final signalRService = ref.read(signalRServiceProvider);
       if (signalRService.isConnected && state.roomId != null) {
-        // Yarış aktifken ayrılma veya normal ayrılma metodunu çağırabiliriz.
-        // Şimdilik genel leaveRaceRoom kullanalım.
-        await signalRService.leaveRaceRoom(state.roomId!); // roomId null olamaz
+        debugPrint(
+            'RaceNotifier: Calling signalRService.leaveRoomDuringRace for roomId: ${state.roomId}');
+        // Ayrılma komutunu gönder (sonucu beklemesek de olur, en iyi çaba)
+        signalRService.leaveRoomDuringRace(state.roomId!);
+        debugPrint(
+            'RaceNotifier: leaveRoomDuringRace command sent (fire and forget).');
+      } else {
+        debugPrint(
+            'RaceNotifier: SignalR not connected or roomId is null, skipping leaveRoomDuringRace call.');
       }
     } catch (e) {
-      debugPrint('RaceNotifier: SignalR odasından ayrılırken hata: $e');
+      // SignalR hatası ayrılmayı engellememeli
+      debugPrint(
+          'RaceNotifier: SignalR odasından ayrılırken hata (yoksayılıyor): $e');
     }
+
+    // SignalR denemesinden sonra kaynakları temizle ve state'i sıfırla
+    await _cleanup();
+    state = const RaceState(); // State'i başlangıç durumuna döndür
+    debugPrint(
+        'RaceNotifier: Cleanup finished and state reset after leave attempt.');
   }
 
   // --- İç Yardımcı Metodlar ---

@@ -173,7 +173,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                             'Yarış Başlıyor',
                             style: TextStyle(
                               fontSize: 24,
-                              color: Colors.white70,
+                              color: Color(0xFFC4FF62),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -182,7 +182,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                             raceState.preRaceCountdownValue.toString(),
                             style: const TextStyle(
                                 fontSize: 96,
-                                color: Colors.white,
+                                color: Color(0xFFC4FF62),
                                 fontWeight: FontWeight.bold),
                           ),
                         ],
