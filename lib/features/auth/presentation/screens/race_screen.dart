@@ -87,15 +87,12 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
             '[RaceScreen Listener] Error detected: ${next.errorMessage}. Navigating to TabsScreen...');
         if (mounted) {
           _navigationTriggered = true; // Set flag before navigating
-          _showErrorMessage(context, next.errorMessage!); // Show error
-          Future.delayed(const Duration(seconds: 3), () {
-            if (mounted) {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const TabsScreen()),
-                (route) => false,
-              );
-            }
-          });
+          _showErrorMessage(
+              context, next.errorMessage!); // Show error immediately
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const TabsScreen()),
+            (route) => false,
+          );
         }
       }
     });
