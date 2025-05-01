@@ -19,14 +19,10 @@ import '../providers/race_state.dart';
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
-  final String? myUsername;
-  final Map<String, String?> profilePictureCache;
 
   const RaceScreen({
     super.key,
     required this.roomId,
-    this.myUsername,
-    required this.profilePictureCache,
   });
 
   @override
@@ -79,8 +75,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                     next.leaderboard, // Get latest leaderboard from state
                 myEmail: next.userEmail, // Get email from state
                 isIndoorRace: next.isIndoorRace, // Get type from state
-                profilePictureCache:
-                    Map<String, String?>.from(widget.profilePictureCache),
+                profilePictureCache: next.profilePictureCache,
               ),
             ),
           );
@@ -282,16 +277,12 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                                 itemBuilder: (context, index) {
                                   final participant =
                                       raceState.leaderboard[index];
-                                  // Email karşılaştırması büyük/küçük harf duyarsız olmalı
                                   final bool isMe =
                                       participant.email?.toLowerCase() ==
                                           raceState.userEmail?.toLowerCase();
                                   return ParticipantTile(
                                     participant: participant,
                                     isMe: isMe,
-                                    profilePictureUrl:
-                                        widget.profilePictureCache[
-                                            participant.userName],
                                     isIndoorRace: raceState.isIndoorRace,
                                   );
                                 },
@@ -425,22 +416,25 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   }
 }
 
-class ParticipantTile extends StatelessWidget {
+class ParticipantTile extends ConsumerWidget {
   final RaceParticipant participant;
   final bool isMe;
-  final String? profilePictureUrl;
   final bool isIndoorRace;
 
   const ParticipantTile({
     super.key,
     required this.participant,
     this.isMe = false,
-    this.profilePictureUrl,
     required this.isIndoorRace,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Read the cache from the provider state
+    final profileCache = ref.watch(
+        raceNotifierProvider.select((state) => state.profilePictureCache));
+    final String? profilePicUrl = profileCache[participant.userName];
+
     Color rankColor;
     Color rankTextColor = Colors.black87;
     if (participant.rank == 1) {
@@ -474,7 +468,7 @@ class ParticipantTile extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 UserProfileAvatar(
-                  imageUrl: profilePictureUrl,
+                  imageUrl: profilePicUrl,
                   radius: 25,
                 ),
                 Positioned(

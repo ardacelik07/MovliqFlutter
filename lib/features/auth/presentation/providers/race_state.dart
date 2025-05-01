@@ -27,6 +27,7 @@ class RaceState with _$RaceState {
     @Default(0) int initialSteps, // Adım sayacı başlangıç değeri
     @Default(null) String? userEmail, // Mevcut kullanıcının email'i
     @Default([]) List<RaceParticipant> leaderboard,
+    @Default({}) Map<String, String?> profilePictureCache, // <-- Add cache map
 
     // Hile kontrolü
     @Default(0) int violationCount,

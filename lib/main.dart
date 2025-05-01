@@ -109,7 +109,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
                 roomId: raceState.roomId!,
                 // myUsername artık RaceScreen içinde kullanılmıyor gibi
                 // myUsername: raceState.userEmail?.split('@')[0],
-                profilePictureCache: const {}, // Geçici boş cache
               ),
             ),
             (route) => false,
@@ -212,7 +211,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         '/race': (context) => RaceScreen(
               // Route'un var olması için geçici değerler
               roomId: 0,
-              profilePictureCache: const {},
+              // profilePictureCache: const {}, // Removed
             ),
         // Diğer route tanımlarınız...
       },

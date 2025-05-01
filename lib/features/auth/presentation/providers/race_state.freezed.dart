@@ -40,8 +40,10 @@ mixin _$RaceState {
       throw _privateConstructorUsedError; // Adım sayacı başlangıç değeri
   String? get userEmail =>
       throw _privateConstructorUsedError; // Mevcut kullanıcının email'i
-  List<RaceParticipant> get leaderboard =>
-      throw _privateConstructorUsedError; // Hile kontrolü
+  List<RaceParticipant> get leaderboard => throw _privateConstructorUsedError;
+  Map<String, String?> get profilePictureCache =>
+      throw _privateConstructorUsedError; // <-- Add cache map
+// Hile kontrolü
   int get violationCount => throw _privateConstructorUsedError; // Hata durumu
   String? get errorMessage => throw _privateConstructorUsedError;
 
@@ -74,6 +76,7 @@ abstract class $RaceStateCopyWith<$Res> {
       int initialSteps,
       String? userEmail,
       List<RaceParticipant> leaderboard,
+      Map<String, String?> profilePictureCache,
       int violationCount,
       String? errorMessage});
 }
@@ -109,6 +112,7 @@ class _$RaceStateCopyWithImpl<$Res, $Val extends RaceState>
     Object? initialSteps = null,
     Object? userEmail = freezed,
     Object? leaderboard = null,
+    Object? profilePictureCache = null,
     Object? violationCount = null,
     Object? errorMessage = freezed,
   }) {
@@ -177,6 +181,10 @@ class _$RaceStateCopyWithImpl<$Res, $Val extends RaceState>
           ? _value.leaderboard
           : leaderboard // ignore: cast_nullable_to_non_nullable
               as List<RaceParticipant>,
+      profilePictureCache: null == profilePictureCache
+          ? _value.profilePictureCache
+          : profilePictureCache // ignore: cast_nullable_to_non_nullable
+              as Map<String, String?>,
       violationCount: null == violationCount
           ? _value.violationCount
           : violationCount // ignore: cast_nullable_to_non_nullable
@@ -214,6 +222,7 @@ abstract class _$$RaceStateImplCopyWith<$Res>
       int initialSteps,
       String? userEmail,
       List<RaceParticipant> leaderboard,
+      Map<String, String?> profilePictureCache,
       int violationCount,
       String? errorMessage});
 }
@@ -247,6 +256,7 @@ class __$$RaceStateImplCopyWithImpl<$Res>
     Object? initialSteps = null,
     Object? userEmail = freezed,
     Object? leaderboard = null,
+    Object? profilePictureCache = null,
     Object? violationCount = null,
     Object? errorMessage = freezed,
   }) {
@@ -315,6 +325,10 @@ class __$$RaceStateImplCopyWithImpl<$Res>
           ? _value._leaderboard
           : leaderboard // ignore: cast_nullable_to_non_nullable
               as List<RaceParticipant>,
+      profilePictureCache: null == profilePictureCache
+          ? _value._profilePictureCache
+          : profilePictureCache // ignore: cast_nullable_to_non_nullable
+              as Map<String, String?>,
       violationCount: null == violationCount
           ? _value.violationCount
           : violationCount // ignore: cast_nullable_to_non_nullable
@@ -347,9 +361,11 @@ class _$RaceStateImpl implements _RaceState {
       this.initialSteps = 0,
       this.userEmail = null,
       final List<RaceParticipant> leaderboard = const [],
+      final Map<String, String?> profilePictureCache = const {},
       this.violationCount = 0,
       this.errorMessage = null})
-      : _leaderboard = leaderboard;
+      : _leaderboard = leaderboard,
+        _profilePictureCache = profilePictureCache;
 
 // Yarışın genel durumu
   @override
@@ -415,6 +431,17 @@ class _$RaceStateImpl implements _RaceState {
     return EqualUnmodifiableListView(_leaderboard);
   }
 
+  final Map<String, String?> _profilePictureCache;
+  @override
+  @JsonKey()
+  Map<String, String?> get profilePictureCache {
+    if (_profilePictureCache is EqualUnmodifiableMapView)
+      return _profilePictureCache;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_profilePictureCache);
+  }
+
+// <-- Add cache map
 // Hile kontrolü
   @override
   @JsonKey()
@@ -426,7 +453,7 @@ class _$RaceStateImpl implements _RaceState {
 
   @override
   String toString() {
-    return 'RaceState(isRaceActive: $isRaceActive, isPreRaceCountdownActive: $isPreRaceCountdownActive, preRaceCountdownValue: $preRaceCountdownValue, roomId: $roomId, raceStartTime: $raceStartTime, raceDuration: $raceDuration, remainingTime: $remainingTime, isIndoorRace: $isIndoorRace, isRaceFinished: $isRaceFinished, hasLocationPermission: $hasLocationPermission, hasPedometerPermission: $hasPedometerPermission, currentDistance: $currentDistance, currentSteps: $currentSteps, initialSteps: $initialSteps, userEmail: $userEmail, leaderboard: $leaderboard, violationCount: $violationCount, errorMessage: $errorMessage)';
+    return 'RaceState(isRaceActive: $isRaceActive, isPreRaceCountdownActive: $isPreRaceCountdownActive, preRaceCountdownValue: $preRaceCountdownValue, roomId: $roomId, raceStartTime: $raceStartTime, raceDuration: $raceDuration, remainingTime: $remainingTime, isIndoorRace: $isIndoorRace, isRaceFinished: $isRaceFinished, hasLocationPermission: $hasLocationPermission, hasPedometerPermission: $hasPedometerPermission, currentDistance: $currentDistance, currentSteps: $currentSteps, initialSteps: $initialSteps, userEmail: $userEmail, leaderboard: $leaderboard, profilePictureCache: $profilePictureCache, violationCount: $violationCount, errorMessage: $errorMessage)';
   }
 
   @override
@@ -466,6 +493,8 @@ class _$RaceStateImpl implements _RaceState {
                 other.userEmail == userEmail) &&
             const DeepCollectionEquality()
                 .equals(other._leaderboard, _leaderboard) &&
+            const DeepCollectionEquality()
+                .equals(other._profilePictureCache, _profilePictureCache) &&
             (identical(other.violationCount, violationCount) ||
                 other.violationCount == violationCount) &&
             (identical(other.errorMessage, errorMessage) ||
@@ -473,26 +502,28 @@ class _$RaceStateImpl implements _RaceState {
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      isRaceActive,
-      isPreRaceCountdownActive,
-      preRaceCountdownValue,
-      roomId,
-      raceStartTime,
-      raceDuration,
-      remainingTime,
-      isIndoorRace,
-      isRaceFinished,
-      hasLocationPermission,
-      hasPedometerPermission,
-      currentDistance,
-      currentSteps,
-      initialSteps,
-      userEmail,
-      const DeepCollectionEquality().hash(_leaderboard),
-      violationCount,
-      errorMessage);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        isRaceActive,
+        isPreRaceCountdownActive,
+        preRaceCountdownValue,
+        roomId,
+        raceStartTime,
+        raceDuration,
+        remainingTime,
+        isIndoorRace,
+        isRaceFinished,
+        hasLocationPermission,
+        hasPedometerPermission,
+        currentDistance,
+        currentSteps,
+        initialSteps,
+        userEmail,
+        const DeepCollectionEquality().hash(_leaderboard),
+        const DeepCollectionEquality().hash(_profilePictureCache),
+        violationCount,
+        errorMessage
+      ]);
 
   /// Create a copy of RaceState
   /// with the given fields replaced by the non-null parameter values.
@@ -521,6 +552,7 @@ abstract class _RaceState implements RaceState {
       final int initialSteps,
       final String? userEmail,
       final List<RaceParticipant> leaderboard,
+      final Map<String, String?> profilePictureCache,
       final int violationCount,
       final String? errorMessage}) = _$RaceStateImpl;
 
@@ -557,7 +589,10 @@ abstract class _RaceState implements RaceState {
   @override
   String? get userEmail; // Mevcut kullanıcının email'i
   @override
-  List<RaceParticipant> get leaderboard; // Hile kontrolü
+  List<RaceParticipant> get leaderboard;
+  @override
+  Map<String, String?> get profilePictureCache; // <-- Add cache map
+// Hile kontrolü
   @override
   int get violationCount; // Hata durumu
   @override

@@ -383,6 +383,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             raceDurationMinutes: durationMinutes,
             isIndoorRace: isIndoor,
             userEmail: _myEmail!,
+            initialProfileCache:
+                Map<String, String?>.from(_profilePictureCache),
           );
           debugPrint('--- WaitingRoom: raceNotifier.startRace CALLED. ---');
           // --- DEĞİŞİKLİK SONU ---
@@ -568,9 +570,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           MaterialPageRoute(
             builder: (context) => RaceScreen(
               roomId: widget.roomId,
-              myUsername: _myUsername,
-              profilePictureCache: Map<String, String?>.from(
-                  _profilePictureCache), // Cache'i burada da ekliyoruz
+              // myUsername: _myUsername, // Removed
+              // profilePictureCache: Map<String, String?>.from(_profilePictureCache), // Removed
             ),
           ),
           (route) => false,
@@ -586,9 +587,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                 MaterialPageRoute(
                   builder: (context) => RaceScreen(
                     roomId: widget.roomId,
-                    myUsername: _myUsername,
-                    profilePictureCache: Map<String, String?>.from(
-                        _profilePictureCache), // Cache'i burada da ekliyoruz
+                    // myUsername: _myUsername, // Removed
+                    // profilePictureCache: Map<String, String?>.from(_profilePictureCache), // Removed
                   ),
                 ),
                 (route) => false,
@@ -689,9 +689,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             MaterialPageRoute(
               builder: (context) => RaceScreen(
                 roomId: newState.roomId!,
-                myUsername: _myUsername,
-                profilePictureCache:
-                    Map<String, String?>.from(_profilePictureCache),
+                // myUsername: _myUsername, // Removed as it's in state
+                // profilePictureCache: Map<String, String?>.from(_profilePictureCache), // Removed
               ),
             ),
             (route) => false,

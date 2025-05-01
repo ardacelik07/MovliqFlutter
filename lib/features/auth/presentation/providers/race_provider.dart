@@ -55,6 +55,7 @@ class RaceNotifier extends _$RaceNotifier {
     required int raceDurationMinutes,
     required bool isIndoorRace,
     required String userEmail, // Kullanıcı email'ini başta alalım
+    required Map<String, String?> initialProfileCache, // <-- Add cache param
   }) async {
     debugPrint(
         '--- RaceNotifier: startRace CALLED --- Room: $roomId, Countdown: $countdownSeconds, Duration: $raceDurationMinutes, Indoor: $isIndoorRace, Email: $userEmail'); // <-- YENİ LOG
@@ -87,6 +88,7 @@ class RaceNotifier extends _$RaceNotifier {
       userEmail: userEmail,
       hasLocationPermission: hasLocation,
       hasPedometerPermission: hasActivity,
+      profilePictureCache: initialProfileCache, // <-- Store the cache
     );
     debugPrint(
         '--- RaceNotifier: Initial state SET --- State: $state'); // <-- YENİ LOG
