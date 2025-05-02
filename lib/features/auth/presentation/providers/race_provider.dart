@@ -131,11 +131,22 @@ class RaceNotifier extends _$RaceNotifier {
           'RaceNotifier: SignalR odasından ayrılırken hata (yoksayılıyor): $e');
     }
 
-    // SignalR denemesinden sonra kaynakları temizle ve state'i sıfırla
+    // SignalR denemesinden sonra kaynakları temizle
     await _cleanup(); // Ensure cleanup awaits if it's async
-    state = const RaceState(); // State'i başlangıç durumuna döndür
+
+    // --- DEĞİŞİKLİK: State'i resetlemek yerine hata mesajı ayarla ---
+    state = state.copyWith(
+        isRaceActive: false,
+        isPreRaceCountdownActive: false,
+        errorMessage: 'Yarıştan ayrıldınız.', // Ayrılma durumunu belirt
+        isRaceFinished: false, // Yarış normal bitmedi
+        showFirstCheatWarning: false // Uyarıyı temizle
+        );
+    // state = const RaceState(); // ESKİ: State'i başlangıç durumuna döndür
+    // --- DEĞİŞİKLİK SONU ---\n\n    debugPrint(\n        \'RaceNotifier: Cleanup finished and state updated for leaving race.\');\n  }\n\n  // ... (diğer metodlar) ...\n\n  // --- Yeni Metod: İlk Hile Uyarısını Kapatma --- \n  void dismissFirstCheatWarning() {\n    if (state.showFirstCheatWarning) {\n      debugPrint(\'RaceNotifier: Dismissing first cheat warning.\');\n      // --- DEĞİŞİKLİK: Uyarıyı kapatırken yarışın bitip bitmediğini kontrol et --- \n      final bool raceActuallyFinished = state.isRaceActive && state.remainingTime <= Duration.zero;\n      if (raceActuallyFinished) {\n         debugPrint(\'RaceNotifier: Warning dismissed, but race had already finished. Triggering race end.\');\n         // Uyarıyı kapat ve yarışı bitir\n         state = state.copyWith(showFirstCheatWarning: false);\n         _handleRaceEnd(); // Yarış bitirme mantığını tetikle\n      } else {\n         // Sadece uyarıyı kapat\n         state = state.copyWith(showFirstCheatWarning: false);\n      }\n      // --- DEĞİŞİKLİK SONU ---\n    }\n  }\n
+
     debugPrint(
-        'RaceNotifier: Cleanup finished and state reset after leave attempt.');
+        'RaceNotifier: Cleanup finished and state updated for leaving race.');
   }
 
   // --- İç Yardımcı Metodlar ---
@@ -704,7 +715,20 @@ class RaceNotifier extends _$RaceNotifier {
   void dismissFirstCheatWarning() {
     if (state.showFirstCheatWarning) {
       debugPrint('RaceNotifier: Dismissing first cheat warning.');
-      state = state.copyWith(showFirstCheatWarning: false);
+      // --- DEĞİŞİKLİK: Uyarıyı kapatırken yarışın bitip bitmediğini kontrol et ---
+      final bool raceActuallyFinished =
+          state.isRaceActive && state.remainingTime <= Duration.zero;
+      if (raceActuallyFinished) {
+        debugPrint(
+            'RaceNotifier: Warning dismissed, but race had already finished. Triggering race end.');
+        // Uyarıyı kapat ve yarışı bitir
+        state = state.copyWith(showFirstCheatWarning: false);
+        _handleRaceEnd(); // Yarış bitirme mantığını tetikle
+      } else {
+        // Sadece uyarıyı kapat
+        state = state.copyWith(showFirstCheatWarning: false);
+      }
+      // --- DEĞİŞİKLİK SONU ---
     }
   }
 }

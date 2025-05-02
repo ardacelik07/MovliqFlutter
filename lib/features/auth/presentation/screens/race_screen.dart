@@ -61,20 +61,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
       debugPrint(
           '[RaceScreen Listener] State changed: isRaceFinished=${next.isRaceFinished}, errorMessage=${next.errorMessage}, showWarning=${next.showFirstCheatWarning}');
 
-      // Check for first cheat warning
-      if (next.showFirstCheatWarning == true &&
-          (previous == null || previous.showFirstCheatWarning == false)) {
-        debugPrint(
-            '[RaceScreen Listener] Showing first cheat warning dialog...');
-        if (mounted) {
-          // Show the first warning dialog
-          _showFirstCheatWarningDialog(context, ref);
-          // Do not navigate yet, just show the dialog
-        }
-      }
-      // Check if race finished normally (ensure no warning is active)
-      else if (next.isRaceFinished == true &&
-          !next.showFirstCheatWarning &&
+      // --- GÜNCELLENMİŞ NAVİGASYON MANTIĞI ---
+
+      // 1. Yarış Bitti mi? (Uyarıdan bağımsız kontrol et)
+      if (next.isRaceFinished == true &&
           (previous == null || previous.isRaceFinished == false)) {
         debugPrint(
             '[RaceScreen Listener] Race finished normally. Navigating to FinishRaceScreen...');
@@ -83,33 +73,55 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => FinishRaceScreen(
-                leaderboard:
-                    next.leaderboard, // Get latest leaderboard from state
-                myEmail: next.userEmail, // Get email from state
-                isIndoorRace: next.isIndoorRace, // Get type from state
+                leaderboard: next.leaderboard,
+                myEmail: next.userEmail,
+                isIndoorRace: next.isIndoorRace,
                 profilePictureCache: next.profilePictureCache,
               ),
             ),
           );
+          return; // Bitiş navigasyonu yapıldı, diğer kontrolleri atla
         }
       }
-      // Check for error state change (ensure no warning is active)
-      else if (next.errorMessage != null &&
-          !next.showFirstCheatWarning &&
+
+      // 2. Hata veya Ayrılma Durumu mu Var?
+      if (next.errorMessage != null &&
           (previous == null || previous.errorMessage != next.errorMessage)) {
-        // Handle errors (like the second cheat violation)
-        debugPrint(
-            '[RaceScreen Listener] Error detected: ${next.errorMessage}. Navigating to TabsScreen...');
+        // Hata mesajını göster (Ayrılma mesajı da olabilir)
         if (mounted) {
-          _navigationTriggered = true; // Set flag before navigating
-          _showErrorMessage(
-              context, next.errorMessage!); // Show error immediately
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const TabsScreen()),
-            (route) => false,
-          );
+          _showErrorMessage(context,
+              next.errorMessage!); // Show error/leave message immediately
+        }
+
+        // Eğer hata mesajı ayrılma kaynaklı değilse (örneğin hile) VEYA ayrılma mesajı ise ve uyarı aktif değilse, TabsScreen'e git
+        // Not: Hile durumunda zaten leaveRace çağrılıyor ve errorMessage ayarlanıyor.
+        if (!next.showFirstCheatWarning) {
+          // Eğer ilk uyarı aktif DEĞİLSE git
+          debugPrint(
+              '[RaceScreen Listener] Error/Leave detected: ${next.errorMessage}. Navigating to TabsScreen...');
+          if (mounted) {
+            _navigationTriggered = true; // Set flag before navigating
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const TabsScreen()),
+              (route) => false,
+            );
+            return; // Hata/Ayrılma navigasyonu yapıldı
+          }
         }
       }
+
+      // 3. İlk Hile Uyarısı mı Var? (Yarış bitmediyse ve hata/ayrılma yoksa)
+      if (next.showFirstCheatWarning == true &&
+          (previous == null || previous.showFirstCheatWarning == false)) {
+        debugPrint(
+            '[RaceScreen Listener] Showing first cheat warning dialog...');
+        if (mounted) {
+          // Show the first warning dialog
+          _showFirstCheatWarningDialog(context, ref);
+          // Navigasyon yapma, sadece dialog göster
+        }
+      }
+      // --- GÜNCELLENMİŞ NAVİGASYON MANTIĞI SONU ---
     });
 
     return WillPopScope(
@@ -400,16 +412,17 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     if (result == true) {
       debugPrint('Kullanıcı yarıştan ayrılmayı onayladı.');
       await raceNotifier.leaveRace(); // Notifier üzerinden ayrıl
-      // Notifier state'i resetleyeceği için UI otomatik güncellenebilir
-      // veya burada TabsScreen'e yönlendirme yapılabilir.
-      if (context.mounted) {
-        // Navigator kullanmadan önce context kontrolü
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const TabsScreen()),
-          (route) => false,
-        );
-      }
-      return true; // Geri tuşunun işlemi yapmasını engelle
+
+      // --- MANUEL NAVİGASYON KALDIRILDI ---
+      // if (context.mounted) {
+      //   Navigator.of(context).pushAndRemoveUntil(
+      //     MaterialPageRoute(builder: (context) => const TabsScreen()),
+      //     (route) => false,
+      //   );
+      // }
+      // --- MANUEL NAVİGASYON KALDIRILDI SONU ---
+
+      return true; // Geri tuşunun işlemi yapmasını engelle (ayrılma başlatıldı)
     } else {
       _leaveConfirmationShown =
           false; // Kullanıcı hayır dedi veya dialog kapandı
