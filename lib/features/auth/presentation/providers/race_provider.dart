@@ -371,53 +371,85 @@ class RaceNotifier extends _$RaceNotifier {
     if (!isMoving) {
       metValue = 1.0; // Dinlenme MET
     } else {
-      // Hıza göre Yürüme ve Koşu MET değerleri (Compendium'dan yaklaşık değerler)
-      // Yürüme hızları genellikle 6.4 km/h (4 mph) altındadır.
-      if (currentPaceKmH < 3.2) {
-        // ~2.0 mph (Slow walking)
-        metValue = 2.0;
-      } else if (currentPaceKmH < 4.8) {
-        // ~3.0 mph (Moderate walking)
-        metValue = 3.0; // veya 3.5 (brisk)
-      } else if (currentPaceKmH < 6.4) {
-        // ~4.0 mph (Very brisk walking)
-        metValue = 3.8; // veya 5.0 (very very brisk/race walking pace start)
-      }
-      // Koşu hızları
-      else if (currentPaceKmH < 8.0) {
-        // ~5.0 mph (Light jog)
-        metValue = 8.3;
-      } else if (currentPaceKmH < 9.7) {
-        // ~6.0 mph (Moderate run)
-        metValue = 9.8;
-      } else if (currentPaceKmH < 11.3) {
-        // ~7.0 mph
-        metValue = 11.0;
-      } else if (currentPaceKmH < 12.9) {
-        // ~8.0 mph
-        metValue = 11.8;
-      } else if (currentPaceKmH < 14.5) {
-        // ~9.0 mph
-        metValue = 12.8;
-      } else if (currentPaceKmH < 16.0) {
-        // ~10.0 mph
-        metValue = 14.5;
-      } else if (currentPaceKmH < 17.5) {
-        // ~11.0 mph
-        metValue = 16.0;
-      } else {
-        // ~12.0 mph+
-        metValue = 19.0;
-      }
+      // Aktivite tipine göre MET belirle
+      if (state.isIndoorRace) {
+        // İç Mekan: Adım sıklığına (kadans) göre MET belirle
+        double cadence = 0;
+        if (elapsedSeconds > 0) {
+          cadence = stepsDifference * (60 / elapsedSeconds);
+        }
+        debugPrint(
+            'Calorie Calc (Indoor) - Cadence: ${cadence.toStringAsFixed(1)} steps/min');
 
-      // Indoor/Outdoor farkı (şimdilik basit bir ayarlama, ileride geliştirilebilir)
-      // Örneğin, iç mekanda hava direncı vb. olmadığı için MET biraz düşürülebilir.
-      // Ancak hız verisi iç mekanda genellikle daha az güvenilir olabilir.
-      // Şimdilik iç/dış mekan için aynı MET değerlerini kullanıyoruz.
-      // if (state.isIndoorRace && metValue > 1.0) metValue *= 0.9; // Örnek: Indoor %10 daha az?
+        if (cadence <= 0) {
+          metValue = 1.0; // Hareket yok veya hata
+        } else if (cadence < 80) {
+          // Çok yavaş yürüme
+          metValue = 2.5;
+        } else if (cadence < 100) {
+          // Normal yürüme
+          metValue = 3.0;
+        } else if (cadence < 120) {
+          // Tempolu yürüme / Çok hafif jog
+          metValue = 3.8;
+        } else if (cadence < 140) {
+          // Hafif Jog / Kolay Koşu
+          metValue = 6.0;
+        } else if (cadence < 160) {
+          // Orta tempo koşu
+          metValue = 8.3; // 8.0 - 9.0 aralığı olabilir
+        } else if (cadence < 180) {
+          // Hızlı koşu
+          metValue = 10.0; // 9.8 - 11.0 aralığı olabilir
+        } else {
+          // Çok hızlı koşu / Sprint
+          metValue = 11.8; // 11.5+ olabilir
+        }
+        debugPrint(
+            'Calorie Calc (Indoor) - Determined MET: $metValue based on Cadence');
+      } else {
+        // Dış Mekan: GPS hızına göre MET belirle (Mevcut mantık)
+        if (currentPaceKmH < 3.2) {
+          // ~2.0 mph (Slow walking)
+          metValue = 2.0;
+        } else if (currentPaceKmH < 4.8) {
+          // ~3.0 mph (Moderate walking)
+          metValue = 3.0; // veya 3.5 (brisk)
+        } else if (currentPaceKmH < 6.4) {
+          // ~4.0 mph (Very brisk walking)
+          metValue = 3.8; // veya 5.0 (very very brisk/race walking pace start)
+        }
+        // Koşu hızları
+        else if (currentPaceKmH < 8.0) {
+          // ~5.0 mph (Light jog)
+          metValue = 8.3;
+        } else if (currentPaceKmH < 9.7) {
+          // ~6.0 mph (Moderate run)
+          metValue = 9.8;
+        } else if (currentPaceKmH < 11.3) {
+          // ~7.0 mph
+          metValue = 11.0;
+        } else if (currentPaceKmH < 12.9) {
+          // ~8.0 mph
+          metValue = 11.8;
+        } else if (currentPaceKmH < 14.5) {
+          // ~9.0 mph
+          metValue = 12.8;
+        } else if (currentPaceKmH < 16.0) {
+          // ~10.0 mph
+          metValue = 14.5;
+        } else if (currentPaceKmH < 17.5) {
+          // ~11.0 mph
+          metValue = 16.0;
+        } else {
+          // ~12.0 mph+
+          metValue = 19.0;
+        }
+        debugPrint(
+            'Calorie Calc (Outdoor) - Determined MET: $metValue based on Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+      }
     }
-    debugPrint(
-        'Calorie Calc - Determined MET: $metValue based on Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+    //debugPrint('Calorie Calc - Determined MET: $metValue based on Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h'); // Eski log yerine yukarıdakiler geldi
 
     // 4. Toplam Kaloriyi Hesapla (BMR * MET * Süre)
     // BMR günlük kalori, saniyeliğe çevirip MET ve süre ile çarp
