@@ -287,9 +287,9 @@ class RaceNotifier extends _$RaceNotifier {
   // Kalori Hesaplama Başlatma
   void _initializeCalorieCalculation() {
     _calorieCalculationTimer?.cancel();
-    // Örneğin her 10 saniyede bir hesapla
+    // Her 5 saniyede bir hesapla
     _calorieCalculationTimer =
-        Timer.periodic(const Duration(seconds: 10), (timer) {
+        Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!state.isRaceActive) {
         timer.cancel();
         _calorieCalculationTimer = null;
@@ -313,8 +313,8 @@ class RaceNotifier extends _$RaceNotifier {
 
     final elapsedSeconds =
         now.difference(_lastCalorieCalculationTime!).inSeconds;
-    if (elapsedSeconds < 9)
-      return; // Avoid rapid recalculation (min 10 sec interval)
+    // Minimum süreyi 4 saniyeye düşürelim (5 saniyelik periyot için)
+    if (elapsedSeconds < 4) return; // Avoid rapid recalculation
 
     final distanceDifference =
         state.currentDistance - _lastCalorieCheckDistance;
