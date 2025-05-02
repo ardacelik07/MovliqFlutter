@@ -324,44 +324,120 @@ class RaceNotifier extends _$RaceNotifier {
         ? (distanceDifference) / (elapsedSeconds / 3600.0)
         : 0;
 
-    // UserDataProvider'dan kullanıcı verilerini al (asenkron değil, direkt okuma)
-    // Not: Eğer UserDataProvider henüz yüklenmediyse veya hata verdiyse,
-    // fallback mantığına geçilecek.
+    // --- Geliştirilmiş Kalori Hesaplama Başlangıcı ---
+
+    // 1. Kullanıcı Verilerini Al (Varsayılan Değerlerle)
     final userData = ref.read(userDataProvider).value;
-    double weight = 70.0; // Default weight
-    if (userData != null && userData.weight != null && userData.weight! > 0) {
-      weight = userData.weight!;
+    double weightKg = 70.0; // Varsayılan kilo
+    double heightCm = 170.0; // Varsayılan boy
+    int ageYears = 25; // Varsayılan yaş
+    String gender = 'male'; // Varsayılan cinsiyet (veya 'female')
+
+    if (userData != null) {
+      weightKg = (userData.weight != null && userData.weight! > 0)
+          ? userData.weight!
+          : weightKg;
+      heightCm = (userData.height != null && userData.height! > 0)
+          ? userData.height!
+          : heightCm;
+      ageYears = (userData.age != null && userData.age! > 0)
+          ? userData.age!
+          : ageYears;
+      // Cinsiyet verisinin nasıl saklandığına bağlı olarak kontrol et ('male'/'female', 'erkek'/'kadın' vb.)
+      // Şimdilik 'gender' alanının 'male' veya 'female' string'i içerdiğini varsayalım.
+      gender = userData.gender?.toLowerCase() == 'female' ? 'female' : 'male';
+      debugPrint(
+          'Calorie Calc - User Data: Weight=$weightKg, Height=$heightCm, Age=$ageYears, Gender=$gender');
+    } else {
+      debugPrint('Calorie Calc - Using default user data.');
     }
 
-    // MET değeri belirleme (RecordScreen'deki gibi)
-    // TODO: Bu MET değerlerini daha doğru bir kaynaktan almak iyi olur.
+    // 2. Bazal Metabolizma Hızını (BMR) Hesapla (Mifflin-St Jeor)
+    double bmr;
+    if (gender == 'female') {
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) - 161;
+    } else {
+      // male or default
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) + 5;
+    }
+    // Negatif BMR olmasını engelle
+    if (bmr < 0) bmr = 0;
+    debugPrint(
+        'Calorie Calc - Calculated BMR (per day): ${bmr.toStringAsFixed(2)}');
+
+    // 3. Aktivite Yoğunluğuna Göre MET Değeri Belirle (İyileştirilmiş)
+    // Compendium of Physical Activities referans alınabilir.
     double metValue;
     if (!isMoving) {
-      metValue = 1.0; // Resting MET
+      metValue = 1.0; // Dinlenme MET
     } else {
-      // Yarış her zaman koşu olarak kabul edilebilir veya state'e tip eklenmeli
-      // Şimdilik Running varsayalım
-      if (currentPaceKmH < 6.5)
-        metValue = 6.0;
-      else if (currentPaceKmH < 8.0)
+      // Hıza göre Yürüme ve Koşu MET değerleri (Compendium'dan yaklaşık değerler)
+      // Yürüme hızları genellikle 6.4 km/h (4 mph) altındadır.
+      if (currentPaceKmH < 3.2) {
+        // ~2.0 mph (Slow walking)
+        metValue = 2.0;
+      } else if (currentPaceKmH < 4.8) {
+        // ~3.0 mph (Moderate walking)
+        metValue = 3.0; // veya 3.5 (brisk)
+      } else if (currentPaceKmH < 6.4) {
+        // ~4.0 mph (Very brisk walking)
+        metValue = 3.8; // veya 5.0 (very very brisk/race walking pace start)
+      }
+      // Koşu hızları
+      else if (currentPaceKmH < 8.0) {
+        // ~5.0 mph (Light jog)
         metValue = 8.3;
-      else if (currentPaceKmH < 10.0)
-        metValue = 10.0;
-      else if (currentPaceKmH < 12.0)
-        metValue = 11.5;
-      else
+      } else if (currentPaceKmH < 9.7) {
+        // ~6.0 mph (Moderate run)
+        metValue = 9.8;
+      } else if (currentPaceKmH < 11.3) {
+        // ~7.0 mph
+        metValue = 11.0;
+      } else if (currentPaceKmH < 12.9) {
+        // ~8.0 mph
+        metValue = 11.8;
+      } else if (currentPaceKmH < 14.5) {
+        // ~9.0 mph
         metValue = 12.8;
-    }
+      } else if (currentPaceKmH < 16.0) {
+        // ~10.0 mph
+        metValue = 14.5;
+      } else if (currentPaceKmH < 17.5) {
+        // ~11.0 mph
+        metValue = 16.0;
+      } else {
+        // ~12.0 mph+
+        metValue = 19.0;
+      }
 
-    double hours = elapsedSeconds / 3600.0;
-    int newCalories = (weight * metValue * hours).round();
+      // Indoor/Outdoor farkı (şimdilik basit bir ayarlama, ileride geliştirilebilir)
+      // Örneğin, iç mekanda hava direncı vb. olmadığı için MET biraz düşürülebilir.
+      // Ancak hız verisi iç mekanda genellikle daha az güvenilir olabilir.
+      // Şimdilik iç/dış mekan için aynı MET değerlerini kullanıyoruz.
+      // if (state.isIndoorRace && metValue > 1.0) metValue *= 0.9; // Örnek: Indoor %10 daha az?
+    }
+    debugPrint(
+        'Calorie Calc - Determined MET: $metValue based on Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+
+    // 4. Toplam Kaloriyi Hesapla (BMR * MET * Süre)
+    // BMR günlük kalori, saniyeliğe çevirip MET ve süre ile çarp
+    double bmrPerSecond = bmr / (24 * 60 * 60);
+    int newCalories = (bmrPerSecond * elapsedSeconds * metValue).round();
     if (newCalories < 0) newCalories = 0;
+
+    // --- Eski Hesaplama (Referans için) ---
+    // double hours = elapsedSeconds / 3600.0;
+    // int oldCalories = (weightKg * metValue * hours).round();
+    // if (oldCalories < 0) oldCalories = 0;
+    // --- Eski Hesaplama Sonu ---
+
+    // --- Geliştirilmiş Kalori Hesaplama Sonu ---
 
     state =
         state.copyWith(currentCalories: state.currentCalories + newCalories);
 
     debugPrint(
-        'RaceNotifier 🔥 Kalori hesaplandı: +$newCalories kal (Toplam: ${state.currentCalories}) - MET: $metValue, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+        'RaceNotifier 🔥 Kalori hesaplandı (Yeni): +$newCalories kal (Toplam: ${state.currentCalories}) - BMR: ${bmr.toStringAsFixed(0)}, MET: $metValue, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
 
     // Son değerleri güncelle
     _lastCalorieCheckDistance = state.currentDistance;
