@@ -859,7 +859,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                             ),
                                           ),
                                           const SizedBox(width: 12),
-                                          // Right section (Rank, Distance/Steps)
+                                          // Right section (Rank, Distance/Steps, Calories)
                                           Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.end,
@@ -874,37 +874,74 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
-                                              Text(
-                                                isIndoor
-                                                    ? '$stepsStr Adım'
-                                                    : '$distanceStr km',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight
-                                                      .bold, // Bold main value
-                                                ),
+                                              // --- YENİ: Kalori, Mesafe, Adım Row'u ---
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.end,
+                                                children: [
+                                                  // Kalori (varsa göster)
+                                                  if (race['calories'] !=
+                                                          null &&
+                                                      race['calories'] > 0) ...[
+                                                    Icon(
+                                                        Icons
+                                                            .local_fire_department_outlined,
+                                                        color:
+                                                            Colors.orangeAccent,
+                                                        size: 14),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      '${race['calories']} kcal',
+                                                      style: const TextStyle(
+                                                          color: Colors
+                                                              .orangeAccent,
+                                                          fontSize: 12.0),
+                                                    ),
+                                                    const SizedBox(
+                                                        width:
+                                                            8), // Kalori ve diğerleri arasına boşluk
+                                                  ],
+                                                  // Mesafe (Dış Mekan ise)
+                                                  if (!isIndoor)
+                                                    Icon(
+                                                        Icons
+                                                            .directions_run_outlined,
+                                                        color:
+                                                            Colors.blueAccent,
+                                                        size: 14),
+                                                  if (!isIndoor)
+                                                    const SizedBox(width: 4),
+                                                  if (!isIndoor)
+                                                    Text(
+                                                      '$distanceStr km',
+                                                      style: const TextStyle(
+                                                          color:
+                                                              Colors.blueAccent,
+                                                          fontSize: 12.0),
+                                                    ),
+                                                  if (!isIndoor)
+                                                    const SizedBox(
+                                                        width:
+                                                            8), // Mesafe ve adım arasına boşluk
+
+                                                  // Adım Sayısı
+                                                  Icon(
+                                                      Icons
+                                                          .directions_walk_outlined,
+                                                      color: Colors.greenAccent,
+                                                      size: 14),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '$stepsStr Adım',
+                                                    style: const TextStyle(
+                                                        color:
+                                                            Colors.greenAccent,
+                                                        fontSize: 12.0),
+                                                  ),
+                                                ],
                                               ),
-                                              // Add secondary value (KM for indoor, Steps for outdoor)
-                                              if (isIndoor &&
-                                                  distanceStr != null)
-                                                Text(
-                                                  '$distanceStr km',
-                                                  style: TextStyle(
-                                                    color: Colors.white
-                                                        .withOpacity(0.6),
-                                                    fontSize: 12,
-                                                  ),
-                                                )
-                                              else if (!isIndoor)
-                                                Text(
-                                                  '$stepsStr Adım',
-                                                  style: TextStyle(
-                                                    color: Colors.white
-                                                        .withOpacity(0.6),
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
+                                              // --- YENİ: Kalori, Mesafe, Adım Row'u Sonu ---
                                             ],
                                           ),
                                         ],
