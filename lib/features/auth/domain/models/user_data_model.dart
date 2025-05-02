@@ -20,7 +20,7 @@ class UserDataModel {
   final int? generalRank;
   final DateTime? birthday;
   final DateTime? createdAt;
-  final int? coins;
+  final double? coins;
 
   UserDataModel({
     this.id,
@@ -70,7 +70,7 @@ class UserDataModel {
     int? generalRank,
     DateTime? birthday,
     DateTime? createdAt,
-    int? coins,
+    double? coins,
   }) {
     return UserDataModel(
       id: id ?? this.id,
@@ -123,7 +123,7 @@ class UserDataModel {
           json['birthDay'] != null ? DateTime.parse(json['birthDay']) : null,
       createdAt:
           json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      coins: json['coins'] ?? 0,
+      coins: (json['coins'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -158,7 +158,7 @@ class UserDataModel {
       'userName': userName, // API `userName` bekliyor olabilir, kontrol edin
       'birthDay': birthday
           ?.toIso8601String(), // API `birthDay` bekliyor ve ISO formatında
-      'coins': coins ?? 0,
+      'coins': coins ?? 0.0,
       // email, phoneNumber, address gibi diğer alanlar API gerektiriyorsa eklenebilir.
       // 'surname' alanı API'de yok gibi görünüyor, eklemiyoruz.
       // 'profilePicturePath', 'isActive', 'distancekm', 'steps', 'rank', 'generalRank', 'createdAt', 'id' gibi alanlar genellikle update isteğinde gönderilmez.

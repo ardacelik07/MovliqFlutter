@@ -102,7 +102,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
         birthday: _selectedBirthday,
         active: _selectedActive,
         runprefer: _selectedRunPrefer,
-        coins: int.tryParse(_coinsController.text) ?? currentUser.coins,
+        coins: double.tryParse(_coinsController.text) ?? currentUser.coins,
       );
 
       final success = await ref

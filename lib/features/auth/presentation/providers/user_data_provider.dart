@@ -103,12 +103,12 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
       if (response.statusCode == 200) {
         // API'nin sadece sayıyı mı yoksa { "coins": sayı } şeklinde mi döndüğünü kontrol et
         final dynamic responseData = jsonDecode(response.body);
-        int coins = 0;
+        double coins = 0.0;
         if (responseData is int) {
-          coins = responseData;
+          coins = responseData.toDouble();
         } else if (responseData is Map<String, dynamic> &&
             responseData.containsKey('coins')) {
-          coins = responseData['coins'] ?? 0;
+          coins = responseData['coins'] ?? 0.0;
         } else {
           // Beklenmedik format, logla ve 0 ata
           print(
