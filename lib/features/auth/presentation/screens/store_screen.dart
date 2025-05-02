@@ -129,7 +129,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                     const SizedBox(width: 4),
                                     userDataAsync.when(
                                       data: (userData) => Text(
-                                        userData?.coins?.toString() ?? '0',
+                                        userData?.coins?.toStringAsFixed(2) ??
+                                            '0.00',
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,

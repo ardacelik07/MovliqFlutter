@@ -213,7 +213,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                userCoins?.toString() ?? '0', // Show coins or 0
+                                userCoins?.toStringAsFixed(2) ??
+                                    '0.00', // Format to 2 decimal places
                                 style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,

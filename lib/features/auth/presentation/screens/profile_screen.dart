@@ -1184,9 +1184,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 width: 24,
                 height: 24,
               ),
-              value: userCoinsAsync.toString(), // Value from image
-              label: 'Coin', // Label from image
-              iconColor: const Color(0xFFFFD700), // Gold color for coin
+              value: userCoinsAsync?.toStringAsFixed(2) ??
+                  '0.00', // Format to 2 decimal places
+              label: 'Movliq Coin', // Label from image
+              iconColor: Colors.amber, // Gold color for coin
               backgroundColor:
                   const Color(0xFFFFD700).withOpacity(0.15), // Gold background
             ),
