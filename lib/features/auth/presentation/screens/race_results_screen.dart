@@ -579,7 +579,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Row: Date/Time and Duration
+          // Top Row: Date/Time, Duration, and Calories
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -590,14 +590,34 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                   color: _secondaryTextColor, // Gri renk
                 ),
               ),
-              Text(
-                formattedDuration,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: _primaryAccentColor, // Yeşil renk
-                ),
-              ),
+              // Duration and Calories together
+              Row(
+                mainAxisSize: MainAxisSize.min, // Prevent taking full width
+                children: [
+                  if (activity.calories != null && activity.calories! > 0) ...[
+                    Icon(Icons.local_fire_department_outlined,
+                        color: Colors.orangeAccent, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      '${activity.calories!.toStringAsFixed(0)} kcal', // Show calories
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.orangeAccent, // Orange color for calories
+                      ),
+                    ),
+                    SizedBox(width: 8), // Space between calories and duration
+                  ],
+                  Text(
+                    formattedDuration,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: _primaryAccentColor, // Yeşil renk
+                    ),
+                  ),
+                ],
+              )
             ],
           ),
 
