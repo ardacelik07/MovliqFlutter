@@ -10,6 +10,8 @@ import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:my_flutter_project/features/auth/presentation/providers/user_data_provider.dart'; // UserDataProvider importu
+import 'package:my_flutter_project/features/auth/domain/models/user_data_model.dart'; // UserDataModel importu
 
 part 'race_provider.g.dart';
 
@@ -32,18 +34,20 @@ class RaceNotifier extends _$RaceNotifier {
   DateTime? _lastCheckTime;
   int _lastCheckSteps = 0;
 
+  // Kalori Hesaplama Değişkenleri (RecordScreen'den taşındı)
+  double _lastCalorieCheckDistance = 0.0;
+  int _lastCalorieCheckSteps = 0;
+  DateTime? _lastCalorieCalculationTime;
+  Timer?
+      _calorieCalculationTimer; // Ayrı bir timer veya mevcut timer'a entegre edilebilir
+
   @override
   RaceState build() {
     // Başlangıç durumu
-
-    // --- TEMİZLEME ---
-    // Notifier dispose olduğunda tüm kaynakları temizle
     ref.onDispose(() {
       debugPrint('RaceNotifier: Disposing - Cleaning up resources...');
       _cleanup();
     });
-    // --- TEMİZLEME SONU ---
-
     return const RaceState();
   }
 
@@ -89,7 +93,13 @@ class RaceNotifier extends _$RaceNotifier {
       hasLocationPermission: hasLocation,
       hasPedometerPermission: hasActivity,
       profilePictureCache: initialProfileCache, // <-- Store the cache
+      currentCalories: 0, // Başlangıç kalorisi
+      // Kalori hesaplama için başlangıç değerleri
     );
+    _lastCalorieCheckDistance = 0.0;
+    _lastCalorieCheckSteps = 0;
+    _lastCalorieCalculationTime = null;
+
     debugPrint(
         '--- RaceNotifier: Initial state SET --- State: $state'); // <-- YENİ LOG
 
@@ -107,7 +117,8 @@ class RaceNotifier extends _$RaceNotifier {
         debugPrint(
             'RaceNotifier: Calling signalRService.leaveRoomDuringRace for roomId: ${state.roomId}');
         // Ayrılma komutunu gönder (sonucu beklemesek de olur, en iyi çaba)
-        signalRService.leaveRoomDuringRace(state.roomId!);
+        signalRService.leaveRoomDuringRace(state
+            .roomId!); // Notifier method name should match the one in SignalRService
         debugPrint(
             'RaceNotifier: leaveRoomDuringRace command sent (fire and forget).');
       } else {
@@ -121,7 +132,7 @@ class RaceNotifier extends _$RaceNotifier {
     }
 
     // SignalR denemesinden sonra kaynakları temizle ve state'i sıfırla
-    await _cleanup();
+    await _cleanup(); // Ensure cleanup awaits if it's async
     state = const RaceState(); // State'i başlangıç durumuna döndür
     debugPrint(
         'RaceNotifier: Cleanup finished and state reset after leave attempt.');
@@ -183,36 +194,23 @@ class RaceNotifier extends _$RaceNotifier {
   void _startActualRaceTracking() async {
     debugPrint(
         '--- RaceNotifier: _startActualRaceTracking CALLED --- State: $state'); // <-- YENİ LOG
-    debugPrint('RaceNotifier: Geri sayım bitti, asıl takip başlıyor...');
-    await WakelockPlus.enable(); // Cihazın uyumasını engelle
+    await WakelockPlus.enable();
     state = state.copyWith(raceStartTime: DateTime.now());
 
-    // Liderlik tablosu ve yarış bitişini dinlemeye başla
     _listenToSignalREvents();
-
-    // Yarış zamanlayıcısını başlat
     _initializeRaceTimer();
 
-    // Hile kontrolünü başlat (indoor değilse)
+    // Kalori hesaplama timer'ını başlat (veya _raceTimerTimer içine entegre et)
+    _initializeCalorieCalculation(); // <-- Yeni metod çağrısı
+
     if (!state.isIndoorRace) {
       _initializeAntiCheatSystem();
     }
-
-    // Adım sayar başlat (izin varsa)
     if (state.hasPedometerPermission) {
       _initPedometer();
     }
-
-    // Konum takibini başlat (izin varsa ve indoor değilse)
-    debugPrint(
-        '--- RaceNotifier: Checking conditions before starting location updates... Indoor: ${state.isIndoorRace}, LocationPerm: ${state.hasLocationPermission}');
     if (state.hasLocationPermission && !state.isIndoorRace) {
-      debugPrint(
-          '--- RaceNotifier: Conditions met. Calling _startLocationUpdates... ---');
       _startLocationUpdates();
-    } else {
-      debugPrint(
-          '--- RaceNotifier: Conditions NOT met. Skipping _startLocationUpdates. ---');
     }
   }
 
@@ -267,29 +265,108 @@ class RaceNotifier extends _$RaceNotifier {
 
   void _initializeRaceTimer() {
     _raceTimerTimer?.cancel();
-    if (state.raceDuration == null) return; // Süre yoksa başlatma
-
-    state = state.copyWith(
-        remainingTime: state.raceDuration!); // Kalan süreyi başlangıçta ayarla
-
+    if (state.raceDuration == null) return;
+    state = state.copyWith(remainingTime: state.raceDuration!);
     _raceTimerTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!state.isRaceActive) {
         timer.cancel();
         return;
       }
-
       if (state.remainingTime.inSeconds > 0) {
         state = state.copyWith(
             remainingTime: state.remainingTime - const Duration(seconds: 1));
       } else {
-        // Süre bitti, SignalR'dan bitiş eventi gelmesini bekle
-        // Ancak güvenlik önlemi olarak burada da yarışı bitirebiliriz.
         timer.cancel();
         _raceTimerTimer = null;
         debugPrint('RaceNotifier: Yarış süresi doldu.');
-        // _handleRaceEnd(); // İsteğe bağlı olarak burada da sonlandırılabilir
+        // _handleRaceEnd(); // Optional: End race here too
       }
     });
+  }
+
+  // Kalori Hesaplama Başlatma
+  void _initializeCalorieCalculation() {
+    _calorieCalculationTimer?.cancel();
+    // Örneğin her 10 saniyede bir hesapla
+    _calorieCalculationTimer =
+        Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (!state.isRaceActive) {
+        timer.cancel();
+        _calorieCalculationTimer = null;
+        return;
+      }
+      _calculateCalories();
+    });
+  }
+
+  // Kalori Hesaplama Metodu (RecordScreen'den uyarlandı)
+  void _calculateCalories() {
+    final now = DateTime.now();
+
+    if (_lastCalorieCalculationTime == null) {
+      _lastCalorieCheckDistance = state.currentDistance;
+      _lastCalorieCheckSteps = state.currentSteps;
+      _lastCalorieCalculationTime = now;
+      // state = state.copyWith(currentCalories: 0); // Zaten başlangıçta 0
+      return;
+    }
+
+    final elapsedSeconds =
+        now.difference(_lastCalorieCalculationTime!).inSeconds;
+    if (elapsedSeconds < 9)
+      return; // Avoid rapid recalculation (min 10 sec interval)
+
+    final distanceDifference =
+        state.currentDistance - _lastCalorieCheckDistance;
+    final stepsDifference = state.currentSteps - _lastCalorieCheckSteps;
+    final bool isMoving = distanceDifference > 0.001 || stepsDifference > 0;
+    final double currentPaceKmH = distanceDifference > 0 && elapsedSeconds > 0
+        ? (distanceDifference) / (elapsedSeconds / 3600.0)
+        : 0;
+
+    // UserDataProvider'dan kullanıcı verilerini al (asenkron değil, direkt okuma)
+    // Not: Eğer UserDataProvider henüz yüklenmediyse veya hata verdiyse,
+    // fallback mantığına geçilecek.
+    final userData = ref.read(userDataProvider).value;
+    double weight = 70.0; // Default weight
+    if (userData != null && userData.weight != null && userData.weight! > 0) {
+      weight = userData.weight!;
+    }
+
+    // MET değeri belirleme (RecordScreen'deki gibi)
+    // TODO: Bu MET değerlerini daha doğru bir kaynaktan almak iyi olur.
+    double metValue;
+    if (!isMoving) {
+      metValue = 1.0; // Resting MET
+    } else {
+      // Yarış her zaman koşu olarak kabul edilebilir veya state'e tip eklenmeli
+      // Şimdilik Running varsayalım
+      if (currentPaceKmH < 6.5)
+        metValue = 6.0;
+      else if (currentPaceKmH < 8.0)
+        metValue = 8.3;
+      else if (currentPaceKmH < 10.0)
+        metValue = 10.0;
+      else if (currentPaceKmH < 12.0)
+        metValue = 11.5;
+      else
+        metValue = 12.8;
+    }
+
+    double hours = elapsedSeconds / 3600.0;
+    int newCalories = (weight * metValue * hours).round();
+    if (newCalories < 0) newCalories = 0;
+
+    state =
+        state.copyWith(currentCalories: state.currentCalories + newCalories);
+
+    debugPrint(
+        'RaceNotifier 🔥 Kalori hesaplandı: +$newCalories kal (Toplam: ${state.currentCalories}) - MET: $metValue, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+
+    // Son değerleri güncelle
+    _lastCalorieCheckDistance = state.currentDistance;
+    _lastCalorieCheckSteps = state.currentSteps;
+    _lastCalorieCalculationTime = now;
   }
 
   void _initializeAntiCheatSystem() {
@@ -478,13 +555,17 @@ class RaceNotifier extends _$RaceNotifier {
 
     try {
       double distanceToSend = state.isIndoorRace ? 0.0 : state.currentDistance;
+      // Kaloriyi de gönder
       await signalRService.updateLocation(
-          state.roomId!, distanceToSend, state.currentSteps);
+        state.roomId!,
+        distanceToSend,
+        state.currentSteps,
+        state.currentCalories, // Kaloriyi ekle
+      );
       debugPrint(
-          'RaceNotifier 📊 Konum güncellendi -> Mesafe: ${distanceToSend.toStringAsFixed(2)} km, Adım: ${state.currentSteps}');
+          'RaceNotifier 📊 Konum güncellendi -> Mesafe: ${distanceToSend.toStringAsFixed(2)} km, Adım: ${state.currentSteps}, Kalori: ${state.currentCalories}');
     } catch (e) {
       debugPrint('RaceNotifier ❌ Konum güncellemesi gönderilirken hata: $e');
-      // state = state.copyWith(errorMessage: 'Sunucuya konum gönderilemedi.'); // Çok sık hata mesajı vermemek için kapatılabilir
     }
   }
 
@@ -493,6 +574,7 @@ class RaceNotifier extends _$RaceNotifier {
     _preRaceCountdownTimer?.cancel();
     _raceTimerTimer?.cancel();
     _antiCheatTimer?.cancel();
+    _calorieCalculationTimer?.cancel(); // Kalori timer'ını da iptal et
     _positionStreamSubscription?.cancel();
     _stepCountSubscription?.cancel();
     _leaderboardSubscription?.cancel();
@@ -501,12 +583,13 @@ class RaceNotifier extends _$RaceNotifier {
     _preRaceCountdownTimer = null;
     _raceTimerTimer = null;
     _antiCheatTimer = null;
+    _calorieCalculationTimer = null;
     _positionStreamSubscription = null;
     _stepCountSubscription = null;
     _leaderboardSubscription = null;
     _raceEndedSubscription = null;
 
-    await WakelockPlus.disable(); // Wakelock'u kapat
+    await WakelockPlus.disable();
   }
 
   // --- Yeni Metod: İlk Hile Uyarısını Kapatma ---

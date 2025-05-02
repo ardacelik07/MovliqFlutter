@@ -38,6 +38,8 @@ mixin _$RaceState {
   int get currentSteps => throw _privateConstructorUsedError;
   int get initialSteps =>
       throw _privateConstructorUsedError; // Adım sayacı başlangıç değeri
+  int get currentCalories =>
+      throw _privateConstructorUsedError; // <-- Yeni kalori alanı
   String? get userEmail =>
       throw _privateConstructorUsedError; // Mevcut kullanıcının email'i
   List<RaceParticipant> get leaderboard => throw _privateConstructorUsedError;
@@ -77,6 +79,7 @@ abstract class $RaceStateCopyWith<$Res> {
       double currentDistance,
       int currentSteps,
       int initialSteps,
+      int currentCalories,
       String? userEmail,
       List<RaceParticipant> leaderboard,
       Map<String, String?> profilePictureCache,
@@ -114,6 +117,7 @@ class _$RaceStateCopyWithImpl<$Res, $Val extends RaceState>
     Object? currentDistance = null,
     Object? currentSteps = null,
     Object? initialSteps = null,
+    Object? currentCalories = null,
     Object? userEmail = freezed,
     Object? leaderboard = null,
     Object? profilePictureCache = null,
@@ -178,6 +182,10 @@ class _$RaceStateCopyWithImpl<$Res, $Val extends RaceState>
           ? _value.initialSteps
           : initialSteps // ignore: cast_nullable_to_non_nullable
               as int,
+      currentCalories: null == currentCalories
+          ? _value.currentCalories
+          : currentCalories // ignore: cast_nullable_to_non_nullable
+              as int,
       userEmail: freezed == userEmail
           ? _value.userEmail
           : userEmail // ignore: cast_nullable_to_non_nullable
@@ -229,6 +237,7 @@ abstract class _$$RaceStateImplCopyWith<$Res>
       double currentDistance,
       int currentSteps,
       int initialSteps,
+      int currentCalories,
       String? userEmail,
       List<RaceParticipant> leaderboard,
       Map<String, String?> profilePictureCache,
@@ -264,6 +273,7 @@ class __$$RaceStateImplCopyWithImpl<$Res>
     Object? currentDistance = null,
     Object? currentSteps = null,
     Object? initialSteps = null,
+    Object? currentCalories = null,
     Object? userEmail = freezed,
     Object? leaderboard = null,
     Object? profilePictureCache = null,
@@ -328,6 +338,10 @@ class __$$RaceStateImplCopyWithImpl<$Res>
           ? _value.initialSteps
           : initialSteps // ignore: cast_nullable_to_non_nullable
               as int,
+      currentCalories: null == currentCalories
+          ? _value.currentCalories
+          : currentCalories // ignore: cast_nullable_to_non_nullable
+              as int,
       userEmail: freezed == userEmail
           ? _value.userEmail
           : userEmail // ignore: cast_nullable_to_non_nullable
@@ -374,6 +388,7 @@ class _$RaceStateImpl implements _RaceState {
       this.currentDistance = 0.0,
       this.currentSteps = 0,
       this.initialSteps = 0,
+      this.currentCalories = 0,
       this.userEmail = null,
       final List<RaceParticipant> leaderboard = const [],
       final Map<String, String?> profilePictureCache = const {},
@@ -435,6 +450,10 @@ class _$RaceStateImpl implements _RaceState {
 // Adım sayacı başlangıç değeri
   @override
   @JsonKey()
+  final int currentCalories;
+// <-- Yeni kalori alanı
+  @override
+  @JsonKey()
   final String? userEmail;
 // Mevcut kullanıcının email'i
   final List<RaceParticipant> _leaderboard;
@@ -473,7 +492,7 @@ class _$RaceStateImpl implements _RaceState {
 
   @override
   String toString() {
-    return 'RaceState(isRaceActive: $isRaceActive, isPreRaceCountdownActive: $isPreRaceCountdownActive, preRaceCountdownValue: $preRaceCountdownValue, roomId: $roomId, raceStartTime: $raceStartTime, raceDuration: $raceDuration, remainingTime: $remainingTime, isIndoorRace: $isIndoorRace, isRaceFinished: $isRaceFinished, hasLocationPermission: $hasLocationPermission, hasPedometerPermission: $hasPedometerPermission, currentDistance: $currentDistance, currentSteps: $currentSteps, initialSteps: $initialSteps, userEmail: $userEmail, leaderboard: $leaderboard, profilePictureCache: $profilePictureCache, violationCount: $violationCount, showFirstCheatWarning: $showFirstCheatWarning, errorMessage: $errorMessage)';
+    return 'RaceState(isRaceActive: $isRaceActive, isPreRaceCountdownActive: $isPreRaceCountdownActive, preRaceCountdownValue: $preRaceCountdownValue, roomId: $roomId, raceStartTime: $raceStartTime, raceDuration: $raceDuration, remainingTime: $remainingTime, isIndoorRace: $isIndoorRace, isRaceFinished: $isRaceFinished, hasLocationPermission: $hasLocationPermission, hasPedometerPermission: $hasPedometerPermission, currentDistance: $currentDistance, currentSteps: $currentSteps, initialSteps: $initialSteps, currentCalories: $currentCalories, userEmail: $userEmail, leaderboard: $leaderboard, profilePictureCache: $profilePictureCache, violationCount: $violationCount, showFirstCheatWarning: $showFirstCheatWarning, errorMessage: $errorMessage)';
   }
 
   @override
@@ -509,6 +528,8 @@ class _$RaceStateImpl implements _RaceState {
                 other.currentSteps == currentSteps) &&
             (identical(other.initialSteps, initialSteps) ||
                 other.initialSteps == initialSteps) &&
+            (identical(other.currentCalories, currentCalories) ||
+                other.currentCalories == currentCalories) &&
             (identical(other.userEmail, userEmail) ||
                 other.userEmail == userEmail) &&
             const DeepCollectionEquality()
@@ -540,6 +561,7 @@ class _$RaceStateImpl implements _RaceState {
         currentDistance,
         currentSteps,
         initialSteps,
+        currentCalories,
         userEmail,
         const DeepCollectionEquality().hash(_leaderboard),
         const DeepCollectionEquality().hash(_profilePictureCache),
@@ -573,6 +595,7 @@ abstract class _RaceState implements RaceState {
       final double currentDistance,
       final int currentSteps,
       final int initialSteps,
+      final int currentCalories,
       final String? userEmail,
       final List<RaceParticipant> leaderboard,
       final Map<String, String?> profilePictureCache,
@@ -610,6 +633,8 @@ abstract class _RaceState implements RaceState {
   int get currentSteps;
   @override
   int get initialSteps; // Adım sayacı başlangıç değeri
+  @override
+  int get currentCalories; // <-- Yeni kalori alanı
   @override
   String? get userEmail; // Mevcut kullanıcının email'i
   @override

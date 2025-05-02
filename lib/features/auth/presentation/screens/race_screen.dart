@@ -246,6 +246,13 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                               iconColor: Colors.greenAccent,
                               valueColor: Colors.white,
                             ),
+                            _buildStatItem(
+                              icon: Icons.local_fire_department_outlined,
+                              value: raceState.currentCalories.toString(),
+                              label: 'Kalori',
+                              iconColor: Colors.deepOrangeAccent,
+                              valueColor: Colors.white,
+                            ),
                             // Hız göstergesi (opsiyonel)
                             // if (!raceState.isIndoorRace) ...
                           ],

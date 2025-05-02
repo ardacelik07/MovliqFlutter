@@ -480,7 +480,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Saving your activity...'),
+          content: Text('Aktiviteniz kaydediliyor...'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -491,16 +491,17 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Activity saved successfully!'),
+              content: Text('Aktivite başarıyla kaydedildi!'),
               backgroundColor: Colors.green,
             ),
           );
+          print("💰 Coins fetched after successful activity record.");
         },
         onError: (error) {
           // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to save activity: ${error.toString()}'),
+              content: Text('Aktivite kaydedilemedi: ${error.toString()}'),
               backgroundColor: Colors.red,
             ),
           );

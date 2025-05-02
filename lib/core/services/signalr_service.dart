@@ -202,13 +202,15 @@ class SignalRService {
   }
 
   // Konum güncellemek için metod
-  Future<void> updateLocation(int roomId, double distance, int steps) async {
+  Future<void> updateLocation(
+      int roomId, double distance, int steps, int calories) async {
     if (_hubConnection == null || !_isConnected) return;
 
     try {
       await _hubConnection!
-          .invoke('UpdateLocation', args: [roomId, distance, steps]);
-      debugPrint('Konum güncellendi: $distance m, $steps adım');
+          .invoke('UpdateLocation', args: [roomId, distance, steps, calories]);
+      debugPrint(
+          'Konum güncellendi: ${distance.toStringAsFixed(2)} km, $steps adım, $calories kalori');
     } catch (e) {
       debugPrint('Konum güncelleme hatası: $e');
     }
