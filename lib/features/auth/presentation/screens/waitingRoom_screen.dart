@@ -58,131 +58,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
 
-  // State variables for countdown
-  Timer? _countdownTimer;
-  int? _countdownSeconds;
-
-  // Odadan çıkış işlemi için yeni metot
-  Future<void> _leaveRoom({bool showConfirmation = true}) async {
-    // Kullanıcıdan onay al
-    if (showConfirmation) {
-      final bool confirm = await _showLeaveConfirmationDialog();
-      if (!confirm) return;
-    }
-    WakelockPlus.disable();
-    debugPrint('Wakelock disabled for WaitingRoomScreen');
-
-    _countdownTimer?.cancel(); // Cancel timer if leaving
-
-    try {
-      setState(() {
-        _isLoading = true; // Eğer varsa, bir loading state kullanılabilir
-      });
-
-      // 1. API üzerinden çıkış yap
-      final bool apiSuccess = await _callLeaveRoomApi();
-
-      // 2. SignalR üzerinden çıkış yap
-      if (apiSuccess) {
-        try {
-          final signalRService = ref.read(signalRServiceProvider);
-          await signalRService.leaveRaceRoom(widget.roomId);
-        } catch (e) {
-          debugPrint('❌ SignalR üzerinden odadan çıkarken hata: $e');
-          // API başarılı olduğu için devam ediyoruz
-        }
-      }
-
-      // 3. Stream aboneliklerini temizle
-      for (var subscription in _subscriptions) {
-        subscription.cancel();
-      }
-      _subscriptions.clear();
-
-      // 4. Ana sayfaya yönlendir
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const TabsScreen()),
-          (route) => false, // Tüm geçmiş sayfaları temizle
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ Odadan çıkış sırasında hata: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Odadan çıkış sırasında bir hata oluştu: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  // Onay dialogu göster
-  Future<bool> _showLeaveConfirmationDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Odadan Çıkış'),
-        content:
-            const Text('Yarış odasından çıkmak istediğinize emin misiniz?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Çıkış Yap'),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
-  }
-
-  // LeaveRoom API isteği
-  Future<bool> _callLeaveRoomApi() async {
-    try {
-      // Token al
-      final tokenJson = await StorageService.getToken();
-      if (tokenJson == null) {
-        throw Exception('Kimlik doğrulama tokeni bulunamadı');
-      }
-
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
-
-      // İstek gövdesi oluştur
-      final leaveRequest = LeaveRoomRequest(raceRoomId: widget.roomId);
-
-      // API isteği yap
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/RaceRoom/leaveRoom'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(leaveRequest.toJson()),
-      );
-
-      debugPrint('📤 LeaveRoom API cevabı: ${response.statusCode}');
-      debugPrint('📄 API cevap body: ${response.body}');
-
-      return response.statusCode == 200; // Başarılı mı?
-    } catch (e) {
-      debugPrint('❌ LeaveRoom API hatası: $e');
-      throw e; // Üst metoda hatayı ilet
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -355,13 +230,12 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           debugPrint(
               '--- WaitingRoom: RaceStarting - Event matches current room ID. ---');
 
-          // --- DEĞİŞİKLİK: RaceNotifier'ı Tetikle ---
+          // --- SADECE NOTIFIER'I TETİKLE ---
           final raceNotifier = ref.read(raceNotifierProvider.notifier);
           final raceSettings = ref.read(raceSettingsProvider);
           final bool isIndoor =
               raceSettings.roomType?.toLowerCase().contains('indoor') ?? false;
-          final int durationMinutes =
-              raceSettings.duration ?? 10; // Varsayılan 10 dk
+          final int durationMinutes = raceSettings.duration ?? 10;
 
           debugPrint(
               '--- WaitingRoom: RaceStarting - Preparing to call notifier. Email: $_myEmail, Indoor: $isIndoor, Duration: $durationMinutes ---');
@@ -374,7 +248,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             return;
           }
 
-          // RaceNotifier üzerinden yarışı başlat
           debugPrint(
               '--- WaitingRoom: >>> Calling raceNotifier.startRace... ---');
           raceNotifier.startRace(
@@ -387,46 +260,16 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                 Map<String, String?>.from(_profilePictureCache),
           );
           debugPrint('--- WaitingRoom: raceNotifier.startRace CALLED. ---');
-          // --- DEĞİŞİKLİK SONU ---
+          // --- TETİKLEME SONU ---
 
-          // --- UI GÜNCELLEMESİ (Navigasyon kaldırıldı) ---
+          // --- LOCAL STATE VE TIMER KALDIRILDI ---
           setState(() {
-            _isRaceStarting = true; // UI'ın yarışın başladığını bilmesi için
-            _countdownSeconds = countdownSeconds; // UI geri sayımı için
+            _isRaceStarting = true; // Sadece genel mod için
           });
 
-          // UI geri sayım timer'ını başlat
-          _countdownTimer?.cancel();
-          _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-            if (!mounted) {
-              timer.cancel();
-              return;
-            }
-            setState(() {
-              if (_countdownSeconds != null && _countdownSeconds! > 0) {
-                _countdownSeconds = _countdownSeconds! - 1;
-              } else {
-                timer.cancel();
-              }
-            });
-          });
           debugPrint(
-              '--- WaitingRoom: UI countdown started. Waiting for notifier state change for navigation. ---');
-
-          // ----- NAVİGASYON KODU KALDIRILDI -----
-          /* 
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (context) => RaceScreen(
-                 roomId: widget.roomId, 
-                 myUsername: _myUsername, 
-                 profilePictureCache: Map<String, String?>.from(_profilePictureCache),
-              ),
-            ),
-            (route) => false,
-          );
-          */
-          // --- UI GÜNCELLEMESİ SONU (Navigasyon kaldırıldı) ---
+              '--- WaitingRoom: Local state/timer removed. Waiting for notifier state change for navigation. ---');
+          // --- LOCAL STATE VE TIMER KALDIRILDI SONU ---
         } else {
           debugPrint(
               'WaitingRoom: Başka oda için yarış başlıyor: $roomId (bizim oda: ${widget.roomId})');
@@ -438,50 +281,123 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     }
   }
 
-  // Standardize edilmiş yarış başlatma fonksiyonu
-  void _startRaceCountdown(int seconds) {
-    // Eğer yarış başlatma süreci zaten başladıysa, tekrar başlatma
-    if (_isRaceStarting) {
-      debugPrint('⚠️ Yarış başlatma süreci zaten aktif, tekrar başlatılmadı');
-      return;
+  // Odadan çıkış işlemi için yeni metot
+  Future<void> _leaveRoom({bool showConfirmation = true}) async {
+    // Kullanıcıdan onay al
+    if (showConfirmation) {
+      final bool confirm = await _showLeaveConfirmationDialog();
+      if (!confirm) return;
     }
+    WakelockPlus.disable();
+    debugPrint('Wakelock disabled for WaitingRoomScreen');
 
-    debugPrint(
-        '🕒 Yarış başlatma süreci başladı, $seconds saniye sonra başlayacak');
-
-    setState(() {
-      _isRaceStarting = true;
-      _countdownSeconds = seconds; // Set initial countdown value
-    });
-
-    _countdownTimer?.cancel(); // Cancel previous timer if any
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
+    try {
       setState(() {
-        if (_countdownSeconds != null && _countdownSeconds! > 0) {
-          _countdownSeconds = _countdownSeconds! - 1;
-          debugPrint('⏳ Geri sayım: $_countdownSeconds');
-        } else {
-          timer.cancel();
-          debugPrint('⏱️ Geri sayım timer\'ı tamamlandı.');
-          // Navigation is handled by the separate Future.delayed
-        }
+        _isLoading = true; // Eğer varsa, bir loading state kullanılabilir
       });
-    });
 
-    // Schedule navigation (this delay determines when navigation actually happens)
-    Future.delayed(Duration(seconds: seconds), () {
-      if (mounted && _isRaceStarting) {
-        debugPrint(
-            '⏱️ Geri sayım süresi doldu, RaceScreen\'e geçiş yapılıyor...');
-        _countdownTimer
-            ?.cancel(); // Ensure timer is cancelled before navigating
-        _navigateToRaceScreen();
+      // 1. API üzerinden çıkış yap
+      final bool apiSuccess = await _callLeaveRoomApi();
+
+      // 2. SignalR üzerinden çıkış yap
+      if (apiSuccess) {
+        try {
+          final signalRService = ref.read(signalRServiceProvider);
+          await signalRService.leaveRaceRoom(widget.roomId);
+        } catch (e) {
+          debugPrint('❌ SignalR üzerinden odadan çıkarken hata: $e');
+          // API başarılı olduğu için devam ediyoruz
+        }
       }
-    });
+
+      // 3. Stream aboneliklerini temizle
+      for (var subscription in _subscriptions) {
+        subscription.cancel();
+      }
+      _subscriptions.clear();
+
+      // 4. Ana sayfaya yönlendir
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const TabsScreen()),
+          (route) => false, // Tüm geçmiş sayfaları temizle
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Odadan çıkış sırasında hata: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Odadan çıkış sırasında bir hata oluştu: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Onay dialogu göster
+  Future<bool> _showLeaveConfirmationDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Odadan Çıkış'),
+        content:
+            const Text('Yarış odasından çıkmak istediğinize emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Çıkış Yap'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  // LeaveRoom API isteği
+  Future<bool> _callLeaveRoomApi() async {
+    try {
+      // Token al
+      final tokenJson = await StorageService.getToken();
+      if (tokenJson == null) {
+        throw Exception('Kimlik doğrulama tokeni bulunamadı');
+      }
+
+      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
+      final String token = tokenData['token'];
+
+      // İstek gövdesi oluştur
+      final leaveRequest = LeaveRoomRequest(raceRoomId: widget.roomId);
+
+      // API isteği yap
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/RaceRoom/leaveRoom'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(leaveRequest.toJson()),
+      );
+
+      debugPrint('📤 LeaveRoom API cevabı: ${response.statusCode}');
+      debugPrint('📄 API cevap body: ${response.body}');
+
+      return response.statusCode == 200; // Başarılı mı?
+    } catch (e) {
+      debugPrint('❌ LeaveRoom API hatası: $e');
+      throw e; // Üst metoda hatayı ilet
+    }
   }
 
   void _showInfoMessage(String message) {
@@ -615,9 +531,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     }
     _subscriptions.clear();
 
-    debugPrint(
-        'WaitingRoomScreen dispose edildi - tüm dinleyiciler ve timer kapatıldı');
-    // SignalR bağlantısını kapatmayın - RaceScreen'e geçilince orada tekrar kullanılacak
+    debugPrint('WaitingRoomScreen dispose edildi - tüm dinleyiciler kapatıldı');
     super.dispose();
   }
 
@@ -685,36 +599,56 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
             return;
           }
 
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (context) => RaceScreen(
-                roomId: newState.roomId!,
-                // myUsername: _myUsername, // Removed as it's in state
-                // profilePictureCache: Map<String, String?>.from(_profilePictureCache), // Removed
-              ),
-            ),
-            (route) => false,
-          );
+          // --- KÜÇÜK BİR GECİKME EKLE ---
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) {
+              // Gecikme sonrası tekrar kontrol et
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => RaceScreen(
+                    roomId: newState.roomId!,
+                  ),
+                ),
+                (route) => false,
+              );
+            }
+          });
+          // --- GECİKME SONU ---
         }
       }
     });
     // --- Dinleme Sonu ---
 
+    // --- RaceNotifier State'ini İzle ---
+    final raceState = ref.watch(raceNotifierProvider);
+
     final raceSettings = ref.watch(raceSettingsProvider);
     final String displayActivityType = widget.activityType ??
         (raceSettings.roomType?.toLowerCase().contains('indoor') == true
-            ? 'İç Mekan' // Simplified text
-            : 'Dış Mekan'); // Simplified text
+            ? 'İç Mekan'
+            : 'Dış Mekan');
     final String displayDuration = widget.duration ??
         (raceSettings.duration != null
-            ? '${raceSettings.duration} dakika' // Lowercase 'd'
-            : 'Belirsiz'); // Default if null
+            ? '${raceSettings.duration} dakika'
+            : 'Belirsiz');
 
-    // Determine subtitle text based on countdown state
-    final String subtitleText =
-        (_countdownSeconds != null && _countdownSeconds! > 0)
-            ? 'Yarış Başlıyor $_countdownSeconds'
-            : 'Diğer yarışmacılar bekleniyor...';
+    // --- Subtitle Text'i _isRaceStarting ve Notifier State'ine Göre Al ---
+    final String subtitleText;
+    if (_isRaceStarting) {
+      // Geri sayım süreci başladı mı?
+      if (raceState.isPreRaceCountdownActive &&
+          raceState.preRaceCountdownValue > 0) {
+        // Geri sayım aktif ve devam ediyor
+        subtitleText = 'Yarış Başlıyor ${raceState.preRaceCountdownValue}';
+      } else {
+        // Geri sayım bitti (veya henüz başlamadı ama _isRaceStarting true oldu)
+        subtitleText = 'Yarış Başladı';
+      }
+    } else {
+      // Geri sayım süreci hiç başlamadı
+      subtitleText = 'Diğer yarışmacılar bekleniyor...';
+    }
+    // --- Subtitle Text Logic Sonu ---
 
     return Scaffold(
       backgroundColor: _backgroundColor,
