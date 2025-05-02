@@ -103,26 +103,43 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
       if (response.statusCode == 200) {
         // API'nin sadece sayıyı mı yoksa { "coins": sayı } şeklinde mi döndüğünü kontrol et
         final dynamic responseData = jsonDecode(response.body);
+        print(
+            "📊 [Debug] Raw API Response for coins: $responseData, Type: ${responseData.runtimeType}"); // Debug Log 1: Ham yanıtı gör
         double coins = 0.0;
         if (responseData is int) {
+          print(
+              "🔢 [Debug] API returned int, converting to double."); // Debug Log 2a
           coins = responseData.toDouble();
+        } else if (responseData is double) {
+          print("🔢 [Debug] API returned double directly."); // Debug Log 2b
+          coins = responseData;
         } else if (responseData is Map<String, dynamic> &&
             responseData.containsKey('coins')) {
-          coins = responseData['coins'] ?? 0.0;
+          final coinValue = responseData['coins'];
+          print(
+              "🗺️ [Debug] API returned map, extracting 'coins': $coinValue, Type: ${coinValue.runtimeType}"); // Debug Log 2c
+          coins = (coinValue as num?)?.toDouble() ?? 0.0;
         } else {
           // Beklenmedik format, logla ve 0 ata
           print(
               "❌ UserDataProvider: Beklenmedik coin yanıt formatı: ${response.body}");
         }
 
-        print("✅ UserDataProvider: Coins başarıyla alındı: $coins");
+        print(
+            "✅ UserDataProvider: Parsed coins: $coins, Type: ${coins.runtimeType}"); // Debug Log 3: Parse edilen değeri ve tipini gör
 
         // Mevcut state'i güncelle, sadece coins değerini değiştir
         if (state.value != null) {
-          final updatedModel =
-              state.value!.copyWith(coins: coins); // copyWith eklenmeli
+          print(
+              "🔄 [Debug] Current state exists. Calling copyWith..."); // Debug Log 4
+          final updatedModel = state.value!.copyWith(coins: coins);
+          print(
+              "✨ [Debug] Updated model coins: ${updatedModel.coins}, Type: ${updatedModel.coins.runtimeType}"); // Debug Log 5: copyWith sonrası tipi gör
           state = AsyncValue.data(updatedModel);
           print("✅ UserDataProvider: State (coins) güncellendi.");
+        } else {
+          print(
+              "⚠️ [Debug] Current state is null. Cannot update coins only."); // Debug Log 6
         }
       } else {
         print(
