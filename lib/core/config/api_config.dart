@@ -39,6 +39,13 @@ class ApiConfig {
   static const String userActivityStatsEndpoint =
       '$baseUrl/UserResults/GetUserActivityStats';
 
+  // Endpoint for special races
+  static const String specialRacesEndpoint = '$baseUrl/RaceRoom/special/all';
+
+  // Endpoint for matching/joining a private/special race room
+  static const String matchPrivateRoomEndpoint =
+      '$baseUrl/RaceRoom/match-room-private';
+
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

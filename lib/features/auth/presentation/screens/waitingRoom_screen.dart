@@ -28,7 +28,7 @@ class WaitingRoomScreen extends ConsumerStatefulWidget {
   final int roomId;
   final DateTime? startTime;
   final String? activityType;
-  final String? duration;
+  final int? duration;
 
   const WaitingRoomScreen({
     super.key,
@@ -232,10 +232,10 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
           // --- SADECE NOTIFIER'I TETİKLE ---
           final raceNotifier = ref.read(raceNotifierProvider.notifier);
-          final raceSettings = ref.read(raceSettingsProvider);
           final bool isIndoor =
-              raceSettings.roomType?.toLowerCase().contains('indoor') ?? false;
-          final int durationMinutes = raceSettings.duration ?? 10;
+              widget.activityType?.toLowerCase() == 'indoor' ||
+                  widget.activityType?.toLowerCase() == 'İç Mekan';
+          final int durationMinutes = widget.duration ?? 10;
 
           debugPrint(
               '--- WaitingRoom: RaceStarting - Preparing to call notifier. Email: $_myEmail, Indoor: $isIndoor, Duration: $durationMinutes ---');
@@ -476,9 +476,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       debugPrint('🚀 11. RaceScreen\'e geçiş yapılıyor');
 
       // Yarış tipini belirle (indoor/outdoor)
-      final raceSettings = ref.read(raceSettingsProvider);
       final bool isIndoorRace =
-          raceSettings.roomType?.toLowerCase().contains('indoor') ?? false;
+          widget.activityType?.toLowerCase().contains('indoor') == true;
       debugPrint('🚀 Yarış tipi: ${isIndoorRace ? "Indoor" : "Outdoor"}');
 
       try {
@@ -622,15 +621,12 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     // --- RaceNotifier State'ini İzle ---
     final raceState = ref.watch(raceNotifierProvider);
 
-    final raceSettings = ref.watch(raceSettingsProvider);
-    final String displayActivityType = widget.activityType ??
-        (raceSettings.roomType?.toLowerCase().contains('indoor') == true
-            ? 'İç Mekan'
-            : 'Dış Mekan');
-    final String displayDuration = widget.duration ??
-        (raceSettings.duration != null
-            ? '${raceSettings.duration} dakika'
-            : 'Belirsiz');
+    // final raceSettings = ref.watch(raceSettingsProvider); // REMOVE this - Use widget props directly
+    // Use widget.activityType directly, provide default if null
+    final String displayActivityType = widget.activityType ?? 'Bilinmiyor';
+    // Use widget.duration directly, provide default if null
+    final String displayDuration =
+        widget.duration != null ? '${widget.duration} dakika' : 'Belirsiz';
 
     // --- Subtitle Text'i _isRaceStarting ve Notifier State'ine Göre Al ---
     final String subtitleText;

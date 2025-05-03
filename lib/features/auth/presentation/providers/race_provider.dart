@@ -62,7 +62,7 @@ class RaceNotifier extends _$RaceNotifier {
     required Map<String, String?> initialProfileCache, // <-- Add cache param
   }) async {
     debugPrint(
-        '--- RaceNotifier: startRace CALLED --- Room: $roomId, Countdown: $countdownSeconds, Duration: $raceDurationMinutes, Indoor: $isIndoorRace, Email: $userEmail'); // <-- YENİ LOG
+        '--- RaceNotifier: startRace CALLED --- Room: $roomId, Countdown: $countdownSeconds, Duration (minutes): $raceDurationMinutes <--- TYPE CHECK: ${raceDurationMinutes.runtimeType}, Indoor: $isIndoorRace, Email: $userEmail');
 
     // Zaten aktif bir yarış varsa başlatma
     if (state.isRaceActive || state.isPreRaceCountdownActive) {

@@ -12,13 +12,16 @@ import 'features/auth/presentation/screens/race_screen.dart'; // RaceScreen impo
 import 'core/theme/app_theme.dart'; // AppTheme import (varsayılan tema için)
 import 'features/auth/presentation/screens/welcome_screen.dart'; // WelcomeScreen import
 import 'features/auth/presentation/screens/finish_race_screen.dart'; // FinishRaceScreen import
+import 'package:intl/date_symbol_data_local.dart'; // Import for locale initialization
 
 // Global navigator anahtarı
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
-  WidgetsFlutterBinding
-      .ensureInitialized(); // Asenkron işlemleri başlatmak için
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure bindings are initialized
+
+  // Initialize date formatting for Turkish locale
+  await initializeDateFormatting('tr_TR', null);
 
   // HttpInterceptor'a NavigatorKey'i daha sonra atayacağız
   runApp(const ProviderScope(child: MyApp()));

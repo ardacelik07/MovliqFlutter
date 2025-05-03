@@ -4,7 +4,9 @@ import 'package:my_flutter_project/features/auth/presentation/screens/filter_scr
 import '../providers/user_data_provider.dart';
 import '../providers/user_ranks_provider.dart'; // For streak
 import '../providers/latest_product_provider.dart'; // Import LatestProductProvider
-import '../../domain/models/latest_product_model.dart'; // Import LatestProductModel// For caching images
+import '../providers/private_race_provider.dart'; // Import PrivateRaceProvider
+import '../../domain/models/latest_product_model.dart'; // Import LatestProductModel
+import '../../domain/models/private_race_model.dart'; // Import PrivateRaceModel
 import 'store_screen.dart'; // Import StoreScreen
 import 'package:avatar_glow/avatar_glow.dart'; // Import AvatarGlow
 import 'tabs.dart'; // Correct import for the provider defined in tabs.dart
@@ -15,6 +17,7 @@ import 'dart:io'; // Import Platform
 import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException; // Specific import
 import 'dart:io' show SocketException; // Specific import
+import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Import the new screen
 
 // Change to ConsumerStatefulWidget
 class HomePage extends ConsumerStatefulWidget {
@@ -543,99 +546,130 @@ class _HomePageState extends ConsumerState<HomePage> {
                           SizedBox(
                             height:
                                 150, // Define height for the horizontal list items
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: 4, // Placeholder count
-                              itemBuilder: (context, index) {
-                                // Placeholder Race Card Data
-                                final titles = [
-                                  'Nike Community Run',
-                                  'Adidas Global Race',
-                                  'Puma Night Run',
-                                  'Community Challenge'
-                                ];
-                                final participants = [
-                                  '2.5K',
-                                  '5K',
-                                  '1.8K',
-                                  '3.2K'
-                                ];
-                                // Define image paths for the special races
-                                final raceImagePaths = [
-                                  'assets/images/slidebar5.jpeg',
-                                  'assets/images/slidebar1.jpeg',
-                                  'assets/images/slidebar3.jpeg',
-                                  'assets/images/slidebar2.jpeg',
-                                  // 'assets/images/slidebar5.jpeg', // Add if itemCount increases
-                                ];
-                                final imagePath = raceImagePaths[index %
-                                    raceImagePaths
-                                        .length]; // Use modulo for safety
-
-                                return Container(
-                                  width: MediaQuery.of(context).size.width *
-                                      0.7, // Adjust card width
-                                  margin: const EdgeInsets.only(
-                                      right: 12.0), // Margin between cards
-                                  padding: const EdgeInsets.all(16.0),
-                                  decoration: BoxDecoration(
-                                    // Remove solid color
-                                    // color: Colors.grey[900],
-                                    borderRadius: BorderRadius.circular(12.0),
-                                    // Add background image
-                                    image: DecorationImage(
-                                      image: AssetImage(imagePath),
-                                      fit: BoxFit.cover,
-                                      // Add a slight darken overlay for text contrast
-                                      colorFilter: ColorFilter.mode(
-                                        Colors.black.withOpacity(0.5),
-                                        BlendMode.darken,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment
-                                        .center, // Vertically center items
-                                    children: [
-                                      // Title (takes available space)
-                                      Expanded(
+                            child: Consumer(
+                              // Use Consumer to watch the provider here
+                              builder: (context, ref, child) {
+                                final specialRacesAsync =
+                                    ref.watch(privateRaceProvider);
+                                return specialRacesAsync.when(
+                                  data: (races) {
+                                    if (races.isEmpty) {
+                                      return const Center(
                                         child: Text(
-                                          titles[index %
-                                              titles.length], // Use modulo
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight
-                                                  .bold, // Keep title bold
-                                              fontSize:
-                                                  16), // Adjust size if needed
-                                          maxLines: 2, // Allow wrapping
-                                          overflow: TextOverflow.ellipsis,
+                                          'Aktif özel yarış bulunamadı.',
+                                          style:
+                                              TextStyle(color: Colors.white70),
+                                        ),
+                                      );
+                                    }
+                                    return ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: races
+                                          .length, // Use fetched data length
+                                      itemBuilder: (context, index) {
+                                        final PrivateRaceModel race =
+                                            races[index];
+
+                                        return InkWell(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    PrivateRacesView(
+                                                  // Pass the fetched race data
+                                                  race: race,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          borderRadius:
+                                              BorderRadius.circular(12.0),
+                                          child: Container(
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.7,
+                                            margin: const EdgeInsets.only(
+                                                right: 12.0),
+                                            padding: const EdgeInsets.all(16.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.0),
+                                              image: DecorationImage(
+                                                image: NetworkImage(
+                                                    race.imagePath ?? ''),
+                                                fit: BoxFit.cover,
+                                                colorFilter: ColorFilter.mode(
+                                                  Colors.black.withOpacity(0.5),
+                                                  BlendMode.darken,
+                                                ),
+                                                // Add errorBuilder for NetworkImage
+                                                onError:
+                                                    (exception, stackTrace) {
+                                                  print(
+                                                      "Error loading race image: ${race.imagePath}, Error: $exception");
+                                                  // Optionally show a placeholder
+                                                },
+                                              ),
+                                            ),
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    race.specialRaceRoomName ??
+                                                        'Özel Yarış',
+                                                    style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16),
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                // Participant count is not in the current API response
+                                                // You might want to fetch this separately or adjust the model/API
+                                                // Row(
+                                                //   mainAxisSize: MainAxisSize.min,
+                                                //   children: [
+                                                //     Icon(Icons.group_outlined, color: Colors.white70, size: 18),
+                                                //     SizedBox(width: 6),
+                                                //     Text(
+                                                //       '? K', // Placeholder or fetch participant count
+                                                //       style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
+                                                //     ),
+                                                //   ],
+                                                // ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                  loading: () => const Center(
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white)),
+                                  error: (error, stackTrace) {
+                                    print(
+                                        'Error loading special races: $error\n$stackTrace');
+                                    return Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: SelectableText(
+                                          'Özel yarışlar yüklenemedi: $error',
+                                          style: const TextStyle(
+                                              color: Colors.redAccent),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
-                                      const SizedBox(
-                                          width:
-                                              12), // Space before participant count
-                                      // Participants count
-                                      Row(
-                                        mainAxisSize: MainAxisSize
-                                            .min, // Keep row compact
-                                        children: [
-                                          Icon(Icons.group_outlined,
-                                              color: Colors.white70, size: 18),
-                                          SizedBox(width: 6),
-                                          Text(
-                                            participants[index %
-                                                participants
-                                                    .length], // Use modulo
-                                            style: TextStyle(
-                                                color: Colors.white70,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
+                                    );
+                                  },
                                 );
                               },
                             ),
