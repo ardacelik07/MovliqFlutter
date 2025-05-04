@@ -6,6 +6,8 @@ import '../screens/login_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart'; // İkonlar için SVG importu
 import 'update_user_info_screen.dart';
 import 'change_password_screen.dart';
+import 'help_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -209,7 +211,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   iconColor: iconColor,
                   title: 'Gizlilik Politikası',
                   textColor: textColor,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PrivacyPolicyScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildDivider(secondaryTextColor),
                 _buildNavigationTile(
@@ -217,7 +226,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   iconColor: iconColor,
                   title: 'Yardım Merkezi',
                   textColor: textColor,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HelpScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
