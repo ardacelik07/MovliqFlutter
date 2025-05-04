@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../screens/login_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart'; // İkonlar için SVG importu
 import 'update_user_info_screen.dart';
+import 'change_password_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -101,7 +102,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   iconColor: iconColor,
                   title: 'Şifre Değiştir',
                   textColor: textColor,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChangePasswordScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _buildDivider(secondaryTextColor),
                 _buildNavigationTile(

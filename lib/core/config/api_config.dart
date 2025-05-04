@@ -35,6 +35,8 @@ class ApiConfig {
   static const String resetPasswordVerifiedEndpoint =
       '$baseUrl/User/reset-password-verified';
 
+  static const String changePasswordEndpoint = '$baseUrl/User/change-password';
+
   // Endpoint to get user activity statistics based on type and period
   static const String userActivityStatsEndpoint =
       '$baseUrl/UserResults/GetUserActivityStats';
