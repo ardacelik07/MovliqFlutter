@@ -333,25 +333,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             },
                           ),
                         ),
-                        Positioned(
-                          top: 128,
-                          right: 16,
-                          child: IconButton(
-                            icon: const Icon(
-                                Icons.person_outline, // Using outlined icon
-                                color: Color(
-                                    0xFF93C53E)), // Green color from image
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const UpdateUserInfoScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+
                         Positioned(
                           top: 0,
                           right: 16,

@@ -6,6 +6,17 @@ import 'package:intl/intl.dart'; // For date formatting
 import '../../domain/models/user_data_model.dart';
 import '../providers/user_data_provider.dart';
 
+// Enum definitions matching the visual choices
+// It's better practice to use enums for discrete choices.
+// Assuming Gender: 0=Kadın, 1=Erkek, 2=Diğer (adjust if values differ)
+enum GenderChoice { female, male, other }
+
+// Assuming Activity Level: 0=Düşük, 1=Orta, 2=Yüksek
+enum ActivityLevelChoice { low, medium, high }
+
+// Assuming Location Preference: 0=Indoor, 1=Outdoor
+enum LocationPreferenceChoice { indoor, outdoor }
+
 class UpdateUserInfoScreen extends ConsumerStatefulWidget {
   const UpdateUserInfoScreen({super.key});
 
@@ -18,49 +29,113 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
+  // --- Theme Colors ---
+  final Color _backgroundColor = Colors.black;
+  final Color _cardColor = Colors.grey[900]!;
+  final Color _textColor = Colors.white;
+  final Color _secondaryTextColor = Colors.grey[400]!;
+  final Color _accentColor = const Color(0xFFB2FF59); // Light green accent
+  final Color _textFieldFillColor = Colors.grey[850]!.withOpacity(0.5);
+  final Color _labelColor = Colors.grey[500]!;
+
   // Controllers for form fields
   late TextEditingController _nameController;
   late TextEditingController _usernameController;
-  late TextEditingController _ageController;
   late TextEditingController _heightController;
   late TextEditingController _weightController;
-  late TextEditingController _coinsController;
   DateTime? _selectedBirthday;
-  String? _selectedGender;
-  int? _selectedActive;
-  int? _selectedRunPrefer;
+  GenderChoice? _selectedGender; // Using Enum
+  ActivityLevelChoice? _selectedActivityLevel; // Using Enum
+  LocationPreferenceChoice? _selectedLocationPreference; // Using Enum
+
+  // Map database values to enums and vice-versa if needed
+  // Example: Map integer values from UserDataModel to enums
+  GenderChoice? _mapGenderFromString(String? genderString) {
+    if (genderString == 'Kadın') return GenderChoice.female;
+    if (genderString == 'Erkek') return GenderChoice.male;
+    if (genderString == 'Diğer') return GenderChoice.other;
+    return null;
+  }
+
+  String? _mapGenderToString(GenderChoice? choice) {
+    switch (choice) {
+      case GenderChoice.female:
+        return 'Kadın';
+      case GenderChoice.male:
+        return 'Erkek';
+      case GenderChoice.other:
+        return 'Diğer';
+      default:
+        return null;
+    }
+  }
+
+  // Add similar mapping functions for ActivityLevel and LocationPreference if their database values are integers
+  ActivityLevelChoice? _mapActivityLevelFromInt(int? value) {
+    if (value == 0) return ActivityLevelChoice.low;
+    if (value == 1) return ActivityLevelChoice.medium;
+    if (value == 2) return ActivityLevelChoice.high;
+    return null;
+  }
+
+  int? _mapActivityLevelToInt(ActivityLevelChoice? choice) {
+    switch (choice) {
+      case ActivityLevelChoice.low:
+        return 0;
+      case ActivityLevelChoice.medium:
+        return 1;
+      case ActivityLevelChoice.high:
+        return 2;
+      default:
+        return null;
+    }
+  }
+
+  LocationPreferenceChoice? _mapLocationPreferenceFromInt(int? value) {
+    if (value == 0) return LocationPreferenceChoice.indoor;
+    if (value == 1) return LocationPreferenceChoice.outdoor;
+    return null;
+  }
+
+  int? _mapLocationPreferenceToInt(LocationPreferenceChoice? choice) {
+    switch (choice) {
+      case LocationPreferenceChoice.indoor:
+        return 0;
+      case LocationPreferenceChoice.outdoor:
+        return 1;
+      default:
+        return null;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with current user data
     final currentUser = ref.read(userDataProvider).value;
 
     _nameController = TextEditingController(text: currentUser?.name ?? '');
     _usernameController =
         TextEditingController(text: currentUser?.userName ?? '');
-    _ageController =
-        TextEditingController(text: currentUser?.age?.toString() ?? '0');
     _heightController =
-        TextEditingController(text: currentUser?.height?.toString() ?? '0.0');
+        TextEditingController(text: currentUser?.height?.toString() ?? '');
     _weightController =
-        TextEditingController(text: currentUser?.weight?.toString() ?? '0.0');
-    _coinsController =
-        TextEditingController(text: currentUser?.coins?.toString() ?? '0');
+        TextEditingController(text: currentUser?.weight?.toString() ?? '');
     _selectedBirthday = currentUser?.birthday;
-    _selectedGender = currentUser?.gender;
-    _selectedActive = currentUser?.active;
-    _selectedRunPrefer = currentUser?.runprefer;
+
+    // Map initial values from user data to enums
+    // Assuming `gender`, `active`, `runprefer` are stored as integers in UserDataModel
+    _selectedGender = _mapGenderFromString(currentUser?.gender);
+    _selectedActivityLevel = _mapActivityLevelFromInt(currentUser?.active);
+    _selectedLocationPreference =
+        _mapLocationPreferenceFromInt(currentUser?.runprefer);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _usernameController.dispose();
-    _ageController.dispose();
     _heightController.dispose();
     _weightController.dispose();
-    _coinsController.dispose();
     super.dispose();
   }
 
@@ -70,6 +145,23 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       initialDate: _selectedBirthday ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: _accentColor, // header background color
+              onPrimary: Colors.black, // header text color
+              onSurface: _textColor, // body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: _accentColor, // button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _selectedBirthday) {
       setState(() {
@@ -79,281 +171,398 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
   }
 
   Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-      final currentUser = ref.read(userDataProvider).value;
-      if (currentUser == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kullanıcı verisi bulunamadı!')),
-        );
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      // Create updated UserDataModel from form values
-      final updatedUserData = currentUser.copyWith(
-        name: _nameController.text,
-        userName: _usernameController.text,
-        age: int.tryParse(_ageController.text) ?? currentUser.age,
-        height: double.tryParse(_heightController.text) ?? currentUser.height,
-        weight: double.tryParse(_weightController.text) ?? currentUser.weight,
-        gender: _selectedGender,
-        birthday: _selectedBirthday,
-        active: _selectedActive,
-        runprefer: _selectedRunPrefer,
-        coins: double.tryParse(_coinsController.text) ?? currentUser.coins,
-      );
-
-      final success = await ref
-          .read(userDataProvider.notifier)
-          .updateUserProfile(updatedUserData);
-
-      setState(() => _isLoading = false);
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil başarıyla güncellendi!')),
-        );
-        // Navigate back to the previous screen (ProfileScreen)
-        if (mounted) {
-          Navigator.pop(context);
-        }
-      } else {
-        // Show error message from provider state
-        final error = ref.read(userDataProvider).error;
+    final currentUser = ref.read(userDataProvider).value;
+    if (currentUser == null) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text('Güncelleme hatası: ${error ?? "Bilinmeyen hata"}')),
+            content: Text('Kullanıcı verisi bulunamadı!',
+                style: TextStyle(color: _backgroundColor)),
+            backgroundColor: _accentColor,
+          ),
         );
       }
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    // Create updated UserDataModel from form values
+    final updatedUserData = currentUser.copyWith(
+      name: _nameController.text.trim(),
+      userName: _usernameController.text.trim(),
+      height: double.tryParse(_heightController.text.trim()),
+      weight: double.tryParse(_weightController.text.trim()),
+      gender: _mapGenderToString(_selectedGender),
+      birthday: _selectedBirthday,
+      active: _mapActivityLevelToInt(_selectedActivityLevel),
+      runprefer: _mapLocationPreferenceToInt(_selectedLocationPreference),
+    );
+
+    final success = await ref
+        .read(userDataProvider.notifier)
+        .updateUserProfile(updatedUserData);
+
+    setState(() => _isLoading = false);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Profil başarıyla güncellendi!',
+              style: TextStyle(color: _backgroundColor)),
+          backgroundColor: _accentColor,
+        ),
+      );
+      Navigator.pop(context);
+    } else if (mounted) {
+      final error = ref.read(userDataProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Güncelleme hatası: ${error ?? "Bilinmeyen hata"}',
+              style: TextStyle(color: _textColor)),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: const Text('Profili Güncelle',
-            style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF1F3C18),
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
+        title: Text('Kişisel Bilgiler',
+            style: TextStyle(color: _textColor, fontWeight: FontWeight.bold)),
+        backgroundColor: _backgroundColor, // Match background
+        elevation: 0, // No shadow
+        iconTheme: IconThemeData(color: _accentColor), // Back button color
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios, color: _accentColor),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _buildTextField(
-                  _nameController, 'İsim', TextInputType.text, Icons.person),
-              const SizedBox(height: 16),
-              _buildTextField(_usernameController, 'Kullanıcı Adı',
-                  TextInputType.text, Icons.account_circle),
-              const SizedBox(height: 16),
-              _buildTextField(
-                  _ageController, 'Yaş', TextInputType.number, Icons.cake),
-              const SizedBox(height: 16),
-              _buildTextField(_heightController, 'Boy (cm)',
-                  TextInputType.numberWithOptions(decimal: true), Icons.height),
-              const SizedBox(height: 16),
-              _buildTextField(
-                  _weightController,
-                  'Kilo (kg)',
-                  TextInputType.numberWithOptions(decimal: true),
-                  Icons.monitor_weight),
-              const SizedBox(height: 16),
-              _buildTextField(_coinsController, 'Coins', TextInputType.number,
-                  Icons.monetization_on), // Added coins field
-              const SizedBox(height: 16),
-              _buildDropdownField<String>(
-                value: _selectedGender,
-                items: ['male', 'female', 'other'],
-                onChanged: (value) => setState(() => _selectedGender = value),
-                hint: 'Cinsiyet Seçin',
-                icon: Icons.wc,
-              ),
-              const SizedBox(height: 16),
-              _buildDropdownField<int>(
-                value: _selectedActive,
-                itemsMap: {
-                  0: 'Başlangıç',
-                  1: 'Aktif'
-                }, // Assuming 0=Beginner, 1=Active
-                onChanged: (value) => setState(() => _selectedActive = value),
-                hint: 'Aktivite Seviyesi',
-                icon: Icons.fitness_center,
-              ),
-              const SizedBox(height: 16),
-              _buildDropdownField<int>(
-                value: _selectedRunPrefer,
-                itemsMap: {
-                  0: 'Gym',
-                  1: 'Outdoors'
-                }, // Assuming 0=Gym, 1=Outdoors
-                onChanged: (value) =>
-                    setState(() => _selectedRunPrefer = value),
-                hint: 'Koşu Tercihi',
-                icon: Icons.directions_run,
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading:
-                    const Icon(Icons.calendar_today, color: Color(0xFFC4FF62)),
-                title: Text(
-                  _selectedBirthday == null
-                      ? 'Doğum Tarihi Seçin'
-                      : 'Doğum Tarihi: ${DateFormat('dd/MM/yyyy').format(_selectedBirthday!)}',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                trailing:
-                    const Icon(Icons.arrow_drop_down, color: Colors.white70),
-                onTap: () => _selectDate(context),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  side: const BorderSide(color: Colors.white30),
-                ),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC4FF62),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+        padding: const EdgeInsets.all(20.0), // Increased padding
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start, // Align titles to the left
+          children: <Widget>[
+            _buildLabel('İsim Soyisim'),
+            _buildTextField(_nameController,
+                hintText: 'Mehmet Ali Çakır'), // Use hintText from image
+            const SizedBox(height: 20),
+
+            _buildLabel('Kullanıcı Adı'),
+            _buildTextField(_usernameController, hintText: 'mehmet'),
+            const SizedBox(height: 20),
+
+            _buildLabel('Doğum Tarihi'),
+            _buildDateField(),
+            const SizedBox(height: 20),
+
+            _buildLabel('Cinsiyet'),
+            _buildToggleChipGroup<GenderChoice>(
+              selectedValue: _selectedGender,
+              options: {
+                GenderChoice.female: 'Kadın',
+                GenderChoice.male: 'Erkek',
+                GenderChoice.other: 'Diğer',
+              },
+              onSelected: (selected) {
+                setState(() => _selectedGender = selected);
+              },
+              expandToFill: true,
+            ),
+            const SizedBox(height: 20),
+
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel('Boy'),
+                      _buildTextField(
+                        _heightController,
+                        hintText: '175', // Hint from image
+                        suffixText: 'cm',
+                        keyboardType:
+                            TextInputType.numberWithOptions(decimal: true),
+                      ),
+                    ],
                   ),
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.black),
-                      )
-                    : const Text('Güncelle', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel('Kilo'),
+                      _buildTextField(
+                        _weightController,
+                        hintText: '80', // Hint from image
+                        suffixText: 'kg',
+                        keyboardType:
+                            TextInputType.numberWithOptions(decimal: true),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            _buildLabel('Aktiflik Seviyesi'),
+            _buildToggleChipGroup<ActivityLevelChoice>(
+              selectedValue: _selectedActivityLevel,
+              options: {
+                ActivityLevelChoice.low: 'Düşük',
+                ActivityLevelChoice.medium: 'Orta',
+                ActivityLevelChoice.high: 'Yüksek',
+              },
+              icons: {
+                // Optional icons
+                ActivityLevelChoice.low: Icons.directions_walk,
+                ActivityLevelChoice.medium: Icons.directions_run,
+                ActivityLevelChoice.high: Icons.directions_bike, // Example icon
+              },
+              onSelected: (selected) {
+                setState(() => _selectedActivityLevel = selected);
+              },
+              expandToFill: false,
+            ),
+            const SizedBox(height: 20),
+
+            _buildLabel('Mekan Tercihi'),
+            _buildToggleChipGroup<LocationPreferenceChoice>(
+              selectedValue: _selectedLocationPreference,
+              options: {
+                LocationPreferenceChoice.indoor: '       Indoor       ',
+                LocationPreferenceChoice.outdoor: '       Outdoor       ',
+              },
+              icons: {
+                LocationPreferenceChoice.indoor: Icons.fitness_center,
+                LocationPreferenceChoice.outdoor: Icons.terrain,
+              },
+              onSelected: (selected) {
+                setState(() => _selectedLocationPreference = selected);
+              },
+              expandToFill: true,
+            ),
+
+            const SizedBox(height: 32), // Space before button
+            ElevatedButton(
+              onPressed: _isLoading ? null : _submitForm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentColor, // Green button
+                foregroundColor: _backgroundColor, // Black text
+                minimumSize:
+                    const Size(double.infinity, 50), // Full width, fixed height
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(12), // Slightly rounded corners
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14), // Adjust padding
               ),
-            ],
-          ),
+              child: _isLoading
+                  ? SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: _backgroundColor), // Thicker stroke
+                    )
+                  : const Text(
+                      'Değişiklikleri Kaydet',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold), // Bold text
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // Helper to build text fields
+  // --- Helper Widgets ---
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: _labelColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  // Updated TextField Builder
   Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    TextInputType inputType,
-    IconData icon, {
-    bool isNumeric = false,
-    String? Function(String?)? validator,
+    TextEditingController controller, {
+    String hintText = '',
+    String? suffixText,
+    TextInputType keyboardType = TextInputType.text,
   }) {
-    return TextFormField(
+    return TextField(
+      // Changed from TextFormField
       controller: controller,
-      keyboardType: inputType,
-      style: const TextStyle(color: Colors.white),
+      keyboardType: keyboardType,
+      style: TextStyle(color: _textColor, fontSize: 15),
       decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: Icon(icon, color: Color(0xFFC4FF62)),
+        hintText: hintText,
+        hintStyle: TextStyle(color: _secondaryTextColor.withOpacity(0.7)),
+        suffixText: suffixText,
+        suffixStyle: TextStyle(color: _secondaryTextColor, fontSize: 14),
+        filled: true,
+        fillColor: _cardColor, // Use card color for background
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Colors.white30),
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: BorderSide.none, // No border
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Colors.white30),
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Color(0xFFC4FF62)),
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: BorderSide(
+              color: _accentColor, width: 1.5), // Accent border on focus
         ),
-        filled: true,
-        fillColor: Colors.grey[900]?.withOpacity(0.5),
+        // Removed labelText and prefixIcon
       ),
-      validator: validator ??
-          (value) {
-            if (value == null || value.isEmpty) {
-              return '$label alanı boş bırakılamaz';
-            }
-            if ((inputType == TextInputType.number ||
-                    inputType ==
-                        TextInputType.numberWithOptions(decimal: true)) &&
-                num.tryParse(value) == null) {
-              return 'Lütfen geçerli bir sayı girin';
-            }
-            return null;
-          },
     );
   }
 
-  // Helper to build dropdown fields
-  Widget _buildDropdownField<T>({
-    required T? value,
-    List<T>? items,
-    Map<T, String>? itemsMap, // Use Map for value-label mapping
-    required ValueChanged<T?> onChanged,
-    required String hint,
-    required IconData icon,
-  }) {
-    assert(items != null || itemsMap != null,
-        'Either items or itemsMap must be provided');
-    assert(items == null || itemsMap == null,
-        'Cannot provide both items and itemsMap');
+  // Date Field Builder
+  Widget _buildDateField() {
+    return InkWell(
+      // Make it tappable
+      onTap: () => _selectDate(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        decoration: BoxDecoration(
+          color: _cardColor,
+          borderRadius: BorderRadius.circular(12.0),
+          border:
+              Border.all(color: Colors.transparent), // Match TextField style
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              _selectedBirthday == null
+                  ? 'gg.aa.yyyy' // Placeholder like in image
+                  : DateFormat('dd.MM.yyyy')
+                      .format(_selectedBirthday!), // Format like image
+              style: TextStyle(
+                color: _selectedBirthday == null
+                    ? _secondaryTextColor.withOpacity(0.7)
+                    : _textColor,
+                fontSize: 15,
+              ),
+            ),
+            Icon(Icons.calendar_today_outlined, color: _accentColor, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
 
-    List<DropdownMenuItem<T>> dropdownItems;
-    if (itemsMap != null) {
-      dropdownItems = itemsMap.entries.map((entry) {
-        return DropdownMenuItem<T>(
-          value: entry.key,
-          child: Text(entry.value, style: const TextStyle(color: Colors.white)),
+  // Generic Toggle Chip Group Builder
+  Widget _buildToggleChipGroup<T>({
+    required T? selectedValue,
+    required Map<T, String> options,
+    required ValueChanged<T> onSelected,
+    Map<T, IconData>? icons, // Optional icons map
+    bool expandToFill = false,
+  }) {
+    Widget buildLayout(List<Widget> chips) {
+      if (expandToFill) {
+        return Row(
+          children: chips
+              .map((chip) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                      // SizedBox ile ChoiceChip'i sarmalayarak genişlemeye zorla
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: chip,
+                      ),
+                    ),
+                  ))
+              .toList(),
         );
-      }).toList();
-    } else {
-      dropdownItems = items!.map((item) {
-        return DropdownMenuItem<T>(
-          value: item,
-          child: Text(item.toString(),
-              style: const TextStyle(color: Colors.white)),
+      } else {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final double spacing = constraints.maxWidth > 300 ? 12.0 : 8.0;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: 8.0,
+              children: chips,
+            );
+          },
         );
-      }).toList();
+      }
     }
 
-    return DropdownButtonFormField<T>(
-      value: value,
-      items: dropdownItems,
-      onChanged: onChanged,
-      dropdownColor: Colors.grey[850], // Darker dropdown background
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: hint,
-        labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: Icon(icon, color: Color(0xFFC4FF62)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Colors.white30),
+    final List<Widget> chips = options.entries.map((entry) {
+      final T value = entry.key;
+      final String label = entry.value;
+      final IconData? icon = icons?[value];
+      final bool isSelected = selectedValue == value;
+
+      return ChoiceChip(
+        label: icon != null
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center, // İçeriği ortala
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: isSelected ? _backgroundColor : _textColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(label),
+                ],
+              )
+            // Sadece metin varsa yine ortala
+            : Center(child: Text(label, textAlign: TextAlign.center)),
+        selected: isSelected,
+        onSelected: (selected) {
+          if (selected) {
+            onSelected(value);
+          }
+        },
+        backgroundColor: _cardColor,
+        selectedColor: _accentColor,
+        labelStyle: TextStyle(
+          color: isSelected ? _backgroundColor : _textColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Colors.white30),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          side: BorderSide(
+            color: isSelected ? _accentColor : _cardColor,
+            width: 8.5,
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: const BorderSide(color: Color(0xFFC4FF62)),
-        ),
-        filled: true,
-        fillColor: Colors.grey[900]?.withOpacity(0.5),
-      ),
-      validator: (v) => v == null ? '$hint alanı boş bırakılamaz' : null,
-    );
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        showCheckmark: false,
+      );
+    }).toList();
+
+    return buildLayout(chips);
   }
 }
