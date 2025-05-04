@@ -158,6 +158,10 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
       awardsList.removeWhere((item) => item.isEmpty);
     }
 
+    // Determine if the join button should be enabled
+    final bool isJoinAllowed =
+        race.startTime != null && timeRemaining <= const Duration(minutes: 15);
+
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true, // Make body extend behind AppBar
@@ -315,12 +319,17 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    // Display calculated time or a message if start time is null/past
+                    // Display calculated time or a message based on different conditions
                     race.startTime == null
-                        ? 'Başlangıç zamanı yok'
-                        : timeRemaining == Duration.zero
-                            ? 'Yarış başladı'
-                            : '${timeRemaining.inDays} Gün ${timeRemaining.inHours.remainder(24)} Saat',
+                        ? 'Başlangıç zamanı yok' // Case 1: No start time
+                        : timeRemaining <=
+                                Duration
+                                    .zero // Use <= to catch potential negative durations
+                            ? 'Yarış başladı' // Case 2: Race has started or passed
+                            : isJoinAllowed // Case 3: Join is allowed (<= 15 mins)
+                                ? 'Yarış 15 dakika içinde başlıyor'
+                                : _formatRemainingTime(
+                                    timeRemaining), // Case 4: More than 15 mins left
                     style: const TextStyle(
                         color: Color(0xFFC4FF62), // Lime green
                         fontSize: 20,
@@ -365,88 +374,6 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
 
                   // --- Participation Status ---
                   const SizedBox(height: 20), // Add space before this section
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Katılım Durumu',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 14),
-                      ),
-                      Text(
-                        '$placeholderParticipantCount Kişi', // Placeholder
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      // Overlapping Avatars (Placeholder)
-                      SizedBox(
-                        height: 30,
-                        width: 100, // Adjust width based on overlap and count
-                        child: Stack(
-                          children: List.generate(
-                            placeholderParticipantImages.length,
-                            (i) => Positioned(
-                              left: i * 18.0, // Adjust overlap
-                              child: CircleAvatar(
-                                radius: 15,
-                                backgroundColor: Colors.grey[700],
-                                backgroundImage:
-                                    AssetImage(placeholderParticipantImages[i]),
-                                // Add border
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                        color: Colors.black, width: 1.5),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        // Use Expanded to prevent overflow
-                        child: Text(
-                          // Adjust text based on placeholder count
-                          placeholderParticipantCount >
-                                  placeholderParticipantImages.length
-                              ? 've ${placeholderParticipantCount - placeholderParticipantImages.length} kişi daha katılıyor'
-                              : 'kişi katılıyor', // Or hide if count is 0
-                          style:
-                              TextStyle(color: Colors.grey[400], fontSize: 12),
-                          overflow: TextOverflow.ellipsis, // Handle overflow
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Image.asset(
-                        'assets/images/mCoin.png',
-                        width: 18,
-                        height: 18,
-                        color: const Color(0xFFC4FF62), // Tint icon
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        // Placeholder
-                        'Her katılımcıya $placeholderParticipationBonus mCoin',
-                        style: const TextStyle(
-                            color: Color(0xFFC4FF62), // Lime green
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -454,38 +381,83 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
         ),
       ),
       // --- Bottom Button ---
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          // Call the join function on press
-          onPressed: _isLoading ? null : _joinPrivateRace,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFC4FF62), // Lime green
-            foregroundColor: Colors.black, // Text color
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            // Disable splash effect when loading
-            splashFactory: _isLoading ? NoSplash.splashFactory : null,
-          ),
-          // Show indicator when loading
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20, // Consistent height
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    color: Colors.black,
-                  ),
-                )
-              : const Text(
-                  'Yarışa Katıl',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      bottomNavigationBar: Builder(
+        // Use Builder to ensure context is available if needed
+        builder: (context) {
+          // Log button state just before building
+          print(
+              '🔘 Button State: isLoading=$_isLoading, isJoinAllowed=$isJoinAllowed');
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            // Restore original ElevatedButton code
+            child: ElevatedButton(
+              onPressed:
+                  (_isLoading || !isJoinAllowed) ? null : _joinPrivateRace,
+              style: ElevatedButton.styleFrom(
+                // Explicitly define styles for enabled and disabled states
+                backgroundColor: const Color(0xFFC4FF62),
+                foregroundColor: Colors.black,
+                disabledBackgroundColor: const Color(0xFFC4FF62)
+                    .withOpacity(0.5), // Lighter green when disabled
+                disabledForegroundColor: Colors.black
+                    .withOpacity(0.7), // Slightly faded text when disabled
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-        ),
+                splashFactory: (_isLoading || !isJoinAllowed)
+                    ? NoSplash.splashFactory
+                    : null,
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: Colors.black,
+                      ),
+                    )
+                  : const Text(
+                      'Yarışa Katıl',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+            ),
+            /* Remove temporary Container test code
+            child: Container(
+              height: 50,
+              color: Colors.red, // Make it visible
+              child: const Center(child: Text('Test Bottom Nav')),
+            ),*/
+          );
+        },
       ),
     );
+  }
+
+  // Helper function to format remaining time
+  String _formatRemainingTime(Duration duration) {
+    final days = duration.inDays;
+    final hours = duration.inHours.remainder(24);
+    final minutes = duration.inMinutes.remainder(60);
+
+    List<String> parts = [];
+    if (days > 0) {
+      parts.add('$days Gün');
+    }
+    if (hours > 0) {
+      parts.add('$hours Saat');
+    }
+    // Always show minutes if time is left, even if 0?
+    // Or only if > 0? Let's show if > 0 or if it's the only unit left.
+    if (minutes > 0 || (days == 0 && hours == 0)) {
+      parts.add('$minutes Dakika');
+    }
+
+    return parts.isNotEmpty
+        ? parts.join(' ')
+        : 'Başlıyor'; // Handle case where less than a minute is left
   }
 
   // Helper widget for info cards (no change needed here)
