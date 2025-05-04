@@ -56,6 +56,197 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   int _lastSteps = 0;
   DateTime? _lastCalorieCalculationTime;
 
+  // Add state for map style and the style JSON itself
+  bool _isMapStyleSet = false;
+  final String _darkMapStyleJson = '''
+[
+  {
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#212121"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "on"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#212121"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.country",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#9e9e9e"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.land_parcel",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.locality",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#bdbdbd"
+      }
+    ]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#181818"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#616161"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#1b1b1b"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#2c2c2c"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#8a8a8a"
+      }
+    ]
+  },
+  {
+    "featureType": "road.arterial",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#373737"
+      }
+    ]
+  },
+  {
+    "featureType": "road.highway",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#3c3c3c"
+      }
+    ]
+  },
+  {
+    "featureType": "road.highway.controlled_access",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#4e4e4e"
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#616161"
+      }
+    ]
+  },
+  {
+    "featureType": "transit",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#000000"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#3d3d3d"
+      }
+    ]
+  }
+]
+''';
+
   static const CameraPosition _initialCameraPosition = CameraPosition(
     target: LatLng(41.0082, 28.9784), // İstanbul koordinatları (varsayılan)
     zoom: 15,
@@ -624,13 +815,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
             Text(
               unit,
               style: const TextStyle(
                 fontSize: 16,
-                color: Colors.black54,
+                color: Color.fromARGB(137, 255, 255, 255),
               ),
             ),
           ],
@@ -644,53 +836,85 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Harita - artık tam ekran
-          _hasLocationPermission
-              ? GoogleMap(
-                  mapType: MapType.normal,
-                  initialCameraPosition: _initialCameraPosition,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  compassEnabled: true,
-                  markers: _markers,
-                  polylines: _polylines,
-                  onMapCreated: (GoogleMapController controller) {
-                    _mapController = controller;
-                    // Harita oluşturulduktan sonra mevcut konumu al
-                    _getCurrentLocation();
-                  },
-                )
-              : Container(
-                  color: Colors.grey[300],
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.location_off,
-                            size: 48, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Konum izni gerekiyor',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
+          // --- Map Area with Dark Style Handling ---
+          Stack(
+            children: [
+              // Black background to prevent white flash
+              Container(color: Colors.black),
+              _hasLocationPermission
+                  ? AnimatedOpacity(
+                      opacity: _isMapStyleSet ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: GoogleMap(
+                        mapType: MapType.normal,
+                        initialCameraPosition: _initialCameraPosition,
+                        myLocationEnabled: true,
+                        myLocationButtonEnabled: false,
+                        zoomControlsEnabled: false,
+                        compassEnabled: true,
+                        markers: _markers,
+                        polylines: _polylines,
+                        onMapCreated: (GoogleMapController controller) async {
+                          _mapController = controller;
+                          try {
+                            print("Applying dark map style...");
+                            await _mapController
+                                ?.setMapStyle(_darkMapStyleJson);
+                            print("Dark map style applied successfully.");
+                            if (mounted) {
+                              setState(() {
+                                _isMapStyleSet = true;
+                              });
+                            }
+                          } catch (e) {
+                            print("Error applying map style: $e");
+                            // If style fails, still show the map
+                            if (mounted) {
+                              setState(() {
+                                _isMapStyleSet = true;
+                              });
+                            }
+                          }
+                          // Get location AFTER style attempt
+                          if (_hasLocationPermission && mounted) {
+                            await _getCurrentLocation();
+                          }
+                        },
+                      ),
+                    )
+                  : Container(
+                      // Placeholder if no location permission
+                      color: Colors.grey[850], // Dark grey placeholder
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.location_off,
+                                size: 48, color: Colors.grey),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Konum izni gerekiyor',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: _initPermissions,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFC4FF62),
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('İzin Ver'),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        ElevatedButton(
-                          onPressed: _initPermissions,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFC4FF62),
-                            foregroundColor: Colors.black,
-                          ),
-                          child: const Text('İzin Ver'),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+            ],
+          ),
 
           // UI Elementleri
           SafeArea(
@@ -701,7 +925,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                       horizontal: 8.0, vertical: 2.0),
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(150, 255, 255, 255),
+                    color: const Color.fromARGB(149, 0, 0, 0),
                     borderRadius: BorderRadius.circular(16.0),
                     boxShadow: [
                       BoxShadow(
@@ -723,7 +947,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black54,
+                              color: Color.fromARGB(248, 255, 255, 255),
                             ),
                           ),
                         ],
@@ -737,7 +961,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Color.fromARGB(221, 255, 255, 255),
                         ),
                       ),
 
@@ -934,7 +1158,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                       padding: const EdgeInsets.symmetric(
                           vertical: 6.0, horizontal: 12.0),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color:
+                            const Color.fromARGB(255, 0, 0, 0).withOpacity(0.9),
                         borderRadius: BorderRadius.circular(16.0),
                         boxShadow: [
                           BoxShadow(
@@ -1014,7 +1239,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? Colors.black : Colors.grey[600],
+              color: isSelected
+                  ? const Color.fromARGB(255, 255, 255, 255)
+                  : Colors.grey[600],
             ),
           ),
         ],
