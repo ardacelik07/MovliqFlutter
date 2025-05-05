@@ -628,18 +628,14 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     final String displayDuration =
         widget.duration != null ? '${widget.duration} dakika' : 'Belirsiz';
 
-    // --- Subtitle Text'i _isRaceStarting ve Notifier State'ine Göre Al ---
+    // --- Subtitle Text'i _isRaceStarting ve Notifier State'ine Göre Al (Güncellendi) ---
     final String subtitleText;
-    if (_isRaceStarting) {
-      // Geri sayım süreci başladı mı?
-      if (raceState.isPreRaceCountdownActive &&
-          raceState.preRaceCountdownValue > 0) {
-        // Geri sayım aktif ve devam ediyor
-        subtitleText = 'Yarış Başlıyor ${raceState.preRaceCountdownValue}';
-      } else {
-        // Geri sayım bitti (veya henüz başlamadı ama _isRaceStarting true oldu)
-        subtitleText = 'Yarış Başladı';
-      }
+    if (_isRaceStarting && raceState.isPreRaceCountdownActive) {
+      // Geri sayım overlay tarafından gösterildiği için burası genel bir mesaj
+      subtitleText = 'Yarış Başlıyor...';
+    } else if (_isRaceStarting && !raceState.isPreRaceCountdownActive) {
+      // Geri sayım bitti (veya timer başladı ama değer 0 oldu)
+      subtitleText = 'Yarış Başladı';
     } else {
       // Geri sayım süreci hiç başlamadı
       subtitleText = 'Diğer yarışmacılar bekleniyor...';
@@ -654,160 +650,200 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           return false; // Prevent default back navigation
         },
         child: SafeArea(
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch, // Stretch elements horizontally
-              children: [
-                // Title
-                const Text(
-                  'Yarış Başlamak Üzere',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: _primaryTextColor,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Subtitle
-                Text(
-                  subtitleText,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: _accentColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 30),
+          // **** STACK İLE SAR ****
+          child: Stack(
+            children: [
+              // **** MEVCUT İÇERİK (COLUMN) ****
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0, vertical: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment
+                      .stretch, // Stretch elements horizontally
+                  children: [
+                    // Title
+                    const Text(
+                      'Yarış Başlamak Üzere',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: _primaryTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Subtitle (Güncellenmiş Metinle)
+                    Text(
+                      subtitleText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24,
+                        color: _accentColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
 
-                // Info Card
-                Container(
-                  padding: const EdgeInsets.all(20.0),
-                  decoration: BoxDecoration(
-                    color: _cardBackgroundColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Seçilen Yarış Tipi',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: _secondaryTextColor,
-                        ),
+                    // Info Card
+                    Container(
+                      padding: const EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: _cardBackgroundColor,
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        displayActivityType,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: _primaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Yarış Süresi',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: _secondaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.timer_outlined,
-                              color: _accentColor, size: 20),
-                          const SizedBox(width: 8),
                           Text(
-                            displayDuration,
+                            'Seçilen Yarış Tipi',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _secondaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            displayActivityType,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                               color: _primaryTextColor,
                             ),
                           ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Yarış Süresi',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _secondaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.timer_outlined,
+                                  color: _accentColor, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                displayDuration,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: _primaryTextColor,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-
-                // Central Image
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20.0), // Padding for image
-                    child: Image.asset(
-                      'assets/images/waiting.png', // Use provided asset
-                      fit: BoxFit.contain,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 30),
+                    const SizedBox(height: 30),
 
-                // Participants Card
+                    // Central Image
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20.0), // Padding for image
+                        child: Image.asset(
+                          'assets/images/waiting.png', // Use provided asset
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Participants Card
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 16.0),
+                      decoration: BoxDecoration(
+                        color: _cardBackgroundColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Hazır Olan Yarışmacılar',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: _primaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Stacked Profile Pictures
+                          _buildParticipantAvatars(),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Leave Button
+                    if (!_isLoading) // Hide button while loading/leaving
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () => _leaveRoom(showConfirmation: true),
+                          icon: const Icon(Icons.exit_to_app,
+                              color: _accentColor),
+                          label: const Text(
+                            'Yarıştan Çık',
+                            style: TextStyle(
+                              color: _accentColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                    // Loading indicator
+                    if (_isLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 15.0),
+                        child: Center(
+                            child:
+                                CircularProgressIndicator(color: _accentColor)),
+                      ),
+                  ],
+                ),
+              ),
+
+              // **** KOŞULLU GERİ SAYIM OVERLAY'İ ****
+              if (_isRaceStarting && raceState.isPreRaceCountdownActive)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 16.0),
-                  decoration: BoxDecoration(
-                    color: _cardBackgroundColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Hazır Olan Yarışmacılar',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: _primaryTextColor,
+                  color:
+                      Colors.black.withOpacity(0.85), // Opaklık ayarlanabilir
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Yarış Başlıyor',
+                          style: TextStyle(
+                            fontSize: 28, // Boyut RaceScreen ile aynı olabilir
+                            color: _accentColor,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Stacked Profile Pictures
-                      _buildParticipantAvatars(),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Leave Button
-                if (!_isLoading) // Hide button while loading/leaving
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () => _leaveRoom(showConfirmation: true),
-                      icon: const Icon(Icons.exit_to_app, color: _accentColor),
-                      label: const Text(
-                        'Yarıştan Çık',
-                        style: TextStyle(
-                          color: _accentColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(height: 25),
+                        Text(
+                          raceState.preRaceCountdownValue.toString(),
+                          style: const TextStyle(
+                              fontSize:
+                                  120, // Boyut RaceScreen ile aynı olabilir
+                              color: _accentColor,
+                              fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
+                      ],
                     ),
                   ),
-                // Loading indicator
-                if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 15.0),
-                    child: Center(
-                        child: CircularProgressIndicator(color: _accentColor)),
-                  ),
-              ],
-            ),
+                ),
+            ],
           ),
+          // **** STACK SONU ****
         ),
       ),
     );
