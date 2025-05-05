@@ -232,9 +232,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
           // --- SADECE NOTIFIER'I TETİKLE ---
           final raceNotifier = ref.read(raceNotifierProvider.notifier);
-          final bool isIndoor =
-              widget.activityType?.toLowerCase() == 'indoor' ||
-                  widget.activityType?.toLowerCase() == 'İç Mekan';
+          final String activityLower = widget.activityType?.toLowerCase() ?? '';
+          final bool isIndoor = activityLower.contains('indoor') ||
+              activityLower.contains('iç mekan');
           final int durationMinutes = widget.duration ?? 10;
 
           debugPrint(

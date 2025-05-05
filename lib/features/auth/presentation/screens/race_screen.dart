@@ -92,6 +92,9 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   Widget build(BuildContext context) {
     // RaceNotifier state'ini dinle
     final raceState = ref.watch(raceNotifierProvider);
+    // **** isIndoorRace DEĞERİNİ LOGLA ****
+    debugPrint(
+        '[RaceScreen build] raceState.isIndoorRace = ${raceState.isIndoorRace}');
     final raceNotifier = ref.read(raceNotifierProvider.notifier);
 
     // Listen for state changes to handle navigation
@@ -548,6 +551,9 @@ class ParticipantTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Read the cache from the provider state
+    // **** Gelen isIndoorRace DEĞERİNİ LOGLA ****
+    debugPrint(
+        '[ParticipantTile build] Received isIndoorRace = $isIndoorRace for ${participant.userName}');
     final profileCache = ref.watch(
         raceNotifierProvider.select((state) => state.profilePictureCache));
     final String? profilePicUrl = profileCache[participant.userName];
