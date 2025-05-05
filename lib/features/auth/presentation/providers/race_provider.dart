@@ -488,7 +488,7 @@ class RaceNotifier extends _$RaceNotifier {
 
   void _initializeAntiCheatSystem() {
     // Hile Kontrolü - RaceScreen'den taşınacak
-    if (state.isIndoorRace) return;
+    // if (state.isIndoorRace) return; // <-- KALDIRILACAK
 
     _lastCheckDistance = state.currentDistance;
     _lastCheckSteps = state.currentSteps;
@@ -511,26 +511,61 @@ class RaceNotifier extends _$RaceNotifier {
 
     final now = DateTime.now();
     final elapsedSeconds = now.difference(_lastCheckTime!).inSeconds;
-    if (elapsedSeconds < 25) return;
+    if (elapsedSeconds < 25) return; // Kontrol sıklığını koruyalım
 
     final distanceDifference =
         (state.currentDistance - _lastCheckDistance) * 1000; // m
     final stepsDifference = state.currentSteps - _lastCheckSteps;
 
-    debugPrint(
-        'RaceNotifier 🔍 Hile kontrol: $elapsedSeconds sn -> $distanceDifference m, $stepsDifference adım');
-
     bool violation = false;
-    if (distanceDifference > 250) {
-      // 30 sn'de > 250m
-      violation = true;
-    } else if (distanceDifference > 0) {
-      final requiredMinSteps = distanceDifference * 0.5;
-      if (stepsDifference < requiredMinSteps) {
+    String checkTypeLog = ""; // Log için değişken
+
+    // **** YARIŞ TÜRÜNE GÖRE KONTROL ****
+    if (state.isIndoorRace) {
+      // === SADECE INDOOR KONTROLÜ: KADANS ===
+      checkTypeLog = "(Indoor)";
+      if (elapsedSeconds > 0 && stepsDifference > 0) {
+        // Süre ve adım varsa hesapla
+        final double cadence = stepsDifference / elapsedSeconds.toDouble();
+        const double maxRealisticCadence =
+            5.0; // Saniyede 5 adımdan fazla sürekli olamaz
+        debugPrint(
+            'RaceNotifier 🔍 Hile kontrol $checkTypeLog: Cadence: ${cadence.toStringAsFixed(2)} steps/sec');
+        if (cadence > maxRealisticCadence) {
+          debugPrint(
+              'RaceNotifier ❌ Hile ihlali $checkTypeLog: Aşırı yüksek kadans tespit edildi!');
+          violation = true;
+        }
+      } else {
+        debugPrint(
+            'RaceNotifier 🔍 Hile kontrol $checkTypeLog: No steps or time elapsed for cadence check.');
+      }
+      // =======================================
+    } else {
+      // === SADECE OUTDOOR KONTROLÜ: MESAFE/ADIM ===
+      checkTypeLog = "(Outdoor)";
+      debugPrint(
+          'RaceNotifier 🔍 Hile kontrol $checkTypeLog: $elapsedSeconds sn -> ${distanceDifference.toStringAsFixed(1)} m, $stepsDifference adım');
+      // 1. Aşırı Hız Kontrolü
+      if (distanceDifference > 250) {
+        // 30 sn'de > 250m (~30 km/h)
+        debugPrint(
+            'RaceNotifier ❌ Hile ihlali $checkTypeLog: Aşırı yüksek hız tespit edildi!');
         violation = true;
       }
+      // 2. Adım-Mesafe Tutarlılık Kontrolü (Sadece anlamlı mesafe varsa)
+      else if (distanceDifference > 0) {
+        final requiredMinSteps = distanceDifference * 0.5;
+        if (stepsDifference < requiredMinSteps) {
+          debugPrint(
+              'RaceNotifier ❌ Hile ihlali $checkTypeLog: Adım-mesafe tutarsızlığı tespit edildi! ($stepsDifference adım < ${requiredMinSteps.toStringAsFixed(1)} gerekli)');
+          violation = true;
+        }
+      }
+      // ==========================================
     }
 
+    // **** ORTAK İHLAL YÖNETİMİ ****
     if (violation) {
       final newViolationCount = state.violationCount + 1;
       // state = state.copyWith(violationCount: newViolationCount); // Update state later based on count
