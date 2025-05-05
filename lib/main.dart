@@ -15,10 +15,12 @@ import 'features/auth/presentation/screens/finish_race_screen.dart'; // FinishRa
 import 'package:intl/date_symbol_data_local.dart'; // Import for locale initialization
 
 // Global navigator anahtarı
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> navigatorKey =
+    GlobalKey<NavigatorState>();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Ensure bindings are initialized
+  WidgetsFlutterBinding
+      .ensureInitialized(); // Ensure bindings are initialized
 
   // Initialize date formatting for Turkish locale
   await initializeDateFormatting('tr_TR', null);
@@ -31,11 +33,13 @@ class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  ConsumerState<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() =>
+      _MyAppState();
 }
 
 // WidgetsBindingObserver ekliyoruz
-class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
+class _MyAppState extends ConsumerState<MyApp>
+    with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _isLoggedIn = false;
 
@@ -55,12 +59,14 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
+  void didChangeAppLifecycleState(
+      AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       // Uygulama ön plana geldiğinde kontrol et (küçük gecikmeyle)
       Future.delayed(
-          const Duration(milliseconds: 100), _checkActiveRaceAndNavigate);
+          const Duration(milliseconds: 100),
+          _checkActiveRaceAndNavigate);
     }
   }
 
@@ -68,9 +74,11 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Uygulama başladıktan ve route'lar hazır olduktan sonra navigatorKey mevcut olacak
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) {
       if (navigatorKey.currentState != null) {
-        HttpInterceptor.setNavigator(navigatorKey.currentState!);
+        HttpInterceptor.setNavigator(
+            navigatorKey.currentState!);
       }
     });
   }
@@ -78,18 +86,24 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   void _checkActiveRaceAndNavigate() {
     // Navigator ve context'in hazır olduğundan emin ol
     final navigator = navigatorKey.currentState;
-    final currentContext = navigatorKey.currentContext;
-    if (navigator == null || currentContext == null) {
-      debugPrint('[AppLifecycle] Navigator or context not ready yet.');
+    final currentContext =
+        navigatorKey.currentContext;
+    if (navigator == null ||
+        currentContext == null) {
+      debugPrint(
+          '[AppLifecycle] Navigator or context not ready yet.');
       return;
     }
 
     // Provider container'ını al
     try {
-      final container = ProviderScope.containerOf(currentContext);
-      final raceState = container.read(raceNotifierProvider);
+      final container = ProviderScope.containerOf(
+          currentContext);
+      final raceState =
+          container.read(raceNotifierProvider);
 
-      if (raceState.isRaceActive || raceState.isPreRaceCountdownActive) {
+      if (raceState.isRaceActive ||
+          raceState.isPreRaceCountdownActive) {
         debugPrint(
             '[AppLifecycle] Aktif yarış tespit edildi. Oda: ${raceState.roomId}');
 
@@ -100,14 +114,17 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           return true; // Sadece ismi al
         });
 
-        final bool isOnRaceScreen = currentRouteName == '/race';
+        final bool isOnRaceScreen =
+            currentRouteName == '/race';
 
         if (!isOnRaceScreen) {
           debugPrint(
               '[AppLifecycle] Kullanıcı RaceScreende değil, yönlendiriliyor...');
           navigator.pushAndRemoveUntil(
             MaterialPageRoute(
-              settings: const RouteSettings(name: '/race'), // Route'a isim ver
+              settings: const RouteSettings(
+                  name:
+                      '/race'), // Route'a isim ver
               builder: (context) => RaceScreen(
                 // Sadece gerekli başlangıç parametreleri
                 roomId: raceState.roomId!,
@@ -118,7 +135,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             (route) => false,
           );
         } else {
-          debugPrint('[AppLifecycle] Kullanıcı zaten RaceScreende.');
+          debugPrint(
+              '[AppLifecycle] Kullanıcı zaten RaceScreende.');
         }
       } else if (raceState.isRaceFinished) {
         debugPrint(
@@ -130,42 +148,53 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           return true; // Just get the name
         });
 
-        final bool isOnFinishScreen = currentRouteName == '/finish';
+        final bool isOnFinishScreen =
+            currentRouteName == '/finish';
 
         if (!isOnFinishScreen) {
           debugPrint(
               '[AppLifecycle] Kullanıcı FinishScreende değil, yönlendiriliyor...');
           navigator.pushAndRemoveUntil(
             MaterialPageRoute(
-              settings:
-                  const RouteSettings(name: '/finish'), // <-- Set route name
-              builder: (context) => FinishRaceScreen(
+              settings: const RouteSettings(
+                  name:
+                      '/finish'), // <-- Set route name
+              builder: (context) =>
+                  FinishRaceScreen(
                 // Get data from the finished state
-                leaderboard: raceState.leaderboard,
+                leaderboard:
+                    raceState.leaderboard,
                 myEmail: raceState.userEmail,
-                isIndoorRace: raceState.isIndoorRace,
-                profilePictureCache: raceState.profilePictureCache,
+                isIndoorRace:
+                    raceState.isIndoorRace,
+                profilePictureCache:
+                    raceState.profilePictureCache,
               ),
             ),
             (route) => false,
           );
         } else {
-          debugPrint('[AppLifecycle] Kullanıcı zaten FinishScreende.');
+          debugPrint(
+              '[AppLifecycle] Kullanıcı zaten FinishScreende.');
         }
       } else {
-        debugPrint('[AppLifecycle] Aktif veya bitmiş yarış yok.');
+        debugPrint(
+            '[AppLifecycle] Aktif veya bitmiş yarış yok.');
       }
     } catch (e) {
-      debugPrint('[AppLifecycle] Provider container alınırken hata: $e');
+      debugPrint(
+          '[AppLifecycle] Provider container alınırken hata: $e');
     }
   }
 
   Future<void> _checkLoginStatus() async {
     try {
-      final bool hasToken = await StorageService.hasToken();
+      final bool hasToken =
+          await StorageService.hasToken();
 
       if (hasToken) {
-        final tokenJson = await StorageService.getToken();
+        final tokenJson =
+            await StorageService.getToken();
         if (tokenJson == null) {
           await StorageService.deleteToken();
           if (!mounted) return;
@@ -194,8 +223,12 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             _isLoggedIn = true;
             _isLoading = false;
           });
-          ref.read(userDataProvider.notifier).fetchUserData();
-          ref.read(userDataProvider.notifier).fetchCoins();
+          ref
+              .read(userDataProvider.notifier)
+              .fetchUserData();
+          ref
+              .read(userDataProvider.notifier)
+              .fetchCoins();
           return;
         } catch (e) {
           print('Token parse hatası: $e');
@@ -215,7 +248,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         });
       }
     } catch (e) {
-      print('Login durumu kontrol edilirken hata: $e');
+      print(
+          'Login durumu kontrol edilirken hata: $e');
       if (!mounted) return;
       setState(() {
         _isLoggedIn = false;
@@ -227,21 +261,28 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Movliq',
-      navigatorKey: navigatorKey, // Global navigatorKey'i kullan
+      navigatorKey:
+          navigatorKey, // Global navigatorKey'i kullan
       theme: ThemeData(
         // Orijinal tema yapısı
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      initialRoute: '/', // initialRoute tanımlıyoruz
+      initialRoute:
+          '/', // initialRoute tanımlıyoruz
       routes: {
         '/': (context) => _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(
+                child:
+                    CircularProgressIndicator())
             : _isLoggedIn
                 ? const TabsScreen() // Giriş yapılmışsa TabsScreen
                 : const LoginScreen(), // Giriş yapılmamışsa LoginScreen (orijinaldeki gibi)
-        '/login': (context) => const LoginScreen(),
+        '/login': (context) =>
+            const LoginScreen(),
         '/home': (context) => const TabsScreen(),
         // RaceScreen için route tanımı ekliyoruz
         '/race': (context) => RaceScreen(
@@ -250,7 +291,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
               // profilePictureCache: const {}, // Removed
             ),
         // Add FinishRaceScreen route
-        '/finish': (context) => const FinishRaceScreen(
+        '/finish': (context) =>
+            const FinishRaceScreen(
               // Placeholder data for route definition
               leaderboard: [],
               isIndoorRace: false,
