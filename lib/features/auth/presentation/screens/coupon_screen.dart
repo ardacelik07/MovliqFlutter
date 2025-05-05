@@ -36,7 +36,7 @@ class CouponScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            /*const Text(
               'Geçmiş Kuponlar',
               style: TextStyle(
                 color: Colors.white, // Apply white text color
@@ -44,7 +44,7 @@ class CouponScreen extends ConsumerWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 16),*/
             Expanded(
               child: couponsAsyncValue.when(
                 data: (coupons) {

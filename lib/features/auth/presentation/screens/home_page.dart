@@ -522,7 +522,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
 
                     // --- Special Races Section (Horizontal Scroll) ---
-                    Padding(
+                    /*Padding(
                       padding: const EdgeInsets.only(
                           left: 16.0,
                           top: 16.0,
@@ -676,7 +676,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                         ],
                       ),
-                    ),
+                    ),*/
                     const SizedBox(height: 20), // Add some bottom padding
                   ],
                 ),
