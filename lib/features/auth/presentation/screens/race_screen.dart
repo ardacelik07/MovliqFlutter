@@ -33,18 +33,51 @@ class RaceScreen extends ConsumerStatefulWidget {
 class _RaceScreenState extends ConsumerState<RaceScreen> {
   bool _leaveConfirmationShown = false;
   bool _navigationTriggered = false; // Flag to prevent multiple navigations
+  Timer? _wakelockForceTimer; // <-- YENİ TIMER
 
   @override
   void initState() {
-    WakelockPlus.enable();
     super.initState();
-    // Listener is moved to build method
+    // WidgetsBinding.instance.addObserver(this); // <-- OBSERVER EKLEMEYİ KALDIR
+    WakelockPlus.toggle(enable: true);
+    debugPrint('[RaceScreen initState] Wakelock TOGGLED ON');
+    _startWakelockForceTimer(); // <-- YENİ TIMER'I BAŞLAT
   }
+
+  // **** didChangeAppLifecycleState METODUNU KALDIR ****
+  /*
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      WakelockPlus.toggle(enable: true);
+      debugPrint('[RaceScreen didChangeAppLifecycleState] Resumed - Wakelock TOGGLED ON');
+    }
+  }
+  */
+
+  // **** WAKELOCK ZORLAMA TIMER METODU ****
+  void _startWakelockForceTimer() {
+    _wakelockForceTimer?.cancel(); // Önceki varsa iptal et
+    _wakelockForceTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      // Durumu kontrol etmeden doğrudan tekrar etkinleştir
+      WakelockPlus.toggle(enable: true);
+      debugPrint('[Wakelock Force Timer] Wakelock TOGGLED ON (Forced)');
+    });
+  }
+  // **** WAKELOCK ZORLAMA TIMER METODU SONU ****
 
   @override
   void dispose() {
-    WakelockPlus.disable(); // Disable wakelock when the screen is disposed
-    debugPrint('RaceScreen disposed, Wakelock disabled.');
+    debugPrint('[RaceScreen dispose] Attempting to toggle Wakelock OFF...');
+    _wakelockForceTimer?.cancel(); // <-- TIMER'I DURDUR
+    WakelockPlus.toggle(enable: false);
+    // WidgetsBinding.instance.removeObserver(this); // <-- OBSERVER KALDIRMAYI KALDIR
+    debugPrint('[RaceScreen dispose] Wakelock toggled OFF.');
     super.dispose();
   }
 
@@ -79,7 +112,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
             '[RaceScreen Listener] Race finished normally. Navigating to FinishRaceScreen...');
         if (mounted) {
           _navigationTriggered = true; // Set flag before navigating
-          WakelockPlus.disable(); // <-- WAKELOCK DISABLE EKLE
+          debugPrint(
+              '[RaceScreen Listener] Toggling Wakelock OFF before navigating to FinishRaceScreen...');
+          _wakelockForceTimer?.cancel(); // <-- TIMER'I DURDUR
+          WakelockPlus.toggle(enable: false);
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => FinishRaceScreen(
@@ -111,7 +147,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               '[RaceScreen Listener] Error/Leave detected: ${next.errorMessage}. Navigating to TabsScreen...');
           if (mounted) {
             _navigationTriggered = true; // Set flag before navigating
-            WakelockPlus.disable(); // <-- WAKELOCK DISABLE EKLE
+            debugPrint(
+                '[RaceScreen Listener] Toggling Wakelock OFF before navigating to TabsScreen (Error/Leave)...');
+            _wakelockForceTimer?.cancel(); // <-- TIMER'I DURDUR
+            WakelockPlus.toggle(enable: false);
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => const TabsScreen()),
               (route) => false,

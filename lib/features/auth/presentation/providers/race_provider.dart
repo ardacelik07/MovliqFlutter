@@ -9,7 +9,6 @@ import 'package:my_flutter_project/features/auth/presentation/providers/race_sta
 import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:my_flutter_project/features/auth/presentation/providers/user_data_provider.dart'; // UserDataProvider importu
 import 'package:my_flutter_project/features/auth/domain/models/user_data_model.dart'; // UserDataModel importu
 
@@ -205,7 +204,6 @@ class RaceNotifier extends _$RaceNotifier {
   void _startActualRaceTracking() async {
     debugPrint(
         '--- RaceNotifier: _startActualRaceTracking CALLED --- State: $state'); // <-- YENİ LOG
-    await WakelockPlus.enable();
     state = state.copyWith(raceStartTime: DateTime.now());
 
     _listenToSignalREvents();
@@ -615,7 +613,6 @@ class RaceNotifier extends _$RaceNotifier {
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationText: "Movliq yarış sırasında konumunuzu takip ediyor.",
           notificationTitle: "Movliq Yarışı Devam Ediyor",
-          enableWakeLock: true,
           notificationIcon:
               AndroidResource(name: 'launcher_icon', defType: 'mipmap'),
         ),
@@ -707,8 +704,6 @@ class RaceNotifier extends _$RaceNotifier {
     _stepCountSubscription = null;
     _leaderboardSubscription = null;
     _raceEndedSubscription = null;
-
-    await WakelockPlus.disable();
   }
 
   // --- Yeni Metod: İlk Hile Uyarısını Kapatma ---

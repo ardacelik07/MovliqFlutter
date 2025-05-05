@@ -318,6 +318,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
       // 4. Ana sayfaya yönlendir
       if (mounted) {
+        WakelockPlus.disable();
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const TabsScreen()),
           (route) => false, // Tüm geçmiş sayfaları temizle
@@ -602,6 +603,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           Future.delayed(const Duration(milliseconds: 50), () {
             if (mounted) {
               // Gecikme sonrası tekrar kontrol et
+              WakelockPlus.disable();
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(
                   builder: (context) => RaceScreen(
