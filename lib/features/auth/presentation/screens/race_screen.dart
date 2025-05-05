@@ -16,6 +16,7 @@ import 'finish_race_screen.dart';
 import '../widgets/user_profile_avatar.dart';
 import '../providers/race_provider.dart';
 import '../providers/race_state.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
@@ -35,8 +36,16 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 
   @override
   void initState() {
+    WakelockPlus.enable();
     super.initState();
     // Listener is moved to build method
+  }
+
+  @override
+  void dispose() {
+    WakelockPlus.disable(); // Disable wakelock when the screen is disposed
+    debugPrint('RaceScreen disposed, Wakelock disabled.');
+    super.dispose();
   }
 
   String _formatDuration(Duration duration) {
@@ -70,6 +79,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
             '[RaceScreen Listener] Race finished normally. Navigating to FinishRaceScreen...');
         if (mounted) {
           _navigationTriggered = true; // Set flag before navigating
+          WakelockPlus.disable(); // <-- WAKELOCK DISABLE EKLE
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => FinishRaceScreen(
@@ -101,6 +111,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               '[RaceScreen Listener] Error/Leave detected: ${next.errorMessage}. Navigating to TabsScreen...');
           if (mounted) {
             _navigationTriggered = true; // Set flag before navigating
+            WakelockPlus.disable(); // <-- WAKELOCK DISABLE EKLE
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => const TabsScreen()),
               (route) => false,
