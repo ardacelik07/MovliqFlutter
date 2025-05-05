@@ -108,7 +108,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
 
       // Google Places API (Keep existing logic for now, consider security later)
       final apiKey = 'AIzaSyA79Tf7SPoGXrwx5WupR6G-67te9UGabLA';
-      final radius = 350;
+      final radius = 1000;
       final url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
           '?location=${_currentPosition!.latitude},${_currentPosition!.longitude}'
           '&radius=1000'
