@@ -493,15 +493,27 @@ class RaceNotifier extends _$RaceNotifier {
     _lastCheckDistance = state.currentDistance;
     _lastCheckSteps = state.currentSteps;
     _lastCheckTime = DateTime.now();
-    state = state.copyWith(violationCount: 0); // Başlangıçta ihlal yok
+    state = state.copyWith(violationCount: 0);
 
     _antiCheatTimer?.cancel();
-    _antiCheatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+
+    // Yarış başladıktan 10 saniye sonra hile kontrolünü başlat
+    Future.delayed(const Duration(seconds: 10), () {
       if (!state.isRaceActive) {
-        timer.cancel();
+        debugPrint(
+            'RaceNotifier: Anti-cheat system delay ended, but race is no longer active. Timer not started.');
         return;
       }
-      _checkForCheating();
+
+      debugPrint(
+          'RaceNotifier: 10-second delay for anti-cheat system ended. Starting periodic checks.');
+      _antiCheatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+        if (!state.isRaceActive) {
+          timer.cancel();
+          return;
+        }
+        _checkForCheating();
+      });
     });
   }
 
@@ -562,7 +574,6 @@ class RaceNotifier extends _$RaceNotifier {
           violation = true;
         }
       }
-      // ==========================================
     }
 
     // **** ORTAK İHLAL YÖNETİMİ ****
