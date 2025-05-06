@@ -18,6 +18,11 @@ import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException; // Specific import
 import 'dart:io' show SocketException; // Specific import
 import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Import the new screen
+import 'package:share_plus/share_plus.dart'; // Import share_plus
+import 'package:my_flutter_project/core/config/api_config.dart'; // Import ApiConfig
+import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Import HttpInterceptor
+
+import 'dart:convert'; // Import jsonEncode
 
 // Change to ConsumerStatefulWidget
 class HomePage extends ConsumerStatefulWidget {
@@ -128,6 +133,74 @@ class _HomePageState extends ConsumerState<HomePage> {
         ],
       ),
     );
+  }
+
+  Future<void> _shareAppLink() async {
+    const String playStoreLink =
+        "https://play.google.com/store/apps/details?id=com.example.my_flutter_project"; // TODO: Kendi Play Store ID'nizi girin
+    const String appStoreLink =
+        "https://apps.apple.com/app/idYOUR_APP_ID"; // TODO: Kendi App Store ID'nizi girin
+    const String fallbackLink = "https://movliq.com/indir";
+
+    String shareMessage;
+    if (Platform.isAndroid) {
+      shareMessage = "Hey! Movliq uygulamasını denemelisin: $playStoreLink";
+    } else if (Platform.isIOS) {
+      shareMessage = "Hey! Movliq uygulamasını denemelisin: $appStoreLink";
+    } else {
+      shareMessage = "Hey! Movliq uygulamasını denemelisin: $fallbackLink";
+    }
+
+    try {
+      await Share.share(shareMessage, subject: 'Movliq Uygulamasını Deneyin!');
+
+      bool apiCallSuccessful = await _callYourOneTimeShareRewardApi();
+
+      if (apiCallSuccessful) {
+        print(
+            'Tek kullanımlık paylaşım ödülü APIsi başarıyla çağrıldı ve coin verildi.');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text(
+                    'Paylaşımın için teşekkürler! Coinlerin hesabına eklendi!')),
+          );
+          ref.invalidate(
+              userDataProvider); // Coin miktarını UI'da yenilemek için
+        }
+      } else {
+        return;
+      }
+    } catch (e) {
+      print('Paylaşım diyalogu sırasında hata oluştu: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Paylaşım başlatılamadı.')),
+        );
+      }
+    }
+  }
+
+  Future<bool> _callYourOneTimeShareRewardApi() async {
+    try {
+      // HttpInterceptor, Authorization başlığını otomatik olarak ekleyecektir.
+      final response = await HttpInterceptor.post(
+        Uri.parse(
+            '${ApiConfig.baseUrl}/User/claim-initial-bonus'), // ApiConfig baseUrl varsayılıyor
+        // Eğer API'niz bir body beklemiyorsa, body parametresini vermeyebilirsiniz
+        // veya boş bir JSON objesi gönderebilirsiniz: body: jsonEncode({}),
+      );
+
+      if (response.statusCode == 200) {
+        print('Claim initial bonus API call successful: ${response.body}');
+        // API'den dönen yanıta göre ek kontroller yapabilirsiniz (örn: response.body parse edilebilir)
+        return true; // Başarılı
+      } else {
+        return false; // Başarısız
+      }
+    } catch (e) {
+      return false;
+    }
   }
 
   @override
@@ -376,7 +449,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ),
                           ),
                           ElevatedButton(
-                            onPressed: () {},
+                            onPressed: _shareAppLink,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFFC4FF62),
                               foregroundColor: Colors.black,
