@@ -115,8 +115,7 @@ class SignalRService {
       throw Exception('Authentication token not found');
     }
 
-    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-    final String token = tokenData['token'];
+    final String token = tokenJson;
 
     try {
       // Hub URL oluşturma - API_Config'deki baseUrl'i kullanarak SignalR hub URL'ini oluştur

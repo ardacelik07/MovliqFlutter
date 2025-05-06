@@ -22,7 +22,7 @@ class PrivateRace extends _$PrivateRace {
       throw Exception('Authentication token not found.');
     }
 
-    final token = jsonDecode(tokenData)['token'];
+    final token = tokenData;
     final headers = {
       ...ApiConfig.headers, // Include default headers
       'Authorization': 'Bearer $token',

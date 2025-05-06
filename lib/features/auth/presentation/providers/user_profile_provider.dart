@@ -5,6 +5,7 @@ import '../../domain/models/user_profile_model.dart';
 import '../../../../core/config/api_config.dart';
 import 'auth_provider.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/http_interceptor.dart';
 
 final userProfileProvider =
     StateNotifierProvider<UserProfileNotifier, AsyncValue<UserProfileModel?>>(
@@ -46,42 +47,66 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
     state = const AsyncValue.loading();
     try {
       final authState = _ref.read(authProvider);
-      final tokenJson = authState.value;
+      final String? currentAccessToken = authState.value;
 
-      if (tokenJson == null) throw Exception('No authentication token found');
+      if (currentAccessToken == null || currentAccessToken.isEmpty) {
+        throw Exception('No authentication token found');
+      }
 
-      // JSON string'i parse edip token değerini alalım
-      final tokenData = jsonDecode(tokenJson);
-      final token = tokenData['token'] as String;
+      print('Bearer Token for update: $currentAccessToken');
+      print('Profile data to send: ${jsonEncode(_profile!.toJson())}');
 
-      print('Bearer Token: $token'); // Debug için
-      print('Profile data: ${jsonEncode(_profile!.toJson())}'); // Debug için
-
-      final response = await http.put(
+      final response = await HttpInterceptor.put(
         Uri.parse('${ApiConfig.baseUrl}/User/update-profile'),
-        headers: {
-          ...ApiConfig.headers,
-          'Authorization': 'Bearer $token',
-        },
         body: jsonEncode(_profile!.toJson()),
       );
 
-      print('Response status: ${response.statusCode}'); // Debug için
-      print('Response body: ${response.body}'); // Debug için
+      print('Response status for update-profile: ${response.statusCode}');
+      print('Response body for update-profile: ${response.body}');
 
       if (response.statusCode == 200) {
         state = AsyncValue.data(_profile);
-        final responseData = response.body;
-        if (responseData != null) {
-          await StorageService.saveToken(response.body);
-          _ref.read(authProvider.notifier).state =
-              AsyncValue.data(response.body);
+
+        try {
+          final Map<String, dynamic> responseDataMap =
+              jsonDecode(response.body);
+          final String? newApiAccessToken =
+              responseDataMap['accessToken'] as String?;
+
+          if (newApiAccessToken != null && newApiAccessToken.isNotEmpty) {
+            print(
+                '✅ New access token received from update-profile: $newApiAccessToken');
+            final String? currentRefreshToken =
+                await StorageService.getRefreshToken();
+
+            if (currentRefreshToken != null && currentRefreshToken.isNotEmpty) {
+              await StorageService.saveToken(
+                accessToken: newApiAccessToken,
+                refreshToken: currentRefreshToken,
+              );
+              _ref.read(authProvider.notifier).state =
+                  AsyncValue.data(newApiAccessToken);
+              print('✅ New access token saved. AuthProvider state updated.');
+            } else {
+              print(
+                  '⚠️ New access token received, but current refresh token is missing. Tokens not fully updated.');
+              _ref.read(authProvider.notifier).state =
+                  AsyncValue.data(newApiAccessToken);
+            }
+          } else {
+            print(
+                'ℹ️ Profile updated successfully. No new access token found in JSON response.');
+          }
+        } catch (e) {
+          print(
+              'ℹ️ Profile updated successfully. Response body was not a JSON or could not be parsed for new tokens: ${response.body}');
         }
       } else {
-        throw Exception('Failed to update profile: ${response.body}');
+        throw Exception(
+            'Failed to update profile: ${response.statusCode} - ${response.body}');
       }
     } catch (error, stack) {
-      print('Error: $error'); // Debug için
+      print('Error in saveProfile: $error');
       state = AsyncValue.error(error, stack);
     }
   }

@@ -23,23 +23,17 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
     try {
       state = const AsyncValue.loading();
 
-      final tokenJson = await StorageService.getToken();
-      if (tokenJson == null) {
+      final String? accessToken = await StorageService.getToken();
+      if (accessToken == null || accessToken.isEmpty) {
         state = AsyncValue.error("Token bulunamadı", StackTrace.current);
         print("❌ UserDataProvider: Token bulunamadı");
         return;
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
-
-      // HttpInterceptor kullanarak istek yap (401 durumunda otomatik logout olacak)
+      // HttpInterceptor token'ı otomatik olarak ekleyecektir.
       final response = await HttpInterceptor.get(
         Uri.parse('${ApiConfig.baseUrl}/User/profile'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        // headers: { 'Content-Type': 'application/json' }, // Gerekirse sadece Content-Type
       );
 
       print("📊 UserDataProvider: API yanıtı - Status ${response.statusCode}");
@@ -71,30 +65,22 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
     final currentState = state.value;
     if (currentState == null) {
       print("❌ UserDataProvider: Önce profil verisi çekilmeli.");
-      // Henüz profil verisi yoksa, önce onu çekmeyi deneyebiliriz.
       await fetchUserData();
-      // Eğer hala veri yoksa veya hata varsa çık
       if (state.value == null || state.hasError) return;
     }
 
     try {
       print("💰 Fetching coins...");
-      final tokenJson = await StorageService.getToken();
-      if (tokenJson == null) {
+      final String? accessToken = await StorageService.getToken();
+      if (accessToken == null || accessToken.isEmpty) {
         print("❌ UserDataProvider: Token bulunamadı (fetchCoins)");
-        return; // Hata state'i ayarlamaya gerek yok, mevcut state kalsın
+        return;
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
-
+      // HttpInterceptor token'ı otomatik olarak ekleyecektir.
       final response = await HttpInterceptor.get(
         Uri.parse('${ApiConfig.baseUrl}/User/my-coins'), // Yeni endpoint
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept':
-              'application/json', // Genellikle coin gibi basit veriler için de JSON beklenir
-        },
+        // headers: { 'Accept': 'application/json' }, // Gerekirse sadece Accept
       );
 
       print(
@@ -176,47 +162,56 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
     state = const AsyncValue.loading();
 
     try {
-      final tokenJson = await StorageService.getToken();
-      if (tokenJson == null) {
+      final String? accessToken = await StorageService.getToken();
+      if (accessToken == null || accessToken.isEmpty) {
         print("❌ UserDataNotifier: Token bulunamadı (updateUserProfile).");
         state = AsyncValue.error("Token bulunamadı", StackTrace.current);
         return false;
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String currentToken = tokenData['token'];
-
-      // HttpInterceptor ile PUT isteği gönder
+      // HttpInterceptor token'ı otomatik olarak ekleyecektir.
+      // currentToken değişkenine gerek kalmadı.
       final response = await HttpInterceptor.put(
         Uri.parse(ApiConfig.updateProfileEndpoint),
-        headers: {
-          'Authorization': 'Bearer $currentToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(updatedData.toJson()), // Modeli JSON'a çevir
+        // headers: { 'Content-Type': 'application/json' }, // Gerekirse sadece Content-Type
+        body: jsonEncode(updatedData.toJson()),
       );
 
       print(
           "🔄 UserDataNotifier: Update API yanıtı - Status ${response.statusCode}");
 
       if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        if (responseBody['token'] != null) {
-          final newToken = responseBody['token'];
-          // Token'ı JSON formatında sakla (orijinal yapıya uygun)
-          await StorageService.saveToken(jsonEncode({'token': newToken}));
-          print("✅ UserDataNotifier: Yeni token kaydedildi.");
+        final responseBodyMap =
+            jsonDecode(response.body) as Map<String, dynamic>;
+        // API'nizin yeni tokenları nasıl döndürdüğüne bağlı olarak bu anahtarları güncelleyin
+        final String? newAccessToken =
+            responseBodyMap['accessToken'] as String?;
+        final String? newRefreshToken =
+            responseBodyMap['refreshToken'] as String?;
 
-          // State'i güncellenmiş veri ile eski haline getir (API yeni veri dönmüyor)
-          // Sadece token güncellendi, lokaldeki güncel veriyi kullan
+        if (newAccessToken != null &&
+            newAccessToken.isNotEmpty &&
+            newRefreshToken != null &&
+            newRefreshToken.isNotEmpty) {
+          await StorageService.saveToken(
+            accessToken: newAccessToken, // SAF STRING
+            refreshToken: newRefreshToken, // SAF STRING
+          );
+          print("✅ UserDataNotifier: Yeni tokenlar başarıyla kaydedildi.");
           state = AsyncValue.data(updatedData);
           print(
               "✅ UserDataNotifier: Profil başarıyla güncellendi (state güncellendi).");
-          return true; // Başarılı
+          return true;
         } else {
-          print("❌ UserDataNotifier: Yanıtta yeni token bulunamadı.");
-          state = previousState; // Hata durumunda eski state'e dön
-          return false; // Başarısız (token yok)
+          print(
+              "❌ UserDataNotifier: Yanıtta yeni tokenlar (accessToken, refreshToken) bulunamadı veya boş.");
+          // Yeni token gelmediyse, belki sadece başarılı olduğunu belirtmek yeterlidir
+          // ve mevcut tokenlar geçerliliğini korur. Bu API tasarımına bağlıdır.
+          // Şimdilik, token gelmezse de işlemi başarılı sayıp eski state'e dönmeyelim,
+          // çünkü profil sunucuda güncellenmiş olabilir.
+          state = AsyncValue.data(updatedData); // Profili güncelledik.
+          print("✅ UserDataNotifier: Profil güncellendi (yeni token dönmedi).");
+          return true; // Tokenlar yenilenmese de profil güncellendi.
         }
       } else {
         print(
@@ -251,21 +246,15 @@ class UserDataNotifier extends StateNotifier<AsyncValue<UserDataModel?>> {
 // Kullanıcı streak sayısını getiren provider
 final userStreakProvider = FutureProvider<int>((ref) async {
   try {
-    final tokenJson = await StorageService.getToken();
-    if (tokenJson == null) {
+    final String? accessToken = await StorageService.getToken();
+    if (accessToken == null || accessToken.isEmpty) {
       throw Exception('Token bulunamadı');
     }
 
-    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-    final String token = tokenData['token'];
-
-    // HttpInterceptor kullanarak istek yap (401 durumunda otomatik logout olacak)
+    // HttpInterceptor token'ı otomatik olarak ekleyecektir.
     final response = await HttpInterceptor.get(
       Uri.parse(ApiConfig.userStreakTrackEndpoint),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
+      // headers: { 'Content-Type': 'application/json' }, // Gerekirse sadece Content-Type
     );
 
     if (response.statusCode == 200) {

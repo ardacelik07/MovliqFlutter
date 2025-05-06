@@ -13,8 +13,7 @@ class RecordService {
         throw Exception('Authentication token not found');
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String actualToken = tokenData['token'];
+      final String actualToken = tokenJson;
 
       final response = await http.post(
         Uri.parse(ApiConfig.addUserRecordEndpoint),

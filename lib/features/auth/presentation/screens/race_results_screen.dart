@@ -19,8 +19,7 @@ final raceResultsProvider =
       throw Exception('Token bulunamadı');
     }
 
-    final Map<String, dynamic> tokenData = jsonDecode(token);
-    final String accessToken = tokenData['token'];
+    final String accessToken = token;
 
     // Type parametresi "all" değilse direkt olarak kullan, yoksa boş bırak
     final typeParam = type != 'all' ? '?type=$type' : '';

@@ -2,14 +2,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class StorageService {
-  static const String _tokenKey = 'user_token';
+  static const String _tokenKey = 'access_token';
+  static const String _refreshTokenKey = 'refresh_token';
 
-  // Token'ı kaydet
-  static Future<void> saveToken(String token) async {
+  // Token'ları kaydet
+  static Future<void> saveToken({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
-    print('Token saved: $token');
+    await prefs.setString(_tokenKey, accessToken);
+    await prefs.setString(_refreshTokenKey, refreshToken);
+    print('Access token saved: $accessToken');
+    print('Refresh token saved: $refreshToken');
   }
+
+  // Access Token'ı getir
 
   // Token'ı getir
   static Future<String?> getToken() async {
@@ -17,11 +25,17 @@ class StorageService {
     return prefs.getString(_tokenKey);
   }
 
+  static Future<String?> getRefreshToken() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_refreshTokenKey);
+  }
+
   // Token'ı sil (logout için)
   static Future<void> deleteToken() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
-    print('Token deleted');
+    await prefs.remove(_refreshTokenKey);
+    print('Tokens deleted');
   }
 
   // Token var mı kontrol et

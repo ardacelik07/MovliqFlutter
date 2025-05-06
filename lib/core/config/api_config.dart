@@ -5,6 +5,7 @@ class ApiConfig {
 
   static const String registerEndpoint = '$baseUrl/User/register';
   static const String loginEndpoint = '$baseUrl/User/login';
+  static const String refreshTokenEndpoint = '$baseUrl/User/refresh-token';
   static const String updateProfileEndpoint = '$baseUrl/User/update-profile';
   static const String matchRoomEndpoint = '$baseUrl/User/match-room';
   static const String addUserRecordEndpoint =

@@ -231,8 +231,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         throw Exception('Token bulunamadı');
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(token);
-      final String accessToken = tokenData['token'];
+      final String accessToken = token;
 
       final response = await http.get(
         Uri.parse(ApiConfig.lastThreeActivitiesEndpoint),
@@ -1408,8 +1407,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
 
   Future<http.Response> _uploadProfileImage(
       String imagePath, String tokenJson) async {
-    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-    final String token = tokenData['token'];
+    final String token = tokenJson;
 
     var request = http.MultipartRequest(
       'POST',

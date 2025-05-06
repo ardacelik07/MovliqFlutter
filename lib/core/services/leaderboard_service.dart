@@ -104,8 +104,7 @@ class LeaderboardService {
         throw Exception('Kimlik doğrulama jetonu bulunamadı');
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
+      final String token = tokenJson;
 
       final response = await http.get(
         Uri.parse(
@@ -143,8 +142,7 @@ class LeaderboardService {
         return null; // Or throw Exception('Authentication token not found');
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
+      final String token = tokenJson;
 
       final Uri uri = Uri.parse(
           '${ApiConfig.leaderboardByUserEndpoint}?type=$leaderboardType');

@@ -53,12 +53,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
       }
 
       try {
-        final tokenData = jsonDecode(tokenJson);
-
-        if (!tokenData.containsKey('token') ||
-            tokenData['token'] == null ||
-            tokenData['token'].isEmpty) {
-          print('⚠️ Tabs: Token format hatası, login ekranına yönlendiriliyor');
+        if (tokenJson == null || tokenJson.isEmpty) {
           _redirectToLogin();
           return;
         }

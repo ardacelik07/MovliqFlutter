@@ -26,8 +26,7 @@ class LatestProductNotifier extends AsyncNotifier<List<LatestProductModel>> {
         throw Exception("Oturum açılmamış veya token alınamadı.");
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String? token = tokenData['token'] as String?;
+      final String token = tokenJson;
       if (token == null || token.isEmpty) {
         print("❌ LatestProductProvider: Token boş veya geçersiz");
         throw Exception("Geçersiz token.");

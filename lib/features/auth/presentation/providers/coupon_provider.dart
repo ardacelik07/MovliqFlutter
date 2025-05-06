@@ -26,8 +26,7 @@ class CouponNotifier extends AsyncNotifier<List<CouponModel>> {
         return [];
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
+      final String token = tokenJson;
 
       print(
           "🔑 CouponProvider: Token alındı: ${token.substring(0, min(20, token.length))}...");

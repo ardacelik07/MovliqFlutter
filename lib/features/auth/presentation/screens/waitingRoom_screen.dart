@@ -84,8 +84,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     try {
       final tokenJson = await StorageService.getToken();
       if (tokenJson != null) {
-        final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-        final String token = tokenData['token'];
+        final String token = tokenJson;
 
         // Token'ı parçalara ayır
         final parts = token.split('.');
@@ -375,8 +374,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         throw Exception('Kimlik doğrulama tokeni bulunamadı');
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
+      final String token = tokenJson;
 
       // İstek gövdesi oluştur
       final leaveRequest = LeaveRoomRequest(raceRoomId: widget.roomId);

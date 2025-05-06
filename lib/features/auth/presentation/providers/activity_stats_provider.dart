@@ -36,8 +36,8 @@ final activityStatsProvider =
     throw Exception('Authentication token not found.');
   }
 
-  final Map<String, dynamic> tokenData = jsonDecode(token);
-  final String accessToken = tokenData['token'];
+  final String tokenData = token;
+  final String accessToken = tokenData;
 
   final uri = Uri.parse(
       '${ApiConfig.userActivityStatsEndpoint}?type=${params.type}&period=${params.period}');

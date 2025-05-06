@@ -217,8 +217,7 @@ class ProductNotifier extends _$ProductNotifier {
       print('Error: No token found in storage.');
       throw Exception('Lütfen giriş yapın.');
     }
-    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-    final String? token = tokenData['token'] as String?;
+    final String token = tokenJson;
     if (token == null) {
       print('Error: Token key not found in stored JSON or token is null.');
       throw Exception('Giriş bilgileri alınamadı. Lütfen tekrar giriş yapın.');
@@ -342,8 +341,7 @@ class ProductDetailNotifier extends AutoDisposeAsyncNotifier<Product> {
       final String? tokenJson = await StorageService.getToken();
       if (tokenJson == null) throw Exception("Token bulunamadı");
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String? token = tokenData['token'] as String?;
+      final String token = tokenJson;
       if (token == null || token.isEmpty) throw Exception("Geçersiz token");
 
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/Products/$productId');
