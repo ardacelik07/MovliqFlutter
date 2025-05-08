@@ -291,20 +291,19 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   // Tüm izinleri başlatan fonksiyon
   Future<void> _initPermissions() async {
-    // --- Bildirim İzni İsteği (Android 13+) ---
-    if (Platform.isAndroid) {
-      // Cihazın SDK versiyonunu almak için device_info_plus gerekebilir,
-      // ancak permission_handler genellikle bunu kendi içinde yönetir.
-      // Direkt olarak izni isteyebiliriz.
-      final notificationStatus = await Permission.notification.request();
-      print('Bildirim İzin Durumu: $notificationStatus');
-      if (notificationStatus.isPermanentlyDenied) {
-        // Kullanıcı kalıcı olarak reddettiyse ayarlara yönlendirme gösterilebilir.
-        // _showSettingsDialog("Bildirim İzni", "Uygulamanın bildirim gönderebilmesi için izin gereklidir.");
-      } else if (notificationStatus.isDenied) {
-        // Kullanıcı reddettiyse, belki bir açıklama gösterilebilir.
-        print('Bildirim izni reddedildi.');
-      }
+    // --- Bildirim İzni İsteği (Android 13+ ve iOS) ---
+    // permission_handler platforma özgü davranışları yönetir.
+    final notificationStatus = await Permission.notification.request();
+    print(
+        'Bildirim İzin Durumu (Platform: ${Platform.operatingSystem}): $notificationStatus');
+
+    if (notificationStatus.isPermanentlyDenied) {
+      // Kullanıcı kalıcı olarak reddettiyse ayarlara yönlendirme gösterilebilir.
+      // Örnek: _showSettingsDialog("Bildirim İzni", "Uygulamanın bildirim gönderebilmesi için izin gereklidir.");
+      print('Bildirim izni kalıcı olarak reddedildi.');
+    } else if (notificationStatus.isDenied) {
+      // Kullanıcı reddettiyse, belki bir açıklama gösterilebilir.
+      print('Bildirim izni reddedildi.');
     }
     // --- Bildirim İzni İsteği Bitişi ---
 

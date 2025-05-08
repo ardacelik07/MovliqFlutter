@@ -50,6 +50,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (mounted) {
       await _checkAndRequestActivityPermission();
     }
+
+    // Then, if mounted, request notification permission
+    if (mounted) {
+      await _checkAndRequestNotificationPermission();
+    }
   }
 
   // Refactored function to check and request location permissions step-by-step
@@ -162,6 +167,39 @@ class _HomePageState extends ConsumerState<HomePage> {
     } else {
       print(
           'Ana Sayfa - Aktivite/Hareket izni ($permissionName) zaten verilmiş.');
+    }
+  }
+
+  // New function to check and request Notification permission
+  Future<void> _checkAndRequestNotificationPermission() async {
+    final PermissionStatus status = await Permission.notification.status;
+    print('Ana Sayfa - Bildirim İzin Durumu: $status');
+
+    if (!status.isGranted) {
+      final PermissionStatus requestedStatus =
+          await Permission.notification.request();
+      print('Ana Sayfa - İzin İstenen Bildirim Durumu: $requestedStatus');
+
+      if (requestedStatus.isPermanentlyDenied) {
+        if (mounted) {
+          _showSettingsDialog(
+            'Bildirim İzni Gerekli',
+            'Uygulama güncellemeleri ve önemli uyarılar alabilmeniz için bildirimlere izin vermeniz önerilir.',
+          );
+        }
+      } else if (requestedStatus.isDenied) {
+        if (mounted) {
+          // Kullanıcı reddetti ancak kalıcı değil, belki daha sonra tekrar sorulabilir
+          // veya bir açıklama gösterilebilir.
+          print('Ana Sayfa - Bildirim izni reddedildi, ancak kalıcı değil.');
+          /*
+          _showSettingsDialog(
+            'Bildirim İzni',
+            'Bildirimlere izin vermeniz, uygulama deneyiminizi iyileştirebilir.',
+          );
+          */
+        }
+      }
     }
   }
 
