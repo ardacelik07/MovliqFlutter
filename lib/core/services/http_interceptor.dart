@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async'; // Completer için eklendi
 import 'storage_service.dart';
 import '../config/api_config.dart';
 
@@ -9,6 +10,8 @@ class HttpInterceptor {
   static NavigatorState? _navigator;
   static bool _isLoggingOut = false;
   static bool _isRefreshingToken = false;
+  static Completer<bool>? _ongoingRefreshCompleter;
+  static bool _isActualRefreshCallInProgress = false;
 
   // Navigator'u ayarla
   static void setNavigator(NavigatorState navigator) {
@@ -69,17 +72,21 @@ class HttpInterceptor {
 
   // Token yenileme işlemi
   static Future<bool> _refreshToken() async {
-    if (_isRefreshingToken) {
-      print('⏳ Token yenileme zaten deneniyor.');
-      return false;
+    if (_isActualRefreshCallInProgress) {
+      print(
+          '⏳ Başka bir istek zaten token yenileme işlemini başlattı. Sonucu bekleniyor...');
+      return await _ongoingRefreshCompleter!.future;
     }
-    _isRefreshingToken = true;
-    print('🔄 Token yenileme deneniyor...');
+
+    _isActualRefreshCallInProgress = true;
+    _ongoingRefreshCompleter = Completer<bool>();
+    print('🔄 Token yenileme deneniyor (lider çağrı)...');
 
     try {
       final String? refreshToken = await StorageService.getRefreshToken();
       if (refreshToken == null || refreshToken.isEmpty) {
         print('❌ Refresh token bulunamadı. Yenileme yapılamaz.');
+        _ongoingRefreshCompleter!.complete(false);
         return false;
       }
 
@@ -106,21 +113,25 @@ class HttpInterceptor {
             refreshToken: newRefreshToken,
           );
           print('✅ Token başarıyla yenilendi.');
+          _ongoingRefreshCompleter!.complete(true);
           return true;
         } else {
           print('❌ Yenilenen tokenlar response içinde bulunamadı.');
+          _ongoingRefreshCompleter!.complete(false);
           return false;
         }
       } else {
         print('❌ Token yenileme başarısız. Status: ${response.statusCode}');
         print('Response body: ${response.body}');
+        _ongoingRefreshCompleter!.complete(false);
         return false;
       }
     } catch (e) {
       print('❌ Token yenileme sırasında hata: $e');
+      _ongoingRefreshCompleter!.complete(false);
       return false;
     } finally {
-      _isRefreshingToken = false;
+      _isActualRefreshCallInProgress = false;
     }
   }
 
@@ -148,8 +159,9 @@ class HttpInterceptor {
       http.Response response = await makeRequest(headersWithToken);
 
       if (response.statusCode == 401) {
-        if (isRetry || _isRefreshingToken) {
-          print('🚨 HTTP 401 (Retry veya Refreshing). Oturum sonlandırılıyor.');
+        if (isRetry) {
+          print(
+              '🚨 HTTP 401 (Yeniden deneme sonrası). Oturum sonlandırılıyor.');
           _handleUnauthorized();
         } else {
           print('🚨 HTTP 401. Token yenileme denenecek...');
