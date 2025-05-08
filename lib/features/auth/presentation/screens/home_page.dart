@@ -167,6 +167,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           );
           ref.invalidate(
               userDataProvider); // Coin miktarını UI'da yenilemek için
+          ref.read(userDataProvider.notifier).fetchCoins();
         }
       } else {
         return;
