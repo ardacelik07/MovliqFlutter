@@ -43,70 +43,125 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Request permissions sequentially
   Future<void> _checkAndRequestPermissionsSequentially() async {
+    // Request location first
     await _checkAndRequestLocationPermission();
-    // Ensure activity permission is checked *after* location is handled
+
+    // Then, if mounted, request activity permission
     if (mounted) {
       await _checkAndRequestActivityPermission();
     }
   }
 
-  // Function to check and request location permission (directly requesting Always)
+  // Refactored function to check and request location permissions step-by-step
   Future<void> _checkAndRequestLocationPermission() async {
-    final status = await Permission.locationAlways.status;
-    print('Ana Sayfa - Konum İzin Durumu (Always): $status');
+    // 1. Check for 'When In Use' permission first
+    PermissionStatus statusWhenInUse =
+        await Permission.locationWhenInUse.status;
+    print('Ana Sayfa - Konum İzin Durumu (WhenInUse): $statusWhenInUse');
 
-    if (!status.isGranted && !status.isLimited) {
-      final requestedStatus = await Permission.locationAlways.request();
-      print('Ana Sayfa - İzin İstenen Durum (Always): $requestedStatus');
+    if (!statusWhenInUse.isGranted) {
+      statusWhenInUse = await Permission.locationWhenInUse.request();
+      print('Ana Sayfa - İzin İstenen Durum (WhenInUse): $statusWhenInUse');
 
-      if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+      if (statusWhenInUse.isDenied) {
         if (mounted) {
           _showSettingsDialog('Konum İzni Gerekli',
-              'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir.');
+              'Uygulamanın temel özelliklerini kullanabilmek için konumunuza erişim gereklidir. Lütfen "Uygulamayı Kullanırken İzin Ver" seçeneğini seçin.');
         }
+        return; // Stop if 'WhenInUse' is denied, as 'Always' won't be grantable.
+      } else if (statusWhenInUse.isPermanentlyDenied) {
+        if (mounted) {
+          _showSettingsDialog('Konum İzni Reddedildi',
+              'Konum iznini kalıcı olarak reddettiniz. Uygulamanın konum özelliklerini kullanabilmek için lütfen uygulama ayarlarından bu izni etkinleştirin.');
+        }
+        return;
       }
-    } else {
-      print('Ana Sayfa - Konum izni zaten verilmiş.');
     }
-    // Do not call activity check here, call it sequentially after this function returns
+
+    // 2. If 'When In Use' is granted, then check/request 'Always' permission
+    //    Only proceed if 'WhenInUse' was granted in the previous step.
+    if (statusWhenInUse.isGranted || statusWhenInUse.isLimited) {
+      // isLimited can also allow asking for Always
+      PermissionStatus statusAlways = await Permission.locationAlways.status;
+      print('Ana Sayfa - Konum İzin Durumu (Always): $statusAlways');
+
+      // Only request 'Always' if it's not already granted.
+      // If 'WhenInUse' is granted, iOS might automatically upgrade or prompt the user later
+      // when the app attempts to access location in the background if UIBackgroundModes is set.
+      // However, explicitly requesting can be clearer for the user if needed immediately for a feature.
+
+      // On Android 10 (API 29) and lower, locationAlways can be requested directly
+      // On Android 11 (API 30) and higher, users must grant locationWhenInUse first,
+      // and then they are taken to settings to grant locationAlways.
+      // The permission_handler plugin handles this complexity.
+
+      statusAlways = await Permission.locationAlways.request();
+      print('Ana Sayfa - İzin İstenen Durum (Always): $statusAlways');
+
+      if (statusAlways.isDenied || statusAlways.isPermanentlyDenied) {
+        if (mounted) {
+          _showSettingsDialog('Arka Plan Konum İzni',
+              'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni önerilir. Bu izni uygulama ayarlarından yönetebilirsiniz.');
+        }
+        // Do not return here necessarily, app might still function with 'WhenInUse'.
+      }
+      print(
+          'Ana Sayfa - Konum izni (Always) zaten verilmiş veya WhenInUse yeterli.');
+    }
   }
 
-  // Function to check and request Activity Recognition/Motion permission
+  // Refactored function to check and request Activity Recognition/Motion permission
   Future<void> _checkAndRequestActivityPermission() async {
     Permission activityPermission;
     String permissionName;
-    String rationale;
+    String rationale; // Explanation for the user
 
     if (Platform.isAndroid) {
+      // For Android 10 (API 29) and above, ACTIVITY_RECOGNITION is needed.
+      // For older versions, this permission is granted by default if an app requests SENSORS.
+      // permission_handler should handle this, but we specify activityRecognition.
       activityPermission = Permission.activityRecognition;
       permissionName = 'Fiziksel Aktivite İzni';
       rationale =
-          'Adımlarınızı sayabilmemiz için fiziksel aktivite izni gereklidir.';
+          'Adımlarınızı ve aktivitenizi doğru bir şekilde sayabilmemiz ve size daha iyi bir deneyim sunabilmemiz için fiziksel aktivite verilerinize erişim gereklidir.';
     } else if (Platform.isIOS) {
-      activityPermission = Permission.sensors; // Use sensors for motion on iOS
+      // For iOS, Core Motion (sensors) permission is used.
+      activityPermission =
+          Permission.sensors; // Corresponds to NSMotionUsageDescription
       permissionName = 'Hareket ve Fitness İzni';
       rationale =
-          'Adımlarınızı sayabilmemiz için hareket ve fitness izni gereklidir.';
+          'Adımlarınızı ve aktivitenizi doğru bir şekilde sayabilmemiz ve size daha iyi bir deneyim sunabilmemiz için hareket ve fitness verilerinize erişim gereklidir.';
     } else {
-      return; // Platform not supported
+      print('Desteklenmeyen platform: Aktivite izni istenemiyor.');
+      return; // Platform not supported for activity permission
     }
 
-    final status = await activityPermission.status;
-    print('Ana Sayfa - Aktivite İzin Durumu: $status');
+    final PermissionStatus status = await activityPermission.status;
+    print(
+        'Ana Sayfa - Aktivite/Hareket İzin Durumu ($permissionName): $status');
 
     if (!status.isGranted) {
       // Request the permission if not granted
-      final requestedStatus = await activityPermission.request();
-      print('Ana Sayfa - İzin İstenen Durum (Aktivite): $requestedStatus');
+      final PermissionStatus requestedStatus =
+          await activityPermission.request();
+      print(
+          'Ana Sayfa - İzin İstenen Durum ($permissionName): $requestedStatus');
 
-      // If denied after request, show settings dialog
-      if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+      // If denied or permanently denied after request, show settings dialog
+      if (requestedStatus.isDenied) {
         if (mounted) {
-          _showSettingsDialog(permissionName, rationale);
+          _showSettingsDialog(
+              permissionName, '$rationale Lütfen bu izni verin.');
+        }
+      } else if (requestedStatus.isPermanentlyDenied) {
+        if (mounted) {
+          _showSettingsDialog(permissionName,
+              '$rationale Bu izni kalıcı olarak reddettiniz. Özelliği kullanmak için lütfen uygulama ayarlarından etkinleştirin.');
         }
       }
     } else {
-      print('Ana Sayfa - Aktivite izni zaten verilmiş.');
+      print(
+          'Ana Sayfa - Aktivite/Hareket izni ($permissionName) zaten verilmiş.');
     }
   }
 
