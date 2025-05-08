@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/models/record_request_model.dart';
 import '../providers/record_provider.dart';
 import '../providers/user_data_provider.dart';
+import '../providers/recording_state_provider.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -563,28 +564,44 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _isRecording = true;
       _isPaused = false;
       _startTime = DateTime.now();
+      _initialSteps = 0;
+      _steps = 0;
+      _distance = 0.0;
+      _seconds = 0;
+      _calories = 0;
+      _pace = 0.0;
+      _routeCoordinates = [];
+      _polylines = {};
+      _lastCalorieCalculationTime = null;
 
       _pulseController.forward();
-      _initialSteps = 0;
 
       // Start timer
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        setState(() {
-          _seconds++;
-
-          // Her 10 saniyede bir kalori hesapla
-          if (_seconds % 10 == 0) {
-            _calculateCalories();
-
-            // Calculate pace (km/h)
-            _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
-          }
-        });
+        if (!_isPaused && _isRecording) {
+          setState(() {
+            _seconds++;
+            // Her 10 saniyede bir kalori hesapla
+            if (_seconds % 10 == 0) {
+              _calculateCalories();
+              // Calculate pace (km/h)
+              _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
+            }
+          });
+        }
       });
 
       // Start GPS tracking
       _startLocationTracking();
+      // Start pedometer if permission granted
+      if (_hasPedometerPermission) {
+        _initPedometer();
+      }
     });
+    // Notify the state provider
+    ref
+        .read(recordStateProvider.notifier)
+        .startRecording(_forceStopAndResetActivity);
   }
 
   void _finishRecording() {
@@ -648,6 +665,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       // Get current location again and center map on it
       _getCurrentLocation();
     });
+
+    // Notify the state provider
+    ref.read(recordStateProvider.notifier).stopRecording();
   }
 
   void _submitRecordData({
@@ -717,33 +737,22 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       if (_isPaused) {
         // Pause recording
         _pulseController.stop();
-
-        // Pause timer
-        _timer?.cancel();
-
-        // Pause location tracking
+        // Timer'ı durdurmuyoruz, _startRecording içindeki if kontrolü yeterli.
+        // _timer?.cancel();
+        // Konum takibi için de benzer bir mantık, _positionStreamSubscription.pause() daha iyi olabilir.
+        // Şimdilik _stopLocationTracking() ve _startLocationTracking() kalsın.
         _stopLocationTracking();
+        _stepCountSubscription?.pause(); // Pause pedometer
       } else {
         // Resume recording
         _pulseController.forward();
-
-        // Resume timer
-        _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          setState(() {
-            _seconds++;
-
-            // Kalori hesaplama
-            if (_seconds % 10 == 0) {
-              _calculateCalories();
-              _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
-            }
-          });
-        });
-
+        // Timer zaten devam ediyor.
         // Resume location tracking
         _startLocationTracking();
+        _stepCountSubscription?.resume(); // Resume pedometer
       }
     });
+    // recordStateProvider'a dokunmuyoruz, kayıt hala aktif (sadece duraklatıldı).
   }
 
   void _selectActivityType(String type) {
@@ -1251,18 +1260,33 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   // Adım sayar başlatma fonksiyonu
   void _initPedometer() {
+    _stepCountSubscription?.cancel(); // Cancel any existing subscription
     _stepCountSubscription =
         Pedometer.stepCountStream.listen((StepCount event) {
+      if (!mounted || !_isRecording || _isPaused)
+        return; // Check recording and paused state
+
       setState(() {
-        if (_isRecording && _initialSteps == 0) {
+        // İlk adım sayısını kaydetmek için _initialSteps'i kullan
+        if (_initialSteps == 0 && event.steps > 0) {
+          // event.steps > 0 ekledim
           _initialSteps = event.steps;
-          _steps = 0;
-        } else if (_isRecording) {
+          _steps = 0; // Başlangıçta adımları sıfırla
+          debugPrint('Pedometer: Initial steps set to: $_initialSteps');
+        } else if (_initialSteps > 0) {
+          // Sadece initialSteps ayarlandıktan sonra adımları hesapla
           _steps = event.steps - _initialSteps;
+          if (_steps < 0)
+            _steps = 0; // Negatif adıma düşmesini engelle (cihaz reset vb.)
+          debugPrint(
+              'Pedometer: Current event steps: ${event.steps}, Initial: $_initialSteps, Calculated steps: $_steps');
         }
       });
     }, onError: (error) {
-      print('Adım sayar hatası: $error');
+      debugPrint('Adım sayar hatası: $error');
+      setState(() {
+        // _hasPedometerPermission = false; // İzin hala var olabilir, sadece stream hatası.
+      });
     });
   }
 
@@ -1427,5 +1451,55 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     _lastDistance = _distance;
     _lastSteps = _steps;
     _lastCalorieCalculationTime = now;
+  }
+
+  // Aktiviteyi zorla durdur ve sıfırla
+  void _forceStopAndResetActivity() {
+    if (!mounted) return;
+
+    debugPrint('RecordScreen: _forceStopAndResetActivity çağrıldı.');
+    setState(() {
+      _isRecording = false;
+      _isPaused = false;
+
+      _pulseController.stop();
+      _pulseController.reset();
+
+      _timer?.cancel();
+      _timer = null;
+      _stopLocationTracking();
+      _stepCountSubscription?.cancel();
+      _stepCountSubscription = null;
+
+      // Aktivite verilerini sıfırla
+      _seconds = 0;
+      _distance = 0.0;
+      _calories = 0;
+      _pace = 0.0;
+      _steps = 0;
+      _initialSteps = 0;
+      _startTime = null;
+      _lastCalorieCalculationTime = null;
+
+      // Harita rota verilerini temizle
+      _routeCoordinates = [];
+      _polylines = {};
+
+      // Markerları temizle (mevcut konum hariç)
+      if (_currentPosition != null) {
+        _markers = {
+          Marker(
+            markerId: const MarkerId('currentLocation'),
+            position:
+                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+            infoWindow: const InfoWindow(title: 'Konumunuz'),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueGreen),
+          )
+        };
+      } else {
+        _markers = {};
+      }
+    });
   }
 }
