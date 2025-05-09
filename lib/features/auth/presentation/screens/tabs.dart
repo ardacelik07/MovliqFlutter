@@ -12,6 +12,7 @@ import '../providers/leaderboard_provider.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/http_interceptor.dart';
 import '../screens/login_screen.dart';
+import '../providers/recording_state_provider.dart';
 
 // Provider for managing the selected tab index
 final selectedTabProvider = StateProvider<int>((ref) => 0);
@@ -30,7 +31,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    const StoreScreen(),
+    StoreScreen(),
     const RecordScreen(),
     const LeaderboardScreen(),
     const ProfileScreen(),
@@ -53,12 +54,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
       }
 
       try {
-        final tokenData = jsonDecode(tokenJson);
-
-        if (!tokenData.containsKey('token') ||
-            tokenData['token'] == null ||
-            tokenData['token'].isEmpty) {
-          print('⚠️ Tabs: Token format hatası, login ekranına yönlendiriliyor');
+        if (tokenJson == null || tokenJson.isEmpty) {
           _redirectToLogin();
           return;
         }
@@ -87,17 +83,144 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
     }
   }
 
-  void _onItemTapped(int index) {
-    final currentIndex = ref.read(selectedTabProvider);
-    if (currentIndex == index)
-      return; // Do nothing if tapping the current index
+  // Confirmation Dialog
+  Future<bool> _showConfirmationDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible:
+              false, // Kullanıcının dışarı tıklayarak kapatmasını engelle
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1C1C1E), // Koyu arkaplan
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              contentPadding: const EdgeInsets.all(24.0),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFAEF45F), // Yeşil ikon arkaplanı
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.black,
+                      size: 28.0,
+                    ),
+                  ),
+                  const SizedBox(height: 20.0),
+                  const Text(
+                    'Emin misiniz?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12.0),
+                  const Text(
+                    'Kayıt modunu sonlandırmadan çıktığında kaydedilmeyen veriler kaybolacaktır.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white70, // Daha açık gri tonu
+                      fontSize: 14.0,
+                    ),
+                  ),
+                  const SizedBox(height: 28.0),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                const Color(0xFFAEF45F), // Vazgeç buton rengi
+                            padding: const EdgeInsets.symmetric(vertical: 14.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                          ),
+                          child: const Text(
+                            'Vazgeç',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop(false); // Onaylamadı
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12.0),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                const Color(0xFF3A3A3C), // Çık buton rengi
+                            padding: const EdgeInsets.symmetric(vertical: 14.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                          ),
+                          child: const Text(
+                            'Çık',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop(true); // Onayladı
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // actions: artık Row içinde content'e dahil edildi.
+            );
+          },
+        ) ??
+        false;
+  }
 
-    _previousIndex = currentIndex;
+  void _onItemTapped(int index) async {
+    final currentTabIndex = ref.read(selectedTabProvider);
+    final bool isRecordingActive = ref.read(recordStateProvider);
 
-    // Leaderboard specific logic
+    if (currentTabIndex == 2 && index != 2 && isRecordingActive) {
+      final confirm = await _showConfirmationDialog();
+      if (!confirm) {
+        return;
+      }
+      ref.read(recordStateProvider.notifier).cancelRecording();
+    }
+
+    if (index == 2 && currentTabIndex == 2 && isRecordingActive) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aktivite kaydı devam ediyor.')),
+        );
+      }
+      return;
+    }
+
+    if (currentTabIndex == index && !(index == 2 && isRecordingActive)) {
+      if (currentTabIndex == index) return;
+    }
+
+    _previousIndex = currentTabIndex;
+
+    ref.read(selectedTabProvider.notifier).state = index;
+
     if (index == 3) {
-      // Leaderboard index
-      ref.read(selectedTabProvider.notifier).state = index;
       Future.microtask(() {
         try {
           final isOutdoor = ref.read(isOutdoorSelectedProvider);
@@ -107,12 +230,11 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
             ref.refresh(indoorLeaderboardProvider);
           }
         } catch (e) {
-          debugPrint("Leaderboard refresh error: $e");
+          if (kDebugMode) {
+            print("Leaderboard refresh error: $e");
+          }
         }
       });
-    } else {
-      // Update the provider for other tabs (0, 1, 2, 4)
-      ref.read(selectedTabProvider.notifier).state = index;
     }
   }
 
@@ -136,13 +258,27 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
     return WillPopScope(
       onWillPop: () async {
+        final selectedIndex = ref.watch(selectedTabProvider);
+        final bool isRecordingActive = ref.read(recordStateProvider);
+
+        if (selectedIndex == 2 && isRecordingActive) {
+          final confirm = await _showConfirmationDialog();
+          if (!confirm) {
+            return false;
+          }
+          ref.read(recordStateProvider.notifier).cancelRecording();
+          ref.read(selectedTabProvider.notifier).state = 0;
+          _previousIndex = selectedIndex;
+          return false;
+        }
+
         if (selectedIndex != 0) {
           _previousIndex = selectedIndex;
           ref.read(selectedTabProvider.notifier).state = 0;
           return false;
         }
         await SystemNavigator.pop();
-        return false;
+        return true;
       },
       child: Scaffold(
         backgroundColor: Colors.black, // Match background

@@ -3,581 +3,997 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 import '../providers/user_data_provider.dart';
 import '../providers/user_ranks_provider.dart'; // For streak
+import '../providers/latest_product_provider.dart'; // Import LatestProductProvider
+import '../providers/private_race_provider.dart'; // Import PrivateRaceProvider
+import '../../domain/models/latest_product_model.dart'; // Import LatestProductModel
+import '../../domain/models/private_race_model.dart'; // Import PrivateRaceModel
 import 'store_screen.dart'; // Import StoreScreen
 import 'package:avatar_glow/avatar_glow.dart'; // Import AvatarGlow
 import 'tabs.dart'; // Correct import for the provider defined in tabs.dart
+import './product_view_screen.dart'; // Assuming this screen exists
+import '../widgets/user_profile_avatar.dart';
+import 'package:permission_handler/permission_handler.dart'; // Import permission_handler
+import 'dart:io'; // Import Platform
+import '../widgets/network_error_widget.dart';
+import 'package:http/http.dart' show ClientException; // Specific import
+import 'dart:io' show SocketException; // Specific import
+import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Import the new screen
+import 'package:share_plus/share_plus.dart'; // Import share_plus
+import 'package:my_flutter_project/core/config/api_config.dart'; // Import ApiConfig
+import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Import HttpInterceptor
+import 'package:geolocator/geolocator.dart'; // Import Geolocator
+import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
+import 'package:pedometer/pedometer.dart'; // Import pedometer
+import 'package:flutter/services.dart'; // Import flutter/services
 
-class HomePage extends ConsumerWidget {
+import 'dart:convert'; // Import jsonEncode
+
+// Change to ConsumerStatefulWidget
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+// Create State class
+class _HomePageState extends ConsumerState<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Request permissions when the home page initializes
+    _checkAndRequestPermissionsSequentially();
+  }
+
+  // Request permissions sequentially
+  Future<void> _checkAndRequestPermissionsSequentially() async {
+    // Önce bildirim iznini iste (en kritik olmayan)
+    await _checkAndRequestNotificationPermission();
+    
+    // Sonra konum iznini iste
+    await _checkAndRequestLocationPermission();
+    
+    // En son aktivite iznini iste
+    if (mounted) {
+      await _checkAndRequestActivityPermission();
+    }
+  }
+
+  // Bildirim izni kontrolü ve istek işlemi
+  Future<void> _checkAndRequestNotificationPermission() async {
+    print('Ana Sayfa - Bildirim izni kontrolü başlatılıyor...');
+    
+    // iOS ve Android için farklı stratejiler
+    if (Platform.isIOS) {
+      // iOS için native Swift üzerinden bildirim izni alma
+      final bool hasPermission = await _requestIOSNotificationPermission();
+      print('Ana Sayfa - iOS bildirim izni: $hasPermission');
+      
+      // İzin almak için yeterli, kullanıcı iOS sisteminin kendi dialog kutusunu görecek
+    } else {
+      // Android için permission_handler kullanımı
+      final notificationStatus = await Permission.notification.status;
+      
+      if (notificationStatus.isDenied || notificationStatus.isPermanentlyDenied) {
+        print('Ana Sayfa - Android bildirim izni reddedilmiş, istek yapılıyor...');
+        // Android için izin iste
+        final notificationRequest = await Permission.notification.request();
+        
+        // Kullanıcıya bilgi ver (opsiyonel)
+        if (notificationRequest.isPermanentlyDenied) {
+          if (mounted) {
+            // Eğer kullanıcı kalıcı olarak reddettiyse
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Bildirim İzni Gerekli'),
+                content: const Text(
+                    'Bildirim izni olmadan size etkinlikleriniz hakkında haber veremeyiz. Lütfen ayarlardan izin verin.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Kapat'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      openAppSettings();
+                      Navigator.of(ctx).pop();
+                    },
+                    child: const Text('Ayarlara Git'),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+      } else {
+        print('Ana Sayfa - Android bildirim izni zaten var');
+      }
+    }
+  }
+
+  // iOS için native bildirim izni alma
+  Future<bool> _requestIOSNotificationPermission() async {
+    // Platform mesaj kanalı oluştur - AppDelegate.swift'de tanımlanan kanal ile aynı adı kullan
+    const platform = MethodChannel('com.movliq/notifications');
+    
+    try {
+      // iOS tarafında uygulanan methodu çağır
+      final bool result = await platform.invokeMethod('requestNotificationPermission');
+      return result;
+    } catch (e) {
+      print('Ana Sayfa - iOS bildirim izni alma hatası: $e');
+      return false;
+    }
+  }
+  
+  // iOS için bildirim izin durumu kontrolü (isteğe bağlı kullanılabilir)
+  Future<String> _checkIOSNotificationPermission() async {
+    const platform = MethodChannel('com.movliq/notifications');
+    
+    try {
+      final String status = await platform.invokeMethod('checkNotificationPermission');
+      return status;
+    } catch (e) {
+      print('Ana Sayfa - iOS bildirim izni kontrolü hatası: $e');
+      return 'error';
+    }
+  }
+
+  // Function to check and request location permission (directly requesting Always)
+  Future<void> _checkAndRequestLocationPermission() async {
+    print('Ana Sayfa - Konum izni kontrolü başlatılıyor...');
+    
+    // First check if location services are enabled
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lütfen konum servislerini açın'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      
+      // Show system location settings
+      await Geolocator.openLocationSettings();
+      return;
+    }
+    
+    // Use different approaches based on platform
+    if (Platform.isIOS) {
+      // For iOS: Use Geolocator directly which works better
+      LocationPermission permission = await Geolocator.checkPermission();
+      print('Ana Sayfa - iOS konum izni durumu: $permission');
+      
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        print('Ana Sayfa - iOS konum izni istendikten sonra: $permission');
+      }
+      
+      if (permission == LocationPermission.denied || 
+          permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          _showSettingsDialog('Konum İzni Gerekli',
+              'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir.');
+        }
+      } else {
+        print('Ana Sayfa - iOS konum izni alındı: $permission');
+      }
+    } else {
+      // For Android: Continue using Permission.locationAlways which works well
+      final status = await Permission.locationAlways.status;
+      print('Ana Sayfa - Android konum izin durumu (Always): $status');
+
+      if (!status.isGranted && !status.isLimited) {
+        final requestedStatus = await Permission.locationAlways.request();
+        print('Ana Sayfa - Android izin istenen durum (Always): $requestedStatus');
+
+        if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+          if (mounted) {
+            _showSettingsDialog('Konum İzni Gerekli',
+                'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir.');
+          }
+        }
+      } else {
+        print('Ana Sayfa - Android konum izni zaten verilmiş.');
+      }
+    }
+  }
+
+  // Function to check and request Activity Recognition/Motion permission
+  Future<void> _checkAndRequestActivityPermission() async {
+    if (Platform.isAndroid) {
+      // Android işlemi aynı kalıyor
+      final status = await Permission.activityRecognition.status;
+      print('Ana Sayfa - Android aktivite izin durumu: $status');
+
+      if (!status.isGranted) {
+        final requestedStatus = await Permission.activityRecognition.request();
+        print('Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
+
+        if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+          if (mounted) {
+            _showSettingsDialog('Aktivite İzni Gerekli', 
+                'Adımlarınızı sayabilmek için aktivite izni gereklidir.');
+          }
+        }
+      } else {
+        print('Ana Sayfa - Android aktivite izni zaten verilmiş.');
+      }
+    } else if (Platform.isIOS) {
+      // iOS için: Health Kit izinlerini kontrol et
+      // Önce normal sensör iznini iste
+      final sensorStatus = await Permission.sensors.request();
+      print('Ana Sayfa - iOS sensör izin durumu: $sensorStatus');
+      
+      // Health Kit izinlerinin verilip verilmediğini kontrol etmek için
+      try {
+        // Pedometer stream'ini 3 saniyeliğine dinle, veri gelirse izin verilmiş demektir
+        bool healthKitPermissionVerified = false;
+        
+        final subscription = Pedometer.stepCountStream.listen((step) {
+          print('HomePage - Adım algılandı: ${step.steps}, Health Kit izinleri verilmiş');
+          healthKitPermissionVerified = true;
+        }, onError: (error) {
+          print('HomePage - Adım algılama hatası: $error');
+        });
+        
+        // Kısa bir süre bekle
+        await Future.delayed(const Duration(seconds: 3));
+        subscription.cancel();
+        
+        // Eğer Health Kit verisi alınamadıysa dialog göster
+        if (!healthKitPermissionVerified && mounted) {
+          print('Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
+          _showHealthKitDialog();
+        } else {
+          print('Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
+        }
+      } catch (e) {
+        print('Ana Sayfa - Health Kit izin kontrolü sırasında hata: $e');
+        if (mounted) {
+          _showHealthKitDialog();
+        }
+      }
+    }
+  }
+
+  // Health Kit izni için özel dialog (iOS)
+  void _showHealthKitDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Health İzni Gerekli'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Adım sayınızı takip edebilmek için Apple Health uygulamasında izin vermelisiniz:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text('1. iPhone\'unuzda "Sağlık" (Health) uygulamasını açın'),
+            const SizedBox(height: 8),
+            const Text('2. Alt kısımda "İndeks" (Browse) sekmesine tıklayın'),
+            const SizedBox(height: 8),
+            const Text('3. Sağ üstteki profil simgesine tıklayın'),
+            const SizedBox(height: 8),
+            const Text('4. "Veri Kaynakları ve Erişim" (Data Sources & Access) seçeneğine tıklayın'),
+            const SizedBox(height: 8),
+            const Text('5. "Uygulamalar" (Apps) listesinden bu uygulamayı bulun'),
+            const SizedBox(height: 8),
+            const Text('6. "Açık ve Kapalı" (Turn On/Off) kısmından aşağıdaki izinleri açın:'),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('• Adımlar (Steps)'),
+                  Text('• Yürüme + Koşma Mesafesi (Walking + Running Distance)'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'İzinleri verdikten sonra bu uygulamaya dönün ve tekrar deneyin.',
+              style: TextStyle(fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Sağlık Uygulamasını Aç'),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // Health Kit ayarlarına doğrudan erişilemez, Sağlık uygulamasını açmak için URL Schemes kullan
+              final url = Uri.parse('x-apple-health://');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              } else {
+                openAppSettings();
+              }
+            },
+          ),
+          TextButton(
+            child: const Text('Daha Sonra'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Dialog to show if permission is denied (Consolidated for Settings)
+  void _showSettingsDialog(String title, String content) {
+    if (!mounted) return; // Check again before showing dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text('$content Lütfen uygulama ayarlarından bu izni verin.'),
+        actions: [
+          TextButton(
+            child: const Text('Ayarları Aç'),
+            onPressed: () {
+              openAppSettings(); // Open app settings
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: const Text('İptal'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _shareAppLink() async {
+    const String playStoreLink =
+        "https://play.google.com/store/apps/details?id=com.example.my_flutter_project"; // TODO: Kendi Play Store ID'nizi girin
+    const String appStoreLink =
+        "https://apps.apple.com/app/idYOUR_APP_ID"; // TODO: Kendi App Store ID'nizi girin
+    const String fallbackLink = "https://movliq.com/indir";
+
+    String shareMessage;
+    if (Platform.isAndroid) {
+      shareMessage = "Hey! Movliq uygulamasını denemelisin: $playStoreLink";
+    } else if (Platform.isIOS) {
+      shareMessage = "Hey! Movliq uygulamasını denemelisin: $appStoreLink";
+    } else {
+      shareMessage = "Hey! Movliq uygulamasını denemelisin: $fallbackLink";
+    }
+
+    try {
+      await Share.share(shareMessage, subject: 'Movliq Uygulamasını Deneyin!');
+
+      bool apiCallSuccessful = await _callYourOneTimeShareRewardApi();
+
+      if (apiCallSuccessful) {
+        print(
+            'Tek kullanımlık paylaşım ödülü APIsi başarıyla çağrıldı ve coin verildi.');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text(
+                    'Paylaşımın için teşekkürler! Coinlerin hesabına eklendi!')),
+          );
+          ref.invalidate(
+              userDataProvider); // Coin miktarını UI'da yenilemek için
+          ref.read(userDataProvider.notifier).fetchCoins();
+        }
+      } else {
+        return;
+      }
+    } catch (e) {
+      print('Paylaşım diyalogu sırasında hata oluştu: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Paylaşım başlatılamadı.')),
+        );
+      }
+    }
+  }
+
+  Future<bool> _callYourOneTimeShareRewardApi() async {
+    try {
+      // HttpInterceptor, Authorization başlığını otomatik olarak ekleyecektir.
+      final response = await HttpInterceptor.post(
+        Uri.parse(
+            '${ApiConfig.baseUrl}/User/claim-initial-bonus'), // ApiConfig baseUrl varsayılıyor
+        // Eğer API'niz bir body beklemiyorsa, body parametresini vermeyebilirsiniz
+        // veya boş bir JSON objesi gönderebilirsiniz: body: jsonEncode({}),
+      );
+
+      if (response.statusCode == 200) {
+        print('Claim initial bonus API call successful: ${response.body}');
+        // API'den dönen yanıta göre ek kontroller yapabilirsiniz (örn: response.body parse edilebilir)
+        return true; // Başarılı
+      } else {
+        return false; // Başarısız
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userDataAsync = ref.watch(userDataProvider);
     final userStreakAsync =
         ref.watch(userStreakProvider); // Watch streak provider
+    final latestProductsAsync =
+        ref.watch(latestProductProvider); // Watch latest products
 
     return Scaffold(
       backgroundColor: Colors.black, // Set background to black
-      body: Container(
-        // Keep the gradient if needed, or just use black
-        decoration: const BoxDecoration(
-          color: Colors.black, // Use black background
-          // gradient: LinearGradient(
-          //   begin: Alignment.topCenter,
-          //   stops: [0.0, 0.95],
-          //   end: Alignment.bottomCenter,
-          //   colors: [
-          //     Color(0xFFC4FF62),
-          //     Color.fromARGB(255, 0, 0, 0),
-          //   ],
-          // ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            // Make the content scrollable
-            child: Column(
-              children: [
-                // --- New Top Bar ---
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 12.0),
-                  child: Row(
-                    children: [
-                      // Profile picture
-                      userDataAsync.when(
-                        data: (userData) => CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.grey[800],
-                          backgroundImage:
-                              userData?.profilePictureUrl != null &&
-                                      userData!.profilePictureUrl!.isNotEmpty
-                                  ? NetworkImage(userData.profilePictureUrl!)
-                                  : null, // Handle null/empty URL
-                          child: (userData?.profilePictureUrl == null ||
-                                  userData!.profilePictureUrl!.isEmpty)
-                              ? const Icon(Icons.person,
-                                  size: 24, color: Colors.white70)
-                              : null,
-                        ),
-                        loading: () => const CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.grey,
-                          child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white)),
-                        ),
-                        error: (_, __) => const CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.grey,
-                          child: Icon(Icons.error_outline,
-                              color: Colors.red, size: 24),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Welcome Text
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+      body: userDataAsync.when(
+        data: (userData) {
+          // userData might still be null initially while fetching after login
+          // We might need coins even if userData is slightly delayed, handle nulls gracefully
+          final userCoins = userData?.coins;
+
+          // If userData is definitively null after fetch attempt (e.g., error state previously cleared),
+          // show a loading or error state. For simplicity, we'll proceed if it was fetched, even if null.
+          // A more robust solution might involve checking the provider's state flags if available.
+
+          return Container(
+            // Keep the gradient if needed, or just use black
+            decoration: const BoxDecoration(
+              color: Colors.black, // Use black background
+            ),
+            child: SafeArea(
+              child: SingleChildScrollView(
+                // Make the content scrollable
+                child: Column(
+                  children: [
+                    // --- New Top Bar ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 12.0),
+                      child: Row(
                         children: [
-                          Text(
-                            'Hoşgeldiniz',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[400],
-                            ),
+                          // Profile picture - Simpler error/loading handling
+                          UserProfileAvatar(
+                            imageUrl: userData?.profilePictureUrl,
+                            radius: 24,
                           ),
-                          userDataAsync.when(
-                            data: (userData) => Text(
-                              userData?.userName ?? 'Kullanıcı', // Display name
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                          const SizedBox(width: 12),
+                          // Welcome Text - Simpler error/loading handling
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hoşgeldiniz',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[400],
+                                ),
                               ),
-                            ),
-                            loading: () => const Text(
-                              'Yükleniyor...',
-                              style: TextStyle(
-                                  fontSize: 16, color: Colors.white70),
-                            ),
-                            error: (_, __) => const Text(
-                              'Kullanıcı',
-                              style: TextStyle(
+                              Text(
+                                userData?.userName ??
+                                    'Kullanıcı', // Display name or default
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          // Icons Row
+                          Row(
+                            children: [
+                              // Notification Icon (Placeholder)
+                              Stack(
+                                alignment: Alignment.topRight,
+                                children: [
+                                  Icon(Icons.notifications_outlined,
+                                      color: Colors.white, size: 26),
+                                  // Add badge if needed
+                                ],
+                              ),
+                              const SizedBox(width: 12),
+                              // Coin Icon & Count
+                              Image.asset(
+                                'assets/images/mCoin.png',
+                                width: 25,
+                                height: 25,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                userCoins?.toStringAsFixed(2) ??
+                                    '0.00', // Format to 2 decimal places
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14),
+                              ),
+                              const SizedBox(width: 12),
+                              // Streak Icon & Count - Simpler error/loading
+                              const Icon(Icons.local_fire_department,
+                                  color: Colors.deepOrangeAccent, size: 22),
+                              const SizedBox(width: 4),
+                              userStreakAsync.maybeWhen(
+                                data: (streak) => Text(
+                                  streak.toString(),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14),
+                                ),
+                                // Show '-' or loading indicator for non-data states
+                                orElse: () => const Text(
+                                  '-',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      const Spacer(),
-                      // Icons Row
-                      Row(
+                    ),
+
+                    // --- Level Card (Now a PageView Slider) ---
+                    SizedBox(
+                      height: 170, // Adjust height for the slider area
+                      child: PageView.builder(
+                        controller: PageController(
+                            viewportFraction:
+                                0.9), // Shows parts of adjacent pages
+                        padEnds: false, // Don't add padding at the ends
+                        itemCount: 3, // Placeholder count for demonstration
+                        itemBuilder: (context, index) {
+                          // Define the image path based on the index
+                          final imagePaths = [
+                            'assets/images/slidebar1.jpeg',
+                            'assets/images/slidebar2.jpeg',
+                            'assets/images/slidebar3.jpeg',
+                          ];
+                          // Use modulo in case itemCount changes later, although currently it's 3
+                          final imagePath =
+                              imagePaths[index % imagePaths.length];
+
+                          return Container(
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                                vertical:
+                                    8.0), // Add horizontal margin between cards
+                            padding: const EdgeInsets.all(20.0),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20.0),
+                              image: DecorationImage(
+                                image: AssetImage(imagePath),
+                                fit: BoxFit
+                                    .cover, // Make image cover the container
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Stack(
+                              children: [
+                                // NEW Tag (Only for the first item in this example)
+                                if (index == 0)
+                                  Positioned(
+                                    top: 0,
+                                    left: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Text(
+                                        'NEW',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                // Level Number (Placeholder - varies by index)
+
+                                // Progress Indicator (Placeholder - varies by index)
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: Text(
+                                    index == 0
+                                        ? '1/5'
+                                        : (index == 1
+                                            ? 'Daily'
+                                            : 'Weekly'), // Example content variation
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // --- Invite Friend Card ---
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[900],
+                        borderRadius: BorderRadius.circular(16.0),
+                      ),
+                      child: Row(
                         children: [
-                          // Notification Icon (Placeholder)
-                          Stack(
-                            alignment: Alignment.topRight,
-                            children: [
-                              Icon(Icons.notifications_outlined,
-                                  color: Colors.white, size: 26),
-                              // Add a badge if there are notifications
-                              // Positioned(
-                              //   right: 0,
-                              //   top: 0,
-                              //   child: Container(
-                              //     padding: EdgeInsets.all(2),
-                              //     decoration: BoxDecoration(
-                              //       color: Colors.red,
-                              //       shape: BoxShape.circle,
-                              //     ),
-                              //     constraints: BoxConstraints(
-                              //       minWidth: 8,
-                              //       minHeight: 8,
-                              //     ),
-                              //   ),
-                              // ),
-                            ],
+                          Icon(Icons.group_add_outlined,
+                              color: Color(0xFFC4FF62), size: 30),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Arkadaşını Davet Et',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Her arkadaşın için 500 mPara',
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 12),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 12),
-                          // Coin Icon & Count (Placeholder)
-                          const Icon(Icons.monetization_on,
-                              color: Colors.amber, size: 22),
-                          const SizedBox(width: 4),
+                          ElevatedButton(
+                            onPressed: _shareAppLink,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFFC4FF62),
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                            ),
+                            child: const Text('Davet Et'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // --- Ready to Race Text ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0), // Keep padding
+                      child: Column(
+                        children: [
                           const Text(
-                            '2,450', // Placeholder Coin Count
+                            'Yarışa hazır mısın?',
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14),
+                                fontSize: 18),
                           ),
-                          const SizedBox(width: 12),
-                          // Streak Icon & Count
-                          const Icon(Icons.local_fire_department,
-                              color: Colors.deepOrangeAccent, size: 22),
-                          const SizedBox(width: 4),
-                          userStreakAsync.when(
-                            data: (streak) => Text(
-                              streak.toString(),
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14),
-                            ),
-                            loading: () => const SizedBox(
-                                width: 12,
-                                height: 12,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white)),
-                            error: (_, __) => const Text(
-                              '0', // Default on error
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // --- Level Card (Now a PageView Slider) ---
-                SizedBox(
-                  height: 170, // Adjust height for the slider area
-                  child: PageView.builder(
-                    controller: PageController(
-                        viewportFraction: 0.9), // Shows parts of adjacent pages
-                    padEnds: false, // Don't add padding at the ends
-                    itemCount: 3, // Placeholder count for demonstration
-                    itemBuilder: (context, index) {
-                      // Define the image path based on the index
-                      final imagePaths = [
-                        'assets/images/slidebar1.jpeg',
-                        'assets/images/slidebar2.jpeg',
-                        'assets/images/slidebar3.jpeg',
-                      ];
-                      // Use modulo in case itemCount changes later, although currently it's 3
-                      final imagePath = imagePaths[index % imagePaths.length];
-
-                      return Container(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                            vertical:
-                                8.0), // Add horizontal margin between cards
-                        padding: const EdgeInsets.all(20.0),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20.0),
-                          image: DecorationImage(
-                            image: AssetImage(imagePath),
-                            fit: BoxFit.cover, // Make image cover the container
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          children: [
-                            // NEW Tag (Only for the first item in this example)
-                            if (index == 0)
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Text(
-                                    'NEW',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            // Level Number (Placeholder - varies by index)
-
-                            // Progress Indicator (Placeholder - varies by index)
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: Text(
-                                index == 0
-                                    ? '1/5'
-                                    : (index == 1
-                                        ? 'Daily'
-                                        : 'Weekly'), // Example content variation
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // --- Invite Friend Card ---
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900],
-                    borderRadius: BorderRadius.circular(16.0),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.group_add_outlined,
-                          color: Color(0xFFC4FF62), size: 30),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Arkadaşını Davet Et',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Her arkadaşın için 500 mPara',
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFC4FF62),
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                        ),
-                        child: const Text('Davet Et'),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // --- Ready to Race Text ---
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0), // Keep padding
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Yarışa hazır mısın?',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Kardiyoyu eğlenceli hale getirin! Canlı bir yarışa katılmak ve benzersiz ödüller kazanmak için hemen tıklayın!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-                  ),
-                ),
-
-                // --- Central Action Button ---
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10.0),
-                  child: AnimatedCentralButton(),
-                ),
-
-                // --- Available Products Section ---
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Alınabilir Ürünler',
+                          const SizedBox(height: 8),
+                          Text(
+                            'Kardiyoyu eğlenceli hale getirin! Canlı bir yarışa katılmak ve benzersiz ödüller kazanmak için hemen tıklayın!',
+                            textAlign: TextAlign.center,
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold),
+                                color: Colors.grey[400], fontSize: 14),
                           ),
-                          TextButton(
-                            onPressed: () {
-                              // Update the provider to switch to the Store tab (index 1)
-                              ref.read(selectedTabProvider.notifier).state = 1;
-                            },
-                            child: const Text(
-                              'Mağaza >',
-                              style: TextStyle(color: Color(0xFFC4FF62)),
+                          const SizedBox(height: 4),
+                        ],
+                      ),
+                    ),
+
+                    // --- Central Action Button ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10.0),
+                      child: AnimatedCentralButton(),
+                    ),
+
+                    // --- Available Products Section ---
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Alınabilir Ürünler',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  // Update the provider to switch to the Store tab (index 1)
+                                  ref.read(selectedTabProvider.notifier).state =
+                                      1;
+                                },
+                                child: const Text(
+                                  'Mağaza >',
+                                  style: TextStyle(color: Color(0xFFC4FF62)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            // height: 200, // REMOVE fixed height constraint
+                            // Keep the specific error handling for products here
+                            child: latestProductsAsync.when(
+                              data: (products) {
+                                if (products.isEmpty) {
+                                  return const Center(
+                                    child: Text(
+                                      'Gösterilecek ürün bulunamadı.',
+                                      style: TextStyle(color: Colors.white70),
+                                    ),
+                                  );
+                                }
+                                // Wrap the ListView.builder with SizedBox when there's data
+                                return SizedBox(
+                                  height:
+                                      200, // Restore height constraint for the list
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: products.length,
+                                    itemBuilder: (context, index) {
+                                      final LatestProductModel product =
+                                          products[index];
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 12.0),
+                                        child: _ProductCard(product: product),
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                              loading: () => const Center(
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white)),
+                              error: (error, stackTrace) {
+                                // Check for network errors IN THIS SECTION
+                                if (error is SocketException ||
+                                    error is ClientException) {
+                                  return Center(
+                                    child: NetworkErrorWidget(
+                                      onRetry: () {
+                                        ref.invalidate(
+                                            latestProductProvider); // Retry fetch
+                                      },
+                                    ),
+                                  );
+                                } else {
+                                  // Display other errors for products
+                                  return Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: SelectableText(
+                                        'Ürünler yüklenemedi: $error',
+                                        style: const TextStyle(
+                                            color: Colors.redAccent),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 200, // Adjust height for product cards
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: 4, // Placeholder count
-                          itemBuilder: (context, index) {
-                            // Placeholder Product Card
-                            return Container(
-                              width: 150, // Adjust width
-                              margin: const EdgeInsets.only(right: 12.0),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[900],
-                                borderRadius: BorderRadius.circular(16.0),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(
-                                          top: Radius.circular(16.0)),
-                                      child: Image.asset(
-                                        'assets/images/nike.png', // Placeholder image
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          index % 2 == 0
-                                              ? 'Premium Nike'
-                                              : 'Sports T-shirt', // Placeholder title
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                    ),
+
+                    // --- Special Races Section (Horizontal Scroll) ---
+                    /*Padding(
+                      padding: const EdgeInsets.only(
+                          left: 16.0,
+                          top: 16.0,
+                          bottom: 16.0,
+                          right: 0), // Adjust padding
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(
+                                right: 16.0), // Add padding for title if needed
+                            child: Text(
+                              'Özel Yarışlar',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height:
+                                150, // Define height for the horizontal list items
+                            child: Consumer(
+                              // Use Consumer to watch the provider here
+                              builder: (context, ref, child) {
+                                final specialRacesAsync =
+                                    ref.watch(privateRaceProvider);
+                                return specialRacesAsync.when(
+                                  data: (races) {
+                                    if (races.isEmpty) {
+                                      return const Center(
+                                        child: Text(
+                                          'Aktif özel yarış bulunamadı.',
+                                          style:
+                                              TextStyle(color: Colors.white70),
                                         ),
-                                        SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(Icons.monetization_on,
-                                                color: Colors.amber, size: 16),
-                                            SizedBox(width: 4),
-                                            Text(
-                                              index % 2 == 0
-                                                  ? '2500'
-                                                  : '1800', // Placeholder price
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14),
+                                      );
+                                    }
+                                    return ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: races
+                                          .length, // Use fetched data length
+                                      itemBuilder: (context, index) {
+                                        final PrivateRaceModel race =
+                                            races[index];
+
+                                        return InkWell(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    PrivateRacesView(
+                                                  // Pass the fetched race data
+                                                  race: race,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          borderRadius:
+                                              BorderRadius.circular(12.0),
+                                          child: Container(
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.7,
+                                            margin: const EdgeInsets.only(
+                                                right: 12.0),
+                                            padding: const EdgeInsets.all(16.0),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.0),
+                                              image: DecorationImage(
+                                                image: NetworkImage(
+                                                    race.imagePath ?? ''),
+                                                fit: BoxFit.cover,
+                                                colorFilter: ColorFilter.mode(
+                                                  Colors.black.withOpacity(0.5),
+                                                  BlendMode.darken,
+                                                ),
+                                                // Add errorBuilder for NetworkImage
+                                                onError:
+                                                    (exception, stackTrace) {
+                                                  print(
+                                                      "Error loading race image: ${race.imagePath}, Error: $exception");
+                                                  // Optionally show a placeholder
+                                                },
+                                              ),
                                             ),
-                                          ],
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    race.specialRaceRoomName ??
+                                                        'Özel Yarış',
+                                                    style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16),
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                // Participant count is not in the current API response
+                                                // You might want to fetch this separately or adjust the model/API
+                                                // Row(
+                                                //   mainAxisSize: MainAxisSize.min,
+                                                //   children: [
+                                                //     Icon(Icons.group_outlined, color: Colors.white70, size: 18),
+                                                //     SizedBox(width: 6),
+                                                //     Text(
+                                                //       '? K', // Placeholder or fetch participant count
+                                                //       style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
+                                                //     ),
+                                                //   ],
+                                                // ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                  loading: () => const Center(
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white)),
+                                  error: (error, stackTrace) {
+                                    print(
+                                        'Error loading special races: $error\n$stackTrace');
+                                    return Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: SelectableText(
+                                          'Özel yarışlar yüklenemedi: $error',
+                                          style: const TextStyle(
+                                              color: Colors.redAccent),
+                                          textAlign: TextAlign.center,
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // --- Special Races Section (Horizontal Scroll) ---
-                Padding(
-                  padding: const EdgeInsets.only(
-                      left: 16.0,
-                      top: 16.0,
-                      bottom: 16.0,
-                      right: 0), // Adjust padding
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(
-                            right: 16.0), // Add padding for title if needed
-                        child: Text(
-                          'Özel Yarışlar',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height:
-                            150, // Define height for the horizontal list items
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: 4, // Placeholder count
-                          itemBuilder: (context, index) {
-                            // Placeholder Race Card Data
-                            final titles = [
-                              'Nike Community Run',
-                              'Adidas Global Race',
-                              'Puma Night Run',
-                              'Community Challenge'
-                            ];
-                            final participants = ['2.5K', '5K', '1.8K', '3.2K'];
-                            // Define image paths for the special races
-                            final raceImagePaths = [
-                              'assets/images/slidebar5.jpeg',
-                              'assets/images/slidebar1.jpeg',
-                              'assets/images/slidebar3.jpeg',
-                              'assets/images/slidebar2.jpeg',
-                              // 'assets/images/slidebar5.jpeg', // Add if itemCount increases
-                            ];
-                            final imagePath = raceImagePaths[index %
-                                raceImagePaths.length]; // Use modulo for safety
-
-                            return Container(
-                              width: MediaQuery.of(context).size.width *
-                                  0.7, // Adjust card width
-                              margin: const EdgeInsets.only(
-                                  right: 12.0), // Margin between cards
-                              padding: const EdgeInsets.all(16.0),
-                              decoration: BoxDecoration(
-                                // Remove solid color
-                                // color: Colors.grey[900],
-                                borderRadius: BorderRadius.circular(12.0),
-                                // Add background image
-                                image: DecorationImage(
-                                  image: AssetImage(imagePath),
-                                  fit: BoxFit.cover,
-                                  // Add a slight darken overlay for text contrast
-                                  colorFilter: ColorFilter.mode(
-                                    Colors.black.withOpacity(0.5),
-                                    BlendMode.darken,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment
-                                    .center, // Vertically center items
-                                children: [
-                                  // Title (takes available space)
-                                  Expanded(
-                                    child: Text(
-                                      titles[
-                                          index % titles.length], // Use modulo
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight
-                                              .bold, // Keep title bold
-                                          fontSize:
-                                              16), // Adjust size if needed
-                                      maxLines: 2, // Allow wrapping
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                      width:
-                                          12), // Space before participant count
-                                  // Participants count
-                                  Row(
-                                    mainAxisSize:
-                                        MainAxisSize.min, // Keep row compact
-                                    children: [
-                                      Icon(Icons.group_outlined,
-                                          color: Colors.white70, size: 18),
-                                      SizedBox(width: 6),
-                                      Text(
-                                        participants[index %
-                                            participants.length], // Use modulo
-                                        style: TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500),
                                       ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),*/
+                    const SizedBox(height: 20), // Add some bottom padding
+                  ],
                 ),
-                const SizedBox(height: 20), // Add some bottom padding
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: Color(0xFFC4FF62))),
+        error: (error, stackTrace) {
+          // ALWAYS show NetworkErrorWidget for any full-screen error
+          return Center(
+            child: NetworkErrorWidget(
+              // Provide generic title/message for all errors
+              title: 'Ana Sayfa Yüklenemedi',
+              message: 'Bir sorun oluştu, lütfen tekrar deneyin.',
+              onRetry: () {
+                // Invalidate all relevant providers on retry
+                ref.invalidate(userDataProvider);
+                ref.invalidate(userStreakProvider);
+                ref.invalidate(latestProductProvider);
+              },
+            ),
+          );
+        },
       ),
     );
   }
@@ -639,6 +1055,118 @@ class _AnimatedCentralButtonState extends ConsumerState<AnimatedCentralButton> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// Separate Product Card Widget
+class _ProductCard extends StatelessWidget {
+  final LatestProductModel product;
+
+  const _ProductCard({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    // Wrap the card with InkWell for tap feedback and navigation
+    return InkWell(
+      onTap: () {
+        print("📦 Tapped product: ${product.name} (ID: ${product.id})");
+        // Navigate to ProductViewScreen, passing only the product ID
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductViewScreen(productId: product.id),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(16.0), // Match card border radius
+      child: Container(
+        width: 150, // Adjust width
+        // Removed margin from Container, InkWell handles interaction area
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16.0)),
+                child: Image.network(
+                  product.mainImageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  loadingBuilder: (BuildContext context, Widget child,
+                      ImageChunkEvent? loadingProgress) {
+                    if (loadingProgress == null) return child; // Image loaded
+                    return Container(
+                      color: Colors.grey[800], // Placeholder background
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: Colors.white54,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (BuildContext context, Object exception,
+                      StackTrace? stackTrace) {
+                    print(
+                        "❌ Error loading image: ${product.mainImageUrl}, Error: $exception");
+                    return Container(
+                      color: Colors.grey[800],
+                      child: const Center(
+                          child: Icon(Icons.broken_image_outlined,
+                              color: Colors.redAccent)),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name, // Use product name
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Image.asset(
+                        'assets/images/mCoin.png',
+                        width: 16,
+                        height: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        product.price.toString(), // Use product price
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

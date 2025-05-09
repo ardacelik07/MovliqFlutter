@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:my_flutter_project/features/auth/presentation/providers/race_provider.dart'; // RaceNotifier için import
+import 'package:my_flutter_project/features/auth/presentation/providers/race_state.dart'; // RaceState için import
 import 'package:my_flutter_project/features/auth/presentation/screens/race_screen.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/services/storage_service.dart';
 import '../providers/race_settings_provider.dart';
 import 'dart:convert';
 import 'dart:async'; // StreamSubscription için import ekliyorum
+import 'dart:io'; // Platform için import
 import 'package:http/http.dart' as http;
 import 'package:my_flutter_project/features/auth/domain/models/leave_room_request.dart';
 import '../../../../core/config/api_config.dart';
 import '../screens/tabs.dart';
 import 'package:my_flutter_project/features/auth/domain/models/room_participant.dart';
+import '../widgets/user_profile_avatar.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter/services.dart'; // MethodChannel için
+import 'package:geolocator/geolocator.dart'; // Location servisleri için
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -24,7 +31,7 @@ class WaitingRoomScreen extends ConsumerStatefulWidget {
   final int roomId;
   final DateTime? startTime;
   final String? activityType;
-  final String? duration;
+  final int? duration;
 
   const WaitingRoomScreen({
     super.key,
@@ -54,132 +61,13 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
 
-  // State variables for countdown
-  Timer? _countdownTimer;
-  int? _countdownSeconds;
-
-  // Odadan çıkış işlemi için yeni metot
-  Future<void> _leaveRoom({bool showConfirmation = true}) async {
-    // Kullanıcıdan onay al
-    if (showConfirmation) {
-      final bool confirm = await _showLeaveConfirmationDialog();
-      if (!confirm) return;
-    }
-
-    _countdownTimer?.cancel(); // Cancel timer if leaving
-
-    try {
-      setState(() {
-        _isLoading = true; // Eğer varsa, bir loading state kullanılabilir
-      });
-
-      // 1. API üzerinden çıkış yap
-      final bool apiSuccess = await _callLeaveRoomApi();
-
-      // 2. SignalR üzerinden çıkış yap
-      if (apiSuccess) {
-        try {
-          final signalRService = ref.read(signalRServiceProvider);
-          await signalRService.leaveRaceRoom(widget.roomId);
-        } catch (e) {
-          debugPrint('❌ SignalR üzerinden odadan çıkarken hata: $e');
-          // API başarılı olduğu için devam ediyoruz
-        }
-      }
-
-      // 3. Stream aboneliklerini temizle
-      for (var subscription in _subscriptions) {
-        subscription.cancel();
-      }
-      _subscriptions.clear();
-
-      // 4. Ana sayfaya yönlendir
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const TabsScreen()),
-          (route) => false, // Tüm geçmiş sayfaları temizle
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ Odadan çıkış sırasında hata: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Odadan çıkış sırasında bir hata oluştu: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  // Onay dialogu göster
-  Future<bool> _showLeaveConfirmationDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Odadan Çıkış'),
-        content:
-            const Text('Yarış odasından çıkmak istediğinize emin misiniz?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Çıkış Yap'),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
-  }
-
-  // LeaveRoom API isteği
-  Future<bool> _callLeaveRoomApi() async {
-    try {
-      // Token al
-      final tokenJson = await StorageService.getToken();
-      if (tokenJson == null) {
-        throw Exception('Kimlik doğrulama tokeni bulunamadı');
-      }
-
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
-
-      // İstek gövdesi oluştur
-      final leaveRequest = LeaveRoomRequest(raceRoomId: widget.roomId);
-
-      // API isteği yap
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/RaceRoom/leaveRoom'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(leaveRequest.toJson()),
-      );
-
-      debugPrint('📤 LeaveRoom API cevabı: ${response.statusCode}');
-      debugPrint('📄 API cevap body: ${response.body}');
-
-      return response.statusCode == 200; // Başarılı mı?
-    } catch (e) {
-      debugPrint('❌ LeaveRoom API hatası: $e');
-      throw e; // Üst metoda hatayı ilet
-    }
-  }
+  // Listen for race state changes to detect race starting
+  bool _navigationTriggered = false;
 
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     _hasStartTime = widget.startTime != null;
     _participants = []; // Boş liste ile başlat
     debugPrint('🔄 WaitingRoom initState - Başlangıç durumu:');
@@ -202,8 +90,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     try {
       final tokenJson = await StorageService.getToken();
       if (tokenJson != null) {
-        final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-        final String token = tokenData['token'];
+        final String token = tokenJson;
 
         // Token'ı parçalara ayır
         final parts = token.split('.');
@@ -322,25 +209,75 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         }
       }));
 
-      // Yarış başlama olayını dinle ve geri sayım süresi sonunda otomatik geçiş yap
+      // Yarış başlama olayını dinle
       _subscriptions.add(signalRService.raceStartingStream.listen((data) {
-        if (!mounted || _isRaceStarting)
-          return; // Eğer yarış başlama süreci başladıysa çıkış yap
+        debugPrint(
+            '--- WaitingRoom: RaceStarting event RECEIVED --- Data: $data');
 
-        debugPrint('Yarış başlama olayı alındı: $data');
+        if (!mounted) {
+          debugPrint(
+              '--- WaitingRoom: RaceStarting - Widget not mounted, skipping. ---');
+          return;
+        }
+        // Yarış zaten UI tarafında başladıysa tekrar tetikleme (güvenlik)
+        if (_isRaceStarting) {
+          debugPrint(
+              '--- WaitingRoom: RaceStarting - UI already starting, skipping notifier call. ---');
+          return;
+        }
+
         final int roomId = data['roomId'];
-        final int countdownSeconds =
-            data['countdownSeconds'] ?? 10; // Varsayılan 10 saniye
+        final int countdownSeconds = data['countdownSeconds'] ?? 10;
+        debugPrint(
+            '--- WaitingRoom: RaceStarting - Parsed Room ID: $roomId, Countdown: $countdownSeconds ---');
 
         if (roomId == widget.roomId) {
           debugPrint(
-              'Yarış başlıyor: Oda $roomId, $countdownSeconds saniye sonra');
+              '--- WaitingRoom: RaceStarting - Event matches current room ID. ---');
 
-          // Standart yarış başlama süreci - tüm telefonlarda aynı süre
-          _startRaceCountdown(countdownSeconds);
+          // --- SADECE NOTIFIER'I TETİKLE ---
+          final raceNotifier = ref.read(raceNotifierProvider.notifier);
+          final String activityLower = widget.activityType?.toLowerCase() ?? '';
+          final bool isIndoor = activityLower.contains('indoor') ||
+              activityLower.contains('iç mekan');
+          final int durationMinutes = widget.duration ?? 10;
+
+          debugPrint(
+              '--- WaitingRoom: RaceStarting - Preparing to call notifier. Email: $_myEmail, Indoor: $isIndoor, Duration: $durationMinutes ---');
+
+          if (_myEmail == null) {
+            debugPrint(
+                '--- WaitingRoom: HATA - Kullanıcı email bilgisi null! Yarış başlatılamıyor. ---');
+            _showErrorMessage(
+                'Kullanıcı bilgileri yüklenemediği için yarış başlatılamadı.');
+            return;
+          }
+
+          debugPrint(
+              '--- WaitingRoom: >>> Calling raceNotifier.startRace... ---');
+          raceNotifier.startRace(
+            roomId: roomId,
+            countdownSeconds: countdownSeconds,
+            raceDurationMinutes: durationMinutes,
+            isIndoorRace: isIndoor,
+            userEmail: _myEmail!,
+            initialProfileCache:
+                Map<String, String?>.from(_profilePictureCache),
+          );
+          debugPrint('--- WaitingRoom: raceNotifier.startRace CALLED. ---');
+          // --- TETİKLEME SONU ---
+
+          // --- LOCAL STATE VE TIMER KALDIRILDI ---
+          setState(() {
+            _isRaceStarting = true; // Sadece genel mod için
+          });
+
+          debugPrint(
+              '--- WaitingRoom: Local state/timer removed. Waiting for notifier state change for navigation. ---');
+          // --- LOCAL STATE VE TIMER KALDIRILDI SONU ---
         } else {
           debugPrint(
-              'Başka bir oda için yarış başlıyor: $roomId (bizim oda: ${widget.roomId})');
+              'WaitingRoom: Başka oda için yarış başlıyor: $roomId (bizim oda: ${widget.roomId})');
         }
       }));
     } catch (e) {
@@ -349,50 +286,123 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     }
   }
 
-  // Standardize edilmiş yarış başlatma fonksiyonu
-  void _startRaceCountdown(int seconds) {
-    // Eğer yarış başlatma süreci zaten başladıysa, tekrar başlatma
-    if (_isRaceStarting) {
-      debugPrint('⚠️ Yarış başlatma süreci zaten aktif, tekrar başlatılmadı');
-      return;
+  // Odadan çıkış işlemi için yeni metot
+  Future<void> _leaveRoom({bool showConfirmation = true}) async {
+    // Kullanıcıdan onay al
+    if (showConfirmation) {
+      final bool confirm = await _showLeaveConfirmationDialog();
+      if (!confirm) return;
     }
+    WakelockPlus.disable();
+    debugPrint('Wakelock disabled for WaitingRoomScreen');
 
-    debugPrint(
-        '🕒 Yarış başlatma süreci başladı, $seconds saniye sonra başlayacak');
-
-    setState(() {
-      _isRaceStarting = true;
-      _countdownSeconds = seconds; // Set initial countdown value
-    });
-
-    _countdownTimer?.cancel(); // Cancel previous timer if any
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
+    try {
       setState(() {
-        if (_countdownSeconds != null && _countdownSeconds! > 0) {
-          _countdownSeconds = _countdownSeconds! - 1;
-          debugPrint('⏳ Geri sayım: $_countdownSeconds');
-        } else {
-          timer.cancel();
-          debugPrint('⏱️ Geri sayım timer\'ı tamamlandı.');
-          // Navigation is handled by the separate Future.delayed
-        }
+        _isLoading = true; // Eğer varsa, bir loading state kullanılabilir
       });
-    });
 
-    // Schedule navigation (this delay determines when navigation actually happens)
-    Future.delayed(Duration(seconds: seconds), () {
-      if (mounted && _isRaceStarting) {
-        debugPrint(
-            '⏱️ Geri sayım süresi doldu, RaceScreen\'e geçiş yapılıyor...');
-        _countdownTimer
-            ?.cancel(); // Ensure timer is cancelled before navigating
-        _navigateToRaceScreen();
+      // 1. API üzerinden çıkış yap
+      final bool apiSuccess = await _callLeaveRoomApi();
+
+      // 2. SignalR üzerinden çıkış yap
+      if (apiSuccess) {
+        try {
+          final signalRService = ref.read(signalRServiceProvider);
+          await signalRService.leaveRaceRoom(widget.roomId);
+        } catch (e) {
+          debugPrint('❌ SignalR üzerinden odadan çıkarken hata: $e');
+          // API başarılı olduğu için devam ediyoruz
+        }
       }
-    });
+
+      // 3. Stream aboneliklerini temizle
+      for (var subscription in _subscriptions) {
+        subscription.cancel();
+      }
+      _subscriptions.clear();
+
+      // 4. Ana sayfaya yönlendir
+      if (mounted) {
+        WakelockPlus.disable();
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const TabsScreen()),
+          (route) => false, // Tüm geçmiş sayfaları temizle
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Odadan çıkış sırasında hata: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Odadan çıkış sırasında bir hata oluştu: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Onay dialogu göster
+  Future<bool> _showLeaveConfirmationDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Odadan Çıkış'),
+        content:
+            const Text('Yarış odasından çıkmak istediğinize emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Çıkış Yap'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  // LeaveRoom API isteği
+  Future<bool> _callLeaveRoomApi() async {
+    try {
+      // Token al
+      final tokenJson = await StorageService.getToken();
+      if (tokenJson == null) {
+        throw Exception('Kimlik doğrulama tokeni bulunamadı');
+      }
+
+      final String token = tokenJson;
+
+      // İstek gövdesi oluştur
+      final leaveRequest = LeaveRoomRequest(raceRoomId: widget.roomId);
+
+      // API isteği yap
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/RaceRoom/leaveRoom'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(leaveRequest.toJson()),
+      );
+
+      debugPrint('📤 LeaveRoom API cevabı: ${response.statusCode}');
+      debugPrint('📄 API cevap body: ${response.body}');
+
+      return response.statusCode == 200; // Başarılı mı?
+    } catch (e) {
+      debugPrint('❌ LeaveRoom API hatası: $e');
+      throw e; // Üst metoda hatayı ilet
+    }
   }
 
   void _showInfoMessage(String message) {
@@ -427,6 +437,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           '🚫 Geçiş zaten başlamış veya widget artık mounted değil. Geçiş iptal edildi.');
       return;
     }
+    WakelockPlus.disable();
+    debugPrint('Wakelock disabled for WaitingRoomScreen');
 
     // Kullanıcı adı null ise, yüklemeyi deneyelim
     if (_myUsername == null) {
@@ -469,9 +481,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       debugPrint('🚀 11. RaceScreen\'e geçiş yapılıyor');
 
       // Yarış tipini belirle (indoor/outdoor)
-      final raceSettings = ref.read(raceSettingsProvider);
       final bool isIndoorRace =
-          raceSettings.roomType?.toLowerCase().contains('indoor') ?? false;
+          widget.activityType?.toLowerCase().contains('indoor') == true;
       debugPrint('🚀 Yarış tipi: ${isIndoorRace ? "Indoor" : "Outdoor"}');
 
       try {
@@ -479,11 +490,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           MaterialPageRoute(
             builder: (context) => RaceScreen(
               roomId: widget.roomId,
-              myUsername: _myUsername,
-              raceDuration: ref.read(raceSettingsProvider).duration,
-              profilePictureCache: Map<String, String?>.from(
-                  _profilePictureCache), // Cache'i burada da ekliyoruz
-              isIndoorRace: isIndoorRace, // Indoor/Outdoor tipini iletiyoruz
+              // myUsername: _myUsername, // Removed
+              // profilePictureCache: Map<String, String?>.from(_profilePictureCache), // Removed
             ),
           ),
           (route) => false,
@@ -499,12 +507,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                 MaterialPageRoute(
                   builder: (context) => RaceScreen(
                     roomId: widget.roomId,
-                    myUsername: _myUsername,
-                    raceDuration: ref.read(raceSettingsProvider).duration,
-                    profilePictureCache: Map<String, String?>.from(
-                        _profilePictureCache), // Cache'i burada da ekliyoruz
-                    isIndoorRace:
-                        isIndoorRace, // Indoor/Outdoor tipini iletiyoruz
+                    // myUsername: _myUsername, // Removed
+                    // profilePictureCache: Map<String, String?>.from(_profilePictureCache), // Removed
                   ),
                 ),
                 (route) => false,
@@ -522,6 +526,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   @override
   void dispose() {
     debugPrint('WaitingRoomScreen dispose ediliyor...');
+    WakelockPlus.disable();
+    debugPrint('Wakelock disabled for WaitingRoomScreen');
 
     // Tüm stream subscriptionları temizle
     for (var subscription in _subscriptions) {
@@ -529,9 +535,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     }
     _subscriptions.clear();
 
-    debugPrint(
-        'WaitingRoomScreen dispose edildi - tüm dinleyiciler ve timer kapatıldı');
-    // SignalR bağlantısını kapatmayın - RaceScreen'e geçilince orada tekrar kullanılacak
+    debugPrint('WaitingRoomScreen dispose edildi - tüm dinleyiciler kapatıldı');
     super.dispose();
   }
 
@@ -577,21 +581,79 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final raceSettings = ref.watch(raceSettingsProvider);
-    final String displayActivityType = widget.activityType ??
-        (raceSettings.roomType?.toLowerCase().contains('indoor') == true
-            ? 'İç Mekan' // Simplified text
-            : 'Dış Mekan'); // Simplified text
-    final String displayDuration = widget.duration ??
-        (raceSettings.duration != null
-            ? '${raceSettings.duration} dakika' // Lowercase 'd'
-            : 'Belirsiz'); // Default if null
+    // --- Notifier Dinleme ve Navigasyon ---
+    ref.listen<RaceState>(raceNotifierProvider, (RaceState? previous, RaceState next) {
+      // Skip if already navigating
+      if (_navigationTriggered) return;
 
-    // Determine subtitle text based on countdown state
-    final String subtitleText =
-        (_countdownSeconds != null && _countdownSeconds! > 0)
-            ? 'Yarış Başlıyor $_countdownSeconds'
-            : 'Diğer yarışmacılar bekleniyor...';
+      // --- LOG RaceState DEĞİŞİMİ ---
+      debugPrint('--- WaitingRoom RaceState Listener ---');
+      debugPrint('isPreRaceCountdownActive: ${next.isPreRaceCountdownActive}');
+      debugPrint('isRaceActive: ${next.isRaceActive}');
+      debugPrint('roomId: ${next.roomId}');
+      // --- LOG SONU ---
+
+      // Check if the race has started (either countdown or actual race)
+      if ((next.isPreRaceCountdownActive || next.isRaceActive) &&
+          next.roomId != null &&
+          next.roomId == widget.roomId) {
+        
+        // iOS cihazlar için ön konum etkinleştirme
+        if (Platform.isIOS) {
+          debugPrint('--- WaitingRoom: iOS için ön konum etkinleştirme yapılıyor... ---');
+          _enableIOSLocationForRace();
+        }
+        
+        // --- NAVİGASYON Mantığı ---
+        if (!_navigationTriggered) {
+          _navigationTriggered = true;
+          debugPrint(
+              '--- WaitingRoom: RaceNotifier reported race started. Navigating to RaceScreen... ---');
+
+          // --- KÜÇÜK BİR GECİKME EKLE ---
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) {
+              // Gecikme sonrası tekrar kontrol et
+              WakelockPlus.disable();
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => RaceScreen(
+                    roomId: next.roomId!,
+                  ),
+                ),
+                (route) => false,
+              );
+            }
+          });
+          // --- GECİKME SONU ---
+        }
+      }
+    });
+    // --- Dinleme Sonu ---
+
+    // --- RaceNotifier State'ini İzle ---
+    final raceState = ref.watch(raceNotifierProvider);
+
+    // final raceSettings = ref.watch(raceSettingsProvider); // REMOVE this - Use widget props directly
+    // Use widget.activityType directly, provide default if null
+    final String displayActivityType = widget.activityType ?? 'Bilinmiyor';
+    // Use widget.duration directly, provide default if null
+    final String displayDuration =
+        widget.duration != null ? '${widget.duration} dakika' : 'Belirsiz';
+
+    // --- Subtitle Text'i _isRaceStarting ve Notifier State'ine Göre Al (Güncellendi) ---
+    final String subtitleText;
+    if (_isRaceStarting && raceState.isPreRaceCountdownActive) {
+      // Geri sayım overlay tarafından gösterildiği için burası genel bir mesaj
+      subtitleText = 'Yarış Başlıyor...';
+    } else if (_isRaceStarting && !raceState.isPreRaceCountdownActive) {
+      // Geri sayım bitti (veya timer başladı ama değer 0 oldu)
+      subtitleText = 'Yarış Başladı';
+    } else {
+      // Geri sayım süreci hiç başlamadı
+      subtitleText = 'Diğer yarışmacılar bekleniyor...';
+    }
+    // --- Subtitle Text Logic Sonu ---
 
     return Scaffold(
       backgroundColor: _backgroundColor,
@@ -601,160 +663,200 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           return false; // Prevent default back navigation
         },
         child: SafeArea(
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch, // Stretch elements horizontally
-              children: [
-                // Title
-                const Text(
-                  'Yarış Başlamak Üzere',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: _primaryTextColor,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Subtitle
-                Text(
-                  subtitleText,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: _accentColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 30),
+          // **** STACK İLE SAR ****
+          child: Stack(
+            children: [
+              // **** MEVCUT İÇERİK (COLUMN) ****
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0, vertical: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment
+                      .stretch, // Stretch elements horizontally
+                  children: [
+                    // Title
+                    const Text(
+                      'Yarış Başlamak Üzere',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: _primaryTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Subtitle (Güncellenmiş Metinle)
+                    Text(
+                      subtitleText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24,
+                        color: _accentColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
 
-                // Info Card
-                Container(
-                  padding: const EdgeInsets.all(20.0),
-                  decoration: BoxDecoration(
-                    color: _cardBackgroundColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Seçilen Yarış Tipi',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: _secondaryTextColor,
-                        ),
+                    // Info Card
+                    Container(
+                      padding: const EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: _cardBackgroundColor,
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        displayActivityType,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: _primaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Yarış Süresi',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: _secondaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.timer_outlined,
-                              color: _accentColor, size: 20),
-                          const SizedBox(width: 8),
                           Text(
-                            displayDuration,
+                            'Seçilen Yarış Tipi',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _secondaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            displayActivityType,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                               color: _primaryTextColor,
                             ),
                           ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Yarış Süresi',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _secondaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.timer_outlined,
+                                  color: _accentColor, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                displayDuration,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: _primaryTextColor,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-
-                // Central Image
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20.0), // Padding for image
-                    child: Image.asset(
-                      'assets/images/waiting.png', // Use provided asset
-                      fit: BoxFit.contain,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 30),
+                    const SizedBox(height: 30),
 
-                // Participants Card
+                    // Central Image
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20.0), // Padding for image
+                        child: Image.asset(
+                          'assets/images/waiting.png', // Use provided asset
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Participants Card
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 16.0),
+                      decoration: BoxDecoration(
+                        color: _cardBackgroundColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Hazır Olan Yarışmacılar',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: _primaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Stacked Profile Pictures
+                          _buildParticipantAvatars(),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Leave Button
+                    if (!_isLoading) // Hide button while loading/leaving
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () => _leaveRoom(showConfirmation: true),
+                          icon: const Icon(Icons.exit_to_app,
+                              color: _accentColor),
+                          label: const Text(
+                            'Yarıştan Çık',
+                            style: TextStyle(
+                              color: _accentColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                    // Loading indicator
+                    if (_isLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 15.0),
+                        child: Center(
+                            child:
+                                CircularProgressIndicator(color: _accentColor)),
+                      ),
+                  ],
+                ),
+              ),
+
+              // **** KOŞULLU GERİ SAYIM OVERLAY'İ ****
+              if (_isRaceStarting && raceState.isPreRaceCountdownActive)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 16.0),
-                  decoration: BoxDecoration(
-                    color: _cardBackgroundColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Hazır Olan Yarışmacılar',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: _primaryTextColor,
+                  color:
+                      Colors.black.withOpacity(0.85), // Opaklık ayarlanabilir
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Yarış Başlıyor',
+                          style: TextStyle(
+                            fontSize: 28, // Boyut RaceScreen ile aynı olabilir
+                            color: _accentColor,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Stacked Profile Pictures
-                      _buildParticipantAvatars(),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Leave Button
-                if (!_isLoading) // Hide button while loading/leaving
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () => _leaveRoom(showConfirmation: true),
-                      icon: const Icon(Icons.exit_to_app, color: _accentColor),
-                      label: const Text(
-                        'Yarıştan Çık',
-                        style: TextStyle(
-                          color: _accentColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(height: 25),
+                        Text(
+                          raceState.preRaceCountdownValue.toString(),
+                          style: const TextStyle(
+                              fontSize:
+                                  120, // Boyut RaceScreen ile aynı olabilir
+                              color: _accentColor,
+                              fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
+                      ],
                     ),
                   ),
-                // Loading indicator
-                if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 15.0),
-                    child: Center(
-                        child: CircularProgressIndicator(color: _accentColor)),
-                  ),
-              ],
-            ),
+                ),
+            ],
           ),
+          // **** STACK SONU ****
         ),
       ),
     );
@@ -775,29 +877,20 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     if (_participants.isNotEmpty) {
       for (int i = 0; i < visibleCount; i++) {
         final participant = _participants[i];
+        // Get profile URL from participant or cache
         final profileUrl = participant.profilePictureUrl ??
             _profilePictureCache[participant.userName];
+
         avatarWidgets.add(
           Positioned(
             left: i * (avatarRadius * 2 - overlap),
+            // Use UserProfileAvatar wrapped with a border CircleAvatar
             child: CircleAvatar(
               radius: avatarRadius,
               backgroundColor: _accentColor, // Border color
-              child: CircleAvatar(
-                radius: avatarRadius - 2, // Inner circle
-                backgroundColor: _secondaryTextColor, // Fallback bg
-                backgroundImage:
-                    profileUrl != null ? NetworkImage(profileUrl) : null,
-                child: profileUrl == null
-                    ? Text(
-                        participant.userName.isNotEmpty
-                            ? participant.userName[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                            color: _backgroundColor,
-                            fontWeight: FontWeight.bold),
-                      )
-                    : null,
+              child: UserProfileAvatar(
+                imageUrl: profileUrl, // Pass the URL
+                radius: avatarRadius - 2, // Inner radius
               ),
             ),
           ),
@@ -853,5 +946,122 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         children: avatarWidgets,
       ),
     );
+  }
+
+  void _enableIOSLocationForRace() {
+    if (!Platform.isIOS) return;
+    
+    try {
+      debugPrint('WaitingRoom: iOS arka plan konum takibi etkinleştiriliyor...');
+      
+      // Method channel aracılığıyla iOS native konum takibini etkinleştir
+      const platform = MethodChannel('com.movliq/location');
+      platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
+        debugPrint('WaitingRoom: iOS native konum takibi başarıyla etkinleştirildi.');
+      }).catchError((error) {
+        debugPrint('WaitingRoom: iOS native konum takibi etkinleştirme hatası: $error');
+      });
+      
+      // Konum takibi için daha kapsamlı ısınma - birkaç kez konum alalım
+      _aggressiveLocationWarmup();
+      
+    } catch (e) {
+      debugPrint('WaitingRoom: iOS konum takibi genel hatası: $e');
+    }
+  }
+  
+  void _warmupLocationServices() {
+    if (!Platform.isIOS) return;
+    
+    try {
+      // Servis durumunu kontrol et
+      Geolocator.isLocationServiceEnabled().then((enabled) {
+        if (!enabled) {
+          debugPrint('WaitingRoom: Konum servisleri kapalı!');
+          return;
+        }
+        
+        // İzinleri kontrol et
+        Geolocator.checkPermission().then((permission) {
+          if (permission == LocationPermission.denied || 
+              permission == LocationPermission.deniedForever) {
+            debugPrint('WaitingRoom: Konum izinleri reddedilmiş!');
+            return;
+          }
+          
+          // Location warmup - servisleri başlatmak için tek bir istek yap
+          debugPrint('WaitingRoom: Konum servislerini ısındırma...');
+          Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.best,
+            timeLimit: const Duration(seconds: 2)
+          ).then((position) {
+            debugPrint('WaitingRoom: Konum alındı: ${position.latitude}, ${position.longitude}');
+          }).catchError((e) {
+            // Zaman aşımı olabilir, sorun değil - servisler başlatılmış olur
+            debugPrint('WaitingRoom: Konum ısındırma hatası: $e');
+          });
+        });
+      });
+    } catch (e) {
+      debugPrint('WaitingRoom: Konum ısındırma genel hatası: $e');
+    }
+  }
+
+  // Daha agresif konum ısındırma yaklaşımı - birkaç kez konum almayı dene
+  void _aggressiveLocationWarmup() {
+    if (!Platform.isIOS) return;
+    
+    debugPrint('WaitingRoom: Agresif konum ısındırma başlatılıyor...');
+    
+    // İlk ısındırma
+    _warmupLocationServices();
+    
+    // Kısa bir süre sonra tekrar dene
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _warmupLocationServices();
+      
+      // Bir 1 saniye sonra tekrar konumu al ve sürekli izleme başlat
+      Future.delayed(const Duration(seconds: 1), () {
+        _startContinuousLocationUpdates();
+      });
+    });
+    
+    // Biraz daha sonra tekrar ısındırma
+    Future.delayed(const Duration(seconds: 2), () {
+      _warmupLocationServices();
+    });
+  }
+  
+  // Sürekli konum güncellemesi - GPS'i sürekli açık tutmak için
+  void _startContinuousLocationUpdates() {
+    if (!Platform.isIOS) return;
+    
+    debugPrint('WaitingRoom: Sürekli konum güncellemesi başlatılıyor...');
+    
+    try {
+      LocationSettings locationSettings = AppleSettings(
+        accuracy: LocationAccuracy.best,
+        activityType: ActivityType.fitness,
+        distanceFilter: 5,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+        allowBackgroundLocationUpdates: true
+      );
+      
+      // Kısa bir stream başlat, hemen iptal edilecek ama iOS'un konum servisini başlatmasını sağlayacak
+      var tempSubscription = Geolocator.getPositionStream(
+        locationSettings: locationSettings
+      ).listen((position) {
+        debugPrint('WaitingRoom: Sürekli konum - Position update: ${position.latitude}, ${position.longitude}');
+      });
+      
+      // 10 saniye sonra bu stream'i kapat - bu süre içinde RaceScreen'e geçilmiş olmalı
+      Future.delayed(const Duration(seconds: 10), () {
+        tempSubscription.cancel();
+        debugPrint('WaitingRoom: Geçici konum stream iptal edildi');
+      });
+    } catch (e) {
+      debugPrint('WaitingRoom: Sürekli konum başlatma hatası: $e');
+    }
   }
 }

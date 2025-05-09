@@ -13,21 +13,18 @@ import '../../../../core/services/signalr_service.dart';
 import '../screens/tabs.dart';
 import '../../../../core/services/storage_service.dart';
 import 'finish_race_screen.dart';
+import '../widgets/user_profile_avatar.dart';
+import '../providers/race_provider.dart';
+import '../providers/race_state.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter/services.dart';
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
-  final String? myUsername;
-  final int? raceDuration; // Minutes
-  final Map<String, String?> profilePictureCache; // Cache parametresini ekledik
-  final bool isIndoorRace; // Indoor yarış tipini belirlemek için yeni parametre
 
   const RaceScreen({
     super.key,
     required this.roomId,
-    this.myUsername,
-    this.raceDuration,
-    required this.profilePictureCache,
-    required this.isIndoorRace, // Constructor'a ekledik
   });
 
   @override
@@ -35,192 +32,85 @@ class RaceScreen extends ConsumerStatefulWidget {
 }
 
 class _RaceScreenState extends ConsumerState<RaceScreen> {
-  List<RaceParticipant> _leaderboard = [];
-  bool _isConnected = false;
-  bool _isRaceActive = true;
-  double _myDistance = 0.0;
-  int _mySteps = 0;
-  String? _myEmail;
-  Timer? _locationUpdateTimer;
-  Timer? _raceTimerTimer;
-  Timer? _antiCheatTimer; // Anti-cheat timer ekledik
-  Duration _remainingRaceTime =
-      const Duration(minutes: 10); // Default to 10 minutes
-  bool _isTimerInitialized = false;
-
-  // Hile kontrolü için gerekli değişkenler
-  double _lastCheckDistance = 0.0;
-  int _lastCheckSteps = 0;
-  DateTime? _lastCheckTime;
-  int _violationCount = 0; // İhlal sayısını takip etmek için eklendi
-
-  // Stream subscriptions for cleanup
-  List<StreamSubscription> _subscriptions = [];
-
-  // Konum takibi için gerekli özellikler
-  Position? _currentPosition;
-  Position?
-      _previousPosition; // Bu değişkeni kullanmayacağız, RecordScreen'deki gibi
-  bool _hasLocationPermission = false;
-  StreamSubscription<Position>? _positionStreamSubscription;
-
-  // Adım sayar için gerekli özellikler
-  int _initialSteps = 0;
-  bool _hasPedometerPermission = false;
-  StreamSubscription<StepCount>? _stepCountSubscription;
+  bool _leaveConfirmationShown = false;
+  bool _navigationTriggered = false; // Flag to prevent multiple navigations
+  Timer? _wakelockForceTimer; // <-- YENİ TIMER
 
   @override
   void initState() {
     super.initState();
-
-    // Bildirimleri temizleyen kodu kaldırıyorum
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   if (mounted) {
-    //     ScaffoldMessenger.of(context).clearSnackBars();
-    //   }
-    // });
-
-    _setupSignalR();
-    _initPermissions(); // Konum ve adım izinlerini başlat
-    _initializeRaceTimer();
-    _initializeAntiCheatSystem(); // Hile kontrol sistemini başlat
-  }
-
-  // Tüm izinleri başlatan fonksiyon
-  Future<void> _initPermissions() async {
-    // Indoor yarış ise sadece adım sayar izni al, GPS izni alma
-    if (widget.isIndoorRace) {
-      await _checkActivityPermission();
-      return;
-    }
-
-    // Outdoor yarış: konum servislerinin açık olup olmadığını kontrol et
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // Konum servisleri kapalıysa, kullanıcıyı uyar
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lütfen konum servislerini açın'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-      // Konum servislerini açma isteği göster
-      await Geolocator.openLocationSettings();
-      return;
-    }
-
-    await _checkLocationPermission();
-    await _checkActivityPermission();
-  }
-
-  // Aktivite izinlerini kontrol eden fonksiyon
-  Future<void> _checkActivityPermission() async {
-    // Platform-specific permission checks
-    if (Platform.isAndroid) {
-      // Android'de adım sayar iznini kontrol et
-      if (await Permission.activityRecognition.request().isGranted) {
-        setState(() {
-          _hasPedometerPermission = true;
-        });
-        _initPedometer();
-      }
-    } else if (Platform.isIOS) {
-      // iOS'ta motion sensörü izni için
-      if (await Permission.sensors.request().isGranted) {
-        setState(() {
-          _hasPedometerPermission = true;
-        });
-        _initPedometer();
-      }
+    // WidgetsBinding.instance.addObserver(this); // <-- OBSERVER EKLEMEYİ KALDIR
+    WakelockPlus.toggle(enable: true);
+    debugPrint('[RaceScreen initState] Wakelock TOGGLED ON');
+    _startWakelockForceTimer(); // <-- YENİ TIMER'I BAŞLAT
+    
+    // iOS cihazlarda race_screen açıldığında konum takibini garanti etmek için
+    if (Platform.isIOS) {
+      _warmupIOSLocationTracking();
     }
   }
 
-  // Konum izinlerini kontrol eden fonksiyon
-  Future<void> _checkLocationPermission() async {
+  // iOS için konum servislerini uyandırma ve arka plan takibini garanti etme
+  void _warmupIOSLocationTracking() {
+    debugPrint('[RaceScreen] iOS konum servislerini uyandırma ve arka plan takibini etkinleştirme');
+    
     try {
-      final LocationPermission permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        final LocationPermission requestedPermission =
-            await Geolocator.requestPermission();
-
-        setState(() {
-          _hasLocationPermission =
-              requestedPermission != LocationPermission.denied &&
-                  requestedPermission != LocationPermission.deniedForever;
-        });
-      } else {
-        setState(() {
-          _hasLocationPermission = permission != LocationPermission.denied &&
-              permission != LocationPermission.deniedForever;
-        });
-      }
-
-      debugPrint('Konum izin durumu: $_hasLocationPermission');
-
-      if (_hasLocationPermission) {
-        // İzin varsa ilk konumu al
-        await _getCurrentLocation();
-        // Eğer yarış aktifse konum takibini başlat
-        if (_isRaceActive) {
-          _startLocationUpdates();
-        }
-      }
-    } catch (e) {
-      debugPrint('Konum izni hatası: $e');
-    }
-  }
-
-  // Mevcut konumu alan fonksiyon
-  Future<void> _getCurrentLocation() async {
-    try {
-      debugPrint('Konum alınıyor...');
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high); // RecordScreen ile aynı
-
-      debugPrint('Konum alındı: ${position.latitude}, ${position.longitude}');
-
-      setState(() {
-        // Sadece mevcut konumu ayarla, RecordScreen gibi
-        _currentPosition = position;
+      // Native konum takibini aktif et
+      const platform = MethodChannel('com.movliq/location');
+      platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
+        debugPrint('[RaceScreen] iOS native konum takibi başarıyla etkinleştirildi.');
+      }).catchError((error) {
+        debugPrint('[RaceScreen] iOS native konum takibi etkinleştirme hatası: $error');
+      });
+      
+      // Mevcut konumu alarak servisleri uyandır
+      Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+      ).then((position) {
+        debugPrint('[RaceScreen] iOS konum uyandırma başarılı: ${position.latitude}, ${position.longitude}');
+      }).catchError((e) {
+        debugPrint('[RaceScreen] iOS konum uyandırma hatası: $e');
       });
     } catch (e) {
-      debugPrint('Konum alınamadı: $e');
+      debugPrint('[RaceScreen] iOS konum takibi etkinleştirme genel hata: $e');
     }
   }
 
-  void _initializeRaceTimer() {
-    // Use the race duration from the widget, or default to 10 minutes
-    final raceDurationMinutes = widget.raceDuration ?? 10;
+  // **** didChangeAppLifecycleState METODUNU KALDIR ****
+  /*
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      WakelockPlus.toggle(enable: true);
+      debugPrint('[RaceScreen didChangeAppLifecycleState] Resumed - Wakelock TOGGLED ON');
+    }
+  }
+  */
 
-    setState(() {
-      _remainingRaceTime = Duration(minutes: raceDurationMinutes);
-      _isTimerInitialized = true;
-    });
-
-    _raceTimerTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  // **** WAKELOCK ZORLAMA TIMER METODU ****
+  void _startWakelockForceTimer() {
+    _wakelockForceTimer?.cancel(); // Önceki varsa iptal et
+    _wakelockForceTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
-
-      if (_remainingRaceTime.inSeconds > 0) {
-        setState(() {
-          _remainingRaceTime = _remainingRaceTime - const Duration(seconds: 1);
-        });
-      } else {
-        // Race time is over, but we'll wait for the server to tell us it's over
-        timer.cancel();
-        _raceTimerTimer = null;
-
-        // If the server hasn't already told us the race is over, we'll show a message
-        if (_isRaceActive) {
-          debugPrint('Race timer ended, waiting for server confirmation...');
-        }
-      }
+      // Durumu kontrol etmeden doğrudan tekrar etkinleştir
+      WakelockPlus.toggle(enable: true);
+      debugPrint('[Wakelock Force Timer] Wakelock TOGGLED ON (Forced)');
     });
+  }
+  // **** WAKELOCK ZORLAMA TIMER METODU SONU ****
+
+  @override
+  void dispose() {
+    debugPrint('[RaceScreen dispose] Attempting to toggle Wakelock OFF...');
+    _wakelockForceTimer?.cancel(); // <-- TIMER'I DURDUR
+    WakelockPlus.toggle(enable: false);
+    // WidgetsBinding.instance.removeObserver(this); // <-- OBSERVER KALDIRMAYI KALDIR
+    debugPrint('[RaceScreen dispose] Wakelock toggled OFF.');
+    super.dispose();
   }
 
   String _formatDuration(Duration duration) {
@@ -230,679 +120,373 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     return '$minutes:$seconds';
   }
 
-  Future<void> _setupSignalR() async {
-    final signalRService = ref.read(signalRServiceProvider);
-
-    try {
-      // SignalR bağlantısını başlat ve odaya katıl
-      await signalRService.connect();
-      await signalRService.joinRaceRoom(widget.roomId);
-
-      setState(() {
-        _isConnected = signalRService.isConnected;
-      });
-
-      // Liderlik tablosu güncellemelerini dinle
-      _subscriptions.add(signalRService.leaderboardStream.listen((leaderboard) {
-        if (!mounted) return;
-
-        setState(() {
-          _leaderboard = leaderboard;
-
-          // Kendi email'imi al ve konumumu güncelle
-          if (_myEmail == null &&
-              leaderboard.isNotEmpty &&
-              widget.myUsername != null) {
-            // Kullanıcı adı bilgisini kullanarak kendimizi tanıyalım
-            final me = leaderboard.firstWhere(
-              (p) =>
-                  p.userName.toLowerCase() == widget.myUsername!.toLowerCase(),
-              orElse: () {
-                debugPrint(
-                    'Kullanıcı "${widget.myUsername}" leaderboard içinde bulunamadı, ilk kullanıcı seçiliyor.');
-                return leaderboard.first;
-              },
-            );
-            _myEmail = me.email;
-            debugPrint('Kullanıcı bulundu: ${me.userName} (${me.email})');
-          }
-        });
-      }));
-
-      // Konum güncellemelerini dinle
-      _subscriptions.add(signalRService.locationUpdatedStream.listen((data) {
-        if (!mounted) return;
-
-        debugPrint(
-            'Konum güncellendi: ${data['email']}, ${data['distance']} m, ${data['steps']} adım');
-      }));
-
-      // Kullanıcı katılma olayını dinle ama bildirim gösterme
-      _subscriptions.add(signalRService.userJoinedStream.listen((username) {
-        if (!mounted) return;
-        // Sadece log yazdıralım, bildirim göstermeyelim
-        debugPrint(
-            'Kullanıcı yarışa katıldı (bildirim gösterilmedi): $username');
-      }));
-
-      // Kullanıcı ayrılma olayını dinle
-      _subscriptions.add(signalRService.userLeftStream.listen((username) {
-        if (!mounted) return;
-        _showInfoMessage('$username odadan ayrıldı');
-      }));
-
-      // Yarış sona erdiğinde
-      _subscriptions.add(signalRService.raceEndedStream.listen((roomId) {
-        if (!mounted) return;
-
-        debugPrint('RaceScreen: Yarış sona erdi olayı alındı! Oda ID: $roomId');
-
-        // Eğer kendi odamızın ID'si ile eşleşiyorsa veya genel bir bildirimse (0)
-        if (roomId == widget.roomId || roomId == 0) {
-          debugPrint(
-              'RaceScreen: Bu odanın yarışı sona erdi, sonuç ekranı gösteriliyor');
-
-          setState(() {
-            _isRaceActive = false;
-          });
-
-          _showRaceEndedMessage();
-          _stopLocationUpdates();
-        }
-      }));
-    } catch (e) {
-      _showErrorMessage('SignalR bağlantı hatası: $e');
-    }
-  }
-
-  // Adım sayar başlatma fonksiyonu
-  void _initPedometer() {
-    _stepCountSubscription =
-        Pedometer.stepCountStream.listen((StepCount event) {
-      if (!mounted) return;
-
-      setState(() {
-        if (_isRaceActive && _initialSteps == 0) {
-          _initialSteps = event.steps;
-          _mySteps = 0;
-          debugPrint('Başlangıç adım sayısı ayarlandı: $_initialSteps');
-        } else if (_isRaceActive) {
-          int newSteps = event.steps - _initialSteps;
-          // Adım sayısı azalmadıysa güncelle (mantık hatası kontrolü)
-          if (newSteps >= _mySteps) {
-            _mySteps = newSteps;
-            debugPrint('Adım sayısı güncellendi: $_mySteps');
-
-            // Adım güncellemesini sunucuya gönder
-            _updateLocation();
-          }
-        }
-      });
-    }, onError: (error) {
-      debugPrint('Adım sayar hatası: $error');
-    });
-  }
-
-  void _startLocationUpdates() {
-    // Indoor yarış ise konum takibini kesinlikle engelle
-    if (widget.isIndoorRace) {
-      debugPrint('🚫 Indoor yarış - GPS konum takibi tamamen devre dışı');
-      // Eğer bir şekilde başlatılmış olan konum takibi varsa durdur
-      _stopLocationUpdates();
-      return;
-    }
-
-    // Bundan sonraki kod sadece outdoor yarışlarda çalışacak
-    if (!_hasLocationPermission) {
-      _checkLocationPermission();
-      return;
-    }
-
-    // Normal konum takibi kodu...
-    try {
-      debugPrint('Konum takibi başlatılıyor...');
-
-      // RecordScreen ile tamamen aynı:
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 5, // RecordScreen ile birebir aynı
-        ),
-      ).listen((Position position) {
-        if (!mounted || !_isRaceActive) return;
-
-        debugPrint(
-            'Konum güncellendi: ${position.latitude}, ${position.longitude}');
-
-        setState(() {
-          // Indoor yarış değilse mesafe hesapla
-          if (!widget.isIndoorRace && _currentPosition != null) {
-            double newDistance = Geolocator.distanceBetween(
-              _currentPosition!.latitude,
-              _currentPosition!.longitude,
-              position.latitude,
-              position.longitude,
-            );
-
-            _myDistance += newDistance / 1000;
-            debugPrint(
-                'Mesafe eklendi: ${newDistance / 1000} km. Toplam: $_myDistance km');
-          }
-
-          _currentPosition = position;
-
-          // Konum güncellemesi gönder
-          _updateLocation();
-        });
-      }, onError: (e) {
-        debugPrint('Konum takibi hatası: $e');
-      });
-    } catch (e) {
-      debugPrint('Konum takibi başlatma hatası: $e');
-    }
-  }
-
-  void _stopLocationUpdates() {
-    _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = null;
-  }
-
-  Future<void> _updateLocation() async {
-    if (!_isConnected || !_isRaceActive) return;
-
-    try {
-      double distanceToSend = 0.0; // Varsayılan değer her zaman 0
-
-      // Sadece outdoor yarışlarda gerçek mesafe değerini gönder
-      if (!widget.isIndoorRace) {
-        distanceToSend = _myDistance;
-      } else {
-        // Indoor yarışta mesafe değerini zorla 0 yap ve değişkeni de sıfırla
-        _myDistance = 0.0;
-      }
-
-      debugPrint(
-          '📊 Sunucuya gönderilen mesafe: $distanceToSend km (Indoor: ${widget.isIndoorRace})');
-
-      await ref
-          .read(signalRServiceProvider)
-          .updateLocation(widget.roomId, distanceToSend, _mySteps);
-    } catch (e) {
-      debugPrint('❌ Konum güncellemesi gönderilirken hata: $e');
-    }
-  }
-
-  void _showRaceEndedMessage() {
-    debugPrint('RaceScreen: _showRaceEndedMessage() çağrıldı');
-
-    if (!mounted) return;
-
-    // Popup yerine yeni ekrana yönlendir
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => FinishRaceScreen(
-          leaderboard: _leaderboard,
-          myEmail: _myEmail,
-          isIndoorRace: widget.isIndoorRace, // Indoor yarış parametresini geçir
-        ),
-      ),
-    );
-  }
-
-  void _showInfoMessage(String message) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.blue,
-      ),
-    );
-  }
-
-  void _showErrorMessage(String message) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  // Hile kontrol sistemini başlatan fonksiyon
-  void _initializeAntiCheatSystem() {
-    // İndoor yarışlarda hile kontrolü yapma (mesafe takibi olmadığı için)
-    if (widget.isIndoorRace) {
-      debugPrint('Indoor yarış - Hile kontrolü devre dışı');
-      return;
-    }
-
-    // İlk kontrol için başlangıç değerlerini kaydet
-    _lastCheckDistance = _myDistance;
-    _lastCheckSteps = _mySteps;
-    _lastCheckTime = DateTime.now();
-
-    // Her 30 saniyede bir hile kontrolü yap
-    _antiCheatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (!mounted || !_isRaceActive) {
-        timer.cancel();
-        return;
-      }
-
-      _checkForCheating();
-    });
-  }
-
-  // Hile kontrolü yapan fonksiyon
-  void _checkForCheating() {
-    // Eğer ilk kontrolse veya yarış aktif değilse kontrol yapma
-    if (_lastCheckTime == null || !_isRaceActive) return;
-
-    final now = DateTime.now();
-    final elapsedSeconds = now.difference(_lastCheckTime!).inSeconds;
-
-    // 30 saniye geçmediyse kontrol yapma (Timer hassasiyeti için ek kontrol)
-    if (elapsedSeconds < 25) return;
-
-    final currentDistance = _myDistance;
-    final currentSteps = _mySteps;
-
-    // Son kontrolden bu yana kat edilen mesafe (km'den metreye çevir)
-    final distanceDifference = (currentDistance - _lastCheckDistance) * 1000;
-    final stepsDifference = currentSteps - _lastCheckSteps;
-
-    debugPrint(
-        '🔍 Hile kontrol: $elapsedSeconds saniyede $distanceDifference metre, $stepsDifference adım');
-
-    bool violation = false;
-    String title = '';
-    String message = '';
-
-    // Hile kontrolü: 30 saniyede maksimum 250 metre
-    if (distanceDifference > 250) {
-      violation = true;
-      title = 'Anormal hız tespit edildi';
-      message =
-          'Son 30 saniyede $distanceDifference metre mesafe kaydedildi. Maksimum limit 250 metredir.';
-    }
-    // Hile kontrolü: Her metre için minimum 0.5 adım
-    else if (distanceDifference > 0) {
-      final requiredMinSteps = distanceDifference * 0.5;
-      if (stepsDifference < requiredMinSteps) {
-        violation = true;
-        title = 'Anormal adım-mesafe oranı tespit edildi';
-        message =
-            'Son 30 saniyede $distanceDifference metre için en az ${requiredMinSteps.toInt()} adım atılması gerekirken, $stepsDifference adım kaydedildi.';
-      }
-    }
-
-    // İhlal tespit edildiyse işlem yap
-    if (violation) {
-      _violationCount++;
-      debugPrint('❌ İhlal tespit edildi: $_violationCount. ihlal');
-
-      if (_violationCount >= 2) {
-        // İkinci ihlalde kullanıcıyı yarıştan at
-        _showViolationLimitExceededDialog(title, message);
-      } else {
-        // İlk ihlalde sadece uyarı ver
-        _showCheatWarningDialog(title, message);
-      }
-    }
-
-    // Yeni kontrol için değerleri güncelle
-    _lastCheckDistance = currentDistance;
-    _lastCheckSteps = currentSteps;
-    _lastCheckTime = now;
-  }
-
-  // Hile uyarı dialogu gösteren fonksiyon
-  void _showCheatWarningDialog(String title, String message) {
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(title, style: const TextStyle(color: Colors.red)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(message),
-            const SizedBox(height: 16),
-            const Text(
-              'Lütfen gerçek koşu hızınızla devam edin. Tekrarlanan ihlaller hesabınızın askıya alınmasına neden olabilir.',
-              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Anladım'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // İhlal limitinin aşıldığını gösteren dialog
-  void _showViolationLimitExceededDialog(String title, String message) {
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text('$title - Yarış Sonlandırılıyor',
-            style: const TextStyle(color: Colors.red)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(message),
-            const SizedBox(height: 16),
-            const Text(
-              'İhlal sayınız limiti aştığı için yarıştan çıkarılıyorsunuz.',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Anladım'),
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Kullanıcıyı yarış odasından çıkar
-              _leaveRaceRoom(wasKicked: true);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    // RaceNotifier state'ini dinle
+    final raceState = ref.watch(raceNotifierProvider);
+    // **** isIndoorRace DEĞERİNİ LOGLA ****
+    debugPrint(
+        '[RaceScreen build] raceState.isIndoorRace = ${raceState.isIndoorRace}');
+    final raceNotifier = ref.read(raceNotifierProvider.notifier);
+
+    // Listen for state changes to handle navigation
+    ref.listen<RaceState>(raceNotifierProvider,
+        (RaceState? previous, RaceState next) {
+      // Check if navigation has already been triggered
+      if (_navigationTriggered) return;
+
+      debugPrint(
+          '[RaceScreen Listener] State changed: isRaceFinished=${next.isRaceFinished}, errorMessage=${next.errorMessage}, showWarning=${next.showFirstCheatWarning}');
+
+      // --- GÜNCELLENMİŞ NAVİGASYON MANTIĞI ---
+
+      // 1. Yarış Bitti mi? (Uyarıdan bağımsız kontrol et)
+      if (next.isRaceFinished == true &&
+          (previous == null || previous.isRaceFinished == false)) {
+        debugPrint(
+            '[RaceScreen Listener] Race finished normally. Navigating to FinishRaceScreen...');
+        if (mounted) {
+          _navigationTriggered = true; // Set flag before navigating
+          debugPrint(
+              '[RaceScreen Listener] Toggling Wakelock OFF before navigating to FinishRaceScreen...');
+          _wakelockForceTimer?.cancel(); // <-- TIMER'I DURDUR
+          WakelockPlus.toggle(enable: false);
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => FinishRaceScreen(
+                leaderboard: next.leaderboard,
+                myEmail: next.userEmail,
+                isIndoorRace: next.isIndoorRace,
+                profilePictureCache: next.profilePictureCache,
+              ),
+            ),
+          );
+          return; // Bitiş navigasyonu yapıldı, diğer kontrolleri atla
+        }
+      }
+
+      // 2. Hata veya Ayrılma Durumu mu Var?
+      if (next.errorMessage != null &&
+          (previous == null || previous.errorMessage != next.errorMessage)) {
+        // Hata mesajını göster (Ayrılma mesajı da olabilir)
+        if (mounted) {
+          _showErrorMessage(context,
+              next.errorMessage!); // Show error/leave message immediately
+        }
+
+        // Eğer hata mesajı ayrılma kaynaklı değilse (örneğin hile) VEYA ayrılma mesajı ise ve uyarı aktif değilse, TabsScreen'e git
+        // Not: Hile durumunda zaten leaveRace çağrılıyor ve errorMessage ayarlanıyor.
+        if (!next.showFirstCheatWarning) {
+          // Eğer ilk uyarı aktif DEĞİLSE git
+          debugPrint(
+              '[RaceScreen Listener] Error/Leave detected: ${next.errorMessage}. Navigating to TabsScreen...');
+          if (mounted) {
+            _navigationTriggered = true; // Set flag before navigating
+            debugPrint(
+                '[RaceScreen Listener] Toggling Wakelock OFF before navigating to TabsScreen (Error/Leave)...');
+            _wakelockForceTimer?.cancel(); // <-- TIMER'I DURDUR
+            WakelockPlus.toggle(enable: false);
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const TabsScreen()),
+              (route) => false,
+            );
+            return; // Hata/Ayrılma navigasyonu yapıldı
+          }
+        }
+      }
+
+      // 3. İlk Hile Uyarısı mı Var? (Yarış bitmediyse ve hata/ayrılma yoksa)
+      if (next.showFirstCheatWarning == true &&
+          (previous == null || previous.showFirstCheatWarning == false)) {
+        debugPrint(
+            '[RaceScreen Listener] Showing first cheat warning dialog...');
+        if (mounted) {
+          // Show the first warning dialog
+          _showFirstCheatWarningDialog(context, ref);
+          // Navigasyon yapma, sadece dialog göster
+        }
+      }
+      // --- GÜNCELLENMİŞ NAVİGASYON MANTIĞI SONU ---
+    });
+
     return WillPopScope(
       onWillPop: () async {
-        // Fiziksel geri tuşuna basıldığında doğrudan odadan ayrılma diyalogunu göster
-        return await _showLeaveConfirmationDialog();
+        // Yarış aktifse veya geri sayım varsa onay iste
+        if (raceState.isRaceActive || raceState.isPreRaceCountdownActive) {
+          return await _showLeaveConfirmationDialog(context, raceNotifier);
+        }
+        return true; // Yarış aktif değilse direkt çık
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFF1E1E1E),
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFF1E1E1E),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () {
-              _showLeaveConfirmationDialog();
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () async {
+              // Geri tuşu gibi davran
+              if (raceState.isRaceActive ||
+                  raceState.isPreRaceCountdownActive) {
+                await _showLeaveConfirmationDialog(context, raceNotifier);
+              } else {
+                Navigator.of(context).pop(); // Yarış yoksa normal pop
+              }
             },
           ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Race Room #${widget.roomId}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+              const Text(
+                'Yarış Odası',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
               ),
               Text(
-                _isRaceActive ? 'Race in progress' : 'Race ended',
+                raceState.isPreRaceCountdownActive
+                    ? 'Başlıyor...'
+                    : (raceState.isRaceActive
+                        ? 'Yarış devam ediyor'
+                        : 'Yarış bitti'),
                 style: TextStyle(
-                  fontSize: 12,
-                  color: _isRaceActive ? Colors.green : Colors.red,
+                  fontSize: 14,
+                  color: raceState.isPreRaceCountdownActive
+                      ? Colors.orangeAccent
+                      : (raceState.isRaceActive
+                          ? Colors.greenAccent
+                          : Colors.redAccent),
                 ),
               ),
             ],
           ),
           actions: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              margin: const EdgeInsets.only(right: 16),
-              decoration: BoxDecoration(
-                color: _isConnected ? Colors.green : Colors.red,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                _isConnected ? 'Connected' : 'Disconnected',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
+            // Bağlantı durumu göstergesi (Opsiyonel, SignalRService'den alınabilir)
+            // Container(...),
           ],
         ),
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              stops: [0.0, 0.95],
-              end: Alignment.bottomCenter,
-              colors: [
-                Color.fromARGB(255, 255, 255, 255),
-                Color(0xFFC4FF62),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 8),
-                // İlerleme bilgisi
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      // Timer display
-                      _buildStatItem(
-                        icon: Icons.timer,
-                        value: _isTimerInitialized
-                            ? _formatDuration(_remainingRaceTime)
-                            : '00:00',
-                        label: 'Time Left',
-                        valueColor: _remainingRaceTime.inSeconds < 60
-                            ? Colors.red
-                            : null,
-                      ),
-                      // Indoor yarış tipinde mesafe (km) gösterme
-                      if (!widget.isIndoorRace)
-                        _buildStatItem(
-                          icon: Icons.directions_run,
-                          value: _myDistance.toStringAsFixed(2),
-                          label: 'Mesafe (km)',
-                        ),
-                      _buildStatItem(
-                        icon: Icons.directions_walk,
-                        value: _mySteps.toString(),
-                        label: 'Adım',
-                      ),
-                      // Indoor yarış tipinde hız metriğini (km/adım) gösterme
-                      if (!widget.isIndoorRace)
-                        _buildStatItem(
-                          icon: Icons.speed,
-                          value: _mySteps > 0
-                              ? (_myDistance / _mySteps).toStringAsFixed(1)
-                              : '0.0',
-                          label: 'Hız (km/adım)',
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Leaderboard başlığı
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFC4FF62), Colors.green],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.emoji_events, color: Colors.amber),
-                      SizedBox(width: 8),
-                      Text(
-                        'Yarış Sıralaması',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Geri Sayım Overlay
+              if (raceState.isPreRaceCountdownActive)
                 Expanded(
-                  child: _leaderboard.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Waiting for participants...',
+                  child: Container(
+                    color: Colors.black.withOpacity(0.7),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Yarış Başlıyor',
                             style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.black54,
+                              fontSize: 24,
+                              color: Color(0xFFC4FF62),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        )
-                      : ListView.builder(
-                          itemCount: _leaderboard.length,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemBuilder: (context, index) {
-                            final participant = _leaderboard[index];
-                            final isMe = participant.email == _myEmail;
-
-                            return ParticipantTile(
-                              participant: participant,
-                              isMe: isMe,
-                              profilePictureUrl: widget.profilePictureCache[
-                                  participant
-                                      .userName], // Cache'den profil fotoğrafını al
-                              isIndoorRace: widget
-                                  .isIndoorRace, // Indoor yarış parametresini geçir
-                            );
-                          },
-                        ),
+                          const SizedBox(height: 20),
+                          Text(
+                            raceState.preRaceCountdownValue.toString(),
+                            style: const TextStyle(
+                                fontSize: 96,
+                                color: Color(0xFFC4FF62),
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
+
+              // Ana Yarış İçeriği
+              if (!raceState.isPreRaceCountdownActive)
+                Expanded(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      // İstatistikler
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 20, horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade800,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatItem(
+                              icon: Icons.timer_outlined,
+                              value: _formatDuration(raceState.remainingTime),
+                              label: 'Kalan Süre',
+                              iconColor: Colors.redAccent,
+                              valueColor: raceState.remainingTime.inSeconds < 60
+                                  ? Colors.redAccent
+                                  : Colors.white,
+                            ),
+                            if (!raceState.isIndoorRace)
+                              _buildStatItem(
+                                icon: Icons.directions_run_outlined,
+                                value: raceState.currentDistance
+                                    .toStringAsFixed(2),
+                                label: 'Mesafe (km)',
+                                iconColor: Colors.blueAccent,
+                                valueColor: Colors.white,
+                              ),
+                            _buildStatItem(
+                              icon: Icons.directions_walk_outlined,
+                              value: raceState.currentSteps.toString(),
+                              label: 'Adım',
+                              iconColor: Colors.greenAccent,
+                              valueColor: Colors.white,
+                            ),
+                            _buildStatItem(
+                              icon: Icons.local_fire_department_outlined,
+                              value: raceState.currentCalories.toString(),
+                              label: 'Kalori',
+                              iconColor: Colors.deepOrangeAccent,
+                              valueColor: Colors.white,
+                            ),
+                            // Hız göstergesi (opsiyonel)
+                            // if (!raceState.isIndoorRace) ...
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 25),
+                      // Leaderboard başlığı
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.emoji_events,
+                                color: Colors.amber, size: 28),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Yarış Sıralaması',
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      // Leaderboard Listesi
+                      Expanded(
+                        child: raceState.leaderboard.isEmpty
+                            ? Center(
+                                child: raceState.isRaceActive
+                                    ? const CircularProgressIndicator() // Yarış aktifse yükleniyor
+                                    : const Text('Yarışmacı bulunamadı.',
+                                        style: TextStyle(
+                                            color:
+                                                Colors.grey)) // Yarış bittiyse
+                                )
+                            : ListView.builder(
+                                itemCount: raceState.leaderboard.length,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                itemBuilder: (context, index) {
+                                  final participant =
+                                      raceState.leaderboard[index];
+                                  final bool isMe =
+                                      participant.email?.toLowerCase() ==
+                                          raceState.userEmail?.toLowerCase();
+                                  return ParticipantTile(
+                                    participant: participant,
+                                    isMe: isMe,
+                                    isIndoorRace: raceState.isIndoorRace,
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              // Hata Mesajı Göstergesi (Opsiyonel)
+              if (raceState.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'Hata: ${raceState.errorMessage}',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildStatItem({
-    required IconData icon,
-    required String value,
-    required String label,
-    Color? valueColor,
-  }) {
-    // İkon renklerini belirle
-    Color iconColor;
-    if (icon == Icons.timer) {
-      iconColor = Colors.red;
-    } else if (icon == Icons.directions_run) {
-      iconColor = Colors.blue;
-    } else if (icon == Icons.directions_walk) {
-      iconColor = Colors.green;
-    } else if (icon == Icons.speed) {
-      iconColor = Colors.orange;
-    } else {
-      iconColor = Colors.black87;
-    }
+  // --- UI Yardımcıları ---
 
-    return Column(
-      children: [
-        // 3D efekti ile ikon
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: iconColor.withOpacity(0.2),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(icon, size: 24, color: iconColor),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: valueColor ?? Colors.black87,
+  // --- Yeni Dialog: İlk Hile Uyarısı ---
+  Future<void> _showFirstCheatWarningDialog(
+      BuildContext context, WidgetRef ref) async {
+    // Get the state to display details in the dialog
+    // final state = ref.read(raceNotifierProvider);
+    // final distance = (state.currentDistance - state.lastCheckDistance) * 1000; // Removed
+    // Let's use a generic message for now
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must acknowledge
+      builder: (context) => AlertDialog(
+        title: const Text('Anormal Aktivite Tespit Edildi'),
+        content: const SingleChildScrollView(
+          // Use ScrollView for potentially long text
+          child: Text(
+            'Adım ve mesafe verileriniz arasında bir tutarsızlık tespit edildi. Lütfen adımlarınıza uygun hızda koşmaya devam edin. Tekrarlanan ihlaller yarıştan çıkarılmanıza neden olabilir.',
           ),
         ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.black54,
+        actions: [
+          TextButton(
+            onPressed: () {
+              // Dismiss the warning in the notifier state
+              ref
+                  .read(raceNotifierProvider.notifier)
+                  .dismissFirstCheatWarning();
+              Navigator.of(context).pop(); // Close the dialog
+            },
+            child: const Text('Anladım'),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  // Kullanıcının yarış esnasında odadan ayrılmasını onaylatan dialog
-  Future<bool> _showLeaveConfirmationDialog() async {
+  // Ayrılma onayı (Notifier'ı çağıracak şekilde güncellendi)
+  Future<bool> _showLeaveConfirmationDialog(
+      BuildContext context, RaceNotifier raceNotifier) async {
+    if (_leaveConfirmationShown)
+      return false; // Zaten gösteriliyorsa tekrar gösterme
+    _leaveConfirmationShown = true;
+
     bool? result = await showDialog<bool>(
       context: context,
+      barrierDismissible: false, // Kullanıcı dışarı tıklayarak kapatamasın
       builder: (context) => AlertDialog(
         title: const Text('Yarıştan Ayrıl'),
         content: const Text(
-            'Yarış devam ediyor. Ayrılmak istediğinize emin misiniz? İstatistikleriniz sıfırlanacak ve liderlik tablosundan çıkarılacaksınız.'),
+            'Yarış devam ediyor. Ayrılmak istediğinize emin misiniz?'), // Mesaj sadeleştirildi
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () {
+              _leaveConfirmationShown =
+                  false; // Dialog kapandı, tekrar gösterilebilir
+              Navigator.of(context).pop(false);
+            },
             child: const Text('Hayır'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(true);
+              _leaveConfirmationShown = false; // Dialog kapandı
+              Navigator.of(context).pop(true); // Evet seçildi
             },
             child: const Text('Evet, Ayrıl'),
           ),
@@ -911,210 +495,155 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     );
 
     if (result == true) {
-      await _leaveRaceRoom();
-      return true;
-    }
+      debugPrint('Kullanıcı yarıştan ayrılmayı onayladı.');
+      await raceNotifier.leaveRace(); // Notifier üzerinden ayrıl
 
-    return false;
-  }
+      // --- MANUEL NAVİGASYON KALDIRILDI ---
+      // if (context.mounted) {
+      //   Navigator.of(context).pushAndRemoveUntil(
+      //     MaterialPageRoute(builder: (context) => const TabsScreen()),
+      //     (route) => false,
+      //   );
+      // }
+      // --- MANUEL NAVİGASYON KALDIRILDI SONU ---
 
-  // Yarış esnasında odadan ayrılma işlemini yapan metod
-  Future<void> _leaveRaceRoom({bool wasKicked = false}) async {
-    try {
-      // Konum güncellemelerini durdur
-      _stopLocationUpdates();
-
-      // Adım sayacı aboneliğini iptal et
-      _stepCountSubscription?.cancel();
-
-      // SignalR bağlantısını kur ve LeaveRoomDuringRace metodunu çağır
-      final signalRService = ref.read(signalRServiceProvider);
-
-      if (signalRService.isConnected) {
-        // Yarış esnasında ayrılma özel metodunu çağır
-        await signalRService.leaveRoomDuringRace(widget.roomId);
-        debugPrint(
-            'SignalR: Yarış esnasında odadan ayrılma başarılı - Oda ID: ${widget.roomId}');
-      } else {
-        debugPrint('SignalR bağlantısı yok, önce bağlantı kuruluyor...');
-        await signalRService.connect();
-        await signalRService.leaveRoomDuringRace(widget.roomId);
-      }
-
-      // Stream aboneliklerini iptal et
-      for (var subscription in _subscriptions) {
-        subscription.cancel();
-      }
-      _subscriptions.clear();
-
-      if (mounted) {
-        // Eğer kullanıcı atıldıysa bir mesaj göster
-        if (wasKicked) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content:
-                  Text('Kurallara uymadığınız için yarıştan çıkarıldınız.'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 5),
-            ),
-          );
-        }
-
-        // Ana sayfaya yönlendir
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const TabsScreen()),
-          (route) => false, // Tüm geçmiş sayfaları temizle
-        );
-      }
-    } catch (e) {
-      debugPrint('Yarış esnasında odadan ayrılma hatası: $e');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Odadan ayrılırken bir hata oluştu: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    debugPrint('RaceScreen dispose ediliyor...');
-
-    // Anti-cheat timer'ı iptal et
-    _antiCheatTimer?.cancel();
-    _antiCheatTimer = null;
-
-    // Konum takibini durdur
-    _stopLocationUpdates();
-
-    // Adım sayar aboneliğini iptal et
-    _stepCountSubscription?.cancel();
-
-    // Race timer'ı iptal et
-    _raceTimerTimer?.cancel();
-    _raceTimerTimer = null;
-
-    // Stream aboneliklerini iptal et
-    for (var subscription in _subscriptions) {
-      subscription.cancel();
-    }
-    _subscriptions.clear();
-
-    // Yeni kod: dispose sırasında normal LeaveRaceRoom yerine normale dönüyoruz
-    // böylece dispose edildiğinde ikinci kez _leaveRaceRoom çağrılmayacak
-    final signalRService = ref.read(signalRServiceProvider);
-    if (_isRaceActive) {
-      // Eğer kullanıcı uygulama kapatma gibi bir yolla çıkış yaparsa yine de istatistikleri sıfırlanmalı
-      try {
-        if (signalRService.isConnected) {
-          signalRService.leaveRoomDuringRace(widget.roomId);
-        }
-      } catch (e) {
-        debugPrint('Dispose sırasında odadan ayrılma hatası: $e');
-      }
+      return true; // Geri tuşunun işlemi yapmasını engelle (ayrılma başlatıldı)
     } else {
-      signalRService.leaveRaceRoom(widget.roomId);
+      _leaveConfirmationShown =
+          false; // Kullanıcı hayır dedi veya dialog kapandı
     }
 
-    debugPrint('RaceScreen dispose edildi - tüm dinleyiciler kapatıldı');
-    super.dispose();
+    return false; // Geri tuşunun işlemi yapmasını engelleme (dialog kapatıldı)
+  }
+
+  // Hata mesajı gösterme fonksiyonu (context alır)
+  void _showErrorMessage(BuildContext context, String message) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color iconColor,
+    Color? valueColor,
+  }) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 28, color: iconColor),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: valueColor ?? Colors.white,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
   }
 }
 
-class ParticipantTile extends StatelessWidget {
+class ParticipantTile extends ConsumerWidget {
   final RaceParticipant participant;
   final bool isMe;
-  final String? profilePictureUrl;
-  final bool isIndoorRace; // Indoor yarış tipini belirleyen parametre ekledik
+  final bool isIndoorRace;
 
   const ParticipantTile({
     super.key,
     required this.participant,
     this.isMe = false,
-    this.profilePictureUrl,
-    required this.isIndoorRace, // Constructor'a ekledik
+    required this.isIndoorRace,
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Sıralamaya göre renkleri belirle
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Read the cache from the provider state
+    // **** Gelen isIndoorRace DEĞERİNİ LOGLA ****
+    debugPrint(
+        '[ParticipantTile build] Received isIndoorRace = $isIndoorRace for ${participant.userName}');
+    final profileCache = ref.watch(
+        raceNotifierProvider.select((state) => state.profilePictureCache));
+    final String? profilePicUrl = profileCache[participant.userName];
+
     Color rankColor;
+    Color rankTextColor = Colors.black87;
     if (participant.rank == 1) {
-      rankColor = const Color(0xFFFFD700); // Altın
+      rankColor = const Color(0xFFFFD700);
+      rankTextColor = Colors.black;
     } else if (participant.rank == 2) {
-      rankColor = const Color(0xFFC0C0C0); // Gümüş
+      rankColor = const Color(0xFFC0C0C0);
+      rankTextColor = Colors.black;
     } else if (participant.rank == 3) {
-      rankColor = const Color(0xFFCD7F32); // Bronz
+      rankColor = const Color(0xFFCD7F32);
+      rankTextColor = Colors.white;
     } else {
-      rankColor = Colors.grey[300]!;
+      rankColor = Colors.grey.shade600;
     }
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      color: isMe ? const Color(0xFFC4FF62).withOpacity(0.2) : null,
-      shape: RoundedRectangleBorder(
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade800,
         borderRadius: BorderRadius.circular(12),
-        side: participant.rank <= 3
-            ? BorderSide(color: rankColor, width: 2)
-            : BorderSide.none,
+        border: isMe
+            ? Border.all(color: Colors.lightGreenAccent, width: 2.5)
+            : null,
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
         child: Row(
           children: [
-            // Profil fotoğrafı ve sıralama
             Stack(
               alignment: Alignment.center,
+              clipBehavior: Clip.none,
               children: [
-                // Avatar (profil fotoğrafı)
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: rankColor,
-                  child: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.white,
-                    backgroundImage: profilePictureUrl != null
-                        ? NetworkImage(profilePictureUrl!)
-                        : null,
-                    child: profilePictureUrl == null
-                        ? Text(
-                            participant.userName[0].toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: participant.rank <= 3
-                                  ? rankColor
-                                  : Colors.black54,
-                            ),
-                          )
-                        : null,
-                  ),
+                UserProfileAvatar(
+                  imageUrl: profilePicUrl,
+                  radius: 25,
                 ),
-
-                // Sıralama rozeti
                 Positioned(
-                  bottom: 0,
-                  right: 0,
+                  top: -4,
+                  left: -4,
                   child: Container(
-                    width: 20,
-                    height: 20,
+                    width: 22,
+                    height: 22,
                     decoration: BoxDecoration(
                       color: rankColor,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                      border: Border.all(color: Colors.grey.shade800, width: 2),
                     ),
                     child: Center(
                       child: Text(
                         participant.rank.toString(),
-                        style: const TextStyle(
-                          fontSize: 10,
+                        style: TextStyle(
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: rankTextColor,
                         ),
                       ),
                     ),
@@ -1129,84 +658,55 @@ class ParticipantTile extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: participant.rank <= 3
+                              ? rankColor
+                              : Colors.lightGreenAccent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Text(
                         participant.userName,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color:
-                              participant.rank <= 3 ? rankColor : Colors.black,
+                          color: Colors.white,
                         ),
                       ),
                       if (isMe)
                         const Padding(
-                          padding: EdgeInsets.only(left: 8.0),
+                          padding: EdgeInsets.only(left: 6.0),
                           child: Text(
                             '(Ben)',
                             style: TextStyle(
-                              fontStyle: FontStyle.italic,
+                              fontStyle: FontStyle.normal,
                               fontSize: 14,
-                              color: Colors.black54,
+                              color: Colors.grey,
                             ),
                           ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Bilgi kartları satırı
                   Row(
                     children: [
-                      // Indoor yarışta mesafe gösterme, sadece adım sayısı göster
                       if (!isIndoorRace)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.directions_run,
-                                  size: 14, color: Colors.blue),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${participant.distance.toStringAsFixed(2)} km',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ],
-                          ),
+                        _buildInfoChip(
+                          label:
+                              '${participant.distance.toStringAsFixed(2)} km',
+                          backgroundColor:
+                              Colors.blue.shade900.withOpacity(0.7),
+                          textColor: Colors.blue.shade100,
                         ),
                       if (!isIndoorRace) const SizedBox(width: 8),
-                      // Adım bilgisi
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.directions_walk,
-                                size: 14, color: Colors.green),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Adım: ${participant.steps}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
+                      _buildInfoChip(
+                        label: 'Adım: ${participant.steps}',
+                        backgroundColor: Colors.green.shade900.withOpacity(0.7),
+                        textColor: Colors.green.shade100,
                       ),
                     ],
                   ),
@@ -1214,6 +714,28 @@ class ParticipantTile extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip({
+    required String label,
+    required Color backgroundColor,
+    required Color textColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
+          color: textColor,
         ),
       ),
     );

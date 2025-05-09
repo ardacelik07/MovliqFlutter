@@ -115,8 +115,7 @@ class SignalRService {
       throw Exception('Authentication token not found');
     }
 
-    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-    final String token = tokenData['token'];
+    final String token = tokenJson;
 
     try {
       // Hub URL oluşturma - API_Config'deki baseUrl'i kullanarak SignalR hub URL'ini oluştur
@@ -202,13 +201,15 @@ class SignalRService {
   }
 
   // Konum güncellemek için metod
-  Future<void> updateLocation(int roomId, double distance, int steps) async {
+  Future<void> updateLocation(
+      int roomId, double distance, int steps, int calories) async {
     if (_hubConnection == null || !_isConnected) return;
 
     try {
       await _hubConnection!
-          .invoke('UpdateLocation', args: [roomId, distance, steps]);
-      debugPrint('Konum güncellendi: $distance m, $steps adım');
+          .invoke('UpdateLocation', args: [roomId, distance, steps, calories]);
+      debugPrint(
+          'Konum güncellendi: ${distance.toStringAsFixed(2)} km, $steps adım, $calories kalori');
     } catch (e) {
       debugPrint('Konum güncelleme hatası: $e');
     }
@@ -216,19 +217,29 @@ class SignalRService {
 
   // Liderlik tablosu güncellemelerini işleyen metod
   void _handleLeaderboardUpdated(List<Object?>? arguments) {
-    if (arguments == null || arguments.isEmpty) return;
+    debugPrint(
+        '[SignalR Handler] _handleLeaderboardUpdated CALLED with arguments: $arguments');
+    if (arguments == null || arguments.isEmpty) {
+      debugPrint(
+          '[SignalR Handler] _handleLeaderboardUpdated - Arguments are null or empty. Returning.');
+      return;
+    }
 
     try {
       final List<dynamic> leaderboardData = arguments[0] as List<dynamic>;
+      debugPrint(
+          '[SignalR Handler] _handleLeaderboardUpdated - Raw leaderboardData: $leaderboardData');
       final participants = leaderboardData
           .map((item) => RaceParticipant.fromJson(item as Map<String, dynamic>))
           .toList();
 
       _leaderboardController.add(participants);
       debugPrint(
-          'Liderlik tablosu güncellendi: ${participants.length} katılımcı');
-    } catch (e) {
-      debugPrint('Liderlik tablosu işleme hatası: $e');
+          '[SignalR Handler] _handleLeaderboardUpdated - SUCCESS: ${participants.length} participants added to stream.');
+    } catch (e, stackTrace) {
+      debugPrint(
+          '[SignalR Handler] _handleLeaderboardUpdated - ERROR processing leaderboard: $e');
+      debugPrint('[SignalR Handler] Stack Trace: $stackTrace');
     }
   }
 

@@ -56,3 +56,39 @@ class LeaderboardOutdoorDto {
     );
   }
 }
+
+// Model for the response from /api/LeaderBoard/GetAllLeaderboardByUser
+class UserLeaderboardEntryDto {
+  final int id;
+  final int userId;
+  final String userName;
+  final String? profilePicture;
+  final int? outdoorSteps;
+  final int? indoorSteps;
+  final double? generalDistance;
+  final int rank;
+
+  UserLeaderboardEntryDto({
+    required this.id,
+    required this.userId,
+    required this.userName,
+    this.profilePicture,
+    this.outdoorSteps,
+    this.indoorSteps,
+    this.generalDistance,
+    required this.rank,
+  });
+
+  factory UserLeaderboardEntryDto.fromJson(Map<String, dynamic> json) {
+    return UserLeaderboardEntryDto(
+      id: json['id'] as int,
+      userId: json['userId'] as int,
+      userName: json['userName'] as String,
+      profilePicture: json['profilePicture'] as String?,
+      outdoorSteps: json['outdoorSteps'] as int?,
+      indoorSteps: json['indoorSteps'] as int?,
+      generalDistance: (json['generalDistance'] as num?)?.toDouble(),
+      rank: json['rank'] as int,
+    );
+  }
+}

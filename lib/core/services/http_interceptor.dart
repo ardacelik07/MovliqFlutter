@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async'; // Completer için eklendi
 import 'storage_service.dart';
+import '../config/api_config.dart';
 
 // HTTP isteği sonuçlarını izleyen ve 401 hatası durumunda otomatik olarak logout eden sınıf
 class HttpInterceptor {
   static NavigatorState? _navigator;
   static bool _isLoggingOut = false;
+  static bool _isRefreshingToken = false;
+  static Completer<bool>? _ongoingRefreshCompleter;
+  static bool _isActualRefreshCallInProgress = false;
 
   // Navigator'u ayarla
   static void setNavigator(NavigatorState navigator) {
@@ -14,41 +19,27 @@ class HttpInterceptor {
     print('✅ HttpInterceptor: NavigatorState başarıyla ayarlandı');
   }
 
-  // HTTP yanıtını kontrol et
-  static void checkResponse(http.Response response) {
-    // 401 Unauthorized hatası varsa
-    if (response.statusCode == 401) {
-      print('🚨 HTTP 401 Unauthorized hatası tespit edildi');
-      _handleUnauthorized();
-    }
-  }
-
   // Token hatasını işle - herhangi bir API sınıfından çağrılabilir
   static Future<void> handleTokenError() async {
-    print('🚨 Token hatası tespit edildi');
+    print('🚨 Token hatası tespit edildi (handleTokenError çağrıldı)');
     _handleUnauthorized();
   }
 
   // Yetkisiz erişim durumunda logout işlemini gerçekleştir
   static void _handleUnauthorized() async {
-    // Eğer zaten logout işlemi yapılıyorsa, tekrar yapma
     if (_isLoggingOut) {
       print('⏳ Zaten logout işlemi devam ediyor, tekrar işlem yapılmıyor');
       return;
     }
-
     _isLoggingOut = true;
 
     try {
       print('🔑 Token siliniyor ve oturum kapatılıyor...');
       await StorageService.deleteToken();
 
-      // Login ekranına yönlendir
       if (_navigator != null) {
         if (_navigator!.context.mounted) {
           print('🔄 Login ekranına yönlendiriliyor...');
-
-          // WidgetsBinding ile UI thread'inde işlem yap
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _navigator!.pushNamedAndRemoveUntil('/login', (route) => false);
           });
@@ -67,104 +58,168 @@ class HttpInterceptor {
     }
   }
 
-  // HTTP GET isteği yap ve intercept et
-  static Future<http.Response> get(Uri url,
-      {Map<String, String>? headers}) async {
-    try {
-      // İstek öncesi token kontrolü
-      await _checkToken();
+  // Access Token'ı headera ekle
+  static Future<Map<String, String>> _getHeadersWithToken(
+      Map<String, String>? originalHeaders) async {
+    final Map<String, String> headers =
+        Map<String, String>.from(originalHeaders ?? ApiConfig.headers);
+    final String? accessToken = await StorageService.getToken();
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    return headers;
+  }
 
-      final response = await http.get(url, headers: headers);
-      checkResponse(response);
+  // Token yenileme işlemi
+  static Future<bool> _refreshToken() async {
+    if (_isActualRefreshCallInProgress) {
+      print(
+          '⏳ Başka bir istek zaten token yenileme işlemini başlattı. Sonucu bekleniyor...');
+      return await _ongoingRefreshCompleter!.future;
+    }
+
+    _isActualRefreshCallInProgress = true;
+    _ongoingRefreshCompleter = Completer<bool>();
+    print('🔄 Token yenileme deneniyor (lider çağrı)...');
+
+    try {
+      final String? refreshToken = await StorageService.getRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) {
+        print('❌ Refresh token bulunamadı. Yenileme yapılamaz.');
+        _ongoingRefreshCompleter!.complete(false);
+        return false;
+      }
+
+      final http.Response response = await http.post(
+        Uri.parse(ApiConfig.refreshTokenEndpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'refreshToken': refreshToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final String? newAccessToken = responseData['accessToken'] as String?;
+        final String? newRefreshToken = responseData['refreshToken'] as String?;
+
+        if (newAccessToken != null &&
+            newAccessToken.isNotEmpty &&
+            newRefreshToken != null &&
+            newRefreshToken.isNotEmpty) {
+          await StorageService.saveToken(
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+          );
+          print('✅ Token başarıyla yenilendi.');
+          _ongoingRefreshCompleter!.complete(true);
+          return true;
+        } else {
+          print('❌ Yenilenen tokenlar response içinde bulunamadı.');
+          _ongoingRefreshCompleter!.complete(false);
+          return false;
+        }
+      } else {
+        print('❌ Token yenileme başarısız. Status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        _ongoingRefreshCompleter!.complete(false);
+        return false;
+      }
+    } catch (e) {
+      print('❌ Token yenileme sırasında hata: $e');
+      _ongoingRefreshCompleter!.complete(false);
+      return false;
+    } finally {
+      _isActualRefreshCallInProgress = false;
+    }
+  }
+
+  // İstek öncesi access token kontrolü yap
+  static Future<void> _checkAccessToken() async {
+    final String? accessToken = await StorageService.getToken();
+    if (accessToken == null || accessToken.isEmpty) {
+      print('❌ Access Token bulunamadı. İstek yapılamaz.');
+      throw Exception('Access Token bulunamadı');
+    }
+  }
+
+  // Genel istek sarmalayıcı
+  static Future<http.Response> _requestWrapper(
+    Future<http.Response> Function(Map<String, String> headers) makeRequest,
+    Map<String, String>? originalHeaders, {
+    bool isRetry = false,
+  }) async {
+    try {
+      if (!isRetry) {
+        await _checkAccessToken();
+      }
+      final Map<String, String> headersWithToken =
+          await _getHeadersWithToken(originalHeaders);
+      http.Response response = await makeRequest(headersWithToken);
+
+      if (response.statusCode == 401) {
+        if (isRetry) {
+          print(
+              '🚨 HTTP 401 (Yeniden deneme sonrası). Oturum sonlandırılıyor.');
+          _handleUnauthorized();
+        } else {
+          print('🚨 HTTP 401. Token yenileme denenecek...');
+          final bool refreshed = await _refreshToken();
+          if (refreshed) {
+            print('✅ Token yenilendi. İstek tekrarlanıyor...');
+            return _requestWrapper(makeRequest, originalHeaders, isRetry: true);
+          } else {
+            print('❌ Token yenileme başarısız. Oturum sonlandırılıyor.');
+            _handleUnauthorized();
+          }
+        }
+      }
       return response;
     } catch (e) {
-      print('❌ HTTP GET isteği sırasında hata: $e');
+      print('❌ HTTP request wrapper hatası: $e');
       _checkForTokenError(e);
       rethrow;
     }
+  }
+
+  // HTTP GET isteği yap ve intercept et
+  static Future<http.Response> get(Uri url,
+      {Map<String, String>? headers}) async {
+    return _requestWrapper(
+      (headersWithToken) => http.get(url, headers: headersWithToken),
+      headers,
+    );
   }
 
   // HTTP POST isteği yap ve intercept et
   static Future<http.Response> post(Uri url,
       {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
-    try {
-      // İstek öncesi token kontrolü
-      await _checkToken();
-
-      final response = await http.post(url,
-          headers: headers, body: body, encoding: encoding);
-      checkResponse(response);
-      return response;
-    } catch (e) {
-      print('❌ HTTP POST isteği sırasında hata: $e');
-      _checkForTokenError(e);
-      rethrow;
-    }
+    return _requestWrapper(
+      (headersWithToken) => http.post(url,
+          headers: headersWithToken, body: body, encoding: encoding),
+      headers,
+    );
   }
 
   // HTTP PUT isteği yap ve intercept et
   static Future<http.Response> put(Uri url,
       {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
-    try {
-      // İstek öncesi token kontrolü
-      await _checkToken();
-
-      final response =
-          await http.put(url, headers: headers, body: body, encoding: encoding);
-      checkResponse(response);
-      return response;
-    } catch (e) {
-      print('❌ HTTP PUT isteği sırasında hata: $e');
-      _checkForTokenError(e);
-      rethrow;
-    }
+    return _requestWrapper(
+      (headersWithToken) => http.put(url,
+          headers: headersWithToken, body: body, encoding: encoding),
+      headers,
+    );
   }
 
   // HTTP DELETE isteği yap ve intercept et
   static Future<http.Response> delete(Uri url,
       {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
-    try {
-      // İstek öncesi token kontrolü
-      await _checkToken();
-
-      final response = await http.delete(url,
-          headers: headers, body: body, encoding: encoding);
-      checkResponse(response);
-      return response;
-    } catch (e) {
-      print('❌ HTTP DELETE isteği sırasında hata: $e');
-      _checkForTokenError(e);
-      rethrow;
-    }
-  }
-
-  // İstek öncesi token kontrolü yap
-  static Future<void> _checkToken() async {
-    try {
-      final tokenJson = await StorageService.getToken();
-
-      if (tokenJson == null || tokenJson.isEmpty) {
-        print('❌ Token bulunamadı, istek yapılamaz');
-        throw Exception('Token bulunamadı');
-      }
-
-      try {
-        final tokenData = jsonDecode(tokenJson);
-        if (!tokenData.containsKey('token') ||
-            tokenData['token'] == null ||
-            tokenData['token'].isEmpty) {
-          print('❌ Token geçersiz format içeriyor');
-          throw Exception('Token geçersiz formatla kaydedilmiş');
-        }
-      } catch (e) {
-        print('❌ Token parse edilemiyor: $e');
-        throw Exception('Token parse hatası: $e');
-      }
-    } catch (e) {
-      print('❌ Token kontrolü sırasında hata: $e');
-      _handleUnauthorized();
-      throw e;
-    }
+    return _requestWrapper(
+      (headersWithToken) => http.delete(url,
+          headers: headersWithToken, body: body, encoding: encoding),
+      headers,
+    );
   }
 
   // Hata mesajını kontrol et - token hatası içeriyorsa logout yap
@@ -172,9 +227,10 @@ class HttpInterceptor {
     final errorMessage = error.toString().toLowerCase();
     if (errorMessage.contains('token') ||
         errorMessage.contains('unauthorized') ||
-        errorMessage.contains('401') ||
         errorMessage.contains('auth') ||
         errorMessage.contains('format')) {
+      print(
+          '🚨 Token ile ilgili bir hata tespit edildi (_checkForTokenError): $errorMessage');
       _handleUnauthorized();
     }
   }

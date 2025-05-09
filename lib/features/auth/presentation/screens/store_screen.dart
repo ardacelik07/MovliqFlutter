@@ -1,172 +1,518 @@
+import 'dart:convert'; // Gerekli import
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart'; // smooth_page_indicator import edildi
+import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // FontAwesome import edildi
 
+// Provider ve Model importları
+import 'package:my_flutter_project/features/auth/domain/models/product.dart';
+import 'package:my_flutter_project/features/auth/domain/models/user_data_model.dart'; // UserDataModel importu eklendi
+import 'package:my_flutter_project/features/auth/presentation/providers/product_provider.dart';
+import 'package:my_flutter_project/features/auth/presentation/providers/user_data_provider.dart'; // UserDataProvider eklendi
+import './product_view_screen.dart'; // ProductViewScreen import edildi
+// Add imports for NetworkErrorWidget and specific exceptions
+import '../widgets/network_error_widget.dart';
+import 'package:http/http.dart' show ClientException; // Specific import
+import 'dart:io' show SocketException; // Specific import
+
+// StoreScreen ConsumerStatefulWidget olarak değiştirildi
 class StoreScreen extends ConsumerStatefulWidget {
   const StoreScreen({super.key});
 
   @override
-  ConsumerState<StoreScreen> createState() => _StoreScreenState();
+  ConsumerState<StoreScreen> createState() => StoreScreenState();
 }
 
-class _StoreScreenState extends ConsumerState<StoreScreen> {
-  String _selectedCategory = 'All';
-
+class StoreScreenState extends ConsumerState<StoreScreen> {
   // Define colors based on the target design
-  static const Color limeGreen = Color(0xFFC4FF62);
+  static const Color limeGreen =
+      Color(0xFFC4FF62); // Or match the exact green from image if needed
   static const Color darkBackground = Colors.black;
-  static const Color cardBackground = Color(0xFF1C1C1E); // Slightly off-black
-  static const Color chipUnselectedBackground = Color(0xFF2C2C2E);
+  static const Color cardBackground =
+      Color(0xFF1A1A1A); // Darker card background from image
+  static const Color chipSelectedBackground =
+      limeGreen; // Chip background from image
+  static const Color chipUnselectedBackground =
+      Color(0xFF2C2C2E); // Unselected chip or other dark elements
   static const Color lightTextColor = Colors.white;
   static const Color darkTextColor = Colors.black;
-  static const Color greyTextColor = Colors.grey;
+  static const Color greyTextColor =
+      Color(0xFF8A8A8E); // Grey text color from image
+
+  // PageController for the carousel
+  final PageController _pageController = PageController(viewportFraction: 0.9);
+
+  // RefreshController eklendi
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Sayfa yüklendiğinde verileri otomatik olarak yenile
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshData();
+    });
+  }
+
+  // Verileri yenilemek için metot
+  Future<void> _refreshData() async {
+    // Tüm provider'ları zorla güncelle
+    await ref.read(productNotifierProvider.notifier).refreshProducts();
+    // MovliqProduct provider'ı otomatik olarak yenilenecektir (autoDispose sayesinde)
+    // Coin bilgisini de yenile
+    await ref.read(userDataProvider.notifier).fetchCoins();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final AsyncValue<List<Product>> productsAsync =
+        ref.watch(productNotifierProvider);
+    final AsyncValue<Product> movliqProductAsync =
+        ref.watch(movliqProductProvider);
+    final AsyncValue<UserDataModel?> userDataAsync =
+        ref.watch(userDataProvider);
+
     return Scaffold(
-      backgroundColor: darkBackground, // Set background to black
-      body: Container(
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      backgroundColor: darkBackground,
+      // Wrap the main content area with productsAsync.when
+      body: productsAsync.when(
+        data: (products) {
+          // Data loaded successfully, build the normal UI
+          return SafeArea(
+            child: RefreshIndicator(
+              key: _refreshIndicatorKey,
+              color: limeGreen,
+              backgroundColor: cardBackground,
+              onRefresh: _refreshData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Store',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: lightTextColor, // Changed to white
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: chipUnselectedBackground, // Darker background
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
+                    // Header (remains mostly the same, uses userDataAsync for coins)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.monetization_on,
-                              size: 20, color: Colors.amber), // Gold icon
-                          const SizedBox(width: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Mağaza',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: lightTextColor,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: chipUnselectedBackground,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/mCoin.png',
+                                      width: 25,
+                                      height: 25,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    userDataAsync.when(
+                                      data: (userData) => Text(
+                                        userData?.coins?.toStringAsFixed(2) ??
+                                            '0.00',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: lightTextColor,
+                                        ),
+                                      ),
+                                      loading: () => const SizedBox(
+                                        width: 25,
+                                        height: 25,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: lightTextColor,
+                                        ),
+                                      ),
+                                      error: (err, stack) {
+                                        if (err is SocketException ||
+                                            err is ClientException) {
+                                          return const Tooltip(
+                                            message: 'Network Error',
+                                            child: Icon(
+                                              Icons.signal_wifi_off_rounded,
+                                              color: Colors.red,
+                                              size: 20,
+                                            ),
+                                          );
+                                        } else {
+                                          return const Tooltip(
+                                            message: 'Coinler yüklenemedi',
+                                            child: Icon(
+                                              Icons.error_outline,
+                                              color: Colors.red,
+                                              size: 20,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
                           Text(
-                            '2,500', // TODO: Replace with actual user coin data
+                            'Arda\'nın direttiği yazı burada yer alacak.',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: lightTextColor, // Changed to white
+                              fontSize: 14,
+                              color: greyTextColor,
                             ),
                           ),
                         ],
                       ),
                     ),
+
+                    // Carousel (remains the same)
+                    SizedBox(
+                      height: 170, // Adjust height for the slider area
+                      child: PageView.builder(
+                        controller:
+                            _pageController, // Use the defined controller
+                        padEnds: false, // Don't add padding at the ends
+                        itemCount: 3, // Placeholder count for demonstration
+                        itemBuilder: (context, index) {
+                          return Container(
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                                vertical:
+                                    8.0), // Add horizontal margin between cards
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20.0),
+                              // Apply gradient background from image
+                              gradient: LinearGradient(
+                                colors: [
+                                  limeGreen.withOpacity(
+                                      0.8), // Adjust opacity as needed
+                                  limeGreen.withOpacity(0.5),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // Carousel Indicator Dots (remains the same)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                        child: SmoothPageIndicator(
+                          controller: _pageController,
+                          count: 3, // Must match itemCount in PageView
+                          effect: ExpandingDotsEffect(
+                            // Style from image
+                            activeDotColor: limeGreen,
+                            dotColor: greyTextColor.withOpacity(0.5),
+                            dotHeight: 8,
+                            dotWidth: 8,
+                            spacing: 6,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Special Offer Card (uses movliqProductAsync, NO specific error handling here)
+                    movliqProductAsync.when(
+                      data: (product) {
+                        // Build the card using product data
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ProductViewScreen(productId: product.id!),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 12),
+                            padding:
+                                const EdgeInsets.all(20), // Increased padding
+                            decoration: BoxDecoration(
+                              color: cardBackground, // Use dark card background
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start, // Align items top
+                              children: [
+                                // Left Column: Chip and Image
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // "Bu Aya Özel" Chip
+                                    Container(
+                                      margin: const EdgeInsets.only(
+                                          bottom: 8.0), // Add space below chip
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            chipSelectedBackground, // Lime green background
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Text(
+                                        'Bu Aya Özel',
+                                        style: TextStyle(
+                                          color: darkTextColor, // Black text
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                    // Image
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12.0),
+                                      child: product.firstImageUrl.isNotEmpty
+                                          ? Image.network(
+                                              product.firstImageUrl,
+                                              width: 80,
+                                              height: 80,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error,
+                                                      stackTrace) =>
+                                                  Icon(Icons.error_outline,
+                                                      color: greyTextColor,
+                                                      size: 80),
+                                            )
+                                          : Image.asset(
+                                              'assets/images/nike.png', // Fallback
+                                              width: 80,
+                                              height: 80,
+                                              fit: BoxFit.cover,
+                                            ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                    width:
+                                        12), // Reduced space between left and right columns
+
+                                // Right Column: Text and Price
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Product Title
+                                      Text(
+                                        product.name,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: lightTextColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Product Description
+                                      Text(
+                                        product.description,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: greyTextColor,
+                                        ),
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(
+                                          height:
+                                              16), // Pushes price to the bottom
+                                      // Price Row
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment
+                                            .end, // Align price to the right
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                product.price
+                                                    .toStringAsFixed(0),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                  color: limeGreen,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Image.asset(
+                                                'assets/images/mCoin.png',
+                                                width: 25,
+                                                height: 25,
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      loading: () => Container(
+                        // Simplified loading state for special product
+                        margin: const EdgeInsets.symmetric(horizontal: 12),
+                        height: 150, // Approx height of the card
+                        decoration: BoxDecoration(
+                          color: cardBackground,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                            child: CircularProgressIndicator(
+                                color: chipSelectedBackground)),
+                      ),
+                      // Show minimal error here, main screen handles major errors
+                      error: (error, stackTrace) => Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 12),
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: cardBackground,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                            child: Text('Özel ürün yüklenemedi.',
+                                style: TextStyle(color: Colors.redAccent))),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text(
+                        'Alışveriş',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: lightTextColor,
+                        ),
+                      ),
+                    ),
+
+                    // Products Grid (uses products from the main data block)
+                    _buildProductGrid(products),
+
+                    // Bottom padding
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
-
-              // Categories
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    _buildCategoryChip('All', _selectedCategory == 'All'),
-                    _buildCategoryChip(
-                        'Equipment', _selectedCategory == 'Equipment'),
-                    _buildCategoryChip(
-                        'Clothes', _selectedCategory == 'Clothes'),
-                    _buildCategoryChip(
-                        'Accessories', _selectedCategory == 'Accessories'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Products Grid
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.70, // Adjust aspect ratio if needed
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: 8, // Placeholder count
-                  itemBuilder: (context, index) {
-                    // Simplified logic for demonstration, use actual product data
-                    if (_selectedCategory == 'All' ||
-                        _selectedCategory == 'Equipment') {
-                      return _buildProductCard(
-                        imageUrl: 'assets/images/nike.png',
-                        title: index % 2 == 0
-                            ? 'Training Equipment'
-                            : 'Premium Running Shoes',
-                        price: index % 2 == 0 ? '800' : '1,200',
-                      );
-                    } else if (_selectedCategory == 'Clothes') {
-                      return _buildProductCard(
-                        imageUrl:
-                            'assets/images/slider.png', // Different image for variety
-                        title: 'Sports T-Shirt',
-                        price: '950',
-                      );
-                    } else {
-                      // Accessories
-                      return _buildProductCard(
-                        imageUrl:
-                            'assets/images/activity.png', // Different image
-                        title: 'Smart Watch Band',
-                        price: '600',
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
+          );
+        },
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: limeGreen),
         ),
+        error: (error, stackTrace) {
+          // ALWAYS show NetworkErrorWidget for any full-screen error
+          return Center(
+            child: NetworkErrorWidget(
+              // Provide generic title/message for all errors
+              title: 'Mağaza Yüklenemedi',
+              message: 'Bir sorun oluştu, lütfen tekrar deneyin.',
+              onRetry: () {
+                // Invalidate all relevant providers on retry
+                ref.invalidate(productNotifierProvider);
+                ref.invalidate(movliqProductProvider);
+                ref.invalidate(userDataProvider);
+                // Trigger manual refresh if needed
+                _refreshData();
+              },
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildCategoryChip(String label, bool isSelected) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (bool selected) {
-          if (selected) {
-            setState(() {
-              _selectedCategory = label;
-            });
-          }
-        },
-        backgroundColor: chipUnselectedBackground,
-        selectedColor: limeGreen,
-        labelStyle: TextStyle(
-          color: isSelected ? darkTextColor : lightTextColor,
-          fontWeight: FontWeight.bold, // Always bold for better visibility
+  // Extracted Product Grid builder
+  Widget _buildProductGrid(List<Product> products) {
+    final filteredProducts =
+        'All' == 'All' // Replace 'All' with actual filter logic if needed
+            ? products
+            : products.where((p) => p.category == 'All').toList();
+
+    if (filteredProducts.isEmpty) {
+      return const Center(
+        heightFactor: 3.0,
+        child: Text(
+          'No products found in this category.',
+          style: TextStyle(color: lightTextColor, fontSize: 16),
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20), // Make it more oval/rounded
-          side: BorderSide.none, // Remove default border
-        ),
-        showCheckmark: false, // Hide default checkmark
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.70,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
       ),
+      itemCount: filteredProducts.length,
+      itemBuilder: (context, index) {
+        final Product product = filteredProducts[index];
+        return InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProductViewScreen(productId: product.id!),
+              ),
+            );
+          },
+          child: _buildProductCard(
+            imageUrl: product.firstImageUrl,
+            title: product.name,
+            price: product.price.toStringAsFixed(0),
+          ),
+        );
+      },
     );
   }
 
@@ -201,10 +547,22 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
               child: Container(
                 color:
                     chipUnselectedBackground, // Dark background for image container
-                child: Image.asset(
+                child: Image.network(
                   imageUrl,
                   fit: BoxFit.cover,
                   width: double.infinity,
+                  // Yükleme ve hata durumları için builder'lar
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                        child: CircularProgressIndicator(
+                      color: limeGreen,
+                      strokeWidth: 2.0,
+                    ));
+                  },
+                  errorBuilder: (context, error, stackTrace) => Center(
+                      // Use updated grey color
+                      child: Icon(Icons.error_outline, color: greyTextColor)),
                 ),
               ),
             ),
@@ -219,55 +577,38 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                   title,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14, // Slightly smaller font
+                    fontSize: 14,
                     color: lightTextColor,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8), // Increased spacing
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.monetization_on,
-                          size: 16,
-                          color: Colors.amber, // Keep gold color
-                        ),
-                        const SizedBox(width: 4),
                         Text(
                           price,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: lightTextColor,
+                            color: limeGreen,
                           ),
+                        ),
+                        const SizedBox(width: 4),
+                        Image.asset(
+                          'assets/images/mCoin.png',
+                          width: 25,
+                          height: 25,
                         ),
                       ],
                     ),
-                    // Updated Buy Button
-                    ElevatedButton(
-                      onPressed: () {
-                        // TODO: Implement buy logic
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: limeGreen,
-                          foregroundColor: darkTextColor,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4), // Adjust padding
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(8), // Match chip radius
-                          ),
-                          minimumSize:
-                              const Size(0, 30), // Smaller button height
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          )),
-                      child: const Text('Buy'),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14,
+                      color: greyTextColor,
                     ),
                   ],
                 ),
