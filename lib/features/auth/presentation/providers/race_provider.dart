@@ -66,52 +66,96 @@ class RaceNotifier extends _$RaceNotifier {
     // Zaten aktif bir yarış varsa başlatma
     if (state.isRaceActive || state.isPreRaceCountdownActive) {
       debugPrint(
-          '--- RaceNotifier: Aktif yarış zaten var, startRace engellendi. Current state: $state'); // <-- YENİ LOG
+          '--- RaceNotifier: Yarış zaten aktif veya başlamak üzere, yeni yarış başlatılmadı ---');
       return;
     }
 
-    debugPrint(
-        'RaceNotifier: Yarış başlatılıyor... (İzinler kontrol ediliyor)'); // Mevcut log güncellendi
-
-    // İOS için: konum servislerini kontrol et
-    if (Platform.isIOS) {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        debugPrint('RaceNotifier: iOS konum servisleri kapalı!');
-        // State'i güncelleyerek hata durumunu belirt
-        state = const RaceState().copyWith(
-          errorMessage: 'Konum servisleri kapalı. Lütfen ayarlardan açınız.'
-        );
-        return;
-      }
-      
-      // iOS için izni kontrol et, yoksa iste
-      LocationPermission permission = await Geolocator.checkPermission();
-      debugPrint('RaceNotifier: iOS başlangıç konum izni durumu: $permission');
-      
-      if (permission == LocationPermission.denied) {
-        // İzin yoksa iste
-        permission = await Geolocator.requestPermission();
-        debugPrint('RaceNotifier: iOS konum izni istendikten sonra: $permission');
-        
-        if (permission == LocationPermission.denied || 
-            permission == LocationPermission.deniedForever) {
-          // Kullanıcı izni reddetti, hata durumu
-          state = const RaceState().copyWith(
-            errorMessage: 'Konum izni gerekli. Lütfen ayarlardan izin veriniz.'
-          );
-          return;
-        }
-      }
-    }
+    // Check for necessary permissions
+    bool hasLocation = false;
+    bool hasActivity = false;
     
-    // İzinleri kontrol et (UI'dan bağımsız kontrol)
-    final hasLocation = await _checkPermission(Permission.locationAlways);
-    final hasActivity = await _checkPermission(Platform.isAndroid
-        ? Permission.activityRecognition
-        : Permission.sensors);
-    debugPrint(
-        '--- RaceNotifier: İzinler kontrol edildi - Location: $hasLocation, Activity: $hasActivity ---'); // <-- YENİ LOG
+    if (Platform.isIOS) {
+      // iOS için: Geolocator ile konum izinlerini kontrol et
+      final locationPermission = await Geolocator.checkPermission();
+      hasLocation = locationPermission == LocationPermission.always || 
+                    locationPermission == LocationPermission.whileInUse;
+      
+      // iOS için sensör iznini ve HealthKit iznini kontrol et
+      // Hem sensör izni hem de Health Kit izinlerini kontrol etmeliyiz
+      hasActivity = await Permission.sensors.isGranted;
+      
+      debugPrint(
+        '--- RaceNotifier: iOS İzinler - Location: $hasLocation (${locationPermission.toString()}), Activity Sensor: $hasActivity ---');
+      
+      // HealthKit izinlerini özel olarak kontrol et - Pedometer çalışmasını test et
+      try {
+        // Bir Completer kullanarak HealthKit erişimini test edebiliriz
+        final completer = Completer<bool>();
+        StreamSubscription<StepCount>? testSubscription;
+        
+        // Health Kit'e bağlanabiliyorsak adım verisini alabiliyor olmalıyız
+        testSubscription = Pedometer.stepCountStream.listen(
+          (event) {
+            // Veri geldi, izin var
+            if (!completer.isCompleted) {
+              debugPrint('--- RaceNotifier: HealthKit test - Adım verisi alındı: ${event.steps} ---');
+              completer.complete(true);
+              testSubscription?.cancel();
+            }
+          },
+          onError: (error) {
+            // Hata geldi, izin yok veya başka sorun var
+            if (!completer.isCompleted) {
+              debugPrint('--- RaceNotifier: HealthKit test - Hata: $error ---');
+              completer.complete(false);
+              testSubscription?.cancel();
+            }
+          }
+        );
+        
+        // Kısa bir süre bekle, veri gelmezse timeout ile false dön
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!completer.isCompleted) {
+            debugPrint('--- RaceNotifier: HealthKit test - Timeout oldu, izin yok veya veri gelmiyor ---');
+            completer.complete(false);
+            testSubscription?.cancel();
+          }
+        });
+        
+        // HealthKit izin sonucunu bekle
+        final healthKitPermission = await completer.future;
+        
+        // İzin yoksa hasActivity'yi false yap, varsa true (sensör izni önemli değil)
+        hasActivity = healthKitPermission;
+        debugPrint('--- RaceNotifier: iOS HealthKit test sonucu: $hasActivity ---');
+      } catch (e) {
+        // Hata olursa izin yok kabul et
+        debugPrint('--- RaceNotifier: iOS HealthKit test hatası: $e ---');
+        hasActivity = false;
+      }
+      
+      // Eğer izin yoksa istemeyi dene
+      if (!hasLocation) {
+        final requestedPermission = await Geolocator.requestPermission();
+        hasLocation = requestedPermission == LocationPermission.always || 
+                      requestedPermission == LocationPermission.whileInUse;
+        debugPrint('--- RaceNotifier: iOS konum izni istendi, sonuç: $hasLocation (${requestedPermission.toString()}) ---');
+      }
+      
+      if (!hasActivity) {
+        final requestedSensors = await Permission.sensors.request();
+        // Sadece sensör izni yeterli değil, zaten HealthKit'i test ettik
+        // hasActivity = requestedSensors.isGranted; 
+        debugPrint('--- RaceNotifier: iOS sensör izni istendi, sonuç: ${requestedSensors.isGranted} ---');
+        debugPrint('--- RaceNotifier: iOS için HealthKit izni alamadık, kullanıcı Health uygulamasını açıp izin vermeli ---');
+      }
+    } else {
+      // Android için: Normal izin kontrolü değişmedi
+      hasLocation = await _checkPermission(Permission.locationAlways);
+      hasActivity = await _checkPermission(Permission.activityRecognition);
+      debugPrint(
+        '--- RaceNotifier: Android İzinler - Location: $hasLocation, Activity: $hasActivity ---');
+    }
 
     // State'i ilk değerlerle güncelle
     state = RaceState(
@@ -252,18 +296,49 @@ class RaceNotifier extends _$RaceNotifier {
 
     _listenToSignalREvents();
     _initializeRaceTimer();
-
     // Kalori hesaplama timer'ını başlat (veya _raceTimerTimer içine entegre et)
     _initializeCalorieCalculation(); // <-- Yeni metod çağrısı
 
     if (!state.isIndoorRace) {
       _initializeAntiCheatSystem();
     }
-    if (state.hasPedometerPermission) {
-      _initPedometer();
-    }
-    if (state.hasLocationPermission && !state.isIndoorRace) {
-      _startLocationUpdates();
+    
+    // iOS için özel gecikme stratejisi
+    if (Platform.isIOS) {
+      debugPrint('RaceNotifier: iOS için özel başlatma stratejisi uygulanıyor...');
+      
+      // HealthKit bağlantısı için kısa bir gecikme
+      // SignalR ve diğer işlemlerin tamamlanması için bekleyelim
+      Future.delayed(const Duration(milliseconds: 300), () {
+        debugPrint('RaceNotifier: iOS - İlk pedometer başlatma denemesi');
+        if (state.hasPedometerPermission) {
+          _initPedometer();
+        }
+      });
+      
+      // Yedek olarak belirli bir süre sonra tekrar deneyelim (bazı cihazlarda gerekebilir)
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (state.isRaceActive && state.initialSteps == 0 && state.hasPedometerPermission) {
+          debugPrint('RaceNotifier: iOS - İkinci pedometer başlatma denemesi');
+          _initPedometer();
+        }
+      });
+      
+      // Konum izinleri varsa ve iç mekan yarışı değilse konum takibini başlat
+      if (state.hasLocationPermission && !state.isIndoorRace) {
+        // Konum için daha uzun bir gecikme kullanalım
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _startLocationUpdates();
+        });
+      }
+    } else {
+      // Android için standart başlatma stratejisi - değişiklik yok
+      if (state.hasPedometerPermission) {
+        _initPedometer();
+      }
+      if (state.hasLocationPermission && !state.isIndoorRace) {
+        _startLocationUpdates();
+      }
     }
   }
 
@@ -429,7 +504,7 @@ class RaceNotifier extends _$RaceNotifier {
         // İç Mekan: Adım sıklığına (kadans) göre MET belirle
         double cadence = 0;
         if (elapsedSeconds > 0) {
-          cadence = stepsDifference * (60 / elapsedSeconds);
+          cadence = stepsDifference / elapsedSeconds.toDouble();
         }
         debugPrint(
             'Calorie Calc (Indoor) - Cadence: ${cadence.toStringAsFixed(1)} steps/min');
@@ -659,28 +734,191 @@ class RaceNotifier extends _$RaceNotifier {
   void _initPedometer() {
     _stepCountSubscription?.cancel();
     state = state.copyWith(initialSteps: 0, currentSteps: 0); // Reset steps
-
-    _stepCountSubscription =
-        Pedometer.stepCountStream.listen((StepCount event) {
-      if (!state.isRaceActive) return;
-
-      int currentInitialSteps = state.initialSteps;
-      if (currentInitialSteps == 0) {
-        currentInitialSteps = event.steps;
-        state =
-            state.copyWith(initialSteps: currentInitialSteps, currentSteps: 0);
+    
+    debugPrint('RaceNotifier: Pedometer başlatılıyor...');
+    
+    try {
+      // iOS ve Android için ortak işlemler
+      if (Platform.isIOS) {
+        // iOS için özel pedometer başlatma yöntemi
+        _initPedometerIOS();
       } else {
-        int newSteps = event.steps - currentInitialSteps;
-        if (newSteps >= state.currentSteps) {
-          // Adım azalmadıysa
-          state = state.copyWith(currentSteps: newSteps);
-          _updateLocation(); // Adım değiştiğinde sunucuya bildir
-        }
+        // Android için pedometer başlatma
+        _initPedometerAndroid();
       }
-    }, onError: (error) {
-      debugPrint('RaceNotifier Adım Sayar Hatası: $error');
-      state = state.copyWith(errorMessage: 'Adım sayar okunamadı.');
+    } catch (e) {
+      debugPrint('RaceNotifier: Pedometer başlatma hatası: $e');
+      state = state.copyWith(
+        errorMessage: 'Adım sayar başlatılırken bir hata oluştu. Lütfen tekrar deneyin.'
+      );
+    }
+  }
+
+  // iOS için özel pedometer başlatma metodu
+  void _initPedometerIOS() {
+    debugPrint('RaceNotifier: iOS için pedometer başlatılıyor...');
+    
+    // Daha kısa bekleme süresi ve daha agresif retry stratejisi
+    // Apple HealthKit'i uyandırmak için bazı cihazlarda daha fazla bekleme gerekebilir
+    Future.delayed(const Duration(milliseconds: 50), () {
+      // İlk başlatma denemesi
+      _attemptStepCountListening(isFirstAttempt: true);
+      
+      // Farklı zamanlarda çoklu deneme - HealthKit bazen gecikmeli yanıt verebiliyor
+      Future.delayed(const Duration(seconds: 1), () {
+        if (state.isRaceActive && state.initialSteps == 0) {
+          debugPrint('RaceNotifier: [iOS] 1-saniye kontrolü - adım yok, tekrar deneniyor...');
+          _attemptStepCountListening(retryCount: 1);
+        }
+      });
+      
+      Future.delayed(const Duration(seconds: 3), () {
+        if (state.isRaceActive && state.initialSteps == 0) {
+          debugPrint('RaceNotifier: [iOS] 3-saniye kontrolü - adım yok, tekrar deneniyor...');
+          _attemptStepCountListening(retryCount: 2);
+        }
+      });
+      
+      Future.delayed(const Duration(seconds: 7), () {
+        if (state.isRaceActive && state.initialSteps == 0) {
+          debugPrint('RaceNotifier: [iOS] 7-saniye kontrolü - adım yok, son deneme...');
+          _attemptStepCountListening(retryCount: 3);
+          
+          // Kullanıcıya bilgi vermek için state'i güncelle
+          if (state.initialSteps == 0) {
+            state = state.copyWith(
+              // Manuel başlatma için adım 1'den başlat
+              initialSteps: 1,
+              currentSteps: 0,
+              errorMessage: 'Adım verileri almakta zorluk yaşıyoruz. Apple Health uygulamasını açıp adım erişimini onayladığınızdan emin olun.'
+            );
+          }
+        }
+      });
     });
+  }
+  
+  // Tekrar kullanılabilir step count dinleme metodu - iOS için
+  void _attemptStepCountListening({int retryCount = 0, bool isFirstAttempt = false}) {
+    // Eğer önceki bir subscription varsa iptal et
+    if (retryCount > 0) {
+      _stepCountSubscription?.cancel();
+    }
+    
+    try {
+      debugPrint('RaceNotifier: [iOS] Adım dinleme #$retryCount başlıyor...');
+      
+      _stepCountSubscription = Pedometer.stepCountStream.listen(
+        (StepCount event) {
+          final int stepValue = event.steps;
+          debugPrint('RaceNotifier: [iOS] Adım olayı alındı (#$retryCount): $stepValue');
+          
+          if (!state.isRaceActive) {
+            debugPrint('RaceNotifier: [iOS] Adım alındı, ancak yarış aktif değil');
+            return;
+          }
+          
+          // Eğer initialSteps henüz ayarlanmamışsa
+          if (state.initialSteps == 0 && stepValue > 0) {
+            debugPrint('RaceNotifier: [iOS] Başlangıç adımları ayarlanıyor: $stepValue');
+            state = state.copyWith(
+              initialSteps: stepValue,
+              currentSteps: 0,
+              errorMessage: null // Hata varsa temizle
+            );
+            
+            // Başlangıç değeri ayarlandı, sunucuya bildir
+            _updateLocation();
+          } else if (state.initialSteps > 0) {
+            // İlk değer ayarlandıysa adımları hesapla
+            int calculatedSteps = stepValue - state.initialSteps;
+            if (calculatedSteps < 0) calculatedSteps = 0;
+            
+            // Sadece değişiklik varsa güncelle
+            if (calculatedSteps != state.currentSteps) {
+              state = state.copyWith(currentSteps: calculatedSteps);
+              debugPrint('RaceNotifier: [iOS] Adım güncellendi (#$retryCount): $calculatedSteps (Ham: $stepValue - Başlangıç: ${state.initialSteps})');
+              
+              // Adımlar değişti, sunucuya bildir
+              _updateLocation();
+            }
+          }
+        },
+        onError: (error) {
+          debugPrint('RaceNotifier: [iOS] Adım hatası (#$retryCount): $error');
+          
+          // İlk denemede veya retry 1'de hata mesajı gösterme, diğerlerinde göster
+          if (retryCount >= 2) {
+            state = state.copyWith(
+              errorMessage: 'Adım verisi alınamıyor. Apple Health iznini kontrol edin.'
+            );
+          }
+        },
+        cancelOnError: false, // Hatalarda otomatik iptal etme
+      );
+    } catch (e) {
+      debugPrint('RaceNotifier: [iOS] Adım dinleme başlatma hatası (#$retryCount): $e');
+      if (retryCount >= 2) {
+        state = state.copyWith(
+          errorMessage: 'Adım ölçüm başlatılamadı. iOS Health ayarlarını kontrol edin.'
+        );
+      }
+    }
+  }
+
+  // Android için pedometer başlatma metodu
+  void _initPedometerAndroid() {
+    debugPrint('RaceNotifier: Android için pedometer başlatılıyor...');
+    
+    _stepCountSubscription = Pedometer.stepCountStream.listen(
+      (StepCount event) {
+        debugPrint('RaceNotifier: [Android] Adım olayı alındı: ${event.steps}');
+        
+        if (!state.isRaceActive) {
+          debugPrint('RaceNotifier: [Android] Adım alındı, ancak yarış aktif değil');
+          return;
+        }
+
+        // İlk adım sayısını kaydet
+        if (state.initialSteps == 0) {
+          state = state.copyWith(
+            initialSteps: event.steps,
+            currentSteps: 0
+          );
+          debugPrint('RaceNotifier: [Android] Başlangıç adımları ayarlandı: ${event.steps}');
+          // İlk adımlar ayarlandı, sunucuya bildir
+          _updateLocation();
+        } else {
+          // Adım farkını hesapla
+          int calculatedSteps = event.steps - state.initialSteps;
+          if (calculatedSteps < 0) calculatedSteps = 0;
+          
+          if (calculatedSteps != state.currentSteps) {
+            state = state.copyWith(currentSteps: calculatedSteps);
+            debugPrint('RaceNotifier: [Android] Adım güncellendi: $calculatedSteps');
+            // Adım değişti, sunucuya bildir
+            _updateLocation();
+          }
+        }
+      },
+      onError: (error) {
+        debugPrint('RaceNotifier: [Android] Adım sayar hatası: $error');
+        state = state.copyWith(
+          errorMessage: 'Adım verisi alınamıyor. Uygulama izinlerini kontrol edin.'
+        );
+        
+        // Android için tekrar deneme
+        if (state.isRaceActive && state.initialSteps == 0) {
+          debugPrint('RaceNotifier: [Android] Pedometer tekrar deneniyor...');
+          
+          _stepCountSubscription?.cancel();
+          Future.delayed(const Duration(seconds: 1), () {
+            _initPedometerAndroid(); // Tekrar başlatmayı dene
+          });
+        }
+      },
+      cancelOnError: false,
+    );
   }
 
   void _startLocationUpdates() {

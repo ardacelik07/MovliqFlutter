@@ -11,6 +11,7 @@ import '../../domain/models/record_request_model.dart';
 import '../providers/record_provider.dart';
 import '../providers/user_data_provider.dart';
 import '../providers/recording_state_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -369,14 +370,117 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _initPedometer();
       }
     } else if (Platform.isIOS) {
-      // iOS'ta motion sensörü izni için
-      if (await Permission.sensors.request().isGranted) {
-        setState(() {
-          _hasPedometerPermission = true;
-        });
+      // iOS için pedometer'ı her koşulda başlatmayı deneyelim
+      setState(() {
+        _hasPedometerPermission = true;
+      });
+      
+      try {
+        // Pedometer'ı başlatmayı dene
         _initPedometer();
+        
+        // Sensör iznini kontrol et ve iste
+        final sensorStatus = await Permission.sensors.request();
+        print('RecordScreen - iOS sensör izin durumu: $sensorStatus');
+        
+        // HealthKit izinlerinin verilip verilmediğini kontrol etmek için
+        // adım sayma stream'ini dinlemeye başla ve 3 saniye bekle
+        bool stepsAvailable = false;
+        final subscription = Pedometer.stepCountStream.listen((step) {
+          print('RecordScreen - Adım algılandı: ${step.steps}');
+          stepsAvailable = true;
+          // Eğer adım algılanırsa, artık Health izni var demektir
+          setState(() {
+            _hasPedometerPermission = true;
+          });
+        }, onError: (error) {
+          print('RecordScreen - Adım algılama hatası: $error');
+        });
+        
+        // 3 saniye bekle, eğer bu sürede step eventi gelmezse:
+        await Future.delayed(const Duration(seconds: 3));
+        subscription.cancel();
+        
+        // Eğer adım bilgisi alınamadıysa ve daha önce dialog gösterilmediyse Health app'e yönlendir
+        if (!stepsAvailable && mounted) {
+          _showHealthKitDialog();
+        }
+      } catch (e) {
+        print('RecordScreen - Pedometer başlatma hatası: $e');
+        // Hata durumunda dialog göster
+        if (mounted) {
+          _showHealthKitDialog();
+        }
       }
     }
+  }
+
+  // Health Kit izni için özel dialog (iOS)
+  void _showHealthKitDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Health İzni Gerekli'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Adım sayınızı takip edebilmek için Apple Health uygulamasında izin vermelisiniz:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text('1. iPhone\'unuzda "Sağlık" (Health) uygulamasını açın'),
+            const SizedBox(height: 8),
+            const Text('2. Alt kısımda "İndeks" (Browse) sekmesine tıklayın'),
+            const SizedBox(height: 8),
+            const Text('3. Sağ üstteki profil simgesine tıklayın'),
+            const SizedBox(height: 8),
+            const Text('4. "Veri Kaynakları ve Erişim" (Data Sources & Access) seçeneğine tıklayın'),
+            const SizedBox(height: 8),
+            const Text('5. "Uygulamalar" (Apps) listesinden bu uygulamayı bulun'),
+            const SizedBox(height: 8),
+            const Text('6. "Açık ve Kapalı" (Turn On/Off) kısmından aşağıdaki izinleri açın:'),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('• Adımlar (Steps)'),
+                  Text('• Yürüme + Koşma Mesafesi (Walking + Running Distance)'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'İzinleri verdikten sonra bu uygulamaya dönün ve tekrar deneyin.',
+              style: TextStyle(fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Sağlık Uygulamasını Aç'),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // Health Kit ayarlarına doğrudan erişilemez, Sağlık uygulamasını açmak için URL Schemes kullan
+              final url = Uri.parse('x-apple-health://');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              } else {
+                openAppSettings();
+              }
+            },
+          ),
+          TextButton(
+            child: const Text('Daha Sonra'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
   }
 
   // Konum izinlerini kontrol eden fonksiyon
@@ -1326,33 +1430,71 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   // Adım sayar başlatma fonksiyonu
   void _initPedometer() {
     _stepCountSubscription?.cancel(); // Cancel any existing subscription
-    _stepCountSubscription =
-        Pedometer.stepCountStream.listen((StepCount event) {
-      if (!mounted || !_isRecording || _isPaused)
-        return; // Check recording and paused state
+    
+    print('RecordScreen - Pedometer başlatılıyor...');
+    
+    try {
+      // Sensörleri uyandırmak için kısa bir bekleme ekle
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _stepCountSubscription = Pedometer.stepCountStream.listen(
+          (StepCount event) {
+            print('RecordScreen - Adım olayı alındı: ${event.steps}');
+            
+            if (!mounted || !_isRecording || _isPaused) {
+              print('RecordScreen - Adım kaydedilmedi: kayıt aktif değil veya duraklatılmış');
+              return;
+            }
 
-      setState(() {
-        // İlk adım sayısını kaydetmek için _initialSteps'i kullan
-        if (_initialSteps == 0 && event.steps > 0) {
-          // event.steps > 0 ekledim
-          _initialSteps = event.steps;
-          _steps = 0; // Başlangıçta adımları sıfırla
-          debugPrint('Pedometer: Initial steps set to: $_initialSteps');
-        } else if (_initialSteps > 0) {
-          // Sadece initialSteps ayarlandıktan sonra adımları hesapla
-          _steps = event.steps - _initialSteps;
-          if (_steps < 0)
-            _steps = 0; // Negatif adıma düşmesini engelle (cihaz reset vb.)
-          debugPrint(
-              'Pedometer: Current event steps: ${event.steps}, Initial: $_initialSteps, Calculated steps: $_steps');
-        }
+            setState(() {
+              // İlk adım sayısını kaydetmek için _initialSteps'i kullan
+              if (_initialSteps == 0 && event.steps > 0) {
+                _initialSteps = event.steps;
+                _steps = 0; // Başlangıçta adımları sıfırla
+                print('RecordScreen - Başlangıç adımları: $_initialSteps');
+              } else if (_initialSteps > 0) {
+                // Sadece initialSteps ayarlandıktan sonra adımları hesapla
+                _steps = event.steps - _initialSteps;
+                if (_steps < 0) {
+                  _steps = 0; // Negatif adıma düşmesini engelle (cihaz reset vb.)
+                }
+                print('RecordScreen - Güncel adım: ${event.steps}, Başlangıç: $_initialSteps, Hesaplanan: $_steps');
+              }
+            });
+          },
+          onError: (error) {
+            print('RecordScreen - Adım sayar hatası: $error');
+            
+            // iOS için özel hata mesajı
+            if (Platform.isIOS) {
+              print('RecordScreen - iOS için Health Kit izni tekrar kontrol ediliyor');
+            }
+          },
+          onDone: () {
+            print('RecordScreen - Adım sayar stream kapandı');
+          }
+        );
+        
+        // Eğer stream başlatıldı, ancak 5 saniye içinde veri gelmezse tekrar başlat 
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted && _isRecording && _initialSteps == 0) {
+            print('RecordScreen - 5 saniye içinde adım verisi gelmedi, stream yeniden başlatılıyor');
+            _stepCountSubscription?.cancel();
+            _initPedometer(); // Tekrar dene
+          }
+        });
       });
-    }, onError: (error) {
-      debugPrint('Adım sayar hatası: $error');
-      setState(() {
-        // _hasPedometerPermission = false; // İzin hala var olabilir, sadece stream hatası.
-      });
-    });
+    } catch (e) {
+      print('RecordScreen - Pedometer başlatma hatası: $e');
+      // Hata durumunda kullanıcıya bilgi verme
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Adım sayar başlatılırken hata: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // Yeni kalori hesaplama metodu

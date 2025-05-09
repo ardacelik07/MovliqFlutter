@@ -34,6 +34,10 @@
 	<string>This app requires access to your location to track your running, walking or cycling activity and match you with other users.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>This app requires access to track your steps and activity for fitness tracking purposes.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>This app requires access to your health data to read your step count and other fitness metrics.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>This app requires permission to write fitness data to Apple Health.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

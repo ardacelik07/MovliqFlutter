@@ -22,6 +22,8 @@ import 'package:share_plus/share_plus.dart'; // Import share_plus
 import 'package:my_flutter_project/core/config/api_config.dart'; // Import ApiConfig
 import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Import HttpInterceptor
 import 'package:geolocator/geolocator.dart'; // Import Geolocator
+import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
+import 'package:pedometer/pedometer.dart'; // Import pedometer
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -115,41 +117,128 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Function to check and request Activity Recognition/Motion permission
   Future<void> _checkAndRequestActivityPermission() async {
-    Permission activityPermission;
-    String permissionName;
-    String rationale;
-
     if (Platform.isAndroid) {
-      activityPermission = Permission.activityRecognition;
-      permissionName = 'Fiziksel Aktivite İzni';
-      rationale =
-          'Adımlarınızı sayabilmemiz için fiziksel aktivite izni gereklidir.';
+      // Android işlemi aynı kalıyor
+      final status = await Permission.activityRecognition.status;
+      print('Ana Sayfa - Android aktivite izin durumu: $status');
+
+      if (!status.isGranted) {
+        final requestedStatus = await Permission.activityRecognition.request();
+        print('Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
+
+        if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+          if (mounted) {
+            _showSettingsDialog('Aktivite İzni Gerekli', 
+                'Adımlarınızı sayabilmek için aktivite izni gereklidir.');
+          }
+        }
+      } else {
+        print('Ana Sayfa - Android aktivite izni zaten verilmiş.');
+      }
     } else if (Platform.isIOS) {
-      activityPermission = Permission.sensors; // Use sensors for motion on iOS
-      permissionName = 'Hareket ve Fitness İzni';
-      rationale =
-          'Adımlarınızı sayabilmemiz için hareket ve fitness izni gereklidir.';
-    } else {
-      return; // Platform not supported
-    }
-
-    final status = await activityPermission.status;
-    print('Ana Sayfa - Aktivite İzin Durumu: $status');
-
-    if (!status.isGranted) {
-      // Request the permission if not granted
-      final requestedStatus = await activityPermission.request();
-      print('Ana Sayfa - İzin İstenen Durum (Aktivite): $requestedStatus');
-
-      // If denied after request, show settings dialog
-      if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+      // iOS için: Health Kit izinlerini kontrol et
+      // Önce normal sensör iznini iste
+      final sensorStatus = await Permission.sensors.request();
+      print('Ana Sayfa - iOS sensör izin durumu: $sensorStatus');
+      
+      // Health Kit izinlerinin verilip verilmediğini kontrol etmek için
+      try {
+        // Pedometer stream'ini 3 saniyeliğine dinle, veri gelirse izin verilmiş demektir
+        bool healthKitPermissionVerified = false;
+        
+        final subscription = Pedometer.stepCountStream.listen((step) {
+          print('HomePage - Adım algılandı: ${step.steps}, Health Kit izinleri verilmiş');
+          healthKitPermissionVerified = true;
+        }, onError: (error) {
+          print('HomePage - Adım algılama hatası: $error');
+        });
+        
+        // Kısa bir süre bekle
+        await Future.delayed(const Duration(seconds: 3));
+        subscription.cancel();
+        
+        // Eğer Health Kit verisi alınamadıysa dialog göster
+        if (!healthKitPermissionVerified && mounted) {
+          print('Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
+          _showHealthKitDialog();
+        } else {
+          print('Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
+        }
+      } catch (e) {
+        print('Ana Sayfa - Health Kit izin kontrolü sırasında hata: $e');
         if (mounted) {
-          _showSettingsDialog(permissionName, rationale);
+          _showHealthKitDialog();
         }
       }
-    } else {
-      print('Ana Sayfa - Aktivite izni zaten verilmiş.');
     }
+  }
+
+  // Health Kit izni için özel dialog (iOS)
+  void _showHealthKitDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Health İzni Gerekli'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Adım sayınızı takip edebilmek için Apple Health uygulamasında izin vermelisiniz:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text('1. iPhone\'unuzda "Sağlık" (Health) uygulamasını açın'),
+            const SizedBox(height: 8),
+            const Text('2. Alt kısımda "İndeks" (Browse) sekmesine tıklayın'),
+            const SizedBox(height: 8),
+            const Text('3. Sağ üstteki profil simgesine tıklayın'),
+            const SizedBox(height: 8),
+            const Text('4. "Veri Kaynakları ve Erişim" (Data Sources & Access) seçeneğine tıklayın'),
+            const SizedBox(height: 8),
+            const Text('5. "Uygulamalar" (Apps) listesinden bu uygulamayı bulun'),
+            const SizedBox(height: 8),
+            const Text('6. "Açık ve Kapalı" (Turn On/Off) kısmından aşağıdaki izinleri açın:'),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('• Adımlar (Steps)'),
+                  Text('• Yürüme + Koşma Mesafesi (Walking + Running Distance)'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'İzinleri verdikten sonra bu uygulamaya dönün ve tekrar deneyin.',
+              style: TextStyle(fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Sağlık Uygulamasını Aç'),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // Health Kit ayarlarına doğrudan erişilemez, Sağlık uygulamasını açmak için URL Schemes kullan
+              final url = Uri.parse('x-apple-health://');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              } else {
+                openAppSettings();
+              }
+            },
+          ),
+          TextButton(
+            child: const Text('Daha Sonra'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
   }
 
   // Dialog to show if permission is denied (Consolidated for Settings)
