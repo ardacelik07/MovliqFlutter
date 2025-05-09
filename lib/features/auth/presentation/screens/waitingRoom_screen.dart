@@ -8,6 +8,7 @@ import '../../../../core/services/storage_service.dart';
 import '../providers/race_settings_provider.dart';
 import 'dart:convert';
 import 'dart:async'; // StreamSubscription için import ekliyorum
+import 'dart:io'; // Platform için import
 import 'package:http/http.dart' as http;
 import 'package:my_flutter_project/features/auth/domain/models/leave_room_request.dart';
 import '../../../../core/config/api_config.dart';
@@ -15,6 +16,8 @@ import '../screens/tabs.dart';
 import 'package:my_flutter_project/features/auth/domain/models/room_participant.dart';
 import '../widgets/user_profile_avatar.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter/services.dart'; // MethodChannel için
+import 'package:geolocator/geolocator.dart'; // Location servisleri için
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -57,6 +60,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
   // Stream subscriptions for cleanup
   List<StreamSubscription> _subscriptions = [];
+
+  // Listen for race state changes to detect race starting
+  bool _navigationTriggered = false;
 
   @override
   void initState() {
@@ -576,26 +582,33 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   @override
   Widget build(BuildContext context) {
     // --- Notifier Dinleme ve Navigasyon ---
-    ref.listen<RaceState>(raceNotifierProvider,
-        (RaceState? previousState, RaceState newState) {
-      // newState'in RaceState olduğundan eminiz.
-      // previousState null olabilir (ilk dinleme anında).
+    ref.listen<RaceState>(raceNotifierProvider, (RaceState? previous, RaceState next) {
+      // Skip if already navigating
+      if (_navigationTriggered) return;
 
-      // Yarış durumu aktif hale geldiğinde (geri sayım bittiğinde) kontrol et
-      if (previousState?.isPreRaceCountdownActive == true &&
-          !newState.isPreRaceCountdownActive &&
-          newState.isRaceActive) {
-        debugPrint(
-            '--- WaitingRoom: Notifier state changed to active race. Navigating to RaceScreen... ---');
+      // --- LOG RaceState DEĞİŞİMİ ---
+      debugPrint('--- WaitingRoom RaceState Listener ---');
+      debugPrint('isPreRaceCountdownActive: ${next.isPreRaceCountdownActive}');
+      debugPrint('isRaceActive: ${next.isRaceActive}');
+      debugPrint('roomId: ${next.roomId}');
+      // --- LOG SONU ---
 
-        if (mounted) {
-          // newState'den roomId null değilse devam et
-          if (newState.roomId == null) {
-            debugPrint(
-                '--- WaitingRoom: HATA - newState.roomId null! Navigasyon yapılamıyor. ---');
-            _showErrorMessage('Yarış bilgileri eksik, ekrana geçilemiyor.');
-            return;
-          }
+      // Check if the race has started (either countdown or actual race)
+      if ((next.isPreRaceCountdownActive || next.isRaceActive) &&
+          next.roomId != null &&
+          next.roomId == widget.roomId) {
+        
+        // iOS cihazlar için ön konum etkinleştirme
+        if (Platform.isIOS) {
+          debugPrint('--- WaitingRoom: iOS için ön konum etkinleştirme yapılıyor... ---');
+          _enableIOSLocationForRace();
+        }
+        
+        // --- NAVİGASYON Mantığı ---
+        if (!_navigationTriggered) {
+          _navigationTriggered = true;
+          debugPrint(
+              '--- WaitingRoom: RaceNotifier reported race started. Navigating to RaceScreen... ---');
 
           // --- KÜÇÜK BİR GECİKME EKLE ---
           Future.delayed(const Duration(milliseconds: 50), () {
@@ -605,7 +618,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(
                   builder: (context) => RaceScreen(
-                    roomId: newState.roomId!,
+                    roomId: next.roomId!,
                   ),
                 ),
                 (route) => false,
@@ -933,5 +946,122 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         children: avatarWidgets,
       ),
     );
+  }
+
+  void _enableIOSLocationForRace() {
+    if (!Platform.isIOS) return;
+    
+    try {
+      debugPrint('WaitingRoom: iOS arka plan konum takibi etkinleştiriliyor...');
+      
+      // Method channel aracılığıyla iOS native konum takibini etkinleştir
+      const platform = MethodChannel('com.movliq/location');
+      platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
+        debugPrint('WaitingRoom: iOS native konum takibi başarıyla etkinleştirildi.');
+      }).catchError((error) {
+        debugPrint('WaitingRoom: iOS native konum takibi etkinleştirme hatası: $error');
+      });
+      
+      // Konum takibi için daha kapsamlı ısınma - birkaç kez konum alalım
+      _aggressiveLocationWarmup();
+      
+    } catch (e) {
+      debugPrint('WaitingRoom: iOS konum takibi genel hatası: $e');
+    }
+  }
+  
+  void _warmupLocationServices() {
+    if (!Platform.isIOS) return;
+    
+    try {
+      // Servis durumunu kontrol et
+      Geolocator.isLocationServiceEnabled().then((enabled) {
+        if (!enabled) {
+          debugPrint('WaitingRoom: Konum servisleri kapalı!');
+          return;
+        }
+        
+        // İzinleri kontrol et
+        Geolocator.checkPermission().then((permission) {
+          if (permission == LocationPermission.denied || 
+              permission == LocationPermission.deniedForever) {
+            debugPrint('WaitingRoom: Konum izinleri reddedilmiş!');
+            return;
+          }
+          
+          // Location warmup - servisleri başlatmak için tek bir istek yap
+          debugPrint('WaitingRoom: Konum servislerini ısındırma...');
+          Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.best,
+            timeLimit: const Duration(seconds: 2)
+          ).then((position) {
+            debugPrint('WaitingRoom: Konum alındı: ${position.latitude}, ${position.longitude}');
+          }).catchError((e) {
+            // Zaman aşımı olabilir, sorun değil - servisler başlatılmış olur
+            debugPrint('WaitingRoom: Konum ısındırma hatası: $e');
+          });
+        });
+      });
+    } catch (e) {
+      debugPrint('WaitingRoom: Konum ısındırma genel hatası: $e');
+    }
+  }
+
+  // Daha agresif konum ısındırma yaklaşımı - birkaç kez konum almayı dene
+  void _aggressiveLocationWarmup() {
+    if (!Platform.isIOS) return;
+    
+    debugPrint('WaitingRoom: Agresif konum ısındırma başlatılıyor...');
+    
+    // İlk ısındırma
+    _warmupLocationServices();
+    
+    // Kısa bir süre sonra tekrar dene
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _warmupLocationServices();
+      
+      // Bir 1 saniye sonra tekrar konumu al ve sürekli izleme başlat
+      Future.delayed(const Duration(seconds: 1), () {
+        _startContinuousLocationUpdates();
+      });
+    });
+    
+    // Biraz daha sonra tekrar ısındırma
+    Future.delayed(const Duration(seconds: 2), () {
+      _warmupLocationServices();
+    });
+  }
+  
+  // Sürekli konum güncellemesi - GPS'i sürekli açık tutmak için
+  void _startContinuousLocationUpdates() {
+    if (!Platform.isIOS) return;
+    
+    debugPrint('WaitingRoom: Sürekli konum güncellemesi başlatılıyor...');
+    
+    try {
+      LocationSettings locationSettings = AppleSettings(
+        accuracy: LocationAccuracy.best,
+        activityType: ActivityType.fitness,
+        distanceFilter: 5,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+        allowBackgroundLocationUpdates: true
+      );
+      
+      // Kısa bir stream başlat, hemen iptal edilecek ama iOS'un konum servisini başlatmasını sağlayacak
+      var tempSubscription = Geolocator.getPositionStream(
+        locationSettings: locationSettings
+      ).listen((position) {
+        debugPrint('WaitingRoom: Sürekli konum - Position update: ${position.latitude}, ${position.longitude}');
+      });
+      
+      // 10 saniye sonra bu stream'i kapat - bu süre içinde RaceScreen'e geçilmiş olmalı
+      Future.delayed(const Duration(seconds: 10), () {
+        tempSubscription.cancel();
+        debugPrint('WaitingRoom: Geçici konum stream iptal edildi');
+      });
+    } catch (e) {
+      debugPrint('WaitingRoom: Sürekli konum başlatma hatası: $e');
+    }
   }
 }

@@ -24,6 +24,7 @@ import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Impo
 import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
 import 'package:pedometer/pedometer.dart'; // Import pedometer
+import 'package:flutter/services.dart'; // Import flutter/services
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -46,10 +47,96 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Request permissions sequentially
   Future<void> _checkAndRequestPermissionsSequentially() async {
+    // Önce bildirim iznini iste (en kritik olmayan)
+    await _checkAndRequestNotificationPermission();
+    
+    // Sonra konum iznini iste
     await _checkAndRequestLocationPermission();
-    // Ensure activity permission is checked *after* location is handled
+    
+    // En son aktivite iznini iste
     if (mounted) {
       await _checkAndRequestActivityPermission();
+    }
+  }
+
+  // Bildirim izni kontrolü ve istek işlemi
+  Future<void> _checkAndRequestNotificationPermission() async {
+    print('Ana Sayfa - Bildirim izni kontrolü başlatılıyor...');
+    
+    // iOS ve Android için farklı stratejiler
+    if (Platform.isIOS) {
+      // iOS için native Swift üzerinden bildirim izni alma
+      final bool hasPermission = await _requestIOSNotificationPermission();
+      print('Ana Sayfa - iOS bildirim izni: $hasPermission');
+      
+      // İzin almak için yeterli, kullanıcı iOS sisteminin kendi dialog kutusunu görecek
+    } else {
+      // Android için permission_handler kullanımı
+      final notificationStatus = await Permission.notification.status;
+      
+      if (notificationStatus.isDenied || notificationStatus.isPermanentlyDenied) {
+        print('Ana Sayfa - Android bildirim izni reddedilmiş, istek yapılıyor...');
+        // Android için izin iste
+        final notificationRequest = await Permission.notification.request();
+        
+        // Kullanıcıya bilgi ver (opsiyonel)
+        if (notificationRequest.isPermanentlyDenied) {
+          if (mounted) {
+            // Eğer kullanıcı kalıcı olarak reddettiyse
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Bildirim İzni Gerekli'),
+                content: const Text(
+                    'Bildirim izni olmadan size etkinlikleriniz hakkında haber veremeyiz. Lütfen ayarlardan izin verin.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Kapat'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      openAppSettings();
+                      Navigator.of(ctx).pop();
+                    },
+                    child: const Text('Ayarlara Git'),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+      } else {
+        print('Ana Sayfa - Android bildirim izni zaten var');
+      }
+    }
+  }
+
+  // iOS için native bildirim izni alma
+  Future<bool> _requestIOSNotificationPermission() async {
+    // Platform mesaj kanalı oluştur - AppDelegate.swift'de tanımlanan kanal ile aynı adı kullan
+    const platform = MethodChannel('com.movliq/notifications');
+    
+    try {
+      // iOS tarafında uygulanan methodu çağır
+      final bool result = await platform.invokeMethod('requestNotificationPermission');
+      return result;
+    } catch (e) {
+      print('Ana Sayfa - iOS bildirim izni alma hatası: $e');
+      return false;
+    }
+  }
+  
+  // iOS için bildirim izin durumu kontrolü (isteğe bağlı kullanılabilir)
+  Future<String> _checkIOSNotificationPermission() async {
+    const platform = MethodChannel('com.movliq/notifications');
+    
+    try {
+      final String status = await platform.invokeMethod('checkNotificationPermission');
+      return status;
+    } catch (e) {
+      print('Ana Sayfa - iOS bildirim izni kontrolü hatası: $e');
+      return 'error';
     }
   }
 

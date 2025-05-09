@@ -38,8 +38,17 @@
 	<string>This app requires access to your health data to read your step count and other fitness metrics.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>This app requires permission to write fitness data to Apple Health.</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>This app would like to send you notifications about your races, step counts, and fitness achievements.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>processing</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

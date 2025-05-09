@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart'; // debugPrint için
+import 'package:flutter/material.dart'; // Yeni import - bildirimler için
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Yeni import - bildirimler için
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:my_flutter_project/core/services/signalr_service.dart';
@@ -11,8 +13,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:my_flutter_project/features/auth/presentation/providers/user_data_provider.dart'; // UserDataProvider importu
 import 'package:my_flutter_project/features/auth/domain/models/user_data_model.dart'; // UserDataModel importu
+import 'package:flutter/services.dart'; // MethodChannel için
 
 part 'race_provider.g.dart';
+
+// Flutter Local Notifications için plugin instance'ı
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+bool _isNotificationInitialized = false;
 
 @riverpod
 class RaceNotifier extends _$RaceNotifier {
@@ -326,9 +333,13 @@ class RaceNotifier extends _$RaceNotifier {
       
       // Konum izinleri varsa ve iç mekan yarışı değilse konum takibini başlat
       if (state.hasLocationPermission && !state.isIndoorRace) {
-        // Konum için daha uzun bir gecikme kullanalım
+        // Konum için daha uzun bir gecikme kullanalım - iOS'ta kilit ekranı için önemli
         Future.delayed(const Duration(milliseconds: 500), () {
           _startLocationUpdates();
+          
+          // Belirli aralıklarla konum başlatmayı tekrar dene
+          // Bu, bazı iOS cihazlarında konum takibinin kilitleme/uygulama değişiminden sonra düzgün çalışmasını sağlar
+          _schedulePeriodicLocationCheck();
         });
       }
     } else {
@@ -935,6 +946,9 @@ class RaceNotifier extends _$RaceNotifier {
 
     // iOS için ekstra kontrol - konum servislerinin açık olduğundan emin ol
     if (Platform.isIOS) {
+      // iOS native konum takibini etkinleştir
+      _enableIOSNativeLocationTracking();
+      
       Geolocator.isLocationServiceEnabled().then((serviceEnabled) {
         if (!serviceEnabled) {
           debugPrint('RaceNotifier: iOS konum servisleri kapalı! Konum takibi başlatılamıyor.');
@@ -980,13 +994,22 @@ class RaceNotifier extends _$RaceNotifier {
         ),
       );
     } else if (Platform.isIOS) {
+      // iOS için özel arka plan modu etkinleştirme
+      _setIOSBackgroundLocationActive();
+      
       locationSettings = AppleSettings(
         accuracy: LocationAccuracy.high,
         activityType: ActivityType.fitness,
         distanceFilter: 5,
         pauseLocationUpdatesAutomatically: false,
         showBackgroundLocationIndicator: true,
+        // Kilit ekranında çalışması için arka plan ayarlarını etkinleştir
+        allowBackgroundLocationUpdates: true,
       );
+      
+      // iOS için bildirim gösterme - iOS 10.0+ için bildirim
+      // iOS, Android'den farklı olarak bildirimi burada değil, uygulama içinde ayrıca göstermemiz gerekiyor
+      _showIOSNotification("Movliq yarış devam ediyor", "Konum takibi aktif");
     } else {
       locationSettings = const LocationSettings(
         accuracy: LocationAccuracy.high,
@@ -1025,6 +1048,43 @@ class RaceNotifier extends _$RaceNotifier {
     });
   }
 
+  // iOS arka plan konum modunu etkinleştir
+  void _setIOSBackgroundLocationActive() {
+    if (!Platform.isIOS) return;
+    
+    try {
+      // iOS'un CLLocationManager arka plan modu için ek ayarlar
+      // Bu metod Geolocator paketinin önerdiği çözümü uyguluyor
+      debugPrint('RaceNotifier: iOS için arka plan konum modu etkinleştiriliyor...');
+      
+      // iOS 14.0'dan sonra background izni kontrolü yapalım
+      Geolocator.checkPermission().then((permission) {
+        if (permission == LocationPermission.always) {
+          debugPrint('RaceNotifier: iOS konum izni ALWAYS, arka plan modu aktif edilebilir.');
+          
+          // iOS'un arka plan modu için sistemdeki "significant-change" servisi etkinleştirilmeli
+          // Bu, enerji tasarrufu için iOS'un konum güncellemelerini optimize etmesini sağlar
+          Geolocator.getServiceStatusStream().listen((status) {
+            debugPrint('RaceNotifier: iOS konum servis durumu değişti: $status');
+          });
+          
+          // Kilit ekranında konum takibi için lokasyon takibinin zaten aktif olduğundan emin olalım
+          Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          ).then((position) {
+            debugPrint('RaceNotifier: iOS mevcut konum alındı, konum servisleri aktif.');
+          }).catchError((e) {
+            debugPrint('RaceNotifier: iOS mevcut konum alınırken hata: $e');
+          });
+        } else {
+          debugPrint('RaceNotifier: iOS konum izni: $permission, arka plan konum takibi için "Her Zaman" seçili olmalı.');
+        }
+      });
+    } catch (e) {
+      debugPrint('RaceNotifier: iOS arka plan konum modu etkinleştirme hatası: $e');
+    }
+  }
+
   Future<void> _updateLocation() async {
     if (!state.isRaceActive || state.roomId == null) return;
 
@@ -1053,6 +1113,7 @@ class RaceNotifier extends _$RaceNotifier {
     _raceTimerTimer?.cancel();
     _antiCheatTimer?.cancel();
     _calorieCalculationTimer?.cancel(); // Kalori timer'ını da iptal et
+    _locationCheckTimer?.cancel(); // iOS periyodik konum kontrol timer'ı
     _positionStreamSubscription?.cancel();
     _stepCountSubscription?.cancel();
     _leaderboardSubscription?.cancel();
@@ -1062,10 +1123,96 @@ class RaceNotifier extends _$RaceNotifier {
     _raceTimerTimer = null;
     _antiCheatTimer = null;
     _calorieCalculationTimer = null;
+    _locationCheckTimer = null; // Timer referansını null yap
     _positionStreamSubscription = null;
     _stepCountSubscription = null;
     _leaderboardSubscription = null;
     _raceEndedSubscription = null;
+    
+    // iOS için özel temizleme işlemleri
+    if (Platform.isIOS) {
+      // Bildirimler
+      await _cancelIOSNotification();
+      
+      // Native konum takibi
+      await _disableIOSNativeLocationTracking();
+    }
+  }
+
+  // iOS için bildirim gösterme ve yönetme metodları
+  Future<void> _initializeNotifications() async {
+    if (_isNotificationInitialized) return;
+    
+    // iOS bildirimleri için
+    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
+      requestSoundPermission: false,
+      requestBadgePermission: false,
+      requestAlertPermission: false, // İzinleri zaten başka yerde istiyoruz
+    );
+    
+    // Android bildirimleri için (zaten ForegroundNotificationConfig'i kullanıyoruz, ama yine de ayarlayalım)
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('launcher_icon');
+    
+    // Uygulama için bildirim ayarlarını initialize et
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
+    
+    try {
+      await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+      _isNotificationInitialized = true;
+      debugPrint('RaceNotifier: Bildirimler başarıyla başlatıldı.');
+    } catch (e) {
+      debugPrint('RaceNotifier: Bildirim başlatma hatası: $e');
+    }
+  }
+  
+  // iOS için bildirim gösterme
+  Future<void> _showIOSNotification(String title, String body) async {
+    if (!Platform.isIOS) return;
+    
+    // Bildirimleri başlat
+    await _initializeNotifications();
+    
+    // iOS için bildirim detayları
+    const DarwinNotificationDetails iOSNotificationDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: false,
+      interruptionLevel: InterruptionLevel.active,
+      threadIdentifier: 'movliq_race_tracking',
+    );
+    
+    // Bildirim detayları
+    const NotificationDetails notificationDetails = NotificationDetails(
+      iOS: iOSNotificationDetails,
+      android: null, // Android için null, çünkü ForegroundService kullanıyoruz
+    );
+    
+    try {
+      await flutterLocalNotificationsPlugin.show(
+        1, // Notification ID (aynı ID ile bildirim güncellenecek)
+        title,
+        body,
+        notificationDetails,
+      );
+      debugPrint('RaceNotifier: iOS bildirimi gösterildi: $title, $body');
+    } catch (e) {
+      debugPrint('RaceNotifier: iOS bildirim gösterme hatası: $e');
+    }
+  }
+  
+  // iOS için bildirimi iptal etme
+  Future<void> _cancelIOSNotification() async {
+    if (!Platform.isIOS || !_isNotificationInitialized) return;
+    
+    try {
+      await flutterLocalNotificationsPlugin.cancel(1); // ID:1 ile gösterilen bildirimi iptal et
+      debugPrint('RaceNotifier: iOS bildirimi iptal edildi.');
+    } catch (e) {
+      debugPrint('RaceNotifier: iOS bildirim iptal hatası: $e');
+    }
   }
 
   // --- Yeni Metod: İlk Hile Uyarısını Kapatma ---
@@ -1086,6 +1233,126 @@ class RaceNotifier extends _$RaceNotifier {
         state = state.copyWith(showFirstCheatWarning: false);
       }
       // --- DEĞİŞİKLİK SONU ---
+    }
+  }
+
+  // iOS için periyodik konum kontrolü zamanla
+  Timer? _locationCheckTimer;
+  
+  void _schedulePeriodicLocationCheck() {
+    // Önceki timer varsa iptal et
+    _locationCheckTimer?.cancel();
+    
+    // Her 15 saniyede bir konum takibini kontrol et/yenile - daha sık kontrol et
+    _locationCheckTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (!state.isRaceActive) {
+        timer.cancel();
+        _locationCheckTimer = null;
+        return;
+      }
+      
+      if (Platform.isIOS && !state.isIndoorRace && state.hasLocationPermission) {
+        debugPrint('RaceNotifier: iOS periyodik konum kontrolü yapılıyor...');
+        
+        // Native konum takibini tekrar etkinleştir
+        _enableIOSNativeLocationTracking();
+        
+        // Mevcut konum durumunu kontrol et
+        Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 5)
+        ).then((position) {
+          debugPrint('RaceNotifier: iOS periyodik konum kontrolü başarılı: ${position.latitude}, ${position.longitude}');
+          
+          // Eğer positionStream dinleyicisi null ise yeniden başlat
+          if (_positionStreamSubscription == null) {
+            debugPrint('RaceNotifier: iOS konum dinleyicisi null, yeniden başlatılıyor...');
+            _startLocationUpdates();
+          } else {
+            // Stream var ama yine de mevcut konum alabiliyoruz, güncellemeleri kontrol et
+            debugPrint('RaceNotifier: Konum stream mevcut, güncelleniyor...');
+            _startLocationUpdates();
+          }
+        }).catchError((e) {
+          debugPrint('RaceNotifier: iOS periyodik konum kontrolü hatası: $e');
+          // Hata olursa konum takibini yeniden başlatmaya çalış
+          _startLocationUpdates();
+        });
+      }
+    });
+  }
+
+  // iOS için native konum takibini etkinleştirme metodları
+  static const _platformChannelLocation = MethodChannel('com.movliq/location');
+  
+  Future<void> _enableIOSNativeLocationTracking() async {
+    if (!Platform.isIOS) return;
+    
+    try {
+      debugPrint('RaceNotifier: iOS native konum takibi etkinleştiriliyor...');
+      await _platformChannelLocation.invokeMethod('enableBackgroundLocationTracking');
+      debugPrint('RaceNotifier: iOS native konum takibi başarıyla etkinleştirildi.');
+      
+      // 5 saniye sonra konum izlemesinin hala aktif olduğunu kontrol et
+      Future.delayed(const Duration(seconds: 5), () {
+        if (state.isRaceActive && !state.isIndoorRace && Platform.isIOS) {
+          _checkLocationTrackingStatus();
+        }
+      });
+    } catch (e) {
+      debugPrint('RaceNotifier: iOS native konum takibi etkinleştirme hatası: $e');
+    }
+  }
+  
+  Future<void> _disableIOSNativeLocationTracking() async {
+    if (!Platform.isIOS) return;
+    
+    try {
+      debugPrint('RaceNotifier: iOS native konum takibi devre dışı bırakılıyor...');
+      await _platformChannelLocation.invokeMethod('disableBackgroundLocationTracking');
+      debugPrint('RaceNotifier: iOS native konum takibi başarıyla devre dışı bırakıldı.');
+    } catch (e) {
+      debugPrint('RaceNotifier: iOS native konum takibi devre dışı bırakma hatası: $e');
+    }
+  }
+  
+  // Yeni: Konum takibi durumunu kontrol et
+  Future<void> _checkLocationTrackingStatus() async {
+    if (!Platform.isIOS || !state.isRaceActive || state.isIndoorRace) return;
+    
+    // Daha agresif bir yaklaşım - konum iznine ve servislerin açık olduğuna bakıp
+    // gerekirse location stream'i yeniden oluştur
+    try {
+      bool servicesEnabled = await Geolocator.isLocationServiceEnabled();
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      debugPrint('RaceNotifier: iOS konum takibi durumu kontrol ediliyor... '
+          'Servisler: ${servicesEnabled ? 'Aktif' : 'Kapalı'}, '
+          'İzin: $permission');
+      
+      if (!servicesEnabled) {
+        debugPrint('RaceNotifier: Konum servisleri kapalı, konum takibi yapılamıyor!');
+        return;
+      }
+      
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        debugPrint('RaceNotifier: Konum izni verilmemiş, konum takibi yapılamıyor!');
+        return;
+      }
+      
+      // Eğer hala buradaysak, izin ve servisler tamam demektir
+      // Stream'i yeniden başlat
+      _positionStreamSubscription?.cancel();
+      _positionStreamSubscription = null;
+      
+      // Kısa bir gecikme ekleyip stream'i yeniden oluştur
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (state.isRaceActive && !state.isIndoorRace) {
+          _startLocationUpdates();
+        }
+      });
+    } catch (e) {
+      debugPrint('RaceNotifier: Konum takip durumu kontrolü hatası: $e');
     }
   }
 }

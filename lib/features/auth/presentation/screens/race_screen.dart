@@ -17,6 +17,7 @@ import '../widgets/user_profile_avatar.dart';
 import '../providers/race_provider.dart';
 import '../providers/race_state.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter/services.dart';
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
@@ -42,6 +43,37 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     WakelockPlus.toggle(enable: true);
     debugPrint('[RaceScreen initState] Wakelock TOGGLED ON');
     _startWakelockForceTimer(); // <-- YENİ TIMER'I BAŞLAT
+    
+    // iOS cihazlarda race_screen açıldığında konum takibini garanti etmek için
+    if (Platform.isIOS) {
+      _warmupIOSLocationTracking();
+    }
+  }
+
+  // iOS için konum servislerini uyandırma ve arka plan takibini garanti etme
+  void _warmupIOSLocationTracking() {
+    debugPrint('[RaceScreen] iOS konum servislerini uyandırma ve arka plan takibini etkinleştirme');
+    
+    try {
+      // Native konum takibini aktif et
+      const platform = MethodChannel('com.movliq/location');
+      platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
+        debugPrint('[RaceScreen] iOS native konum takibi başarıyla etkinleştirildi.');
+      }).catchError((error) {
+        debugPrint('[RaceScreen] iOS native konum takibi etkinleştirme hatası: $error');
+      });
+      
+      // Mevcut konumu alarak servisleri uyandır
+      Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+      ).then((position) {
+        debugPrint('[RaceScreen] iOS konum uyandırma başarılı: ${position.latitude}, ${position.longitude}');
+      }).catchError((e) {
+        debugPrint('[RaceScreen] iOS konum uyandırma hatası: $e');
+      });
+    } catch (e) {
+      debugPrint('[RaceScreen] iOS konum takibi etkinleştirme genel hata: $e');
+    }
   }
 
   // **** didChangeAppLifecycleState METODUNU KALDIR ****
