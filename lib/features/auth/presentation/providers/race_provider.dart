@@ -1021,7 +1021,7 @@ class RaceNotifier extends _$RaceNotifier {
       _updateLocation(); // Konum değiştiğinde sunucuya bildir
     }, onError: (error) {
       debugPrint('RaceNotifier Konum Takibi Hatası: $error');
-      state = state.copyWith(errorMessage: 'Konum bilgisi alınamadı.');
+      
     });
   }
 
