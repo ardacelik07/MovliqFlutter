@@ -21,6 +21,7 @@ import 'package:my_flutter_project/features/auth/presentation/screens/private_ra
 import 'package:share_plus/share_plus.dart'; // Import share_plus
 import 'package:my_flutter_project/core/config/api_config.dart'; // Import ApiConfig
 import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Import HttpInterceptor
+import 'package:geolocator/geolocator.dart'; // Import Geolocator
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -52,23 +53,64 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Function to check and request location permission (directly requesting Always)
   Future<void> _checkAndRequestLocationPermission() async {
-    final status = await Permission.locationAlways.status;
-    print('Ana Sayfa - Konum İzin Durumu (Always): $status');
-
-    if (!status.isGranted && !status.isLimited) {
-      final requestedStatus = await Permission.locationAlways.request();
-      print('Ana Sayfa - İzin İstenen Durum (Always): $requestedStatus');
-
-      if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+    print('Ana Sayfa - Konum izni kontrolü başlatılıyor...');
+    
+    // First check if location services are enabled
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lütfen konum servislerini açın'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      
+      // Show system location settings
+      await Geolocator.openLocationSettings();
+      return;
+    }
+    
+    // Use different approaches based on platform
+    if (Platform.isIOS) {
+      // For iOS: Use Geolocator directly which works better
+      LocationPermission permission = await Geolocator.checkPermission();
+      print('Ana Sayfa - iOS konum izni durumu: $permission');
+      
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        print('Ana Sayfa - iOS konum izni istendikten sonra: $permission');
+      }
+      
+      if (permission == LocationPermission.denied || 
+          permission == LocationPermission.deniedForever) {
         if (mounted) {
           _showSettingsDialog('Konum İzni Gerekli',
               'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir.');
         }
+      } else {
+        print('Ana Sayfa - iOS konum izni alındı: $permission');
       }
     } else {
-      print('Ana Sayfa - Konum izni zaten verilmiş.');
+      // For Android: Continue using Permission.locationAlways which works well
+      final status = await Permission.locationAlways.status;
+      print('Ana Sayfa - Android konum izin durumu (Always): $status');
+
+      if (!status.isGranted && !status.isLimited) {
+        final requestedStatus = await Permission.locationAlways.request();
+        print('Ana Sayfa - Android izin istenen durum (Always): $requestedStatus');
+
+        if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+          if (mounted) {
+            _showSettingsDialog('Konum İzni Gerekli',
+                'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir.');
+          }
+        }
+      } else {
+        print('Ana Sayfa - Android konum izni zaten verilmiş.');
+      }
     }
-    // Do not call activity check here, call it sequentially after this function returns
   }
 
   // Function to check and request Activity Recognition/Motion permission

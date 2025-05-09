@@ -73,6 +73,38 @@ class RaceNotifier extends _$RaceNotifier {
     debugPrint(
         'RaceNotifier: Yarış başlatılıyor... (İzinler kontrol ediliyor)'); // Mevcut log güncellendi
 
+    // İOS için: konum servislerini kontrol et
+    if (Platform.isIOS) {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('RaceNotifier: iOS konum servisleri kapalı!');
+        // State'i güncelleyerek hata durumunu belirt
+        state = const RaceState().copyWith(
+          errorMessage: 'Konum servisleri kapalı. Lütfen ayarlardan açınız.'
+        );
+        return;
+      }
+      
+      // iOS için izni kontrol et, yoksa iste
+      LocationPermission permission = await Geolocator.checkPermission();
+      debugPrint('RaceNotifier: iOS başlangıç konum izni durumu: $permission');
+      
+      if (permission == LocationPermission.denied) {
+        // İzin yoksa iste
+        permission = await Geolocator.requestPermission();
+        debugPrint('RaceNotifier: iOS konum izni istendikten sonra: $permission');
+        
+        if (permission == LocationPermission.denied || 
+            permission == LocationPermission.deniedForever) {
+          // Kullanıcı izni reddetti, hata durumu
+          state = const RaceState().copyWith(
+            errorMessage: 'Konum izni gerekli. Lütfen ayarlardan izin veriniz.'
+          );
+          return;
+        }
+      }
+    }
+    
     // İzinleri kontrol et (UI'dan bağımsız kontrol)
     final hasLocation = await _checkPermission(Permission.locationAlways);
     final hasActivity = await _checkPermission(Platform.isAndroid
@@ -152,8 +184,20 @@ class RaceNotifier extends _$RaceNotifier {
 
   // İzin kontrolü (UI göstermeden)
   Future<bool> _checkPermission(Permission permission) async {
-    final status = await permission.status;
-    return status.isGranted || status.isLimited;
+    // iOS için Geolocator kullan, Android için Permission kalacak
+    if (Platform.isIOS && permission == Permission.locationAlways) {
+      // iOS için Geolocator ile konum izinlerini kontrol et
+      final locationPermission = await Geolocator.checkPermission();
+      debugPrint('RaceNotifier: iOS konum izni durumu: $locationPermission');
+      
+      // Always veya WhileInUse izni yeterli olacak
+      return locationPermission == LocationPermission.always || 
+             locationPermission == LocationPermission.whileInUse;
+    } else {
+      // Android için veya konum dışı izinlerde normal Permission kullan
+      final status = await permission.status;
+      return status.isGranted || status.isLimited;
+    }
   }
 
   void _startPreRaceCountdown() {
@@ -651,6 +695,40 @@ class RaceNotifier extends _$RaceNotifier {
     }
     _positionStreamSubscription?.cancel();
 
+    // iOS için ekstra kontrol - konum servislerinin açık olduğundan emin ol
+    if (Platform.isIOS) {
+      Geolocator.isLocationServiceEnabled().then((serviceEnabled) {
+        if (!serviceEnabled) {
+          debugPrint('RaceNotifier: iOS konum servisleri kapalı! Konum takibi başlatılamıyor.');
+          state = state.copyWith(
+            errorMessage: 'Konum servisleri kapalı, konum takibi yapılamıyor.'
+          );
+          return;
+        }
+        
+        // Servisler açıksa izni kontrol et
+        Geolocator.checkPermission().then((permission) {
+          if (permission != LocationPermission.always && 
+              permission != LocationPermission.whileInUse) {
+            debugPrint('RaceNotifier: iOS konum izni yok! Konum takibi başlatılamıyor.');
+            state = state.copyWith(
+              errorMessage: 'Konum izni yok, konum takibi yapılamıyor.'
+            );
+            return;
+          }
+          
+          // Hem servisler açık hem de izin varsa konum takibini başlat
+          _initializeLocationStream();
+        });
+      });
+    } else {
+      // Android için direk başlat
+      _initializeLocationStream();
+    }
+  }
+  
+  // Konum takibi stream'ini başlatan yardımcı metot (platformdan bağımsız)
+  void _initializeLocationStream() {
     LocationSettings locationSettings;
     if (Platform.isAndroid) {
       locationSettings = AndroidSettings(

@@ -271,13 +271,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }
       });
 
-    // Kullanıcı verilerini de yükle
-    //Future.microtask(() {
-    //  ref.read(userDataProvider.notifier).fetchUserData();
-    //});
-
-    // İzinleri başlat
-    _initPermissions();
+    // İzinleri başlat - hafif bir gecikmeyle (ekranın önce yüklenmesine izin ver)
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _initPermissions();
+      }
+    });
   }
 
   @override
@@ -292,6 +291,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   // Tüm izinleri başlatan fonksiyon
   Future<void> _initPermissions() async {
+    print('RecordScreen - İzin kontrolü başlatılıyor...');
+    
     // --- Bildirim İzni İsteği (Android 13+) ---
     if (Platform.isAndroid) {
       // Cihazın SDK versiyonunu almak için device_info_plus gerekebilir,
@@ -326,7 +327,33 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       return;
     }
 
-    await _checkLocationPermission();
+    // Önce izinleri kontrol et - zaten verilmişse istemek zorunda kalma
+    if (Platform.isIOS) {
+      // iOS için Geolocator ile izin kontrolü
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.always || 
+          permission == LocationPermission.whileInUse) {
+        setState(() {
+          _hasLocationPermission = true;
+        });
+        await _getCurrentLocation(); // Hemen konum almaya başla
+      } else {
+        await _checkLocationPermission(); // İzin yoksa iste
+      }
+    } else {
+      // Android için Permission.locationAlways ile kontrol
+      final status = await Permission.locationAlways.status;
+      if (status.isGranted) {
+        setState(() {
+          _hasLocationPermission = true;
+        });
+        await _getCurrentLocation(); // Hemen konum almaya başla
+      } else {
+        await _checkLocationPermission(); // İzin yoksa iste
+      }
+    }
+    
+    // Aktivite izinlerini de kontrol et
     await _checkActivityPermission();
   }
 
@@ -354,23 +381,61 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   // Konum izinlerini kontrol eden fonksiyon
   Future<void> _checkLocationPermission() async {
-    // Use permission_handler for requesting always permission
-    final status = await Permission.locationAlways.request();
-
-    setState(() {
-      _hasLocationPermission = status.isGranted || status.isLimited;
-    });
-
-    print('Konum izin durumu (Always): $status');
-    print('Konum izni var mı?: $_hasLocationPermission');
-
-    if (_hasLocationPermission) {
-      // İzin varsa konumu al
-      await _getCurrentLocation();
-    } else {
-      // İzin verilmediyse kullanıcıyı bilgilendir (Opsiyonel)
-      if (status.isDenied || status.isPermanentlyDenied) {
+    print('RecordScreen - Konum izni kontrolü başlatılıyor...');
+    
+    if (Platform.isIOS) {
+      // iOS için: Geolocator'ı doğrudan kullan (daha iyi çalışıyor)
+      LocationPermission permission = await Geolocator.checkPermission();
+      print('RecordScreen - iOS konum izni durumu: $permission');
+      
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        print('RecordScreen - iOS konum izni istendikten sonra: $permission');
+      }
+      
+      // LocationPermission.whileInUse ve LocationPermission.always her ikisi de yeterli
+      setState(() {
+        _hasLocationPermission = permission == LocationPermission.whileInUse || 
+                                 permission == LocationPermission.always;
+      });
+      
+      print('RecordScreen - iOS konum izni var mı?: $_hasLocationPermission');
+      
+      if (_hasLocationPermission) {
+        // İzin varsa konumu al
+        await _getCurrentLocation();
+      } else if (permission == LocationPermission.denied || 
+                 permission == LocationPermission.deniedForever) {
         _showLocationPermissionDeniedDialog();
+      }
+    } else {
+      // Android için: Permission.locationAlways kullanmaya devam et
+      final status = await Permission.locationAlways.status;
+      print('RecordScreen - Android konum izni durumu: $status');
+      
+      // Eğer izin henüz verilmemişse iste
+      if (!status.isGranted && !status.isLimited) {
+        final requestedStatus = await Permission.locationAlways.request();
+        print('RecordScreen - Android izin istendikten sonra: $requestedStatus');
+        
+        setState(() {
+          _hasLocationPermission = requestedStatus.isGranted || requestedStatus.isLimited;
+        });
+        
+        if (!_hasLocationPermission && (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied)) {
+          _showLocationPermissionDeniedDialog();
+        }
+      } else {
+        setState(() {
+          _hasLocationPermission = true;
+        });
+      }
+      
+      print('RecordScreen - Android konum izni var mı?: $_hasLocationPermission');
+      
+      if (_hasLocationPermission) {
+        // İzin varsa konumu al
+        await _getCurrentLocation();
       }
     }
   }
