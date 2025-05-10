@@ -41,11 +41,6 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
       notificationChannel.invokeMethod('requestNotificationPermission');
       print('Login sonrası iOS bildirim izni istendi');
       
-      // HealthKit izni iste 
-      const healthKitChannel = MethodChannel('com.movliq/healthkit');
-      healthKitChannel.invokeMethod('requestHealthKitAuthorization');
-      print('Login sonrası iOS HealthKit izni istendi');
-      
       // Konum izni iste
       const locationChannel = MethodChannel('com.movliq/location');
       locationChannel.invokeMethod('enableBackgroundLocationTracking');

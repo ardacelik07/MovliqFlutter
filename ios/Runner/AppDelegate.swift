@@ -1,15 +1,12 @@
 import Flutter
 import UIKit
 import GoogleMaps
-import HealthKit
 import UserNotifications
 import CoreLocation
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, CLLocationManagerDelegate {
-  // HealthKit Store instance
-  private let healthStore = HKHealthStore()
-  // Location manager
+  // Konum manager
   private let locationManager = CLLocationManager()
   // Değişken ekleyelim: Konum takibi aktif mi?
   private var isBackgroundTrackingActive = false
@@ -32,13 +29,11 @@ import CoreLocation
     prepareLocationServices()
     
     // Method channel'ları kur - sadece kur ama izin isteme
-    setupHealthKitMethodChannel()
     setupNotificationMethodChannel()
     setupLocationMethodChannel()
     
     // İzin isteklerini kaldır
     // requestNotificationPermission() -> İzin isteği kaldırıldı
-    // initializeHealthKit() -> İzin isteği kaldırıldı
     
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -321,74 +316,6 @@ import CoreLocation
         }
         
         completion(status)
-      }
-    }
-  }
-  
-  // Flutter ile HealthKit arasında iletişim için method channel
-  private func setupHealthKitMethodChannel() {
-    let controller = window?.rootViewController as! FlutterViewController
-    let healthKitChannel = FlutterMethodChannel(name: "com.movliq/healthkit", 
-                                             binaryMessenger: controller.binaryMessenger)
-    
-    healthKitChannel.setMethodCallHandler { [weak self] (call, result) in
-      guard let self = self else { return }
-      
-      if call.method == "checkHealthKitAuthorization" {
-        self.checkHealthKitAuthorization(result: result)
-      } else if call.method == "requestHealthKitAuthorization" {
-        self.requestHealthKitAuthorization(result: result)
-      } else {
-        result(FlutterMethodNotImplemented)
-      }
-    }
-  }
-  
-  // HealthKit izin durumunu kontrol et
-  private func checkHealthKitAuthorization(result: @escaping FlutterResult) {
-    if !HKHealthStore.isHealthDataAvailable() {
-      result(false)
-      return
-    }
-    
-    guard let stepCountType = HKObjectType.quantityType(forIdentifier: .stepCount) else {
-      result(false)
-      return
-    }
-    
-    let authStatus = healthStore.authorizationStatus(for: stepCountType)
-    result(authStatus == .sharingAuthorized)
-  }
-  
-  // HealthKit izni iste
-  private func requestHealthKitAuthorization(result: @escaping FlutterResult) {
-    if !HKHealthStore.isHealthDataAvailable() {
-      result(false)
-      return
-    }
-    
-    guard let stepCount = HKObjectType.quantityType(forIdentifier: .stepCount),
-          let distanceWalkingRunning = HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning),
-          let activeEnergy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)
-    else {
-      result(false)
-      return
-    }
-    
-    let typesToRead: Set<HKObjectType> = [
-      stepCount,
-      distanceWalkingRunning,
-      activeEnergy
-    ]
-    
-    healthStore.requestAuthorization(toShare: nil, read: typesToRead) { (success, error) in
-      DispatchQueue.main.async {
-        if let error = error {
-          print("HealthKit authorization failed: \(error.localizedDescription)")
-          result(false)
-        } else {
-          result(success)
-        }
       }
     }
   }
