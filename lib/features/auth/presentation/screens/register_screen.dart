@@ -18,8 +18,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword1 = true;
-  bool _obscurePassword2 = true;
+
+  //bool _obscurePassword1 = true;
+  //bool _obscurePassword2 = true;
+  bool _obscurePassword = true; // required for password toggle
+  bool _obscureConfirmPassword = true;
+  String? _errorText; // used to display login error
 
   @override
   void dispose() {
@@ -73,15 +77,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     const Color hintTextColor = Color(0xFFBDBDBD);
     const Color textColor = Colors.white;
     const Color buttonColor = Color(0xFFC4FF62);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: primaryColor,
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
               const Color.fromARGB(255, 0, 0, 0).withOpacity(0.8),
-              primaryColor
+              primaryColor,
             ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -104,27 +110,52 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   const SizedBox(height: 30),
                   const Text(
-                    'Yeni Hesap Oluştur',
+                    'Tekrar aramızda olmana sevindik',
                     style: TextStyle(
                       color: textColor,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.left,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 40),
                   Image.asset(
-                    'assets/images/registerpicture.png',
+                    'assets/images/loginpicture.png',
                     height: 250,
                   ),
                   const SizedBox(height: 40),
+                  if (_errorText != null)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _errorText!,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const Text('E-posta Adresi',
+                      style: TextStyle(color: textColor)),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _emailController,
                     style: const TextStyle(color: textColor),
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color.fromARGB(195, 0, 0, 0),
+                      fillColor: textFieldBackgroundColor,
                       hintText: 'E-posta Adresi',
                       hintStyle: const TextStyle(color: hintTextColor),
                       border: OutlineInputBorder(
@@ -139,20 +170,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         return 'Lütfen e-posta adresinizi girin';
                       }
                       if (!value!.contains('@') || !value.contains('.')) {
-                        return 'Lütfen geçerli bir e-posta adresi girin';
+                        return 'Geçerli bir e-posta adresi girin';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
+                  const Text('Parolanız', style: TextStyle(color: textColor)),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _passwordController,
+                    obscureText: _obscurePassword,
                     style: const TextStyle(color: textColor),
-                    obscureText: _obscurePassword1,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color.fromARGB(195, 0, 0, 0),
-                      hintText: 'Parola Oluştur',
+                      fillColor: textFieldBackgroundColor,
+                      hintText: 'Parolanız',
                       hintStyle: const TextStyle(color: hintTextColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -162,37 +195,37 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           vertical: 16, horizontal: 16),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword1
+                          _obscurePassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                           color: hintTextColor,
                         ),
                         onPressed: () {
                           setState(() {
-                            _obscurePassword1 = !_obscurePassword1;
+                            _obscurePassword = !_obscurePassword;
                           });
                         },
                       ),
                     ),
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Lütfen bir parola oluşturun';
-                      }
-                      if (value!.length < 6) {
-                        return 'Parola en az 6 karakter olmalı';
+                        return 'Lütfen parolanızı girin';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
+                  const Text('Parolanızı tekrar girin',
+                      style: TextStyle(color: textColor)),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _confirmPasswordController,
+                    obscureText: _obscureConfirmPassword,
                     style: const TextStyle(color: textColor),
-                    obscureText: _obscurePassword2,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color.fromARGB(195, 0, 0, 0),
-                      hintText: 'Parolayı Tekrarla',
+                      fillColor: textFieldBackgroundColor,
+                      hintText: 'Parolanızı tekrar girin',
                       hintStyle: const TextStyle(color: hintTextColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -202,14 +235,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           vertical: 16, horizontal: 16),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword2
+                          _obscureConfirmPassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                           color: hintTextColor,
                         ),
                         onPressed: () {
                           setState(() {
-                            _obscurePassword2 = !_obscurePassword2;
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
                           });
                         },
                       ),
@@ -219,12 +252,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         return 'Lütfen parolanızı tekrar girin';
                       }
                       if (value != _passwordController.text) {
-                        return 'Parolalar eşleşmiyor';
+                        return 'Parolalar uyuşmuyor';
                       }
                       return null;
                     },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: buttonColor,
@@ -244,29 +277,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             );
                       }
                     },
-                    child: const Text('Hesabımı Oluştur'),
+                    child: const Text('Kayıt Ol'),
                   ),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        'Zaten bir hesabın var mı? ',
+                        'Zaten hesabın var mı? ',
                         style: TextStyle(color: textColor, fontSize: 14),
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const LoginInputScreen()),
-                          );
+                          Navigator.pop(context);
                         },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
                         child: const Text(
                           'Giriş Yap',
                           style: TextStyle(

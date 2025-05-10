@@ -81,7 +81,7 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
 
                 // Birthday Label
                 const Text(
-                  'When is your Birthday?',
+                  'Doğum günün ne zaman?',
                   style: TextStyle(color: labelColor, fontSize: 14),
                   textAlign: TextAlign.left,
                 ),
@@ -153,7 +153,7 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
 
                 // Gender Label
                 const Text(
-                  'How do you identify?',
+                  'Kendinizi nasıl tanımlarsınız?',
                   style: TextStyle(color: labelColor, fontSize: 14),
                   textAlign: TextAlign.left,
                 ),
@@ -172,12 +172,12 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                       isExpanded: true,
                       value: selectedGender,
                       hint: const Text(
-                        'Dropdown', // Placeholder text
+                        'Cinsiyet', // Placeholder text
                         style: TextStyle(color: inputHintColor, fontSize: 16),
                       ),
                       icon: const Icon(Icons.arrow_drop_down,
                           color: Color.fromARGB(255, 255, 255, 255)),
-                      items: ["Male", "Female", "Other"]
+                      items: ["Erkek", "Kadın", "Diğer"]
                           .map((String value) => DropdownMenuItem<String>(
                                 value: value,
                                 child: Text(value,

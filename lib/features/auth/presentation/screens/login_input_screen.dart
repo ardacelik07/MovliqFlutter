@@ -21,6 +21,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
+  String? _errorText;
 
   @override
   void dispose() {
@@ -49,13 +50,28 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
           );
         },
         error: (error, _) {
+          String errorMessage =
+              'Giriş başarısız oldu: E-mail veya şifreniz hatalıdır';
+
+          setState(() {
+            _errorText = errorMessage;
+          });
+
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Hata: ${error.toString()}')),
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
           );
         },
         data: (token) {
           if (token != null) {
-            print('Login successful! Token: $token');
+            setState(() {
+              _errorText = null; // <- Clear error message if login successful
+            });
             ref.read(userDataProvider.notifier).fetchUserData();
             ref.read(selectedTabProvider.notifier).state = 0;
             Navigator.pushReplacement(
@@ -120,6 +136,32 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                     height: 250,
                   ),
                   const SizedBox(height: 40),
+                  if (_errorText != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _errorText!,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const Text('E-posta Adresi',
+                      style: TextStyle(color: textColor)),
+                  SizedBox(height: 8),
                   TextFormField(
                     controller: _emailController,
                     style: const TextStyle(color: textColor),
@@ -147,6 +189,8 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
+                  const Text('Parolanız', style: TextStyle(color: textColor)),
+                  SizedBox(height: 8),
                   TextFormField(
                     controller: _passwordController,
                     style: const TextStyle(color: textColor),

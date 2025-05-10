@@ -81,7 +81,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     controller: _nameController,
                     style: const TextStyle(color: inputColor),
                     decoration: InputDecoration(
-                      hintText: 'What is your name?',
+                      hintText: 'Adınız ne?',
                       hintStyle:
                           const TextStyle(color: labelColor, fontSize: 14),
                       filled: true,
@@ -95,7 +95,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     ),
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Please enter your name';
+                        return 'Lütfen adınızı giriniz';
                       }
                       return null;
                     },
@@ -106,7 +106,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     controller: _usernameController,
                     style: const TextStyle(color: inputColor),
                     decoration: InputDecoration(
-                      hintText: 'What is your prefer username?',
+                      hintText: 'Tercih ettiğiniz kullanıcı adı nedir?',
                       hintStyle:
                           const TextStyle(color: labelColor, fontSize: 14),
                       filled: true,
@@ -122,11 +122,11 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     ),
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Please enter a username';
+                        return 'Lütfen bir kullanıcı adı girin';
                       }
                       // Basic username validation (no spaces, etc.) - enhance if needed
                       if (value!.contains(' ')) {
-                        return 'Username cannot contain spaces';
+                        return 'Kullanıcı adı boşluk içeremez';
                       }
                       return null;
                     },
