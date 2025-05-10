@@ -28,26 +28,34 @@ import CoreLocation
     // Add your Google Maps API key here
     GMSServices.provideAPIKey("AIzaSyAKS4a9rCu2hRTebc2lHA9o24BthtqyLjc")
     
-    // Arka planda konum takibi için iOS yapılandırmasını etkinleştir
-    setupBackgroundLocationCapabilities()
+    // Hazırlık yapılıyor ama izin istenmeyecek
+    prepareLocationServices()
     
-    // Initialize HealthKit for step counting as early as possible
-    initializeHealthKit()
-    
-    // Register a method channel for HealthKit
+    // Method channel'ları kur - sadece kur ama izin isteme
     setupHealthKitMethodChannel()
-    
-    // Setup notification permission method channel
     setupNotificationMethodChannel()
-    
-    // Setup location method channel
     setupLocationMethodChannel()
     
-    // Request notification permission on launch (optional)
-    requestNotificationPermission()
+    // İzin isteklerini kaldır
+    // requestNotificationPermission() -> İzin isteği kaldırıldı
+    // initializeHealthKit() -> İzin isteği kaldırıldı
     
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+  
+  // Sadece konum servislerini hazırlayan fonksiyon
+  private func prepareLocationServices() {
+    // Konum yöneticisini ayarla
+    locationManager.delegate = self
+    locationManager.desiredAccuracy = kCLLocationAccuracyBest
+    locationManager.distanceFilter = 5 // 5 metre değişimde lokasyon güncelleme
+    locationManager.allowsBackgroundLocationUpdates = true
+    locationManager.pausesLocationUpdatesAutomatically = false
+    locationManager.showsBackgroundLocationIndicator = true
+    
+    // İzinleri kontrol etme veya istemeden servis ayarları yapılıyor
+    print("iOS Native: Konum servisleri yapılandırıldı (izin istenmedi)")
   }
   
   // MARK: - Background Location Setup
@@ -315,72 +323,6 @@ import CoreLocation
         completion(status)
       }
     }
-  }
-  
-  // Daha kapsamlı HealthKit başlatma
-  private func initializeHealthKit() {
-    if HKHealthStore.isHealthDataAvailable() {
-      print("HealthKit data is available on this device")
-      
-      // Define the health data types your app needs to read - more comprehensive list
-      guard let stepCount = HKObjectType.quantityType(forIdentifier: .stepCount),
-            let distanceWalkingRunning = HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning),
-            let activeEnergy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)
-      else {
-        print("HealthKit: Required data types aren't available")
-        return
-      }
-      
-      // Set of types to read
-      let typesToRead: Set<HKObjectType> = [
-        stepCount,
-        distanceWalkingRunning,
-        activeEnergy
-      ]
-      
-      // Request authorization to access health data
-      healthStore.requestAuthorization(toShare: nil, read: typesToRead) { (success, error) in
-        if let error = error {
-          print("HealthKit authorization failed with error: \(error.localizedDescription)")
-        } else if success {
-          print("HealthKit authorization successful")
-          // Immediately try to query steps to verify access
-          self.readStepCount()
-        } else {
-          print("HealthKit authorization denied")
-        }
-      }
-    } else {
-      print("HealthKit is not available on this device")
-    }
-  }
-  
-  // Step verilerini okumayı dene - izin kontrolü için
-  private func readStepCount() {
-    guard let stepCountType = HKObjectType.quantityType(forIdentifier: .stepCount) else {
-      print("Step count type is not available")
-      return
-    }
-    
-    let now = Date()
-    let startOfDay = Calendar.current.startOfDay(for: now)
-    let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
-    
-    let query = HKStatisticsQuery(quantityType: stepCountType, quantitySamplePredicate: predicate, options: .cumulativeSum) { (_, result, error) in
-      if let error = error {
-        print("Failed to read step count: \(error.localizedDescription)")
-        return
-      }
-      
-      if let result = result, let sum = result.sumQuantity() {
-        let steps = sum.doubleValue(for: HKUnit.count())
-        print("Total steps today: \(steps)")
-      } else {
-        print("No step count data available")
-      }
-    }
-    
-    healthStore.execute(query)
   }
   
   // Flutter ile HealthKit arasında iletişim için method channel
