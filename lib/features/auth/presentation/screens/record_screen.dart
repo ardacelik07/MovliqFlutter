@@ -403,85 +403,20 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         
         // Eğer adım bilgisi alınamadıysa ve daha önce dialog gösterilmediyse Health app'e yönlendir
         if (!stepsAvailable && mounted) {
-          _showHealthKitDialog();
+          
         }
       } catch (e) {
         print('RecordScreen - Pedometer başlatma hatası: $e');
         // Hata durumunda dialog göster
         if (mounted) {
-          _showHealthKitDialog();
+          
         }
       }
     }
   }
 
   // Health Kit izni için özel dialog (iOS)
-  void _showHealthKitDialog() {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Health İzni Gerekli'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Adım sayınızı takip edebilmek için Apple Health uygulamasında izin vermelisiniz:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            const Text('1. iPhone\'unuzda "Sağlık" (Health) uygulamasını açın'),
-            const SizedBox(height: 8),
-            const Text('2. Alt kısımda "İndeks" (Browse) sekmesine tıklayın'),
-            const SizedBox(height: 8),
-            const Text('3. Sağ üstteki profil simgesine tıklayın'),
-            const SizedBox(height: 8),
-            const Text('4. "Veri Kaynakları ve Erişim" (Data Sources & Access) seçeneğine tıklayın'),
-            const SizedBox(height: 8),
-            const Text('5. "Uygulamalar" (Apps) listesinden bu uygulamayı bulun'),
-            const SizedBox(height: 8),
-            const Text('6. "Açık ve Kapalı" (Turn On/Off) kısmından aşağıdaki izinleri açın:'),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('• Adımlar (Steps)'),
-                  Text('• Yürüme + Koşma Mesafesi (Walking + Running Distance)'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'İzinleri verdikten sonra bu uygulamaya dönün ve tekrar deneyin.',
-              style: TextStyle(fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Sağlık Uygulamasını Aç'),
-            onPressed: () async {
-              Navigator.of(context).pop();
-              // Health Kit ayarlarına doğrudan erişilemez, Sağlık uygulamasını açmak için URL Schemes kullan
-              final url = Uri.parse('x-apple-health://');
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url);
-              } else {
-                openAppSettings();
-              }
-            },
-          ),
-          TextButton(
-            child: const Text('Daha Sonra'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   // Konum izinlerini kontrol eden fonksiyon
   Future<void> _checkLocationPermission() async {
@@ -510,7 +445,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         await _getCurrentLocation();
       } else if (permission == LocationPermission.denied || 
                  permission == LocationPermission.deniedForever) {
-        _showLocationPermissionDeniedDialog();
+        
       }
     } else {
       // Android için: Permission.locationAlways kullanmaya devam et
@@ -527,7 +462,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         });
         
         if (!_hasLocationPermission && (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied)) {
-          _showLocationPermissionDeniedDialog();
+          
         }
       } else {
         setState(() {
@@ -545,30 +480,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   // Kullanıcı izin vermediğinde gösterilecek dialog (Opsiyonel)
-  void _showLocationPermissionDeniedDialog() {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Konum İzni Gerekli'),
-        content: const Text(
-            'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir. Lütfen uygulama ayarlarından bu izni verin.'),
-        actions: [
-          TextButton(
-            child: const Text('Ayarları Aç'),
-            onPressed: () {
-              openAppSettings(); // Open app settings
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: const Text('İptal'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   // Mevcut konumu al ve haritayı oraya taşı
   Future<void> _getCurrentLocation() async {
