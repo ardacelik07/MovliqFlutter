@@ -49,10 +49,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<void> _checkAndRequestPermissionsSequentially() async {
     // Önce bildirim iznini iste (en kritik olmayan)
     await _checkAndRequestNotificationPermission();
-    
+
     // Sonra konum iznini iste
     await _checkAndRequestLocationPermission();
-    
+
     // En son aktivite iznini iste
     if (mounted) {
       await _checkAndRequestActivityPermission();
@@ -62,23 +62,25 @@ class _HomePageState extends ConsumerState<HomePage> {
   // Bildirim izni kontrolü ve istek işlemi
   Future<void> _checkAndRequestNotificationPermission() async {
     print('Ana Sayfa - Bildirim izni kontrolü başlatılıyor...');
-    
+
     // iOS ve Android için farklı stratejiler
     if (Platform.isIOS) {
       // iOS için native Swift üzerinden bildirim izni alma
       final bool hasPermission = await _requestIOSNotificationPermission();
       print('Ana Sayfa - iOS bildirim izni: $hasPermission');
-      
+
       // İzin almak için yeterli, kullanıcı iOS sisteminin kendi dialog kutusunu görecek
     } else {
       // Android için permission_handler kullanımı
       final notificationStatus = await Permission.notification.status;
-      
-      if (notificationStatus.isDenied || notificationStatus.isPermanentlyDenied) {
-        print('Ana Sayfa - Android bildirim izni reddedilmiş, istek yapılıyor...');
+
+      if (notificationStatus.isDenied ||
+          notificationStatus.isPermanentlyDenied) {
+        print(
+            'Ana Sayfa - Android bildirim izni reddedilmiş, istek yapılıyor...');
         // Android için izin iste
         final notificationRequest = await Permission.notification.request();
-        
+
         // Kullanıcıya bilgi ver (opsiyonel)
         if (notificationRequest.isPermanentlyDenied) {
           if (mounted) {
@@ -116,23 +118,25 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<bool> _requestIOSNotificationPermission() async {
     // Platform mesaj kanalı oluştur - AppDelegate.swift'de tanımlanan kanal ile aynı adı kullan
     const platform = MethodChannel('com.movliq/notifications');
-    
+
     try {
       // iOS tarafında uygulanan methodu çağır
-      final bool result = await platform.invokeMethod('requestNotificationPermission');
+      final bool result =
+          await platform.invokeMethod('requestNotificationPermission');
       return result;
     } catch (e) {
       print('Ana Sayfa - iOS bildirim izni alma hatası: $e');
       return false;
     }
   }
-  
+
   // iOS için bildirim izin durumu kontrolü (isteğe bağlı kullanılabilir)
   Future<String> _checkIOSNotificationPermission() async {
     const platform = MethodChannel('com.movliq/notifications');
-    
+
     try {
-      final String status = await platform.invokeMethod('checkNotificationPermission');
+      final String status =
+          await platform.invokeMethod('checkNotificationPermission');
       return status;
     } catch (e) {
       print('Ana Sayfa - iOS bildirim izni kontrolü hatası: $e');
@@ -143,7 +147,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   // Function to check and request location permission (directly requesting Always)
   Future<void> _checkAndRequestLocationPermission() async {
     print('Ana Sayfa - Konum izni kontrolü başlatılıyor...');
-    
+
     // First check if location services are enabled
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -155,47 +159,97 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         );
       }
-      
+
       // Show system location settings
       await Geolocator.openLocationSettings();
       return;
     }
-    
+
     // Use different approaches based on platform
     if (Platform.isIOS) {
       // For iOS: Use Geolocator directly which works better
       LocationPermission permission = await Geolocator.checkPermission();
       print('Ana Sayfa - iOS konum izni durumu: $permission');
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         print('Ana Sayfa - iOS konum izni istendikten sonra: $permission');
       }
-      
-      if (permission == LocationPermission.denied || 
+
+      if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        if (mounted) {
-          
-        }
+        if (mounted) {}
       } else {
         print('Ana Sayfa - iOS konum izni alındı: $permission');
       }
     } else {
-      // For Android: Continue using Permission.locationAlways which works well
-      final status = await Permission.locationAlways.status;
-      print('Ana Sayfa - Android konum izin durumu (Always): $status');
+      // For Android: Request Permission.location first to show the standard system dialog.
+      final status = await Permission.location.status;
+      print('Ana Sayfa - Android konum izin durumu (Genel): $status');
+
+      // Define the critical permission dialog details for races
+      const String criticalDialogTitle = 'Her Zaman Konum İzni Gerekli';
+      const String criticalDialogContent =
+          'Yarışlara kesintisiz katılabilmek ve aktivite verilerinizi doğru bir şekilde kaydedebilmek için Movliq\'in konumunuza \'Her Zaman\' erişmesi gerekmektedir. Lütfen uygulama ayarlarından konum iznini \'Her zaman izin ver\' olarak güncelleyiniz.';
 
       if (!status.isGranted && !status.isLimited) {
-        final requestedStatus = await Permission.locationAlways.request();
-        print('Ana Sayfa - Android izin istenen durum (Always): $requestedStatus');
+        final requestedStatus = await Permission.location.request();
+        print(
+            'Ana Sayfa - Android izin istenen durum (Genel): $requestedStatus');
 
-        if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+        if (requestedStatus.isPermanentlyDenied) {
           if (mounted) {
-            
+            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
+          }
+        } else if (requestedStatus.isDenied) {
+          print(
+              'Ana Sayfa - Android konum izni (Genel) reddedildi ancak kalıcı değil.');
+          if (mounted) {
+            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
           }
         }
+        // If permission granted here, proceed to check for 'Always'
+      }
+
+      // After the initial request (or if already granted), check current general status again
+      // to decide if we should proceed to request 'Always'.
+      final currentGeneralLocationStatus = await Permission.location.status;
+      if (currentGeneralLocationStatus.isGranted ||
+          currentGeneralLocationStatus.isLimited) {
+        print(
+            'Ana Sayfa - Android konum izni (Genel) verilmiş veya kısıtlı. Şimdi "Always" kontrol ediliyor.');
+
+        final alwaysStatus = await Permission.locationAlways.status;
+        print(
+            'Ana Sayfa - Android "Always" konum izin durumu kontrol ediliyor: $alwaysStatus');
+
+        if (!alwaysStatus.isGranted) {
+          print(
+              'Ana Sayfa - "Genel/Kullanımda" izni var, ancak "Always" izni yok. "Always" izni isteniyor.');
+          // Requesting locationAlways typically opens settings directly on modern Android.
+          final requestedAlwaysStatus =
+              await Permission.locationAlways.request();
+          print(
+              'Ana Sayfa - Android "Always" izin talep sonucu: $requestedAlwaysStatus');
+
+          // After the request, check the status again.
+          // If still not granted (denied or permanently denied), show the dialog.
+          final finalAlwaysStatus = await Permission.locationAlways.status;
+          if (!finalAlwaysStatus.isGranted) {
+            if (mounted) {
+              _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
+            }
+          } else {
+            print('Ana Sayfa - Android "Always" konum izni şimdi verildi.');
+          }
+        } else {
+          print('Ana Sayfa - Android "Always" konum izni zaten verilmiş.');
+        }
       } else {
-        print('Ana Sayfa - Android konum izni zaten verilmiş.');
+        // This means general location was not granted even after an attempt (if made).
+        // The dialogs for denied/permanentlyDenied for the initial request should have been shown.
+        print(
+            'Ana Sayfa - Genel konum izni hala verilmemiş, bu nedenle "Always" istenemiyor/kontrol edilemiyor.');
       }
     }
   }
@@ -209,11 +263,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       if (!status.isGranted) {
         final requestedStatus = await Permission.activityRecognition.request();
-        print('Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
+        print(
+            'Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
 
         if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
           if (mounted) {
-            _showSettingsDialog('Aktivite İzni Gerekli', 
+            _showSettingsDialog('Aktivite İzni Gerekli',
                 'Adımlarınızı sayabilmek için aktivite izni gereklidir.');
           }
         }
@@ -225,41 +280,40 @@ class _HomePageState extends ConsumerState<HomePage> {
       // Önce normal sensör iznini iste
       final sensorStatus = await Permission.sensors.request();
       print('Ana Sayfa - iOS sensör izin durumu: $sensorStatus');
-      
+
       // Health Kit izinlerinin verilip verilmediğini kontrol etmek için
       try {
         // Pedometer stream'ini 3 saniyeliğine dinle, veri gelirse izin verilmiş demektir
         bool healthKitPermissionVerified = false;
-        
+
         final subscription = Pedometer.stepCountStream.listen((step) {
-          print('HomePage - Adım algılandı: ${step.steps}, Health Kit izinleri verilmiş');
+          print(
+              'HomePage - Adım algılandı: ${step.steps}, Health Kit izinleri verilmiş');
           healthKitPermissionVerified = true;
         }, onError: (error) {
           print('HomePage - Adım algılama hatası: $error');
         });
-        
+
         // Kısa bir süre bekle
         await Future.delayed(const Duration(seconds: 3));
         subscription.cancel();
-        
+
         // Eğer Health Kit verisi alınamadıysa dialog göster
         if (!healthKitPermissionVerified && mounted) {
-          print('Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
-          
+          print(
+              'Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
         } else {
-          print('Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
+          print(
+              'Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
         }
       } catch (e) {
         print('Ana Sayfa - Health Kit izin kontrolü sırasında hata: $e');
-        if (mounted) {
-          
-        }
+        if (mounted) {}
       }
     }
   }
 
   // Health Kit izni için özel dialog (iOS)
-  
 
   // Dialog to show if permission is denied (Consolidated for Settings)
   void _showSettingsDialog(String title, String content) {
