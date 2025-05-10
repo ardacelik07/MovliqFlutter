@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/leaderboard_provider.dart';
 import '../providers/user_data_provider.dart';
 import '../../domain/models/leaderboard_model.dart';
+import '../widgets/network_error_widget.dart';
+import 'package:http/http.dart' show ClientException;
+import 'dart:io' show SocketException;
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -35,264 +38,316 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     // Provider'ları yenilemek için invalidate yerine refresh kullanalım
     if (isOutdoor) {
       ref.refresh(outdoorLeaderboardProvider);
+      ref.refresh(userLeaderboardEntryProvider);
     } else {
       ref.refresh(indoorLeaderboardProvider);
+      ref.refresh(userLeaderboardEntryProvider);
     }
+    // Also refresh the current user's leaderboard entry
   }
 
   @override
   Widget build(BuildContext context) {
     final isOutdoorSelected = ref.watch(isOutdoorSelectedProvider);
+    // Choose the primary provider based on the selected tab
+    final currentLeaderboardProvider = isOutdoorSelected
+        ? outdoorLeaderboardProvider
+        : indoorLeaderboardProvider;
+    final leaderboardAsync = ref.watch(currentLeaderboardProvider);
+    // Watch user rank separately, handle its loading/error within the data state
+    final userRankAsync = ref.watch(userLeaderboardEntryProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Title Section
-            Container(
-              margin: const EdgeInsets.all(16.0),
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFFC4FF62),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.emoji_events, color: Colors.black),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Ödül Reklamı',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+      // Use the chosen leaderboard provider's state for the main body
+      body: leaderboardAsync.when(
+        data: (leaderboardUsers) {
+          // Data loaded, build the UI
+          return SafeArea(
+            child: Column(
+              children: [
+                // Title Section
+                Container(
+                  margin: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 12.0, horizontal: 16.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC4FF62),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
-              ),
-            ),
-
-            // Indoor/Outdoor Toggle
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFF333333),
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        if (!isOutdoorSelected) {
-                          // Sadece tab değiştiğinde yeni istek at
-                          ref.read(isOutdoorSelectedProvider.notifier).state =
-                              true;
-                          // invalidate yerine refresh kullanalım
-                          ref.refresh(outdoorLeaderboardProvider);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0),
-                        decoration: BoxDecoration(
-                          color: isOutdoorSelected
-                              ? const Color(0xFFC4FF62)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(25),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.emoji_events, color: Colors.black),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Ödül Reklamı',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
-                        child: Center(
-                          child: Text(
-                            'Outdoor',
-                            style: TextStyle(
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Indoor/Outdoor Toggle
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF333333),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            if (!isOutdoorSelected) {
+                              ref
+                                  .read(isOutdoorSelectedProvider.notifier)
+                                  .state = true;
+                              ref.refresh(outdoorLeaderboardProvider);
+                              ref.refresh(
+                                  userLeaderboardEntryProvider); // Refresh user rank too
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12.0),
+                            decoration: BoxDecoration(
                               color: isOutdoorSelected
-                                  ? Colors.black
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
+                                  ? const Color(0xFFC4FF62)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Outdoor',
+                                style: TextStyle(
+                                  color: isOutdoorSelected
+                                      ? Colors.black
+                                      : Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        if (isOutdoorSelected) {
-                          // Sadece tab değiştiğinde yeni istek at
-                          ref.read(isOutdoorSelectedProvider.notifier).state =
-                              false;
-                          // invalidate yerine refresh kullanalım
-                          ref.refresh(indoorLeaderboardProvider);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0),
-                        decoration: BoxDecoration(
-                          color: !isOutdoorSelected
-                              ? const Color(0xFFC4FF62)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Indoor',
-                            style: TextStyle(
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            if (isOutdoorSelected) {
+                              ref
+                                  .read(isOutdoorSelectedProvider.notifier)
+                                  .state = false;
+                              ref.refresh(indoorLeaderboardProvider);
+                              ref.refresh(
+                                  userLeaderboardEntryProvider); // Refresh user rank too
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12.0),
+                            decoration: BoxDecoration(
                               color: !isOutdoorSelected
-                                  ? Colors.black
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
+                                  ? const Color(0xFFC4FF62)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Indoor',
+                                style: TextStyle(
+                                  color: !isOutdoorSelected
+                                      ? Colors.black
+                                      : Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
 
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-            // Leaderboard Content
-            Expanded(
-              child: isOutdoorSelected
-                  ? _buildOutdoorLeaderboard()
-                  : _buildIndoorLeaderboard(),
+                // --- User Rank Card (handles its own loading/error state internally) ---
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: userRankAsync.when(
+                    data: (userEntry) {
+                      if (userEntry != null) {
+                        return _buildUserRankCard(userEntry, isOutdoorSelected);
+                      }
+                      return const SizedBox.shrink(); // Hide if no rank data
+                    },
+                    loading: () => const SizedBox(
+                      height: 60,
+                      child: Center(
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Color(0xFFC4FF62))),
+                    ),
+                    // Show subtle error for user rank card, don't block main screen
+                    error: (error, stackTrace) {
+                      if (error is SocketException ||
+                          error is ClientException) {
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8.0),
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.signal_wifi_off_rounded,
+                                  color: Colors.redAccent, size: 16),
+                              SizedBox(width: 8),
+                              Text('Sıralamanız yüklenemedi',
+                                  style: TextStyle(
+                                      color: Colors.redAccent, fontSize: 12)),
+                            ],
+                          ),
+                        );
+                      } else {
+                        print("User rank card error: $error");
+                        return const SizedBox.shrink(); // Hide for other errors
+                      }
+                    },
+                  ),
+                ),
+                userRankAsync.maybeWhen(
+                  data: (d) => d != null
+                      ? const SizedBox(height: 16)
+                      : const SizedBox.shrink(),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+                // --- User Rank Card End ---
+
+                // Leaderboard Content (uses the data from the main .when)
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async => _refreshCurrentLeaderboard(),
+                    child: isOutdoorSelected
+                        ? _buildOutdoorLeaderboardView(
+                            leaderboardUsers as List<LeaderboardOutdoorDto>)
+                        : _buildIndoorLeaderboardView(
+                            leaderboardUsers as List<LeaderboardIndoorDto>),
+                  ),
+                ),
+              ],
             ),
-          ],
+          );
+        },
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Color(0xFFC4FF62)),
         ),
+        error: (error, stackTrace) {
+          // ALWAYS show NetworkErrorWidget for any full-screen error
+          return Center(
+            child: NetworkErrorWidget(
+              // Provide generic title/message for all errors
+              title: 'Liderlik Tablosu Yüklenemedi',
+              message: 'Bir sorun oluştu, lütfen tekrar deneyin.',
+              onRetry: () {
+                // Retry fetching the current leaderboard and user rank
+                _refreshCurrentLeaderboard();
+              },
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildOutdoorLeaderboard() {
-    final outdoorLeaderboardAsync = ref.watch(outdoorLeaderboardProvider);
+  // Renamed: Builds the outdoor list VIEW using provided data
+  Widget _buildOutdoorLeaderboardView(
+      List<LeaderboardOutdoorDto> leaderboardUsers) {
     final userDataAsync = ref.watch(userDataProvider);
+    final currentUserName = userDataAsync.whenOrNull(
+      data: (userData) => userData?.userName,
+    );
 
-    return outdoorLeaderboardAsync.when(
-      data: (leaderboardUsers) {
-        if (leaderboardUsers.isEmpty) {
-          return const Center(
-            child: Text(
-              'No data available',
-              style: TextStyle(color: Colors.white),
+    if (leaderboardUsers.isEmpty) {
+      return const Center(
+        child: Text('No data available', style: TextStyle(color: Colors.white)),
+      );
+    }
+
+    final sortedUsers = [...leaderboardUsers]..sort(
+        (a, b) => (b.generalDistance ?? 0).compareTo(a.generalDistance ?? 0));
+
+    final rankedUsers = sortedUsers.asMap().entries.map((entry) {
+      final rank = entry.key + 1;
+      final user = entry.value;
+      return OutdoorRankedUser(
+        id: user.id,
+        userId: user.userId,
+        userName: user.userName,
+        profilePicture: user.profilePicture,
+        outdoorSteps: user.outdoorSteps ?? 0,
+        generalDistance: user.generalDistance ?? 0,
+        rank: rank,
+      );
+    }).toList();
+
+    final topThree = rankedUsers.take(3).toList();
+    final remainingUsers =
+        rankedUsers.length > 3 ? rankedUsers.sublist(3) : <OutdoorRankedUser>[];
+
+    return ListView(
+      children: [
+        if (topThree.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (topThree.length > 1)
+                  _buildTopUser(topThree[1], 2, currentUserName),
+                const SizedBox(width: 8),
+                if (topThree.isNotEmpty)
+                  _buildTopUser(topThree[0], 1, currentUserName),
+                const SizedBox(width: 8),
+                if (topThree.length > 2)
+                  _buildTopUser(topThree[2], 3, currentUserName),
+              ],
             ),
-          );
-        }
-
-        // Mevcut kullanıcının adını al
-        final currentUserName = userDataAsync.whenOrNull(
-          data: (userData) => userData?.userName,
-        );
-
-        // Sort by generalDistance in descending order
-        final sortedUsers = [...leaderboardUsers]..sort((a, b) =>
-            (b.generalDistance ?? 0).compareTo(a.generalDistance ?? 0));
-
-        // Add ranks based on the sorted order
-        final rankedUsers = sortedUsers.asMap().entries.map((entry) {
-          final rank = entry.key + 1;
-          final user = entry.value;
-          return OutdoorRankedUser(
-            id: user.id,
-            userId: user.userId,
-            userName: user.userName,
-            profilePicture: user.profilePicture,
-            outdoorSteps: user.outdoorSteps ?? 0,
-            generalDistance: user.generalDistance ?? 0,
-            rank: rank,
-          );
-        }).toList();
-
-        // Get top 3 and remaining users
-        final topThree = rankedUsers.take(3).toList();
-        final remainingUsers = rankedUsers.length > 3
-            ? rankedUsers.sublist(3)
-            : <OutdoorRankedUser>[];
-
-        return Column(
-          children: [
-            // Top 3
-            if (topThree.isNotEmpty)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (topThree.length > 1)
-                    _buildTopUser(topThree[1], 2, currentUserName),
-                  const SizedBox(width: 8),
-                  if (topThree.isNotEmpty)
-                    _buildTopUser(topThree[0], 1, currentUserName),
-                  const SizedBox(width: 8),
-                  if (topThree.length > 2)
-                    _buildTopUser(topThree[2], 3, currentUserName),
-                ],
+          ),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          itemCount: remainingUsers.length,
+          itemBuilder: (context, index) {
+            final user = remainingUsers[index];
+            final isCurrentUser =
+                currentUserName != null && user.userName == currentUserName;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8.0),
+              decoration: BoxDecoration(
+                color: isCurrentUser
+                    ? const Color(0xFFC4FF62).withOpacity(0.2)
+                    : const Color(0xFF333333),
+                borderRadius: BorderRadius.circular(8),
+                border: isCurrentUser
+                    ? Border.all(color: const Color(0xFFC4FF62), width: 1.5)
+                    : null,
               ),
-
-            const SizedBox(height: 16),
-
-            // Remaining Users List
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: remainingUsers.length,
-                itemBuilder: (context, index) {
-                  final user = remainingUsers[index];
-                  final isCurrentUser = currentUserName != null &&
-                      user.userName == currentUserName;
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8.0),
-                    decoration: BoxDecoration(
-                      color: isCurrentUser
-                          ? const Color(0xFFC4FF62).withOpacity(0.2)
-                          : const Color(0xFF333333),
-                      borderRadius: BorderRadius.circular(8),
-                      border: isCurrentUser
-                          ? Border.all(
-                              color: const Color(0xFFC4FF62), width: 1.5)
-                          : null,
-                    ),
-                    child: ListTile(
-                      leading: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 24,
-                            child: Text(
-                              '${user.rank}',
-                              style: TextStyle(
-                                color: isCurrentUser
-                                    ? const Color(0xFFC4FF62)
-                                    : Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          CircleAvatar(
-                            backgroundColor: Colors.blue.withOpacity(0.2),
-                            backgroundImage: user.profilePicture != null &&
-                                    user.profilePicture!.isNotEmpty
-                                ? NetworkImage(user.profilePicture!)
-                                : null,
-                            child: (user.profilePicture == null ||
-                                    user.profilePicture!.isEmpty)
-                                ? Text(
-                                    user.userName.isNotEmpty
-                                        ? user.userName[0]
-                                        : '?',
-                                    style: const TextStyle(color: Colors.white),
-                                  )
-                                : null,
-                          ),
-                        ],
-                      ),
-                      title: Text(
-                        user.userName,
+              child: ListTile(
+                leading: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        '${user.rank}',
                         style: TextStyle(
                           color: isCurrentUser
                               ? const Color(0xFFC4FF62)
@@ -300,172 +355,130 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      trailing: Text(
-                        '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFFC4FF62),
-        ),
-      ),
-      error: (error, stackTrace) => Center(
-        child: SelectableText.rich(
-          TextSpan(
-            text: 'Error loading leaderboard\n',
-            style:
-                const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            children: [
-              TextSpan(
-                text: error.toString(),
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.normal,
+                    const SizedBox(width: 8),
+                    CircleAvatar(
+                      backgroundColor: Colors.blue.withOpacity(0.2),
+                      backgroundImage: user.profilePicture != null &&
+                              user.profilePicture!.isNotEmpty
+                          ? NetworkImage(user.profilePicture!)
+                          : null,
+                      child: (user.profilePicture == null ||
+                              user.profilePicture!.isEmpty)
+                          ? Text(
+                              user.userName.isNotEmpty ? user.userName[0] : '?',
+                              style: const TextStyle(color: Colors.white),
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
+                title: Text(
+                  user.userName,
+                  style: TextStyle(
+                    color:
+                        isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                trailing: Text(
+                  '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ],
-          ),
+            );
+          },
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildIndoorLeaderboard() {
-    final indoorLeaderboardAsync = ref.watch(indoorLeaderboardProvider);
+  // Renamed: Builds the indoor list VIEW using provided data
+  Widget _buildIndoorLeaderboardView(
+      List<LeaderboardIndoorDto> leaderboardUsers) {
     final userDataAsync = ref.watch(userDataProvider);
+    final currentUserName = userDataAsync.whenOrNull(
+      data: (userData) => userData?.userName,
+    );
 
-    return indoorLeaderboardAsync.when(
-      data: (leaderboardUsers) {
-        if (leaderboardUsers.isEmpty) {
-          return const Center(
-            child: Text(
-              'No data available',
-              style: TextStyle(color: Colors.white),
+    if (leaderboardUsers.isEmpty) {
+      return const Center(
+        child: Text('No data available', style: TextStyle(color: Colors.white)),
+      );
+    }
+
+    final sortedUsers = [...leaderboardUsers]
+      ..sort((a, b) => (b.indoorSteps ?? 0).compareTo(a.indoorSteps ?? 0));
+
+    final rankedUsers = sortedUsers.asMap().entries.map((entry) {
+      final rank = entry.key + 1;
+      final user = entry.value;
+      return IndoorRankedUser(
+        id: user.id,
+        userId: user.userId,
+        userName: user.userName,
+        profilePicture: user.profilePicture,
+        indoorSteps: user.indoorSteps ?? 0,
+        rank: rank,
+      );
+    }).toList();
+
+    final topThree = rankedUsers.take(3).toList();
+    final remainingUsers =
+        rankedUsers.length > 3 ? rankedUsers.sublist(3) : <IndoorRankedUser>[];
+
+    return ListView(
+      children: [
+        if (topThree.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (topThree.length > 1)
+                  _buildTopUser(topThree[1], 2, currentUserName),
+                const SizedBox(width: 20),
+                if (topThree.isNotEmpty)
+                  _buildTopUser(topThree[0], 1, currentUserName),
+                const SizedBox(width: 20),
+                if (topThree.length > 2)
+                  _buildTopUser(topThree[2], 3, currentUserName),
+              ],
             ),
-          );
-        }
-
-        // Mevcut kullanıcının adını al
-        final currentUserName = userDataAsync.whenOrNull(
-          data: (userData) => userData?.userName,
-        );
-
-        // Sort by indoor steps in descending order
-        final sortedUsers = [...leaderboardUsers]
-          ..sort((a, b) => (b.indoorSteps ?? 0).compareTo(a.indoorSteps ?? 0));
-
-        // Add ranks based on the sorted order
-        final rankedUsers = sortedUsers.asMap().entries.map((entry) {
-          final rank = entry.key + 1;
-          final user = entry.value;
-          return IndoorRankedUser(
-            id: user.id,
-            userId: user.userId,
-            userName: user.userName,
-            profilePicture: user.profilePicture,
-            indoorSteps: user.indoorSteps ?? 0,
-            rank: rank,
-          );
-        }).toList();
-
-        // Get top 3 and remaining users
-        final topThree = rankedUsers.take(3).toList();
-        final remainingUsers = rankedUsers.length > 3
-            ? rankedUsers.sublist(3)
-            : <IndoorRankedUser>[];
-
-        return Column(
-          children: [
-            // Top 3
-            if (topThree.isNotEmpty)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (topThree.length > 1)
-                    _buildTopUser(topThree[1], 2, currentUserName),
-                  const SizedBox(width: 20),
-                  if (topThree.isNotEmpty)
-                    _buildTopUser(topThree[0], 1, currentUserName),
-                  const SizedBox(width: 20),
-                  if (topThree.length > 2)
-                    _buildTopUser(topThree[2], 3, currentUserName),
-                ],
+          ),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          itemCount: remainingUsers.length,
+          itemBuilder: (context, index) {
+            final user = remainingUsers[index];
+            final isCurrentUser =
+                currentUserName != null && user.userName == currentUserName;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8.0),
+              decoration: BoxDecoration(
+                color: isCurrentUser
+                    ? const Color(0xFFC4FF62).withOpacity(0.2)
+                    : const Color(0xFF333333),
+                borderRadius: BorderRadius.circular(8),
+                border: isCurrentUser
+                    ? Border.all(color: const Color(0xFFC4FF62), width: 1.5)
+                    : null,
               ),
-
-            const SizedBox(height: 16),
-
-            // Remaining Users List
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: remainingUsers.length,
-                itemBuilder: (context, index) {
-                  final user = remainingUsers[index];
-                  final isCurrentUser = currentUserName != null &&
-                      user.userName == currentUserName;
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8.0),
-                    decoration: BoxDecoration(
-                      color: isCurrentUser
-                          ? const Color(0xFFC4FF62).withOpacity(0.2)
-                          : const Color(0xFF333333),
-                      borderRadius: BorderRadius.circular(8),
-                      border: isCurrentUser
-                          ? Border.all(
-                              color: const Color(0xFFC4FF62), width: 1.5)
-                          : null,
-                    ),
-                    child: ListTile(
-                      leading: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 24,
-                            child: Text(
-                              '${user.rank}',
-                              style: TextStyle(
-                                color: isCurrentUser
-                                    ? const Color(0xFFC4FF62)
-                                    : Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          CircleAvatar(
-                            backgroundColor: Colors.blue.withOpacity(0.2),
-                            backgroundImage: user.profilePicture != null &&
-                                    user.profilePicture!.isNotEmpty
-                                ? NetworkImage(user.profilePicture!)
-                                : null,
-                            child: (user.profilePicture == null ||
-                                    user.profilePicture!.isEmpty)
-                                ? Text(
-                                    user.userName.isNotEmpty
-                                        ? user.userName[0]
-                                        : '?',
-                                    style: const TextStyle(color: Colors.white),
-                                  )
-                                : null,
-                          ),
-                        ],
-                      ),
-                      title: Text(
-                        user.userName,
+              child: ListTile(
+                leading: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        '${user.rank}',
                         style: TextStyle(
                           color: isCurrentUser
                               ? const Color(0xFFC4FF62)
@@ -473,44 +486,44 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      trailing: Text(
-                        '${user.indoorSteps} steps',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFFC4FF62),
-        ),
-      ),
-      error: (error, stackTrace) => Center(
-        child: SelectableText.rich(
-          TextSpan(
-            text: 'Error loading leaderboard\n',
-            style:
-                const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            children: [
-              TextSpan(
-                text: error.toString(),
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.normal,
+                    const SizedBox(width: 8),
+                    CircleAvatar(
+                      backgroundColor: Colors.blue.withOpacity(0.2),
+                      backgroundImage: user.profilePicture != null &&
+                              user.profilePicture!.isNotEmpty
+                          ? NetworkImage(user.profilePicture!)
+                          : null,
+                      child: (user.profilePicture == null ||
+                              user.profilePicture!.isEmpty)
+                          ? Text(
+                              user.userName.isNotEmpty ? user.userName[0] : '?',
+                              style: const TextStyle(color: Colors.white),
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
+                title: Text(
+                  user.userName,
+                  style: TextStyle(
+                    color:
+                        isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                trailing: Text(
+                  '${user.indoorSteps} steps',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ],
-          ),
+            );
+          },
         ),
-      ),
+      ],
     );
   }
 
@@ -620,6 +633,83 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             ],
           ),
       ],
+    );
+  }
+
+  // --- YENİ: Kullanıcı Sıralama Kartı Oluşturucu ---
+  Widget _buildUserRankCard(UserLeaderboardEntryDto userEntry, bool isOutdoor) {
+    final String rankText = '#${userEntry.rank}';
+    // Veri modelinin hem indoorSteps hem de generalDistance içerdiğinden emin ol
+    final String valueText = isOutdoor
+        ? '${userEntry.generalDistance?.toStringAsFixed(2) ?? "0.00"} km'
+        : '${userEntry.indoorSteps ?? 0} steps';
+
+    return Container(
+      margin:
+          const EdgeInsets.only(bottom: 0), // Alt boşluğu Padding ile verdik
+      decoration: BoxDecoration(
+        color: const Color(0xFFC4FF62).withOpacity(0.2), // Vurgu rengi
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFFC4FF62), // Vurgu kenarlığı
+          width: 1.5,
+        ),
+      ),
+      child: ListTile(
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 30, // Sıralama için genişlik
+              child: Text(
+                rankText,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFFC4FF62),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            CircleAvatar(
+              radius: 20, // Avatar boyutu
+              backgroundColor: Colors.grey.shade800, // Arkaplan rengi
+              backgroundImage: userEntry.profilePicture != null &&
+                      userEntry.profilePicture!.isNotEmpty
+                  ? NetworkImage(userEntry.profilePicture!)
+                  : null, // AssetImage or default icon
+              child: (userEntry.profilePicture == null ||
+                      userEntry.profilePicture!.isEmpty)
+                  ? Text(
+                      userEntry.userName.isNotEmpty
+                          ? userEntry.userName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    )
+                  : null,
+            ),
+          ],
+        ),
+        title: Text(
+          userEntry.userName, // Kullanıcı adı
+          style: const TextStyle(
+            color: Color(0xFFC4FF62), // Vurgu rengi
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Text(
+          valueText, // Değer (km veya adım)
+          style: const TextStyle(
+            color: Colors.white, // Değer rengi
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        dense: true, // Daha kompakt görünüm
+      ),
     );
   }
 }

@@ -131,8 +131,6 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                         ? 'Outdoor Koşu'
                                         : 'Indoor Koşu';
 
-                                final durationText = '$duration Dakika';
-
                                 // WaitingRoom'a yönlendir ve oda bilgilerini aktar
                                 Navigator.pushReplacement(
                                   context,
@@ -143,7 +141,7 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                           ? DateTime.parse(result['startTime'])
                                           : null,
                                       activityType: activityType,
-                                      duration: durationText,
+                                      duration: duration,
                                     ),
                                   ),
                                 );

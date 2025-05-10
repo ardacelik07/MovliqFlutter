@@ -13,8 +13,7 @@ class RaceService {
       if (tokenJson == null) {
         throw Exception('Authentication token not found');
       }
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String actualToken = tokenData['token'];
+      final String actualToken = tokenJson;
 
       // HttpInterceptor kullanarak istek yap (401 durumunda otomatik logout olacak)
       final response = await HttpInterceptor.post(

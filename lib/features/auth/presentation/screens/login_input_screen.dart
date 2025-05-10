@@ -8,6 +8,7 @@ import 'dart:convert';
 import '../../../../core/services/storage_service.dart';
 import '../providers/user_data_provider.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginInputScreen extends ConsumerStatefulWidget {
   const LoginInputScreen({super.key});
@@ -73,6 +74,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
               _errorText = null; // <- Clear error message if login successful
             });
             ref.read(userDataProvider.notifier).fetchUserData();
+            ref.read(userDataProvider.notifier).fetchCoins();
             ref.read(selectedTabProvider.notifier).state = 0;
             Navigator.pushReplacement(
               context,
@@ -232,7 +234,12 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        // TODO: Implement forgot password functionality
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const ForgotPasswordScreen()),
+                        );
                       },
                       child: const Text(
                         'Şifremi unuttum?',

@@ -17,6 +17,11 @@ import 'race_results_screen.dart';
 import 'package:lottie/lottie.dart';
 import '../providers/user_ranks_provider.dart';
 import '../../domain/models/user_ranks_model.dart';
+import 'coupon_screen.dart';
+import '../widgets/network_error_widget.dart';
+import 'package:http/http.dart' show ClientException;
+import 'dart:io' show SocketException;
+import 'update_user_info_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -226,8 +231,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         throw Exception('Token bulunamadı');
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(token);
-      final String accessToken = tokenData['token'];
+      final String accessToken = token;
 
       final response = await http.get(
         Uri.parse(ApiConfig.lastThreeActivitiesEndpoint),
@@ -318,9 +322,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 Icons.discount_outlined, // Using outlined icon
                                 color: Color(
                                     0xFF93C53E)), // Green color from image
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CouponScreen(),
+                                ),
+                              );
+                            },
                           ),
                         ),
+
                         Positioned(
                           top: 0,
                           right: 16,
@@ -342,6 +354,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ],
                     ),
                   ),
+                  //update user info button
 
                   // İstatistikler (Updated Style)
                   userRanksAsync.maybeWhen(
@@ -634,38 +647,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   ],
                                 );
                               },
-                              loading: () => Container(
-                                // Maintain height during loading
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2A2A2A),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Color(0xFF93C53E),
-                                  ),
+                              loading: () => const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF93C53E),
                                 ),
                               ),
-                              error: (error, stackTrace) => Container(
-                                // Maintain height on error
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2A2A2A),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Text(
-                                      'Hata: $error',
-                                      style: const TextStyle(
-                                          color: Colors.redAccent),
-                                      textAlign: TextAlign.center,
-                                    ),
+                              error: (error, stackTrace) {
+                                // ALWAYS show NetworkErrorWidget for activity data errors
+                                return Center(
+                                  child: NetworkErrorWidget(
+                                    title: 'Aktivite Verisi Yüklenemedi',
+                                    message:
+                                        'Grafik verileri alınamadı, tekrar deneyin.',
+                                    onRetry: () {
+                                      // Retry fetching activity data
+                                      ref.invalidate(activityProfileProvider);
+                                      _fetchActivityData(); // Call the fetch function again
+                                    },
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             );
                           },
                         ),
@@ -839,7 +840,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                             ),
                                           ),
                                           const SizedBox(width: 12),
-                                          // Right section (Rank, Distance/Steps)
+                                          // Right section (Rank, Distance/Steps, Calories)
                                           Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.end,
@@ -854,37 +855,74 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
-                                              Text(
-                                                isIndoor
-                                                    ? '$stepsStr Adım'
-                                                    : '$distanceStr km',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight
-                                                      .bold, // Bold main value
-                                                ),
+                                              // --- YENİ: Kalori, Mesafe, Adım Row'u ---
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.end,
+                                                children: [
+                                                  // Kalori (varsa göster)
+                                                  if (race['calories'] !=
+                                                          null &&
+                                                      race['calories'] > 0) ...[
+                                                    Icon(
+                                                        Icons
+                                                            .local_fire_department_outlined,
+                                                        color:
+                                                            Colors.orangeAccent,
+                                                        size: 14),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      '${race['calories']} kcal',
+                                                      style: const TextStyle(
+                                                          color: Colors
+                                                              .orangeAccent,
+                                                          fontSize: 12.0),
+                                                    ),
+                                                    const SizedBox(
+                                                        width:
+                                                            8), // Kalori ve diğerleri arasına boşluk
+                                                  ],
+                                                  // Mesafe (Dış Mekan ise)
+                                                  if (!isIndoor)
+                                                    Icon(
+                                                        Icons
+                                                            .directions_run_outlined,
+                                                        color:
+                                                            Colors.blueAccent,
+                                                        size: 14),
+                                                  if (!isIndoor)
+                                                    const SizedBox(width: 4),
+                                                  if (!isIndoor)
+                                                    Text(
+                                                      '$distanceStr km',
+                                                      style: const TextStyle(
+                                                          color:
+                                                              Colors.blueAccent,
+                                                          fontSize: 12.0),
+                                                    ),
+                                                  if (!isIndoor)
+                                                    const SizedBox(
+                                                        width:
+                                                            8), // Mesafe ve adım arasına boşluk
+
+                                                  // Adım Sayısı
+                                                  Icon(
+                                                      Icons
+                                                          .directions_walk_outlined,
+                                                      color: Colors.greenAccent,
+                                                      size: 14),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '$stepsStr Adım',
+                                                    style: const TextStyle(
+                                                        color:
+                                                            Colors.greenAccent,
+                                                        fontSize: 12.0),
+                                                  ),
+                                                ],
                                               ),
-                                              // Add secondary value (KM for indoor, Steps for outdoor)
-                                              if (isIndoor &&
-                                                  distanceStr != null)
-                                                Text(
-                                                  '$distanceStr km',
-                                                  style: TextStyle(
-                                                    color: Colors.white
-                                                        .withOpacity(0.6),
-                                                    fontSize: 12,
-                                                  ),
-                                                )
-                                              else if (!isIndoor)
-                                                Text(
-                                                  '$stepsStr Adım',
-                                                  style: TextStyle(
-                                                    color: Colors.white
-                                                        .withOpacity(0.6),
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
+                                              // --- YENİ: Kalori, Mesafe, Adım Row'u Sonu ---
                                             ],
                                           ),
                                         ],
@@ -926,46 +964,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           },
           loading: () => const Center(
               child: CircularProgressIndicator(color: Color(0xFF93C53E))),
-          error: (error, stackTrace) => Center(
-            // Consistent error display
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-                  const SizedBox(height: 16),
-                  Text('Profil bilgileri yüklenemedi.',
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  SelectableText(
-                    // Use SelectableText for errors
-                    'Hata: $error',
-                    style:
-                        const TextStyle(color: Colors.redAccent, fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Yeniden Dene'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.black,
-                        backgroundColor:
-                            const Color(0xFF93C53E), // Button text color
-                      ),
-                      onPressed: () {
-                        ref.invalidate(
-                            userDataProvider); // Invalidate to force refetch
-                        ref.invalidate(userRanksProvider);
-                        ref.invalidate(activityProfileProvider);
-                        ref.invalidate(userStreakProvider);
-                      }),
-                ],
+          error: (error, stackTrace) {
+            // ALWAYS show NetworkErrorWidget for any full-screen error
+            return Center(
+              child: NetworkErrorWidget(
+                // Provide generic title/message for all errors
+                title: 'Profil Yüklenemedi',
+                message: 'Profil bilgileri alınamadı, lütfen tekrar deneyin.',
+                onRetry: () {
+                  ref.invalidate(
+                      userDataProvider); // Invalidate to force refetch
+                  ref.invalidate(userRanksProvider);
+                  ref.invalidate(activityProfileProvider);
+                  ref.invalidate(userStreakProvider);
+                },
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -1094,7 +1109,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   // Yeni icon stat widget'ı (Updated Style)
   Widget _buildStatIcon({
-    required IconData icon,
+    IconData? icon,
+    Widget? iconWidget,
     required String value,
     required String label,
     required Color iconColor,
@@ -1111,11 +1127,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Colors.white.withOpacity(0.1), // Use provided bg or default
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 20, // Reduced icon size
-            ),
+            child: iconWidget ??
+                Icon(
+                  icon,
+                  color: iconColor,
+                  size: 20, // Reduced icon size
+                ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1180,11 +1197,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             _buildStreakStatIcon(), // Uses its own styling logic
             _buildStatIcon(
-              icon: Icons
-                  .monetization_on_outlined, // Use outlined icon (closer to coin stack)
-              value: userCoinsAsync.toString(), // Value from image
-              label: 'Coin', // Label from image
-              iconColor: const Color(0xFFFFD700), // Gold color for coin
+              iconWidget: Image.asset(
+                'assets/images/mCoin.png',
+                width: 24,
+                height: 24,
+              ),
+              value: userCoinsAsync?.toStringAsFixed(2) ??
+                  '0.00', // Format to 2 decimal places
+              label: 'Movliq Coin', // Label from image
+              iconColor: Colors.amber, // Gold color for coin
               backgroundColor:
                   const Color(0xFFFFD700).withOpacity(0.15), // Gold background
             ),
@@ -1351,53 +1372,30 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
       final response = await _uploadProfileImage(image.path, tokenJson);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
+        // Başarılı yanıt alındı, verileri yeniden fetch et
         PaintingBinding.instance.imageCache.clear();
         PaintingBinding.instance.imageCache.clearLiveImages();
 
-        final userData = ref.read(userDataProvider).value;
-        if (userData != null) {
-          final updatedUserData = UserDataModel(
-              id: userData.id,
-              name: userData.name,
-              surname: userData.surname,
-              userName: userData.userName,
-              email: userData.email,
-              phoneNumber: userData.phoneNumber,
-              address: userData.address,
-              age: userData.age,
-              height: userData.height,
-              weight: userData.weight,
-              gender: userData.gender,
-              profilePicturePath:
-                  data['profilePictureUrl'] ?? userData.profilePicturePath,
-              runprefer: userData.runprefer,
-              active: userData.active,
-              isActive: userData.isActive,
-              distancekm: userData.distancekm,
-              steps: userData.steps,
-              rank: userData.rank,
-              generalRank: userData.generalRank,
-              birthday: userData.birthday,
-              createdAt: userData.createdAt);
+        // Kullanıcı verisini ve coinleri yeniden çek
 
-          ref.read(userDataProvider.notifier).updateUserData(updatedUserData);
-        }
+        ref.read(userDataProvider.notifier).fetchUserData();
+        ref.read(userDataProvider.notifier).fetchCoins();
 
         _showSuccessMessage(context, 'Profil fotoğrafı başarıyla güncellendi');
 
+        // Yeni veriyi yansıtmak için UI'ı yeniden çizmek için state'i güncelle
         setState(() {
-          _imageKey = UniqueKey();
+          _imageKey = UniqueKey(); // Ensure image rebuilds with new data
+          _localImageFile = null; // Clear local file reference
         });
       } else {
         _showErrorMessage(
             context, 'Profil fotoğrafı yüklenirken bir hata oluştu');
-        _localImageFile = null;
+        _localImageFile = null; // Hata durumunda yerel dosyayı temizle
       }
     } catch (e) {
       _showErrorMessage(context, 'Hata: $e');
-      _localImageFile = null;
+      _localImageFile = null; // Hata durumunda yerel dosyayı temizle
     } finally {
       if (mounted) {
         setState(() {
@@ -1409,8 +1407,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
 
   Future<http.Response> _uploadProfileImage(
       String imagePath, String tokenJson) async {
-    final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-    final String token = tokenData['token'];
+    final String token = tokenJson;
 
     var request = http.MultipartRequest(
       'POST',

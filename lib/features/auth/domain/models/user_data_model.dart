@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 class UserDataModel {
   final int? id;
   final String? name;
@@ -20,7 +22,7 @@ class UserDataModel {
   final int? generalRank;
   final DateTime? birthday;
   final DateTime? createdAt;
-  final int? coins;
+  final double? coins;
 
   UserDataModel({
     this.id,
@@ -70,7 +72,7 @@ class UserDataModel {
     int? generalRank,
     DateTime? birthday,
     DateTime? createdAt,
-    int? coins,
+    double? coins,
   }) {
     return UserDataModel(
       id: id ?? this.id,
@@ -123,7 +125,7 @@ class UserDataModel {
           json['birthDay'] != null ? DateTime.parse(json['birthDay']) : null,
       createdAt:
           json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      coins: json['coins'] ?? 0,
+      coins: (json['coins'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -142,4 +144,26 @@ class UserDataModel {
 
   // profilePictureUrl getter metodu (UI kodu uyumsuzluğunu önlemek için)
   String? get profilePictureUrl => profilePicturePath;
+
+  // Method to convert UserDataModel to JSON for API requests
+  Map<String, dynamic> toJson() {
+    return {
+      // API isteği için alanları ekleyin, null ise göndermeyebilir veya varsayılan değer atanabilir.
+      // API isteği gövdesine göre alan adlarını (case sensitive) eşleştirin.
+      'age': age ?? 0,
+      'height': height ?? 0.0,
+      'weight': weight ?? 0.0,
+      'gender': gender,
+      'active': active ?? 0,
+      'runPrefer': runprefer ?? 0,
+      'name': name,
+      'userName': userName, // API `userName` bekliyor olabilir, kontrol edin
+      'birthDay': birthday
+          ?.toIso8601String(), // API `birthDay` bekliyor ve ISO formatında
+      'coins': coins ?? 0.0,
+      // email, phoneNumber, address gibi diğer alanlar API gerektiriyorsa eklenebilir.
+      // 'surname' alanı API'de yok gibi görünüyor, eklemiyoruz.
+      // 'profilePicturePath', 'isActive', 'distancekm', 'steps', 'rank', 'generalRank', 'createdAt', 'id' gibi alanlar genellikle update isteğinde gönderilmez.
+    };
+  }
 }

@@ -3,6 +3,7 @@ import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/signalr_service.dart';
+import 'dart:convert';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
@@ -37,13 +38,34 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
     try {
       await _signalRService.resetConnection();
 
-      final token = await _repository.register(
+      final String responseBody = await _repository.register(
         email: email,
         password: password,
       );
-      await StorageService.saveToken(token);
-      state = AsyncValue.data(token);
+
+      final Map<String, dynamic> responseData = jsonDecode(responseBody);
+
+      final String? actualAccessToken = responseData['accessToken'] as String?;
+      final String? actualRefreshToken =
+          responseData['refreshToken'] as String?;
+
+      if (actualAccessToken != null &&
+          actualAccessToken.isNotEmpty &&
+          actualRefreshToken != null &&
+          actualRefreshToken.isNotEmpty) {
+        await StorageService.saveToken(
+          accessToken: actualAccessToken,
+          refreshToken: actualRefreshToken,
+        );
+        state = AsyncValue.data(actualAccessToken);
+        print('Registration successful and tokens parsed and saved correctly.');
+      } else {
+        print('Error: Tokens not found in registration response or are empty.');
+        throw Exception(
+            'Invalid token data received from server after registration.');
+      }
     } catch (e, stack) {
+      print('Registration Provider Error: $e');
       state = AsyncValue.error(e, stack);
     }
   }
@@ -59,13 +81,33 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
     try {
       await _signalRService.resetConnection();
 
-      final token = await _repository.login(
+      final String responseBody = await _repository.login(
         email: email,
         password: password,
       );
-      await StorageService.saveToken(token);
-      state = AsyncValue.data(token);
+
+      final Map<String, dynamic> responseData = jsonDecode(responseBody);
+
+      final String? actualAccessToken = responseData['accessToken'] as String?;
+      final String? actualRefreshToken =
+          responseData['refreshToken'] as String?;
+
+      if (actualAccessToken != null &&
+          actualAccessToken.isNotEmpty &&
+          actualRefreshToken != null &&
+          actualRefreshToken.isNotEmpty) {
+        await StorageService.saveToken(
+          accessToken: actualAccessToken,
+          refreshToken: actualRefreshToken,
+        );
+        state = AsyncValue.data(actualAccessToken);
+        print('Login successful and tokens parsed and saved correctly.');
+      } else {
+        print('Error: Tokens not found in parsed response or are empty.');
+        throw Exception('Invalid token data received from server.');
+      }
     } catch (e, stack) {
+      print('Login Provider Error: $e');
       state = AsyncValue.error(e, stack);
     }
   }

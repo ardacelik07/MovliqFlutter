@@ -5,7 +5,7 @@ import 'photo.dart'; // Photo modelini import et
 part 'product.g.dart';
 
 @JsonSerializable(
-    fieldRename: FieldRename.snake,
+    //fieldRename: FieldRename.snake,
     explicitToJson: true,
     nullable: true) // nullable eklendi
 class Product {
@@ -15,7 +15,9 @@ class Product {
   @JsonKey(defaultValue: '')
   final String description; // defaultValue var, null olamaz
   @JsonKey(defaultValue: '')
-  final String category; // defaultValue var, null olamaz
+  final String category;
+  @JsonKey(defaultValue: '')
+  final String? aboutProduct; // defaultValue var, null olamaz
   final String? brand; // API'de nullable olabilir
   final String? model; // API'de nullable olabilir
   final int? stock; // API'de nullable olabilir
@@ -34,7 +36,13 @@ class Product {
   )
   final DateTime? createdAt; // nullable yapıldı ve özel işleme eklendi
 
-  final int? creatorUserId; // API'de nullable olabilir
+  final int? creatorUserId;
+  @JsonKey(
+    defaultValue: null,
+    fromJson: _dateTimeFromJson,
+    toJson: _dateTimeToJson,
+  )
+  final DateTime? expirationDate; // API'de nullable olabilir
   final List<Photo>? photos; // Nullable yapıldı List<Photo>?
   // final DateTime updatedAt; // API yanıtında updatedAt yok
   // final bool isDeleted; // API yanıtında isDeleted yok, isActive var
@@ -44,6 +52,7 @@ class Product {
     required this.name, // defaultValue olduğu için required kalabilir
     required this.description, // defaultValue olduğu için required kalabilir
     required this.category, // defaultValue olduğu için required kalabilir
+    this.aboutProduct, // defaultValue olduğu için required kalabilir
     this.brand,
     this.model,
     this.stock,
@@ -52,6 +61,7 @@ class Product {
     required this.isActive, // defaultValue olduğu için required kalabilir
     this.createdAt, // nullable olduğu için required kaldırıldı
     this.creatorUserId,
+    this.expirationDate,
     this.photos, // nullable olduğu için required kaldırıldı
     // required this.updatedAt,
     // required this.isDeleted,

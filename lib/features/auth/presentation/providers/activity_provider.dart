@@ -73,8 +73,7 @@ class UserActivityNotifier
         throw Exception('Oturum açmanız gerekiyor');
       }
 
-      final Map<String, dynamic> tokenData = jsonDecode(tokenJson);
-      final String token = tokenData['token'];
+      final String token = tokenJson;
 
       final url = Uri.parse(
           '${ApiConfig.baseUrl}/UserResults/GetUserActivities?type=$type&period=$period');
