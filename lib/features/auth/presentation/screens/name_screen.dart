@@ -69,6 +69,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                   SizedBox(
                       height: MediaQuery.of(context).padding.top +
                           20), // Space from top, considering status bar
+
                   // Image
                   Image.asset(
                     'assets/images/registration.png', // Existing image
@@ -76,6 +77,16 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                         0.35, // Adjust height
                   ),
                   const SizedBox(height: 60),
+                  // Name Label
+                  const Text(
+                    'Adınız ne?',
+                    style: TextStyle(
+                      color: labelColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   // Name Field
                   TextFormField(
                     controller: _nameController,
@@ -101,6 +112,16 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     },
                   ),
                   const SizedBox(height: 20),
+                  // Username Label
+                  const Text(
+                    'Tercih ettiğiniz kullanıcı adı nedir?',
+                    style: TextStyle(
+                      color: labelColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   // Username Field
                   TextFormField(
                     controller: _usernameController,

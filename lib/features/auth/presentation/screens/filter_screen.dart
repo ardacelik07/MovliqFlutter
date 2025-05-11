@@ -22,88 +22,103 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
-              const Text(
-                "Koşu Türünü Seç",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 40),
-              _buildOptionCard(
-                titleLines: ["İç Mekan", "Koşusu"],
-                description: "Spor salonu ve kapalı alanlarda koşu",
-                imagePath: "assets/images/manOnRunningInside.png",
-                value: "indoor",
-                isSelected: _selectedPreference == "indoor",
-                cardHeight: cardHeight,
-                onTap: () => setState(() => _selectedPreference = "indoor"),
-              ),
-              const SizedBox(height: 24),
-              _buildOptionCard(
-                titleLines: ["Dış Mekan", "Koşusu"],
-                description: "Park ve açık alanlarda koşu",
-                imagePath: "assets/images/womanRunOutside.png",
-                value: "outdoor",
-                isSelected: _selectedPreference == "outdoor",
-                cardHeight: cardHeight,
-                onTap: () => setState(() => _selectedPreference = "outdoor"),
-              ),
-              const Spacer(),
-              if (_selectedPreference != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC4FF62),
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      onPressed: () {
-                        ref
-                            .read(raceSettingsProvider.notifier)
-                            .setRoomType(_selectedPreference!);
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final availableHeight = constraints.maxHeight;
+            final cardHeight =
+                (availableHeight - 240) / 2; // adjust to fit better
 
-                        if (_selectedPreference == 'indoor') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const VerificationScreen(),
-                            ),
-                          );
-                        } else {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const FilterScreen2()),
-                          );
-                        }
-                      },
-                      child: const Text(
-                        'Devam',
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        "Koşu Türünü Seç",
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildOptionCard(
+                    titleLines: ["İç Mekan", "Koşusu"],
+                    description: "Spor salonu ve kapalı alanlarda koşu",
+                    imagePath: "assets/images/manOnRunningInside.png",
+                    value: "indoor",
+                    isSelected: _selectedPreference == "indoor",
+                    cardHeight: cardHeight,
+                    onTap: () => setState(() => _selectedPreference = "indoor"),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildOptionCard(
+                    titleLines: ["Dış Mekan", "Koşusu"],
+                    description: "Park ve açık alanlarda koşu",
+                    imagePath: "assets/images/womanRunOutside.png",
+                    value: "outdoor",
+                    isSelected: _selectedPreference == "outdoor",
+                    cardHeight: cardHeight,
+                    onTap: () =>
+                        setState(() => _selectedPreference = "outdoor"),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_selectedPreference != null)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC4FF62),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          ref
+                              .read(raceSettingsProvider.notifier)
+                              .setRoomType(_selectedPreference!);
+
+                          if (_selectedPreference == 'indoor') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const VerificationScreen(),
+                              ),
+                            );
+                          } else {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const FilterScreen2(),
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Devam',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-            ],
-          ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );

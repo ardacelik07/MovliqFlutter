@@ -46,7 +46,7 @@ class LoginScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 60),
                       const Text(
-                        'Move more, Earn more',
+                        'Daha fazla hareket edin, daha fazla kazanın',
                         style: TextStyle(
                           color: textColor,
                           fontSize: 26,
@@ -56,7 +56,7 @@ class LoginScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 48),
                       const Text(
-                        'Join a global running community and\nchallenge yourself every day.',
+                        'Küresel bir koşu topluluğuna katılın \ve her gün kendinize meydan okuyun.',
                         style: TextStyle(
                           color: secondaryTextColor,
                           fontSize: 18,

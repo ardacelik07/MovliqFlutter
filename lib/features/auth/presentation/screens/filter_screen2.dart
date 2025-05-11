@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 
 import 'package:my_flutter_project/features/auth/presentation/screens/waitingRoom_screen.dart';
 import '../providers/race_settings_provider.dart';
@@ -34,13 +35,32 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              const Text(
-                "Koşu Süresi",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+              Row(
+                children: [
+                  IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => FilterScreen()),
+                        );
+                      }),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "Koşu Süresi",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () {
+                      Navigator.pop(context); // Or replace with desired action
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               const Text(
