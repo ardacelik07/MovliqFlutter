@@ -12,6 +12,8 @@ import '../providers/record_provider.dart';
 import '../providers/user_data_provider.dart';
 import '../providers/recording_state_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/earn_coin_widget.dart';
+import '../screens/tabs.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -293,7 +295,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   // Tüm izinleri başlatan fonksiyon
   Future<void> _initPermissions() async {
     print('RecordScreen - İzin kontrolü başlatılıyor...');
-    
+
     // --- Bildirim İzni İsteği (Android 13+) ---
     if (Platform.isAndroid) {
       // Cihazın SDK versiyonunu almak için device_info_plus gerekebilir,
@@ -332,7 +334,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (Platform.isIOS) {
       // iOS için Geolocator ile izin kontrolü
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.always || 
+      if (permission == LocationPermission.always ||
           permission == LocationPermission.whileInUse) {
         setState(() {
           _hasLocationPermission = true;
@@ -353,7 +355,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         await _checkLocationPermission(); // İzin yoksa iste
       }
     }
-    
+
     // Aktivite izinlerini de kontrol et
     await _checkActivityPermission();
   }
@@ -374,15 +376,15 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       setState(() {
         _hasPedometerPermission = true;
       });
-      
+
       try {
         // Pedometer'ı başlatmayı dene
         _initPedometer();
-        
+
         // Sensör iznini kontrol et ve iste
         final sensorStatus = await Permission.sensors.request();
         print('RecordScreen - iOS sensör izin durumu: $sensorStatus');
-        
+
         // HealthKit izinlerinin verilip verilmediğini kontrol etmek için
         // adım sayma stream'ini dinlemeye başla ve 3 saniye bekle
         bool stepsAvailable = false;
@@ -396,82 +398,78 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }, onError: (error) {
           print('RecordScreen - Adım algılama hatası: $error');
         });
-        
+
         // 3 saniye bekle, eğer bu sürede step eventi gelmezse:
         await Future.delayed(const Duration(seconds: 3));
         subscription.cancel();
-        
+
         // Eğer adım bilgisi alınamadıysa ve daha önce dialog gösterilmediyse Health app'e yönlendir
-        if (!stepsAvailable && mounted) {
-          
-        }
+        if (!stepsAvailable && mounted) {}
       } catch (e) {
         print('RecordScreen - Pedometer başlatma hatası: $e');
         // Hata durumunda dialog göster
-        if (mounted) {
-          
-        }
+        if (mounted) {}
       }
     }
   }
 
   // Health Kit izni için özel dialog (iOS)
-  
 
   // Konum izinlerini kontrol eden fonksiyon
   Future<void> _checkLocationPermission() async {
     print('RecordScreen - Konum izni kontrolü başlatılıyor...');
-    
+
     if (Platform.isIOS) {
       // iOS için: Geolocator'ı doğrudan kullan (daha iyi çalışıyor)
       LocationPermission permission = await Geolocator.checkPermission();
       print('RecordScreen - iOS konum izni durumu: $permission');
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         print('RecordScreen - iOS konum izni istendikten sonra: $permission');
       }
-      
+
       // LocationPermission.whileInUse ve LocationPermission.always her ikisi de yeterli
       setState(() {
-        _hasLocationPermission = permission == LocationPermission.whileInUse || 
-                                 permission == LocationPermission.always;
+        _hasLocationPermission = permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always;
       });
-      
+
       print('RecordScreen - iOS konum izni var mı?: $_hasLocationPermission');
-      
+
       if (_hasLocationPermission) {
         // İzin varsa konumu al
         await _getCurrentLocation();
-      } else if (permission == LocationPermission.denied || 
-                 permission == LocationPermission.deniedForever) {
-        
-      }
+      } else if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {}
     } else {
       // Android için: Permission.locationAlways kullanmaya devam et
       final status = await Permission.locationAlways.status;
       print('RecordScreen - Android konum izni durumu: $status');
-      
+
       // Eğer izin henüz verilmemişse iste
       if (!status.isGranted && !status.isLimited) {
         final requestedStatus = await Permission.locationAlways.request();
-        print('RecordScreen - Android izin istendikten sonra: $requestedStatus');
-        
+        print(
+            'RecordScreen - Android izin istendikten sonra: $requestedStatus');
+
         setState(() {
-          _hasLocationPermission = requestedStatus.isGranted || requestedStatus.isLimited;
+          _hasLocationPermission =
+              requestedStatus.isGranted || requestedStatus.isLimited;
         });
-        
-        if (!_hasLocationPermission && (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied)) {
-          
-        }
+
+        if (!_hasLocationPermission &&
+            (requestedStatus.isDenied ||
+                requestedStatus.isPermanentlyDenied)) {}
       } else {
         setState(() {
           _hasLocationPermission = true;
         });
       }
-      
-      print('RecordScreen - Android konum izni var mı?: $_hasLocationPermission');
-      
+
+      print(
+          'RecordScreen - Android konum izni var mı?: $_hasLocationPermission');
+
       if (_hasLocationPermission) {
         // İzin varsa konumu al
         await _getCurrentLocation();
@@ -480,7 +478,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   // Kullanıcı izin vermediğinde gösterilecek dialog (Opsiyonel)
-  
 
   // Mevcut konumu al ve haritayı oraya taşı
   Future<void> _getCurrentLocation() async {
@@ -779,7 +776,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
       // Submit data to backend
       ref.read(recordSubmissionProvider(recordRequest).future).then(
-        (response) {
+        (response) async {
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -788,6 +785,30 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             ),
           );
           print("💰 Coins fetched after successful activity record.");
+
+          // --- YENİ EKLENEN KISIM: Coin kazanma isteği ---
+          try {
+            // Provider artık doğrudan double döndürüyor
+            final double earnedAmount =
+                await ref.read(recordEarnCoinProvider(distance).future);
+
+            print("🪙 Coin Kazanma İsteği Sonucu (double): $earnedAmount");
+
+            if (earnedAmount > 0 && mounted) {
+              // Popup'ı göstermek için yeni fonksiyonu çağır (double ile)
+              _showCoinPopup(context, earnedAmount);
+            }
+          } catch (coinError) {
+            print("🪙 Coin Kazanma İsteği Hatası: $coinError");
+            // Hata durumunda kullanıcıya bilgi verilebilir (opsiyonel)
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   SnackBar(
+            //     content: Text('Coin kazanılırken bir hata oluştu: ${coinError.toString()}'),
+            //     backgroundColor: Colors.orange,
+            //   ),
+            // );
+          }
+          // --- Coin kazanma isteği sonu ---
         },
         onError: (error) {
           // Show error message
@@ -1342,54 +1363,55 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   // Adım sayar başlatma fonksiyonu
   void _initPedometer() {
     _stepCountSubscription?.cancel(); // Cancel any existing subscription
-    
+
     print('RecordScreen - Pedometer başlatılıyor...');
-    
+
     try {
       // Sensörleri uyandırmak için kısa bir bekleme ekle
       Future.delayed(const Duration(milliseconds: 100), () {
-        _stepCountSubscription = Pedometer.stepCountStream.listen(
-          (StepCount event) {
-            print('RecordScreen - Adım olayı alındı: ${event.steps}');
-            
-            if (!mounted || !_isRecording || _isPaused) {
-              print('RecordScreen - Adım kaydedilmedi: kayıt aktif değil veya duraklatılmış');
-              return;
-            }
+        _stepCountSubscription =
+            Pedometer.stepCountStream.listen((StepCount event) {
+          print('RecordScreen - Adım olayı alındı: ${event.steps}');
 
-            setState(() {
-              // İlk adım sayısını kaydetmek için _initialSteps'i kullan
-              if (_initialSteps == 0 && event.steps > 0) {
-                _initialSteps = event.steps;
-                _steps = 0; // Başlangıçta adımları sıfırla
-                print('RecordScreen - Başlangıç adımları: $_initialSteps');
-              } else if (_initialSteps > 0) {
-                // Sadece initialSteps ayarlandıktan sonra adımları hesapla
-                _steps = event.steps - _initialSteps;
-                if (_steps < 0) {
-                  _steps = 0; // Negatif adıma düşmesini engelle (cihaz reset vb.)
-                }
-                print('RecordScreen - Güncel adım: ${event.steps}, Başlangıç: $_initialSteps, Hesaplanan: $_steps');
-              }
-            });
-          },
-          onError: (error) {
-            print('RecordScreen - Adım sayar hatası: $error');
-            
-            // iOS için özel hata mesajı
-            if (Platform.isIOS) {
-              print('RecordScreen - iOS için Health Kit izni tekrar kontrol ediliyor');
-            }
-          },
-          onDone: () {
-            print('RecordScreen - Adım sayar stream kapandı');
+          if (!mounted || !_isRecording || _isPaused) {
+            print(
+                'RecordScreen - Adım kaydedilmedi: kayıt aktif değil veya duraklatılmış');
+            return;
           }
-        );
-        
-        // Eğer stream başlatıldı, ancak 5 saniye içinde veri gelmezse tekrar başlat 
+
+          setState(() {
+            // İlk adım sayısını kaydetmek için _initialSteps'i kullan
+            if (_initialSteps == 0 && event.steps > 0) {
+              _initialSteps = event.steps;
+              _steps = 0; // Başlangıçta adımları sıfırla
+              print('RecordScreen - Başlangıç adımları: $_initialSteps');
+            } else if (_initialSteps > 0) {
+              // Sadece initialSteps ayarlandıktan sonra adımları hesapla
+              _steps = event.steps - _initialSteps;
+              if (_steps < 0) {
+                _steps = 0; // Negatif adıma düşmesini engelle (cihaz reset vb.)
+              }
+              print(
+                  'RecordScreen - Güncel adım: ${event.steps}, Başlangıç: $_initialSteps, Hesaplanan: $_steps');
+            }
+          });
+        }, onError: (error) {
+          print('RecordScreen - Adım sayar hatası: $error');
+
+          // iOS için özel hata mesajı
+          if (Platform.isIOS) {
+            print(
+                'RecordScreen - iOS için Health Kit izni tekrar kontrol ediliyor');
+          }
+        }, onDone: () {
+          print('RecordScreen - Adım sayar stream kapandı');
+        });
+
+        // Eğer stream başlatıldı, ancak 5 saniye içinde veri gelmezse tekrar başlat
         Future.delayed(const Duration(seconds: 5), () {
           if (mounted && _isRecording && _initialSteps == 0) {
-            print('RecordScreen - 5 saniye içinde adım verisi gelmedi, stream yeniden başlatılıyor');
+            print(
+                'RecordScreen - 5 saniye içinde adım verisi gelmedi, stream yeniden başlatılıyor');
             _stepCountSubscription?.cancel();
             _initPedometer(); // Tekrar dene
           }
@@ -1408,6 +1430,29 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       }
     }
   }
+
+  // --- YENİ YARDIMCI FONKSİYON: Coin Kazanma Popup'ı ---
+  void _showCoinPopup(BuildContext context, double coins) {
+    // Zaten bir dialog açık mı kontrol et (isteğe bağlı, çift popup engelleme)
+    if (ModalRoute.of(context)?.isCurrent ?? false) {
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
+        builder: (BuildContext dialogContext) {
+          return EarnCoinPopup(
+            earnedCoin: coins,
+            onGoHomePressed: () {
+              Navigator.of(dialogContext).pop(); // Önce popup'ı kapat
+              // Ana sayfaya (Tab 0) yönlendir
+              ref.read(selectedTabProvider.notifier).state = 0;
+              print("Ana sayfaya yönlendirildi (Tab 0).");
+            },
+          );
+        },
+      );
+    }
+  }
+  // --- Coin popup fonksiyonu sonu ---
 
   // Yeni kalori hesaplama metodu
   void _calculateCalories() {
