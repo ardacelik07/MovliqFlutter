@@ -18,6 +18,8 @@ import '../widgets/user_profile_avatar.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart'; // MethodChannel için
 import 'package:geolocator/geolocator.dart'; // Location servisleri için
+import '../providers/race_coin_tracker_provider.dart';
+import '../providers/user_data_provider.dart'; // Eğer yoksa ekle
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -74,7 +76,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     debugPrint('🏠 Oda ID: ${widget.roomId}');
 
     // Kullanıcı adını al
-    _loadUsername();
+    _loadUsername().then((_) {
+      _storeBeforeRaceCoin();
+    });
 
     // SignalR bağlantısını başlat
     _setupSignalR().then((_) {
@@ -84,6 +88,24 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         ref.read(signalRServiceProvider).joinRaceRoom(widget.roomId);
       }
     });
+  }
+
+  Future<void> _storeBeforeRaceCoin() async {
+    // userDataProvider'dan mevcut coin'i almayı dene
+    // valueOrNull kullanmak state null ise hata vermez
+    final currentUserData = ref.read(userDataProvider).valueOrNull;
+    if (currentUserData != null && currentUserData.coins != null) {
+      ref
+          .read(raceCoinTrackingProvider.notifier)
+          .setBeforeRaceCoin(currentUserData.coins!);
+    } else {
+      // Eğer veri henüz yoksa veya coin null ise, kısa bir süre bekleyip tekrar dene
+      // Veya fetchCoins tetiklenebilir ama bu karmaşıklaştırabilir.
+      // Şimdilik sadece loglayalım.
+      print(
+          "🏁 RaceCoinTracker: Yarış öncesi coin alınamadı (userData null veya coin null).");
+      // İsteğe bağlı: Future.delayed ile tekrar deneme eklenebilir
+    }
   }
 
   Future<void> _loadUsername() async {
@@ -582,7 +604,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   @override
   Widget build(BuildContext context) {
     // --- Notifier Dinleme ve Navigasyon ---
-    ref.listen<RaceState>(raceNotifierProvider, (RaceState? previous, RaceState next) {
+    ref.listen<RaceState>(raceNotifierProvider,
+        (RaceState? previous, RaceState next) {
       // Skip if already navigating
       if (_navigationTriggered) return;
 
@@ -597,13 +620,13 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       if ((next.isPreRaceCountdownActive || next.isRaceActive) &&
           next.roomId != null &&
           next.roomId == widget.roomId) {
-        
         // iOS cihazlar için ön konum etkinleştirme
         if (Platform.isIOS) {
-          debugPrint('--- WaitingRoom: iOS için ön konum etkinleştirme yapılıyor... ---');
+          debugPrint(
+              '--- WaitingRoom: iOS için ön konum etkinleştirme yapılıyor... ---');
           _enableIOSLocationForRace();
         }
-        
+
         // --- NAVİGASYON Mantığı ---
         if (!_navigationTriggered) {
           _navigationTriggered = true;
@@ -950,29 +973,31 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
   void _enableIOSLocationForRace() {
     if (!Platform.isIOS) return;
-    
+
     try {
-      debugPrint('WaitingRoom: iOS arka plan konum takibi etkinleştiriliyor...');
-      
+      debugPrint(
+          'WaitingRoom: iOS arka plan konum takibi etkinleştiriliyor...');
+
       // Method channel aracılığıyla iOS native konum takibini etkinleştir
       const platform = MethodChannel('com.movliq/location');
       platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
-        debugPrint('WaitingRoom: iOS native konum takibi başarıyla etkinleştirildi.');
+        debugPrint(
+            'WaitingRoom: iOS native konum takibi başarıyla etkinleştirildi.');
       }).catchError((error) {
-        debugPrint('WaitingRoom: iOS native konum takibi etkinleştirme hatası: $error');
+        debugPrint(
+            'WaitingRoom: iOS native konum takibi etkinleştirme hatası: $error');
       });
-      
+
       // Konum takibi için daha kapsamlı ısınma - birkaç kez konum alalım
       _aggressiveLocationWarmup();
-      
     } catch (e) {
       debugPrint('WaitingRoom: iOS konum takibi genel hatası: $e');
     }
   }
-  
+
   void _warmupLocationServices() {
     if (!Platform.isIOS) return;
-    
+
     try {
       // Servis durumunu kontrol et
       Geolocator.isLocationServiceEnabled().then((enabled) {
@@ -980,22 +1005,23 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           debugPrint('WaitingRoom: Konum servisleri kapalı!');
           return;
         }
-        
+
         // İzinleri kontrol et
         Geolocator.checkPermission().then((permission) {
-          if (permission == LocationPermission.denied || 
+          if (permission == LocationPermission.denied ||
               permission == LocationPermission.deniedForever) {
             debugPrint('WaitingRoom: Konum izinleri reddedilmiş!');
             return;
           }
-          
+
           // Location warmup - servisleri başlatmak için tek bir istek yap
           debugPrint('WaitingRoom: Konum servislerini ısındırma...');
           Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.best,
-            timeLimit: const Duration(seconds: 2)
-          ).then((position) {
-            debugPrint('WaitingRoom: Konum alındı: ${position.latitude}, ${position.longitude}');
+                  desiredAccuracy: LocationAccuracy.best,
+                  timeLimit: const Duration(seconds: 2))
+              .then((position) {
+            debugPrint(
+                'WaitingRoom: Konum alındı: ${position.latitude}, ${position.longitude}');
           }).catchError((e) {
             // Zaman aşımı olabilir, sorun değil - servisler başlatılmış olur
             debugPrint('WaitingRoom: Konum ısındırma hatası: $e');
@@ -1010,51 +1036,51 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   // Daha agresif konum ısındırma yaklaşımı - birkaç kez konum almayı dene
   void _aggressiveLocationWarmup() {
     if (!Platform.isIOS) return;
-    
+
     debugPrint('WaitingRoom: Agresif konum ısındırma başlatılıyor...');
-    
+
     // İlk ısındırma
     _warmupLocationServices();
-    
+
     // Kısa bir süre sonra tekrar dene
     Future.delayed(const Duration(milliseconds: 500), () {
       _warmupLocationServices();
-      
+
       // Bir 1 saniye sonra tekrar konumu al ve sürekli izleme başlat
       Future.delayed(const Duration(seconds: 1), () {
         _startContinuousLocationUpdates();
       });
     });
-    
+
     // Biraz daha sonra tekrar ısındırma
     Future.delayed(const Duration(seconds: 2), () {
       _warmupLocationServices();
     });
   }
-  
+
   // Sürekli konum güncellemesi - GPS'i sürekli açık tutmak için
   void _startContinuousLocationUpdates() {
     if (!Platform.isIOS) return;
-    
+
     debugPrint('WaitingRoom: Sürekli konum güncellemesi başlatılıyor...');
-    
+
     try {
       LocationSettings locationSettings = AppleSettings(
-        accuracy: LocationAccuracy.best,
-        activityType: ActivityType.fitness,
-        distanceFilter: 5,
-        pauseLocationUpdatesAutomatically: false,
-        showBackgroundLocationIndicator: true,
-        allowBackgroundLocationUpdates: true
-      );
-      
+          accuracy: LocationAccuracy.best,
+          activityType: ActivityType.fitness,
+          distanceFilter: 5,
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
+          allowBackgroundLocationUpdates: true);
+
       // Kısa bir stream başlat, hemen iptal edilecek ama iOS'un konum servisini başlatmasını sağlayacak
-      var tempSubscription = Geolocator.getPositionStream(
-        locationSettings: locationSettings
-      ).listen((position) {
-        debugPrint('WaitingRoom: Sürekli konum - Position update: ${position.latitude}, ${position.longitude}');
+      var tempSubscription =
+          Geolocator.getPositionStream(locationSettings: locationSettings)
+              .listen((position) {
+        debugPrint(
+            'WaitingRoom: Sürekli konum - Position update: ${position.latitude}, ${position.longitude}');
       });
-      
+
       // 10 saniye sonra bu stream'i kapat - bu süre içinde RaceScreen'e geçilmiş olmalı
       Future.delayed(const Duration(seconds: 10), () {
         tempSubscription.cancel();

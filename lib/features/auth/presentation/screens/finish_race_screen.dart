@@ -5,6 +5,7 @@ import '../screens/tabs.dart';
 import 'dart:math' as math;
 import '../widgets/user_profile_avatar.dart';
 import '../../../../features/auth/presentation/providers/user_data_provider.dart';
+import '../providers/race_coin_tracker_provider.dart';
 
 class FinishRaceScreen extends ConsumerStatefulWidget {
   final List<RaceParticipant> leaderboard;
@@ -351,6 +352,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
   }
 
   void _navigateToHomePage() {
+    ref.read(raceCoinTrackingProvider.notifier).markRaceAsFinished();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const TabsScreen()),
       (route) => false,
