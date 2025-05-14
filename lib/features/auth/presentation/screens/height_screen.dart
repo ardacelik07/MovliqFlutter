@@ -84,7 +84,6 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(height: MediaQuery.of(context).padding.top + 20),
-
                   // Image
                   Image.asset(
                     'assets/images/uzunluk.png',
@@ -202,7 +201,7 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const HeightScreen()),
+                              builder: (context) => const WeightScreen()),
                         );
                       } else {
                         // Show general validation error if form validation fails
