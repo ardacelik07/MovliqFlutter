@@ -4,7 +4,7 @@ class UserProfileAvatar extends StatelessWidget {
   final String? imageUrl; // Null olabilir
   final double radius;
   final String defaultImageAsset =
-      'assets/images/runningman.png'; // Varsayılan asset
+      'assets/images/defaultprofile.png'; // Varsayılan asset
 
   const UserProfileAvatar({
     super.key, // Use super parameter for Key

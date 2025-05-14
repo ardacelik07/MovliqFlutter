@@ -57,16 +57,6 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
           setState(() {
             _errorText = errorMessage;
           });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-          );
         },
         data: (token) {
           if (token != null) {

@@ -1467,7 +1467,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
             : (profileUrl != null && profileUrl.isNotEmpty
                 ? NetworkImage(profileUrl) // Use NetworkImage directly
                 : const AssetImage(
-                    'assets/images/runningman.png')); // Fallback asset
+                    'assets/images/defaultprofile.png')); // Fallback asset
 
         const double imageSize = 100; // Increased size
         const double cameraIconSize = 30; // Size of the camera icon circle

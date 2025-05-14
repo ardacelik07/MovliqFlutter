@@ -15,6 +15,7 @@ class AgeGenderScreen extends ConsumerStatefulWidget {
 class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
   DateTime? selectedDate;
   String? selectedGender;
+  String? errorMessage;
   // Removed unused _formKey
 
   // Helper function to format date as dd/MM/yyyy without intl
@@ -78,6 +79,25 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                       MediaQuery.of(context).size.height * 0.4, // Adjust height
                 ),
                 const Spacer(flex: 2), // Add space before inputs
+
+                if (errorMessage != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
 
                 // Birthday Label
                 const Text(
@@ -158,48 +178,76 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                   textAlign: TextAlign.left,
                 ),
                 const SizedBox(height: 8),
-                // Gender Input (Dropdown)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: textFieldBgColor, // Use dark background
-                    borderRadius: BorderRadius.circular(12), // Rounded corners
-                    // border: Border.all(color: Colors.black), // Removed border
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    // Hide default underline
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: selectedGender,
-                      hint: const Text(
-                        'Cinsiyet', // Placeholder text
-                        style: TextStyle(color: inputHintColor, fontSize: 16),
+
+// Emoji-based Gender Selector
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: ["Erkek", "Kadın", "Diğer"].map((gender) {
+                    final bool isSelected = selectedGender == gender;
+                    String emoji;
+
+                    switch (gender) {
+                      case "Erkek":
+                        emoji = "👨";
+                        break;
+                      case "Kadın":
+                        emoji = "👩";
+                        break;
+                      default:
+                        emoji = "👤"; // Mystery face for "Diğer"
+                    }
+
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedGender = gender;
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFF9FD545)
+                                : Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.transparent
+                                  : Colors.white24,
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                emoji,
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  color:
+                                      isSelected ? Colors.black : Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                gender,
+                                style: TextStyle(
+                                  color:
+                                      isSelected ? Colors.black : Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      icon: const Icon(Icons.arrow_drop_down,
-                          color: Color.fromARGB(255, 255, 255, 255)),
-                      items: ["Erkek", "Kadın", "Diğer"]
-                          .map((String value) => DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value,
-                                    style: const TextStyle(
-                                        color:
-                                            Color.fromARGB(255, 255, 255, 255),
-                                        fontSize: 16)),
-                              ))
-                          .toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedGender = newValue;
-                        });
-                      },
-                      dropdownColor:
-                          Colors.grey[800], // Dark dropdown background
-                      style: const TextStyle(
-                          color: inputTextColor,
-                          fontSize: 16), // Style for selected item
-                    ),
-                  ),
+                    );
+                  }).toList(),
                 ),
+
                 const Spacer(flex: 3), // Push button to bottom
 
                 // Continue Button
@@ -220,6 +268,10 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                   onPressed: () {
                     // Validate that both fields are selected
                     if (selectedDate != null && selectedGender != null) {
+                      setState(() {
+                        errorMessage = null; // Clear error if valid
+                      });
+
                       ref.read(userProfileProvider.notifier).updateProfile(
                             birthDate: selectedDate,
                             gender: selectedGender,
@@ -231,11 +283,10 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                             builder: (context) => const HeightScreen()),
                       );
                     } else {
-                      // Optional: Show a snackbar if fields are not selected
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Lütfen tüm alanları seçin')),
-                      );
+                      setState(() {
+                        errorMessage =
+                            'Lütfen tüm alanları seçin'; // Show error
+                      });
                     }
                   },
                   child: const Text('Devam Et'),

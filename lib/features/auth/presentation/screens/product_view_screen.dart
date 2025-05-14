@@ -684,39 +684,53 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
             border: Border(top: BorderSide(color: greyTextColor, width: 0.2)),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton(
-                onPressed: () {
-                  _showPremiumBottomSheet(context, product);
-                }, // product'ı gönder
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: limeGreen,
-                  foregroundColor: darkTextColor,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 64, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  textStyle: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(
-                      'assets/images/mCoin.png',
-                      width: 30,
-                      height: 30,
+              Expanded(
+                // ⬅️ Makes the button take all available width
+                child: ElevatedButton(
+                  onPressed: () {
+                    _showPremiumBottomSheet(context, product);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: limeGreen,
+                    foregroundColor: darkTextColor,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16), // no horizontal needed
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                        '${NumberFormat("#,##0", "tr_TR").format(product.price)} mCoin - Hemen Al'),
-                  ],
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment
+                        .center, // ⬅️ Center contents inside full-width button
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Image.asset(
+                        'assets/images/mCoin.png',
+                        width: 28,
+                        height: 28,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${NumberFormat("#,##0", "tr_TR").format(product.price)} mCoin - Hemen Al',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: darkTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
+
         orElse: () =>
             const SizedBox.shrink(), // Yüklenirken veya hata durumunda gösterme
       ),

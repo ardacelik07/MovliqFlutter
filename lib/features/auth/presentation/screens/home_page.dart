@@ -25,6 +25,7 @@ import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
 import 'package:pedometer/pedometer.dart'; // Import pedometer
 import 'package:flutter/services.dart'; // Import flutter/services
+import '../screens/profile_screen.dart';
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -49,10 +50,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<void> _checkAndRequestPermissionsSequentially() async {
     // Önce bildirim iznini iste (en kritik olmayan)
     await _checkAndRequestNotificationPermission();
-    
+
     // Sonra konum iznini iste
     await _checkAndRequestLocationPermission();
-    
+
     // En son aktivite iznini iste
     if (mounted) {
       await _checkAndRequestActivityPermission();
@@ -62,23 +63,25 @@ class _HomePageState extends ConsumerState<HomePage> {
   // Bildirim izni kontrolü ve istek işlemi
   Future<void> _checkAndRequestNotificationPermission() async {
     print('Ana Sayfa - Bildirim izni kontrolü başlatılıyor...');
-    
+
     // iOS ve Android için farklı stratejiler
     if (Platform.isIOS) {
       // iOS için native Swift üzerinden bildirim izni alma
       final bool hasPermission = await _requestIOSNotificationPermission();
       print('Ana Sayfa - iOS bildirim izni: $hasPermission');
-      
+
       // İzin almak için yeterli, kullanıcı iOS sisteminin kendi dialog kutusunu görecek
     } else {
       // Android için permission_handler kullanımı
       final notificationStatus = await Permission.notification.status;
-      
-      if (notificationStatus.isDenied || notificationStatus.isPermanentlyDenied) {
-        print('Ana Sayfa - Android bildirim izni reddedilmiş, istek yapılıyor...');
+
+      if (notificationStatus.isDenied ||
+          notificationStatus.isPermanentlyDenied) {
+        print(
+            'Ana Sayfa - Android bildirim izni reddedilmiş, istek yapılıyor...');
         // Android için izin iste
         final notificationRequest = await Permission.notification.request();
-        
+
         // Kullanıcıya bilgi ver (opsiyonel)
         if (notificationRequest.isPermanentlyDenied) {
           if (mounted) {
@@ -116,23 +119,25 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<bool> _requestIOSNotificationPermission() async {
     // Platform mesaj kanalı oluştur - AppDelegate.swift'de tanımlanan kanal ile aynı adı kullan
     const platform = MethodChannel('com.movliq/notifications');
-    
+
     try {
       // iOS tarafında uygulanan methodu çağır
-      final bool result = await platform.invokeMethod('requestNotificationPermission');
+      final bool result =
+          await platform.invokeMethod('requestNotificationPermission');
       return result;
     } catch (e) {
       print('Ana Sayfa - iOS bildirim izni alma hatası: $e');
       return false;
     }
   }
-  
+
   // iOS için bildirim izin durumu kontrolü (isteğe bağlı kullanılabilir)
   Future<String> _checkIOSNotificationPermission() async {
     const platform = MethodChannel('com.movliq/notifications');
-    
+
     try {
-      final String status = await platform.invokeMethod('checkNotificationPermission');
+      final String status =
+          await platform.invokeMethod('checkNotificationPermission');
       return status;
     } catch (e) {
       print('Ana Sayfa - iOS bildirim izni kontrolü hatası: $e');
@@ -143,7 +148,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   // Function to check and request location permission (directly requesting Always)
   Future<void> _checkAndRequestLocationPermission() async {
     print('Ana Sayfa - Konum izni kontrolü başlatılıyor...');
-    
+
     // First check if location services are enabled
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -155,24 +160,24 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         );
       }
-      
+
       // Show system location settings
       await Geolocator.openLocationSettings();
       return;
     }
-    
+
     // Use different approaches based on platform
     if (Platform.isIOS) {
       // For iOS: Use Geolocator directly which works better
       LocationPermission permission = await Geolocator.checkPermission();
       print('Ana Sayfa - iOS konum izni durumu: $permission');
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         print('Ana Sayfa - iOS konum izni istendikten sonra: $permission');
       }
-      
-      if (permission == LocationPermission.denied || 
+
+      if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         if (mounted) {
           _showSettingsDialog('Konum İzni Gerekli',
@@ -188,7 +193,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       if (!status.isGranted && !status.isLimited) {
         final requestedStatus = await Permission.locationAlways.request();
-        print('Ana Sayfa - Android izin istenen durum (Always): $requestedStatus');
+        print(
+            'Ana Sayfa - Android izin istenen durum (Always): $requestedStatus');
 
         if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
           if (mounted) {
@@ -211,11 +217,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       if (!status.isGranted) {
         final requestedStatus = await Permission.activityRecognition.request();
-        print('Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
+        print(
+            'Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
 
         if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
           if (mounted) {
-            _showSettingsDialog('Aktivite İzni Gerekli', 
+            _showSettingsDialog('Aktivite İzni Gerekli',
                 'Adımlarınızı sayabilmek için aktivite izni gereklidir.');
           }
         }
@@ -227,29 +234,32 @@ class _HomePageState extends ConsumerState<HomePage> {
       // Önce normal sensör iznini iste
       final sensorStatus = await Permission.sensors.request();
       print('Ana Sayfa - iOS sensör izin durumu: $sensorStatus');
-      
+
       // Health Kit izinlerinin verilip verilmediğini kontrol etmek için
       try {
         // Pedometer stream'ini 3 saniyeliğine dinle, veri gelirse izin verilmiş demektir
         bool healthKitPermissionVerified = false;
-        
+
         final subscription = Pedometer.stepCountStream.listen((step) {
-          print('HomePage - Adım algılandı: ${step.steps}, Health Kit izinleri verilmiş');
+          print(
+              'HomePage - Adım algılandı: ${step.steps}, Health Kit izinleri verilmiş');
           healthKitPermissionVerified = true;
         }, onError: (error) {
           print('HomePage - Adım algılama hatası: $error');
         });
-        
+
         // Kısa bir süre bekle
         await Future.delayed(const Duration(seconds: 3));
         subscription.cancel();
-        
+
         // Eğer Health Kit verisi alınamadıysa dialog göster
         if (!healthKitPermissionVerified && mounted) {
-          print('Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
+          print(
+              'Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
           _showHealthKitDialog();
         } else {
-          print('Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
+          print(
+              'Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
         }
       } catch (e) {
         print('Ana Sayfa - Health Kit izin kontrolü sırasında hata: $e');
@@ -282,11 +292,14 @@ class _HomePageState extends ConsumerState<HomePage> {
             const SizedBox(height: 8),
             const Text('3. Sağ üstteki profil simgesine tıklayın'),
             const SizedBox(height: 8),
-            const Text('4. "Veri Kaynakları ve Erişim" (Data Sources & Access) seçeneğine tıklayın'),
+            const Text(
+                '4. "Veri Kaynakları ve Erişim" (Data Sources & Access) seçeneğine tıklayın'),
             const SizedBox(height: 8),
-            const Text('5. "Uygulamalar" (Apps) listesinden bu uygulamayı bulun'),
+            const Text(
+                '5. "Uygulamalar" (Apps) listesinden bu uygulamayı bulun'),
             const SizedBox(height: 8),
-            const Text('6. "Açık ve Kapalı" (Turn On/Off) kısmından aşağıdaki izinleri açın:'),
+            const Text(
+                '6. "Açık ve Kapalı" (Turn On/Off) kısmından aşağıdaki izinleri açın:'),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.only(left: 16.0),
@@ -294,7 +307,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Text('• Adımlar (Steps)'),
-                  Text('• Yürüme + Koşma Mesafesi (Walking + Running Distance)'),
+                  Text(
+                      '• Yürüme + Koşma Mesafesi (Walking + Running Distance)'),
                 ],
               ),
             ),
@@ -459,10 +473,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                       child: Row(
                         children: [
                           // Profile picture - Simpler error/loading handling
-                          UserProfileAvatar(
-                            imageUrl: userData?.profilePictureUrl,
-                            radius: 24,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => ProfileScreen()),
+                              );
+                            },
+                            child: UserProfileAvatar(
+                              imageUrl: userData?.profilePictureUrl,
+                              radius: 24,
+                            ),
                           ),
+
                           const SizedBox(width: 12),
                           // Welcome Text - Simpler error/loading handling
                           Column(
