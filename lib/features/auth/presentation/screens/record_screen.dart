@@ -32,6 +32,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   // Timer related properties
   int _seconds = 0;
   Timer? _timer;
+  Timer? _calorieCalculationTimer; // Added for dedicated calorie calculation
   double _distance = 0.0;
   int _calories = 0;
   double _pace = 0.0;
@@ -286,6 +287,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   void dispose() {
     _pulseController.dispose();
     _timer?.cancel();
+    _calorieCalculationTimer?.cancel(); // Cancel new timer
     _positionStreamSubscription?.cancel();
     _stepCountSubscription?.cancel();
     _mapController?.dispose();
@@ -650,24 +652,25 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _pace = 0.0;
       _routeCoordinates = [];
       _polylines = {};
-      _lastCalorieCalculationTime = null;
+      _lastCalorieCalculationTime = null; // Reset for new calculation cycle
 
       _pulseController.forward();
 
-      // Start timer
+      // Start main timer for seconds and pace
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (!_isPaused && _isRecording) {
           setState(() {
             _seconds++;
-            // Her 10 saniyede bir kalori hesapla
-            if (_seconds % 10 == 0) {
-              _calculateCalories();
-              // Calculate pace (km/h)
-              _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
-            }
+            // REMOVED: Calorie calculation moved to its own timer
+            // if (_seconds % 10 == 0) {
+            //   _calculateCalories();
+            // }
+            _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
           });
         }
       });
+
+      _initializeCalorieCalculation(); // Initialize dedicated calorie timer
 
       // Start GPS tracking
       _startLocationTracking();
@@ -686,6 +689,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     // Save final values before resetting
     final int finalDuration = _seconds;
     final double finalDistance = _distance;
+    // Ensure final calorie calculation happens if needed, or use current _calories
+    // For simplicity, we use the _calories as updated by the periodic timer.
     final int finalCalories = _calories;
     final int finalSteps = _steps;
     final int averageSpeed = _pace.toInt();
@@ -706,8 +711,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _pulseController.stop();
       _pulseController.reset();
 
-      // Stop timer
+      // Stop timers
       _timer?.cancel();
+      _calorieCalculationTimer?.cancel(); // Stop calorie timer
 
       // Stop GPS tracking
       _stopLocationTracking();
@@ -839,16 +845,13 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       if (_isPaused) {
         // Pause recording
         _pulseController.stop();
-        // Timer'ı durdurmuyoruz, _startRecording içindeki if kontrolü yeterli.
-        // _timer?.cancel();
-        // Konum takibi için de benzer bir mantık, _positionStreamSubscription.pause() daha iyi olabilir.
-        // Şimdilik _stopLocationTracking() ve _startLocationTracking() kalsın.
+        _calorieCalculationTimer?.cancel(); // Pause calorie timer
         _stopLocationTracking();
         _stepCountSubscription?.pause(); // Pause pedometer
       } else {
         // Resume recording
         _pulseController.forward();
-        // Timer zaten devam ediyor.
+        _initializeCalorieCalculation(); // Resume calorie timer
         // Resume location tracking
         _startLocationTracking();
         _stepCountSubscription?.resume(); // Resume pedometer
@@ -1454,164 +1457,150 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
   // --- Coin popup fonksiyonu sonu ---
 
-  // Yeni kalori hesaplama metodu
+  // New method to initialize the dedicated calorie calculation timer
+  void _initializeCalorieCalculation() {
+    _calorieCalculationTimer?.cancel();
+    _calorieCalculationTimer =
+        Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_isRecording && !_isPaused) {
+        _calculateCalories();
+      } else {
+        timer.cancel();
+        _calorieCalculationTimer = null;
+      }
+    });
+  }
+
+  // Updated calorie calculation method (adapted from RaceProvider)
   void _calculateCalories() {
     final now = DateTime.now();
 
-    // İlk kalori hesaplaması ise, başlangıç değerlerini kaydet
     if (_lastCalorieCalculationTime == null) {
       _lastDistance = _distance;
       _lastSteps = _steps;
       _lastCalorieCalculationTime = now;
       setState(() {
-        _calories = 0;
+        _calories = 0; // Initialize calories if it's the first calculation
       });
       return;
     }
 
-    // Son hesaplamadan bu yana geçen süre (saniye)
     final elapsedSeconds =
         now.difference(_lastCalorieCalculationTime!).inSeconds;
-    if (elapsedSeconds < 1) return; // Avoid rapid recalculation
+    if (elapsedSeconds < 4) return; // Match RaceProvider's check (for 5s timer)
 
-    // Son hesaplamadan bu yana kat edilen mesafe ve adım farkı
     final distanceDifference = _distance - _lastDistance;
     final stepsDifference = _steps - _lastSteps;
-
-    // Hareket tespiti
     final bool isMoving = distanceDifference > 0.001 || stepsDifference > 0;
-
-    debugPrint(
-        '📊 Hareket kontrolü: Mesafe farkı=${distanceDifference.toStringAsFixed(4)} km, Adım farkı=$stepsDifference, Hareket=${isMoving ? "VAR" : "YOK"}');
-
-    // Son periyottaki anlık hızı hesapla (km/saat)
-    // distanceDifference km cinsinden, elapsedSeconds saniye cinsinden
     final double currentPaceKmH = distanceDifference > 0 && elapsedSeconds > 0
         ? (distanceDifference) / (elapsedSeconds / 3600.0)
         : 0;
-    debugPrint('⚡ Anlık Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
 
-    // UserDataProvider'dan kullanıcı verilerini al
-    final userDataAsync = ref.read(userDataProvider);
+    final userData = ref.read(userDataProvider).value;
+    double weightKg = 70.0; // Default weight
+    double heightCm = 170.0; // Default height
+    int ageYears = 25; // Default age
+    String gender = 'male'; // Default gender
 
-    userDataAsync.whenOrNull(
-      data: (userData) {
-        if (userData != null) {
-          final weight = userData.weight ?? 70.0;
-          final height = userData.height ?? 170.0;
+    if (userData != null) {
+      weightKg = (userData.weight != null && userData.weight! > 0)
+          ? userData.weight!
+          : weightKg;
+      heightCm = (userData.height != null && userData.height! > 0)
+          ? userData.height!
+          : heightCm;
+      ageYears = (userData.age != null && userData.age! > 0)
+          ? userData.age!
+          : ageYears;
+      gender = userData.gender?.toLowerCase() == 'female' ? 'female' : 'male';
+      debugPrint(
+          'RecordScreen Calorie Calc - User Data: Weight=$weightKg, Height=$heightCm, Age=$ageYears, Gender=$gender');
+    } else {
+      debugPrint('RecordScreen Calorie Calc - Using default user data.');
+    }
 
-          // Aktivite tipine ve ANLIK HIZA göre MET değeri belirle
-          // TODO: Bu MET değerlerini Compendium of Physical Activities (CPA) gibi güvenilir bir kaynaktan almak daha doğru olur.
-          double metValue;
+    double bmr; // Basal Metabolic Rate (Mifflin-St Jeor)
+    if (gender == 'female') {
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) - 161;
+    } else {
+      // male or default
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) + 5;
+    }
+    if (bmr < 0) bmr = 0; // Ensure BMR is not negative
+    debugPrint(
+        'RecordScreen Calorie Calc - Calculated BMR (per day): ${bmr.toStringAsFixed(2)}');
 
-          if (!isMoving) {
-            metValue = 1.0; // Resting MET
-          } else {
-            switch (_activityType) {
-              case 'Running':
-                // Anlık koşu hızına göre MET
-                if (currentPaceKmH < 6.5)
-                  metValue = 6.0; // ~10 min/mile or slower
-                else if (currentPaceKmH < 8.0)
-                  metValue = 8.3; // ~12 km/h - 7.5 min/mile
-                else if (currentPaceKmH < 10.0)
-                  metValue = 10.0; // ~10 km/h - 6 min/mile
-                else if (currentPaceKmH < 12.0)
-                  metValue = 11.5;
-                else
-                  metValue = 12.8; // Faster running
-                break;
-              case 'Walking':
-                // Anlık yürüyüş hızına göre MET
-                if (currentPaceKmH < 3.0)
-                  metValue = 2.0; // Slow walk
-                else if (currentPaceKmH < 5.0)
-                  metValue = 3.0; // Moderate walk
-                else if (currentPaceKmH < 6.5)
-                  metValue = 3.8; // Brisk walk
-                else
-                  metValue = 5.0; // Very brisk walk
-                break;
-              case 'Cycling':
-                // Anlık bisiklet hızına göre MET
-                if (currentPaceKmH < 16.0)
-                  metValue = 4.0; // Leisurely cycling
-                else if (currentPaceKmH < 20.0)
-                  metValue = 6.8; // Moderate cycling
-                else if (currentPaceKmH < 24.0)
-                  metValue = 8.0;
-                else
-                  metValue = 10.0; // Faster cycling
-                break;
-              default:
-                metValue = 5.0; // Default generic MET
-            }
-          }
-
-          // Kalori hesaplama formülü: Kalori = Ağırlık (kg) × MET değeri × Süre (saat)
-          double hours = elapsedSeconds / 3600.0;
-          int newCalories = (weight * metValue * hours).round();
-
-          // BMI faktörünü kaldırdık - daha basit ve MET odaklı
-          // double heightInMeters = height / 100.0;
-          // double bmi = weight / (heightInMeters * heightInMeters);
-          // if (bmi > 25) {
-          //   double bmiFactor = 1.0 + ((bmi - 25) * 0.01);
-          //   newCalories = (newCalories * bmiFactor).round();
-          // }
-
-          if (newCalories < 0) newCalories = 0;
-
-          setState(() {
-            _calories += newCalories;
-          });
-
-          debugPrint(
-              'Kalori hesaplandı: +$newCalories kal eklendi (Toplam: $_calories) - Hareket: ${isMoving ? "VAR" : "YOK"}, MET: $metValue, Süre: $hours saat, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
-        } else {
-          // Kullanıcı verisi yoksa veya hata varsa fallback mantığı
-          // Eski distanceDifference * 60 yerine daha tutarlı bir varsayılan MET kullanalım
-          double fallbackMet =
-              isMoving ? 3.5 : 1.0; // Ortalama yürüyüş veya dinlenme
-          double defaultWeight = 70.0;
-          double hours = elapsedSeconds / 3600.0;
-          int newCalories = (defaultWeight * fallbackMet * hours).round();
-          if (newCalories < 0) newCalories = 0;
-          setState(() {
-            _calories += newCalories;
-          });
-          debugPrint(
-              'Kullanıcı verisi yok/hatalı, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
-        }
-      },
-      // loading ve error durumlarında da fallback mantığını kullanalım
-      loading: () {
-        double fallbackMet = isMoving ? 3.5 : 1.0;
-        double defaultWeight = 70.0;
-        double hours = elapsedSeconds / 3600.0;
-        int newCalories = (defaultWeight * fallbackMet * hours).round();
-        if (newCalories < 0) newCalories = 0;
-        setState(() {
-          _calories += newCalories;
-        });
+    double metValue; // Metabolic Equivalent of Task
+    if (!isMoving) {
+      metValue = 1.0; // Resting MET
+    } else {
+      // Determine MET based on activity type and pace (assuming outdoor/GPS-based)
+      if (_activityType == 'Running' || _activityType == 'Walking') {
+        if (currentPaceKmH < 3.2) {
+          metValue = 2.0;
+        } // ~2.0 mph (Slow walking)
+        else if (currentPaceKmH < 4.8) {
+          metValue = 3.0;
+        } // ~3.0 mph (Moderate walking)
+        else if (currentPaceKmH < 6.4) {
+          metValue = 3.8;
+        } // ~4.0 mph (Very brisk walking)
+        else if (currentPaceKmH < 8.0) {
+          metValue = 8.3;
+        } // ~5.0 mph (Light jog)
+        else if (currentPaceKmH < 9.7) {
+          metValue = 9.8;
+        } // ~6.0 mph (Moderate run)
+        else if (currentPaceKmH < 11.3) {
+          metValue = 11.0;
+        } // ~7.0 mph
+        else if (currentPaceKmH < 12.9) {
+          metValue = 11.8;
+        } // ~8.0 mph
+        else if (currentPaceKmH < 14.5) {
+          metValue = 12.8;
+        } // ~9.0 mph
+        else if (currentPaceKmH < 16.0) {
+          metValue = 14.5;
+        } // ~10.0 mph
+        else if (currentPaceKmH < 17.5) {
+          metValue = 16.0;
+        } // ~11.0 mph
+        else {
+          metValue = 19.0;
+        } // ~12.0 mph+
         debugPrint(
-            'Kullanıcı verisi yükleniyor, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
-      },
-      error: (_, __) {
-        double fallbackMet = isMoving ? 3.5 : 1.0;
-        double defaultWeight = 70.0;
-        double hours = elapsedSeconds / 3600.0;
-        int newCalories = (defaultWeight * fallbackMet * hours).round();
-        if (newCalories < 0) newCalories = 0;
-        setState(() {
-          _calories += newCalories;
-        });
+            'RecordScreen Calorie Calc ($_activityType based on GPS) - MET: $metValue, Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+      } else if (_activityType == 'Cycling') {
+        if (currentPaceKmH < 16.0)
+          metValue = 4.0; // Leisurely cycling
+        else if (currentPaceKmH < 20.0)
+          metValue = 6.8; // Moderate cycling
+        else if (currentPaceKmH < 24.0)
+          metValue = 8.0;
+        else
+          metValue = 10.0; // Faster cycling
         debugPrint(
-            'Kullanıcı verisi hatası, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
-      },
-    );
+            'RecordScreen Calorie Calc (Cycling based on GPS) - MET: $metValue, Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+      } else {
+        metValue = 5.0; // Default generic MET for other types
+        debugPrint(
+            'RecordScreen Calorie Calc (Unknown Activity: $_activityType) - Default MET: $metValue, Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+      }
+    }
 
-    // Son değerleri güncelle
+    double bmrPerSecond = bmr / (24 * 60 * 60);
+    int newCalories = (bmrPerSecond * elapsedSeconds * metValue).round();
+    if (newCalories < 0) newCalories = 0;
+
+    setState(() {
+      _calories += newCalories;
+    });
+
+    debugPrint(
+        'RecordScreen 🔥 Kalori hesaplandı (Yeni): +$newCalories kal (Toplam: $_calories) - BMR: ${bmr.toStringAsFixed(0)}, MET: $metValue, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h, Aktivite: $_activityType');
+
+    // Update last check values
     _lastDistance = _distance;
     _lastSteps = _steps;
     _lastCalorieCalculationTime = now;
