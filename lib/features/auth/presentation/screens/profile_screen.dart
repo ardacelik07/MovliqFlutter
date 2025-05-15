@@ -873,88 +873,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                   fontSize: 13,
                                                 ),
                                               ),
-                                              const SizedBox(height: 4),
-                                              // --- YENİ: Kalori, Mesafe, Adım Row'u ---
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.end,
-                                                children: [
-                                                  // Kalori (varsa göster)
-                                                  if (race['calories'] !=
-                                                          null &&
-                                                      race['calories'] > 0) ...[
-                                                    Icon(
-                                                        Icons
-                                                            .local_fire_department_outlined,
-                                                        color:
-                                                            Colors.orangeAccent,
-                                                        size: 14),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      '${race['calories']} kcal',
-                                                      style: const TextStyle(
-                                                          color: Colors
-                                                              .orangeAccent,
-                                                          fontSize: 12.0),
-                                                    ),
-                                                    const SizedBox(
-                                                        width:
-                                                            8), // Kalori ve diğerleri arasına boşluk
-                                                  ],
-                                                  // Mesafe (Dış Mekan ise)
-                                                  if (!isIndoor)
-                                                    Icon(
-                                                        Icons
-                                                            .directions_run_outlined,
-                                                        color:
-                                                            Colors.blueAccent,
-                                                        size: 14),
-                                                  if (!isIndoor)
-                                                    const SizedBox(width: 4),
-                                                  if (!isIndoor)
-                                                    Text(
-                                                      '$distanceStr km',
-                                                      style: const TextStyle(
-                                                          color:
-                                                              Colors.blueAccent,
-                                                          fontSize: 12.0),
-                                                    ),
-                                                  if (!isIndoor)
-                                                    const SizedBox(
-                                                        width:
-                                                            8), // Mesafe ve adım arasına boşluk
+                                              const SizedBox(
+                                                  height:
+                                                      6), // Metrikler için biraz daha boşluk
 
-                                                  // Adım Sayısı
-                                                  Icon(
-                                                      Icons
-                                                          .directions_walk_outlined,
-                                                      color: Colors.greenAccent,
-                                                      size: 14),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '$stepsStr Adım',
-                                                    style: const TextStyle(
-                                                        color:
-                                                            Colors.greenAccent,
-                                                        fontSize: 12.0),
-                                                  ),
-                                                  // İç mekan için tahmini mesafe (adımın yanında)
-                                                  if (isIndoor &&
+                                              // Dış Mekan ise Mesafeyi Göster
+                                              if (!isIndoor)
+                                                _buildRaceMetricItem(
+                                                    Icons
+                                                        .directions_run_outlined,
+                                                    '$distanceStr km',
+                                                    Colors.blueAccent),
+                                              // İç Mekan ise Tahmini Mesafeyi Göster
+                                              if (isIndoor &&
+                                                  estimatedIndoorDistanceText
+                                                      .isNotEmpty)
+                                                Padding(
+                                                  padding: EdgeInsets.only(
+                                                      top: !isIndoor ? 0 : 0,
+                                                      bottom: isIndoor ? 2 : 0),
+                                                  child: _buildRaceMetricItem(
+                                                      Icons.alt_route,
                                                       estimatedIndoorDistanceText
-                                                          .isNotEmpty) ...[
-                                                    const SizedBox(width: 8),
-                                                    Text(
-                                                      estimatedIndoorDistanceText,
-                                                      style: const TextStyle(
-                                                          color: Colors
-                                                              .white70, // Biraz farklı bir renk olabilir
-                                                          fontSize: 12.0),
-                                                    ),
-                                                  ],
-                                                ],
+                                                          .replaceFirst(
+                                                              ' ~ ', '~ '),
+                                                      Colors.purpleAccent),
+                                                ),
+
+                                              // Adım Sayısını her zaman göster (mesafe altına veya tek başına)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    top: 2.0),
+                                                child: _buildRaceMetricItem(
+                                                    Icons
+                                                        .directions_walk_outlined,
+                                                    '$stepsStr Adım',
+                                                    Colors.greenAccent),
                                               ),
-                                              // --- YENİ: Kalori, Mesafe, Adım Row'u Sonu ---
+
+                                              // Kalori (varsa göster)
+                                              if (race['calories'] != null &&
+                                                  race['calories'] > 0) ...[
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 2.0),
+                                                  child: _buildRaceMetricItem(
+                                                      Icons
+                                                          .local_fire_department_outlined,
+                                                      '${race['calories']} kcal',
+                                                      Colors.orangeAccent),
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ],
@@ -1327,6 +1297,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             color: Colors.white.withOpacity(0.7),
             fontSize: 12,
           ),
+        ),
+      ],
+    );
+  }
+
+  // Yardımcı metod: Yarış metriklerini satır olarak oluşturur
+  Widget _buildRaceMetricItem(
+      IconData icon, String text, Color iconColorToIgnore,
+      {double iconSize = 14, double textSize = 12}) {
+    return Row(
+      mainAxisSize:
+          MainAxisSize.min, // Row'un içeriği kadar yer kaplamasını sağlar
+      mainAxisAlignment: MainAxisAlignment.end, // Sağa yaslar
+      children: [
+        Icon(icon,
+            color: Colors.white, size: iconSize), // İkon rengi her zaman beyaz
+        const SizedBox(width: 5), // İkon ve metin arası boşluk
+        Text(
+          text,
+          style: TextStyle(
+              color: Colors.white,
+              fontSize: textSize,
+              fontWeight: FontWeight.w500), // Metin rengi her zaman beyaz
         ),
       ],
     );
