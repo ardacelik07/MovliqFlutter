@@ -22,6 +22,9 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 bool _isNotificationInitialized = false;
 
+// Provider to track if user was kicked for cheating to show a popup on HomePage
+final cheatKickedStateProvider = StateProvider<bool>((ref) => false);
+
 @riverpod
 class RaceNotifier extends _$RaceNotifier {
   // Stream abonelikleri
@@ -731,6 +734,7 @@ class RaceNotifier extends _$RaceNotifier {
       } else if (newViolationCount >= 2) {
         // Second violation: Kick the user
         debugPrint('RaceNotifier: Hile limiti aşıldı, yarıştan atılıyor.');
+        ref.read(cheatKickedStateProvider.notifier).state = true;
         state = state.copyWith(
             violationCount: newViolationCount,
             showFirstCheatWarning: false, // Ensure warning flag is off

@@ -28,6 +28,8 @@ import 'package:pedometer/pedometer.dart'; // Import pedometer
 import 'package:flutter/services.dart'; // Import flutter/services
 import '../providers/race_coin_tracker_provider.dart';
 import '../widgets/earn_coin_widget.dart'; // Popup için
+import '../providers/race_provider.dart'; // For cheatKickedStateProvider
+import '../widgets/cheated_race.dart'; // For CheatedRaceDialogContent
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -44,8 +46,40 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Request permissions when the home page initializes
     _checkAndRequestPermissionsSequentially();
+
+    // Check for cheat kicked status when HomePage initializes and listen for changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        // Ensure the widget is still in the tree
+        final isKicked =
+            ref.read(cheatKickedStateProvider); // Read current state
+        if (isKicked) {
+          _showCheatKickedDialog();
+        }
+      }
+    });
+
+    // Listen for subsequent changes to the cheatKickedStateProvider
+    ref.listenManual(cheatKickedStateProvider, (previous, next) {
+      if (next == true && mounted) {
+        _showCheatKickedDialog();
+      }
+    });
+  }
+
+  void _showCheatKickedDialog() {
+    // Avoid showing dialog if one is already active or not mounted
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must interact with the dialog
+      builder: (BuildContext dialogContext) {
+        return const CheatedRaceDialogContent();
+      },
+    );
+    // Provider is reset to false from within the CheatedRaceDialogContent's button.
   }
 
   // Request permissions sequentially
