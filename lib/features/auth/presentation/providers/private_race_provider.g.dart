@@ -6,7 +6,7 @@ part of 'private_race_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$privateRaceHash() => r'9657f3e318834219fc28644e046881e79ba7ba2c';
+String _$privateRaceHash() => r'e29ce7d3ae0c6b9b8c4bdcb7f5df5aee405adfe3';
 
 /// See also [PrivateRace].
 @ProviderFor(PrivateRace)

@@ -8,6 +8,7 @@ import '../providers/activity_provider.dart';
 import '../providers/activity_stats_provider.dart';
 import '../../domain/models/activity_stats_model.dart';
 import '../../domain/models/activity_model.dart' as activity_model;
+import '../providers/user_data_provider.dart';
 // import '../widgets/network_error_widget.dart'; // Bu import muhtemelen kullanılmıyor, kontrol edilebilir.
 
 // Aktivite tipine göre yarış sonuçlarını çekmek için provider
@@ -532,6 +533,10 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
 
   // Aktivite Kartı (Yeni Tasarım)
   Widget _buildActivityCard(ActivityModel activity) {
+    // Kullanıcının boyunu almak için userDataProvider'ı izle
+    final userData = ref.watch(userDataProvider).value;
+    final double? userHeightCm = userData?.height;
+
     // Tarih ve saat formatı
     final startTime = activity.startTime;
     final formattedDateTime =
@@ -552,6 +557,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
 
     String primaryMetricText = '-'; // Varsayılan olarak tire göster
     String secondaryMetricText = ''; // İkincil metrik başlangıçta boş
+    String estimatedDistanceText = ''; // İç mekan için tahmini mesafe
 
     if (isOutdoor) {
       // Dış Mekan: Ana metrik Mesafe, ikincil metrik Adım
@@ -563,10 +569,16 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
     } else {
       // İç Mekan: Ana metrik Adım
       if (steps != null && steps >= 0) {
-        // Adım null değilse ve 0 veya daha büyükse göster
         primaryMetricText = '$steps Adım';
+        // Tahmini mesafeyi hesapla (boy bilgisi varsa)
+        if (userHeightCm != null && userHeightCm > 0 && steps > 0) {
+          final double stepLengthMeters = userHeightCm * 0.00414;
+          final double estimatedDistanceKm =
+              (steps * stepLengthMeters) / 1000.0;
+          estimatedDistanceText =
+              ' ~${estimatedDistanceKm.toStringAsFixed(2)} km'; // Yaklaşık işareti ve format
+        }
       }
-      // İç mekan için ikincil metrik yok (veya isterseniz eklenebilir)
     }
 
     return Container(
@@ -647,7 +659,19 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                         _secondaryTextColor, // Outdoor mesafesi için gri renk
                   ),
                 ),
-              ]
+              ],
+              if (estimatedDistanceText.isNotEmpty) ...[
+                // İç mekan tahmini mesafesini göster
+                const SizedBox(width: 8),
+                Text(
+                  estimatedDistanceText,
+                  style: const TextStyle(
+                    fontSize: 14, // Adım/Mesafe ile aynı boyutta
+                    fontWeight: FontWeight.w500,
+                    color: _secondaryTextColor, // Benzer bir renk stili
+                  ),
+                ),
+              ],
             ],
           ),
 

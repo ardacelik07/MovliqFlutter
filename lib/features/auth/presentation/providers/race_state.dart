@@ -37,5 +37,8 @@ class RaceState with _$RaceState {
 
     // Hata durumu
     @Default(null) String? errorMessage,
+
+    // Yeni alan eklendi
+    @Default(0.0) double estimatedIndoorDistance,
   }) = _RaceState;
 }

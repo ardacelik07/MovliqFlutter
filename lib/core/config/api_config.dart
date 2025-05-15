@@ -49,6 +49,10 @@ class ApiConfig {
   static const String matchPrivateRoomEndpoint =
       '$baseUrl/RaceRoom/match-room-private';
 
+  // Coin kazanma endpoint'i
+  static const String userRecordEarnCoinEndpoint =
+      '$baseUrl/UserResults/user-record-earn-coin';
+
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

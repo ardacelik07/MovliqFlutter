@@ -35,7 +35,7 @@ dependencies:
   flutter_svg: ^2.0.9
   http: ^1.2.0
   fl_chart: ^0.70.2
-  signalr_netcore: ^1.3.6
+  signalr_netcore: ^1.4.3
   image_picker: ^1.0.7
   json_annotation: ^4.9.0
   wakelock_plus: ^1.3.2
@@ -142,6 +142,8 @@ flutter:
     - assets/images/sifremiunuttum3.png
     - assets/images/mCoin.png
     - assets/images/iclauncher.png
+    - assets/images/coinchest.png
+    - assets/images/coinchest2.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

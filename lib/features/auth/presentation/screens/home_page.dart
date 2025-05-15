@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 import '../providers/user_data_provider.dart';
+import '../../domain/models/user_data_model.dart'; // <-- Eklendi
 import '../providers/user_ranks_provider.dart'; // For streak
 import '../providers/latest_product_provider.dart'; // Import LatestProductProvider
 import '../providers/private_race_provider.dart'; // Import PrivateRaceProvider
@@ -25,6 +26,10 @@ import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
 import 'package:pedometer/pedometer.dart'; // Import pedometer
 import 'package:flutter/services.dart'; // Import flutter/services
+import '../providers/race_coin_tracker_provider.dart';
+import '../widgets/earn_coin_widget.dart'; // Popup için
+import '../providers/race_provider.dart'; // For cheatKickedStateProvider
+import '../widgets/cheated_race.dart'; // For CheatedRaceDialogContent
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -41,8 +46,40 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Request permissions when the home page initializes
     _checkAndRequestPermissionsSequentially();
+
+    // Check for cheat kicked status when HomePage initializes and listen for changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        // Ensure the widget is still in the tree
+        final isKicked =
+            ref.read(cheatKickedStateProvider); // Read current state
+        if (isKicked) {
+          _showCheatKickedDialog();
+        }
+      }
+    });
+
+    // Listen for subsequent changes to the cheatKickedStateProvider
+    ref.listenManual(cheatKickedStateProvider, (previous, next) {
+      if (next == true && mounted) {
+        _showCheatKickedDialog();
+      }
+    });
+  }
+
+  void _showCheatKickedDialog() {
+    // Avoid showing dialog if one is already active or not mounted
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must interact with the dialog
+      builder: (BuildContext dialogContext) {
+        return const CheatedRaceDialogContent();
+      },
+    );
+    // Provider is reset to false from within the CheatedRaceDialogContent's button.
   }
 
   // Request permissions sequentially
@@ -411,11 +448,71 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Fetch initial data providers
     final userDataAsync = ref.watch(userDataProvider);
     final userStreakAsync =
         ref.watch(userStreakProvider); // Watch streak provider
     final latestProductsAsync =
         ref.watch(latestProductProvider); // Watch latest products
+
+    // --- YENİ: Yarış sonrası Coin Popup Logic ---
+    final trackingState = ref.watch(raceCoinTrackingProvider);
+
+    if (trackingState != null && trackingState.justFinishedRace) {
+      print("🏁 HomePage Build: Race finished flag detected.");
+      // Durumu kontrol ettikten hemen sonra temizle
+      // Bu, build sırasında state değişikliği hatasını önler
+      // ve popup'ın tekrar tekrar tetiklenmesini engeller.
+      // Kullanıcı coin verisi gelene kadar beklemeyecek,
+      // build sırasında flag'i kontrol edip temizleyeceğiz.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(raceCoinTrackingProvider.notifier).clearState();
+          print("🏁 HomePage Build: Race finished flag cleared after check.");
+        }
+      });
+
+      // Şimdi userData'nın durumuna bak
+      if (userDataAsync is AsyncData<UserDataModel?>) {
+        final currentUserData = userDataAsync.value;
+        if (currentUserData != null &&
+            currentUserData.coins != null &&
+            trackingState.beforeRaceCoin != null) {
+          final double earnedCoin =
+              currentUserData.coins! - trackingState.beforeRaceCoin!;
+          print("🏁 HomePage Build: UserData loaded. Earned Coin: $earnedCoin");
+
+          if (earnedCoin > 0.001) {
+            // Build bittikten sonra popup'ı göster
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _showCoinPopup(context, earnedCoin);
+              }
+            });
+          } else {
+            print(
+                "🏁 HomePage Build: No significant coin difference detected.");
+          }
+        } else {
+          print(
+              "🏁 HomePage Build: UserData not ready or coin info missing for diff calc.");
+        }
+      } else if (userDataAsync is AsyncError) {
+        print(
+            "🏁 HomePage Build: Error loading UserData, cannot calculate diff.");
+      } else {
+        print(
+            "🏁 HomePage Build: UserData is loading, cannot calculate diff yet.");
+      }
+    }
+    // --- Coin Popup Logic Sonu ---
+
+    // Display loading indicator while user data is loading
+    if (userDataAsync is AsyncLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFC4FF62)),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.black, // Set background to black
@@ -983,6 +1080,25 @@ class _HomePageState extends ConsumerState<HomePage> {
         },
       ),
     );
+  }
+
+  // --- YENİ: Popup gösterme fonksiyonu ---
+  void _showCoinPopup(BuildContext context, double coins) {
+    // Zaten bir dialog açık mı kontrol et (isteğe bağlı, çift popup engelleme)
+    if (ModalRoute.of(context)?.isCurrent ?? false) {
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
+        builder: (BuildContext dialogContext) {
+          return EarnCoinPopup(
+            earnedCoin: coins,
+            onGoHomePressed: () {
+              Navigator.of(dialogContext).pop(); // Sadece popup'ı kapat
+            },
+          );
+        },
+      );
+    }
   }
 }
 

@@ -12,6 +12,8 @@ import '../providers/record_provider.dart';
 import '../providers/user_data_provider.dart';
 import '../providers/recording_state_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/earn_coin_widget.dart';
+import '../screens/tabs.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -30,6 +32,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   // Timer related properties
   int _seconds = 0;
   Timer? _timer;
+  Timer? _calorieCalculationTimer; // Added for dedicated calorie calculation
   double _distance = 0.0;
   int _calories = 0;
   double _pace = 0.0;
@@ -284,6 +287,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   void dispose() {
     _pulseController.dispose();
     _timer?.cancel();
+    _calorieCalculationTimer?.cancel(); // Cancel new timer
     _positionStreamSubscription?.cancel();
     _stepCountSubscription?.cancel();
     _mapController?.dispose();
@@ -293,7 +297,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   // Tüm izinleri başlatan fonksiyon
   Future<void> _initPermissions() async {
     print('RecordScreen - İzin kontrolü başlatılıyor...');
-    
+
     // --- Bildirim İzni İsteği (Android 13+) ---
     if (Platform.isAndroid) {
       // Cihazın SDK versiyonunu almak için device_info_plus gerekebilir,
@@ -332,7 +336,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (Platform.isIOS) {
       // iOS için Geolocator ile izin kontrolü
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.always || 
+      if (permission == LocationPermission.always ||
           permission == LocationPermission.whileInUse) {
         setState(() {
           _hasLocationPermission = true;
@@ -353,7 +357,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         await _checkLocationPermission(); // İzin yoksa iste
       }
     }
-    
+
     // Aktivite izinlerini de kontrol et
     await _checkActivityPermission();
   }
@@ -374,15 +378,15 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       setState(() {
         _hasPedometerPermission = true;
       });
-      
+
       try {
         // Pedometer'ı başlatmayı dene
         _initPedometer();
-        
+
         // Sensör iznini kontrol et ve iste
         final sensorStatus = await Permission.sensors.request();
         print('RecordScreen - iOS sensör izin durumu: $sensorStatus');
-        
+
         // HealthKit izinlerinin verilip verilmediğini kontrol etmek için
         // adım sayma stream'ini dinlemeye başla ve 3 saniye bekle
         bool stepsAvailable = false;
@@ -396,82 +400,78 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }, onError: (error) {
           print('RecordScreen - Adım algılama hatası: $error');
         });
-        
+
         // 3 saniye bekle, eğer bu sürede step eventi gelmezse:
         await Future.delayed(const Duration(seconds: 3));
         subscription.cancel();
-        
+
         // Eğer adım bilgisi alınamadıysa ve daha önce dialog gösterilmediyse Health app'e yönlendir
-        if (!stepsAvailable && mounted) {
-          
-        }
+        if (!stepsAvailable && mounted) {}
       } catch (e) {
         print('RecordScreen - Pedometer başlatma hatası: $e');
         // Hata durumunda dialog göster
-        if (mounted) {
-          
-        }
+        if (mounted) {}
       }
     }
   }
 
   // Health Kit izni için özel dialog (iOS)
-  
 
   // Konum izinlerini kontrol eden fonksiyon
   Future<void> _checkLocationPermission() async {
     print('RecordScreen - Konum izni kontrolü başlatılıyor...');
-    
+
     if (Platform.isIOS) {
       // iOS için: Geolocator'ı doğrudan kullan (daha iyi çalışıyor)
       LocationPermission permission = await Geolocator.checkPermission();
       print('RecordScreen - iOS konum izni durumu: $permission');
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         print('RecordScreen - iOS konum izni istendikten sonra: $permission');
       }
-      
+
       // LocationPermission.whileInUse ve LocationPermission.always her ikisi de yeterli
       setState(() {
-        _hasLocationPermission = permission == LocationPermission.whileInUse || 
-                                 permission == LocationPermission.always;
+        _hasLocationPermission = permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always;
       });
-      
+
       print('RecordScreen - iOS konum izni var mı?: $_hasLocationPermission');
-      
+
       if (_hasLocationPermission) {
         // İzin varsa konumu al
         await _getCurrentLocation();
-      } else if (permission == LocationPermission.denied || 
-                 permission == LocationPermission.deniedForever) {
-        
-      }
+      } else if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {}
     } else {
       // Android için: Permission.locationAlways kullanmaya devam et
       final status = await Permission.locationAlways.status;
       print('RecordScreen - Android konum izni durumu: $status');
-      
+
       // Eğer izin henüz verilmemişse iste
       if (!status.isGranted && !status.isLimited) {
         final requestedStatus = await Permission.locationAlways.request();
-        print('RecordScreen - Android izin istendikten sonra: $requestedStatus');
-        
+        print(
+            'RecordScreen - Android izin istendikten sonra: $requestedStatus');
+
         setState(() {
-          _hasLocationPermission = requestedStatus.isGranted || requestedStatus.isLimited;
+          _hasLocationPermission =
+              requestedStatus.isGranted || requestedStatus.isLimited;
         });
-        
-        if (!_hasLocationPermission && (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied)) {
-          
-        }
+
+        if (!_hasLocationPermission &&
+            (requestedStatus.isDenied ||
+                requestedStatus.isPermanentlyDenied)) {}
       } else {
         setState(() {
           _hasLocationPermission = true;
         });
       }
-      
-      print('RecordScreen - Android konum izni var mı?: $_hasLocationPermission');
-      
+
+      print(
+          'RecordScreen - Android konum izni var mı?: $_hasLocationPermission');
+
       if (_hasLocationPermission) {
         // İzin varsa konumu al
         await _getCurrentLocation();
@@ -480,7 +480,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   // Kullanıcı izin vermediğinde gösterilecek dialog (Opsiyonel)
-  
 
   // Mevcut konumu al ve haritayı oraya taşı
   Future<void> _getCurrentLocation() async {
@@ -653,24 +652,25 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _pace = 0.0;
       _routeCoordinates = [];
       _polylines = {};
-      _lastCalorieCalculationTime = null;
+      _lastCalorieCalculationTime = null; // Reset for new calculation cycle
 
       _pulseController.forward();
 
-      // Start timer
+      // Start main timer for seconds and pace
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (!_isPaused && _isRecording) {
           setState(() {
             _seconds++;
-            // Her 10 saniyede bir kalori hesapla
-            if (_seconds % 10 == 0) {
-              _calculateCalories();
-              // Calculate pace (km/h)
-              _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
-            }
+            // REMOVED: Calorie calculation moved to its own timer
+            // if (_seconds % 10 == 0) {
+            //   _calculateCalories();
+            // }
+            _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
           });
         }
       });
+
+      _initializeCalorieCalculation(); // Initialize dedicated calorie timer
 
       // Start GPS tracking
       _startLocationTracking();
@@ -689,6 +689,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     // Save final values before resetting
     final int finalDuration = _seconds;
     final double finalDistance = _distance;
+    // Ensure final calorie calculation happens if needed, or use current _calories
+    // For simplicity, we use the _calories as updated by the periodic timer.
     final int finalCalories = _calories;
     final int finalSteps = _steps;
     final int averageSpeed = _pace.toInt();
@@ -709,8 +711,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _pulseController.stop();
       _pulseController.reset();
 
-      // Stop timer
+      // Stop timers
       _timer?.cancel();
+      _calorieCalculationTimer?.cancel(); // Stop calorie timer
 
       // Stop GPS tracking
       _stopLocationTracking();
@@ -779,7 +782,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
       // Submit data to backend
       ref.read(recordSubmissionProvider(recordRequest).future).then(
-        (response) {
+        (response) async {
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -788,6 +791,30 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             ),
           );
           print("💰 Coins fetched after successful activity record.");
+
+          // --- YENİ EKLENEN KISIM: Coin kazanma isteği ---
+          try {
+            // Provider artık doğrudan double döndürüyor
+            final double earnedAmount =
+                await ref.read(recordEarnCoinProvider(distance).future);
+
+            print("🪙 Coin Kazanma İsteği Sonucu (double): $earnedAmount");
+
+            if (earnedAmount > 0 && mounted) {
+              // Popup'ı göstermek için yeni fonksiyonu çağır (double ile)
+              _showCoinPopup(context, earnedAmount);
+            }
+          } catch (coinError) {
+            print("🪙 Coin Kazanma İsteği Hatası: $coinError");
+            // Hata durumunda kullanıcıya bilgi verilebilir (opsiyonel)
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   SnackBar(
+            //     content: Text('Coin kazanılırken bir hata oluştu: ${coinError.toString()}'),
+            //     backgroundColor: Colors.orange,
+            //   ),
+            // );
+          }
+          // --- Coin kazanma isteği sonu ---
         },
         onError: (error) {
           // Show error message
@@ -818,16 +845,13 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       if (_isPaused) {
         // Pause recording
         _pulseController.stop();
-        // Timer'ı durdurmuyoruz, _startRecording içindeki if kontrolü yeterli.
-        // _timer?.cancel();
-        // Konum takibi için de benzer bir mantık, _positionStreamSubscription.pause() daha iyi olabilir.
-        // Şimdilik _stopLocationTracking() ve _startLocationTracking() kalsın.
+        _calorieCalculationTimer?.cancel(); // Pause calorie timer
         _stopLocationTracking();
         _stepCountSubscription?.pause(); // Pause pedometer
       } else {
         // Resume recording
         _pulseController.forward();
-        // Timer zaten devam ediyor.
+        _initializeCalorieCalculation(); // Resume calorie timer
         // Resume location tracking
         _startLocationTracking();
         _stepCountSubscription?.resume(); // Resume pedometer
@@ -1342,54 +1366,55 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   // Adım sayar başlatma fonksiyonu
   void _initPedometer() {
     _stepCountSubscription?.cancel(); // Cancel any existing subscription
-    
+
     print('RecordScreen - Pedometer başlatılıyor...');
-    
+
     try {
       // Sensörleri uyandırmak için kısa bir bekleme ekle
       Future.delayed(const Duration(milliseconds: 100), () {
-        _stepCountSubscription = Pedometer.stepCountStream.listen(
-          (StepCount event) {
-            print('RecordScreen - Adım olayı alındı: ${event.steps}');
-            
-            if (!mounted || !_isRecording || _isPaused) {
-              print('RecordScreen - Adım kaydedilmedi: kayıt aktif değil veya duraklatılmış');
-              return;
-            }
+        _stepCountSubscription =
+            Pedometer.stepCountStream.listen((StepCount event) {
+          print('RecordScreen - Adım olayı alındı: ${event.steps}');
 
-            setState(() {
-              // İlk adım sayısını kaydetmek için _initialSteps'i kullan
-              if (_initialSteps == 0 && event.steps > 0) {
-                _initialSteps = event.steps;
-                _steps = 0; // Başlangıçta adımları sıfırla
-                print('RecordScreen - Başlangıç adımları: $_initialSteps');
-              } else if (_initialSteps > 0) {
-                // Sadece initialSteps ayarlandıktan sonra adımları hesapla
-                _steps = event.steps - _initialSteps;
-                if (_steps < 0) {
-                  _steps = 0; // Negatif adıma düşmesini engelle (cihaz reset vb.)
-                }
-                print('RecordScreen - Güncel adım: ${event.steps}, Başlangıç: $_initialSteps, Hesaplanan: $_steps');
-              }
-            });
-          },
-          onError: (error) {
-            print('RecordScreen - Adım sayar hatası: $error');
-            
-            // iOS için özel hata mesajı
-            if (Platform.isIOS) {
-              print('RecordScreen - iOS için Health Kit izni tekrar kontrol ediliyor');
-            }
-          },
-          onDone: () {
-            print('RecordScreen - Adım sayar stream kapandı');
+          if (!mounted || !_isRecording || _isPaused) {
+            print(
+                'RecordScreen - Adım kaydedilmedi: kayıt aktif değil veya duraklatılmış');
+            return;
           }
-        );
-        
-        // Eğer stream başlatıldı, ancak 5 saniye içinde veri gelmezse tekrar başlat 
+
+          setState(() {
+            // İlk adım sayısını kaydetmek için _initialSteps'i kullan
+            if (_initialSteps == 0 && event.steps > 0) {
+              _initialSteps = event.steps;
+              _steps = 0; // Başlangıçta adımları sıfırla
+              print('RecordScreen - Başlangıç adımları: $_initialSteps');
+            } else if (_initialSteps > 0) {
+              // Sadece initialSteps ayarlandıktan sonra adımları hesapla
+              _steps = event.steps - _initialSteps;
+              if (_steps < 0) {
+                _steps = 0; // Negatif adıma düşmesini engelle (cihaz reset vb.)
+              }
+              print(
+                  'RecordScreen - Güncel adım: ${event.steps}, Başlangıç: $_initialSteps, Hesaplanan: $_steps');
+            }
+          });
+        }, onError: (error) {
+          print('RecordScreen - Adım sayar hatası: $error');
+
+          // iOS için özel hata mesajı
+          if (Platform.isIOS) {
+            print(
+                'RecordScreen - iOS için Health Kit izni tekrar kontrol ediliyor');
+          }
+        }, onDone: () {
+          print('RecordScreen - Adım sayar stream kapandı');
+        });
+
+        // Eğer stream başlatıldı, ancak 5 saniye içinde veri gelmezse tekrar başlat
         Future.delayed(const Duration(seconds: 5), () {
           if (mounted && _isRecording && _initialSteps == 0) {
-            print('RecordScreen - 5 saniye içinde adım verisi gelmedi, stream yeniden başlatılıyor');
+            print(
+                'RecordScreen - 5 saniye içinde adım verisi gelmedi, stream yeniden başlatılıyor');
             _stepCountSubscription?.cancel();
             _initPedometer(); // Tekrar dene
           }
@@ -1409,164 +1434,173 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }
   }
 
-  // Yeni kalori hesaplama metodu
+  // --- YENİ YARDIMCI FONKSİYON: Coin Kazanma Popup'ı ---
+  void _showCoinPopup(BuildContext context, double coins) {
+    // Zaten bir dialog açık mı kontrol et (isteğe bağlı, çift popup engelleme)
+    if (ModalRoute.of(context)?.isCurrent ?? false) {
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
+        builder: (BuildContext dialogContext) {
+          return EarnCoinPopup(
+            earnedCoin: coins,
+            onGoHomePressed: () {
+              Navigator.of(dialogContext).pop(); // Önce popup'ı kapat
+              // Ana sayfaya (Tab 0) yönlendir
+              ref.read(selectedTabProvider.notifier).state = 0;
+              print("Ana sayfaya yönlendirildi (Tab 0).");
+            },
+          );
+        },
+      );
+    }
+  }
+  // --- Coin popup fonksiyonu sonu ---
+
+  // New method to initialize the dedicated calorie calculation timer
+  void _initializeCalorieCalculation() {
+    _calorieCalculationTimer?.cancel();
+    _calorieCalculationTimer =
+        Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_isRecording && !_isPaused) {
+        _calculateCalories();
+      } else {
+        timer.cancel();
+        _calorieCalculationTimer = null;
+      }
+    });
+  }
+
+  // Updated calorie calculation method (adapted from RaceProvider)
   void _calculateCalories() {
     final now = DateTime.now();
 
-    // İlk kalori hesaplaması ise, başlangıç değerlerini kaydet
     if (_lastCalorieCalculationTime == null) {
       _lastDistance = _distance;
       _lastSteps = _steps;
       _lastCalorieCalculationTime = now;
       setState(() {
-        _calories = 0;
+        _calories = 0; // Initialize calories if it's the first calculation
       });
       return;
     }
 
-    // Son hesaplamadan bu yana geçen süre (saniye)
     final elapsedSeconds =
         now.difference(_lastCalorieCalculationTime!).inSeconds;
-    if (elapsedSeconds < 1) return; // Avoid rapid recalculation
+    if (elapsedSeconds < 4) return; // Match RaceProvider's check (for 5s timer)
 
-    // Son hesaplamadan bu yana kat edilen mesafe ve adım farkı
     final distanceDifference = _distance - _lastDistance;
     final stepsDifference = _steps - _lastSteps;
-
-    // Hareket tespiti
     final bool isMoving = distanceDifference > 0.001 || stepsDifference > 0;
-
-    debugPrint(
-        '📊 Hareket kontrolü: Mesafe farkı=${distanceDifference.toStringAsFixed(4)} km, Adım farkı=$stepsDifference, Hareket=${isMoving ? "VAR" : "YOK"}');
-
-    // Son periyottaki anlık hızı hesapla (km/saat)
-    // distanceDifference km cinsinden, elapsedSeconds saniye cinsinden
     final double currentPaceKmH = distanceDifference > 0 && elapsedSeconds > 0
         ? (distanceDifference) / (elapsedSeconds / 3600.0)
         : 0;
-    debugPrint('⚡ Anlık Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
 
-    // UserDataProvider'dan kullanıcı verilerini al
-    final userDataAsync = ref.read(userDataProvider);
+    final userData = ref.read(userDataProvider).value;
+    double weightKg = 70.0; // Default weight
+    double heightCm = 170.0; // Default height
+    int ageYears = 25; // Default age
+    String gender = 'male'; // Default gender
 
-    userDataAsync.whenOrNull(
-      data: (userData) {
-        if (userData != null) {
-          final weight = userData.weight ?? 70.0;
-          final height = userData.height ?? 170.0;
+    if (userData != null) {
+      weightKg = (userData.weight != null && userData.weight! > 0)
+          ? userData.weight!
+          : weightKg;
+      heightCm = (userData.height != null && userData.height! > 0)
+          ? userData.height!
+          : heightCm;
+      ageYears = (userData.age != null && userData.age! > 0)
+          ? userData.age!
+          : ageYears;
+      gender = userData.gender?.toLowerCase() == 'female' ? 'female' : 'male';
+      debugPrint(
+          'RecordScreen Calorie Calc - User Data: Weight=$weightKg, Height=$heightCm, Age=$ageYears, Gender=$gender');
+    } else {
+      debugPrint('RecordScreen Calorie Calc - Using default user data.');
+    }
 
-          // Aktivite tipine ve ANLIK HIZA göre MET değeri belirle
-          // TODO: Bu MET değerlerini Compendium of Physical Activities (CPA) gibi güvenilir bir kaynaktan almak daha doğru olur.
-          double metValue;
+    double bmr; // Basal Metabolic Rate (Mifflin-St Jeor)
+    if (gender == 'female') {
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) - 161;
+    } else {
+      // male or default
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) + 5;
+    }
+    if (bmr < 0) bmr = 0; // Ensure BMR is not negative
+    debugPrint(
+        'RecordScreen Calorie Calc - Calculated BMR (per day): ${bmr.toStringAsFixed(2)}');
 
-          if (!isMoving) {
-            metValue = 1.0; // Resting MET
-          } else {
-            switch (_activityType) {
-              case 'Running':
-                // Anlık koşu hızına göre MET
-                if (currentPaceKmH < 6.5)
-                  metValue = 6.0; // ~10 min/mile or slower
-                else if (currentPaceKmH < 8.0)
-                  metValue = 8.3; // ~12 km/h - 7.5 min/mile
-                else if (currentPaceKmH < 10.0)
-                  metValue = 10.0; // ~10 km/h - 6 min/mile
-                else if (currentPaceKmH < 12.0)
-                  metValue = 11.5;
-                else
-                  metValue = 12.8; // Faster running
-                break;
-              case 'Walking':
-                // Anlık yürüyüş hızına göre MET
-                if (currentPaceKmH < 3.0)
-                  metValue = 2.0; // Slow walk
-                else if (currentPaceKmH < 5.0)
-                  metValue = 3.0; // Moderate walk
-                else if (currentPaceKmH < 6.5)
-                  metValue = 3.8; // Brisk walk
-                else
-                  metValue = 5.0; // Very brisk walk
-                break;
-              case 'Cycling':
-                // Anlık bisiklet hızına göre MET
-                if (currentPaceKmH < 16.0)
-                  metValue = 4.0; // Leisurely cycling
-                else if (currentPaceKmH < 20.0)
-                  metValue = 6.8; // Moderate cycling
-                else if (currentPaceKmH < 24.0)
-                  metValue = 8.0;
-                else
-                  metValue = 10.0; // Faster cycling
-                break;
-              default:
-                metValue = 5.0; // Default generic MET
-            }
-          }
-
-          // Kalori hesaplama formülü: Kalori = Ağırlık (kg) × MET değeri × Süre (saat)
-          double hours = elapsedSeconds / 3600.0;
-          int newCalories = (weight * metValue * hours).round();
-
-          // BMI faktörünü kaldırdık - daha basit ve MET odaklı
-          // double heightInMeters = height / 100.0;
-          // double bmi = weight / (heightInMeters * heightInMeters);
-          // if (bmi > 25) {
-          //   double bmiFactor = 1.0 + ((bmi - 25) * 0.01);
-          //   newCalories = (newCalories * bmiFactor).round();
-          // }
-
-          if (newCalories < 0) newCalories = 0;
-
-          setState(() {
-            _calories += newCalories;
-          });
-
-          debugPrint(
-              'Kalori hesaplandı: +$newCalories kal eklendi (Toplam: $_calories) - Hareket: ${isMoving ? "VAR" : "YOK"}, MET: $metValue, Süre: $hours saat, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
-        } else {
-          // Kullanıcı verisi yoksa veya hata varsa fallback mantığı
-          // Eski distanceDifference * 60 yerine daha tutarlı bir varsayılan MET kullanalım
-          double fallbackMet =
-              isMoving ? 3.5 : 1.0; // Ortalama yürüyüş veya dinlenme
-          double defaultWeight = 70.0;
-          double hours = elapsedSeconds / 3600.0;
-          int newCalories = (defaultWeight * fallbackMet * hours).round();
-          if (newCalories < 0) newCalories = 0;
-          setState(() {
-            _calories += newCalories;
-          });
-          debugPrint(
-              'Kullanıcı verisi yok/hatalı, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
-        }
-      },
-      // loading ve error durumlarında da fallback mantığını kullanalım
-      loading: () {
-        double fallbackMet = isMoving ? 3.5 : 1.0;
-        double defaultWeight = 70.0;
-        double hours = elapsedSeconds / 3600.0;
-        int newCalories = (defaultWeight * fallbackMet * hours).round();
-        if (newCalories < 0) newCalories = 0;
-        setState(() {
-          _calories += newCalories;
-        });
+    double metValue; // Metabolic Equivalent of Task
+    if (!isMoving) {
+      metValue = 1.0; // Resting MET
+    } else {
+      // Determine MET based on activity type and pace (assuming outdoor/GPS-based)
+      if (_activityType == 'Running' || _activityType == 'Walking') {
+        if (currentPaceKmH < 3.2) {
+          metValue = 2.0;
+        } // ~2.0 mph (Slow walking)
+        else if (currentPaceKmH < 4.8) {
+          metValue = 3.0;
+        } // ~3.0 mph (Moderate walking)
+        else if (currentPaceKmH < 6.4) {
+          metValue = 3.8;
+        } // ~4.0 mph (Very brisk walking)
+        else if (currentPaceKmH < 8.0) {
+          metValue = 8.3;
+        } // ~5.0 mph (Light jog)
+        else if (currentPaceKmH < 9.7) {
+          metValue = 9.8;
+        } // ~6.0 mph (Moderate run)
+        else if (currentPaceKmH < 11.3) {
+          metValue = 11.0;
+        } // ~7.0 mph
+        else if (currentPaceKmH < 12.9) {
+          metValue = 11.8;
+        } // ~8.0 mph
+        else if (currentPaceKmH < 14.5) {
+          metValue = 12.8;
+        } // ~9.0 mph
+        else if (currentPaceKmH < 16.0) {
+          metValue = 14.5;
+        } // ~10.0 mph
+        else if (currentPaceKmH < 17.5) {
+          metValue = 16.0;
+        } // ~11.0 mph
+        else {
+          metValue = 19.0;
+        } // ~12.0 mph+
         debugPrint(
-            'Kullanıcı verisi yükleniyor, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
-      },
-      error: (_, __) {
-        double fallbackMet = isMoving ? 3.5 : 1.0;
-        double defaultWeight = 70.0;
-        double hours = elapsedSeconds / 3600.0;
-        int newCalories = (defaultWeight * fallbackMet * hours).round();
-        if (newCalories < 0) newCalories = 0;
-        setState(() {
-          _calories += newCalories;
-        });
+            'RecordScreen Calorie Calc ($_activityType based on GPS) - MET: $metValue, Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+      } else if (_activityType == 'Cycling') {
+        if (currentPaceKmH < 16.0)
+          metValue = 4.0; // Leisurely cycling
+        else if (currentPaceKmH < 20.0)
+          metValue = 6.8; // Moderate cycling
+        else if (currentPaceKmH < 24.0)
+          metValue = 8.0;
+        else
+          metValue = 10.0; // Faster cycling
         debugPrint(
-            'Kullanıcı verisi hatası, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
-      },
-    );
+            'RecordScreen Calorie Calc (Cycling based on GPS) - MET: $metValue, Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+      } else {
+        metValue = 5.0; // Default generic MET for other types
+        debugPrint(
+            'RecordScreen Calorie Calc (Unknown Activity: $_activityType) - Default MET: $metValue, Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+      }
+    }
 
-    // Son değerleri güncelle
+    double bmrPerSecond = bmr / (24 * 60 * 60);
+    int newCalories = (bmrPerSecond * elapsedSeconds * metValue).round();
+    if (newCalories < 0) newCalories = 0;
+
+    setState(() {
+      _calories += newCalories;
+    });
+
+    debugPrint(
+        'RecordScreen 🔥 Kalori hesaplandı (Yeni): +$newCalories kal (Toplam: $_calories) - BMR: ${bmr.toStringAsFixed(0)}, MET: $metValue, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h, Aktivite: $_activityType');
+
+    // Update last check values
     _lastDistance = _distance;
     _lastSteps = _steps;
     _lastCalorieCalculationTime = now;

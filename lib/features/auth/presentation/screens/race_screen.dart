@@ -43,7 +43,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     WakelockPlus.toggle(enable: true);
     debugPrint('[RaceScreen initState] Wakelock TOGGLED ON');
     _startWakelockForceTimer(); // <-- YENİ TIMER'I BAŞLAT
-    
+
     // iOS cihazlarda race_screen açıldığında konum takibini garanti etmek için
     if (Platform.isIOS) {
       _warmupIOSLocationTracking();
@@ -52,22 +52,26 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 
   // iOS için konum servislerini uyandırma ve arka plan takibini garanti etme
   void _warmupIOSLocationTracking() {
-    debugPrint('[RaceScreen] iOS konum servislerini uyandırma ve arka plan takibini etkinleştirme');
-    
+    debugPrint(
+        '[RaceScreen] iOS konum servislerini uyandırma ve arka plan takibini etkinleştirme');
+
     try {
       // Native konum takibini aktif et
       const platform = MethodChannel('com.movliq/location');
       platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
-        debugPrint('[RaceScreen] iOS native konum takibi başarıyla etkinleştirildi.');
+        debugPrint(
+            '[RaceScreen] iOS native konum takibi başarıyla etkinleştirildi.');
       }).catchError((error) {
-        debugPrint('[RaceScreen] iOS native konum takibi etkinleştirme hatası: $error');
+        debugPrint(
+            '[RaceScreen] iOS native konum takibi etkinleştirme hatası: $error');
       });
-      
+
       // Mevcut konumu alarak servisleri uyandır
       Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best,
       ).then((position) {
-        debugPrint('[RaceScreen] iOS konum uyandırma başarılı: ${position.latitude}, ${position.longitude}');
+        debugPrint(
+            '[RaceScreen] iOS konum uyandırma başarılı: ${position.latitude}, ${position.longitude}');
       }).catchError((e) {
         debugPrint('[RaceScreen] iOS konum uyandırma hatası: $e');
       });
@@ -169,7 +173,14 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
       if (next.errorMessage != null &&
           (previous == null || previous.errorMessage != next.errorMessage)) {
         // Hata mesajını göster (Ayrılma mesajı da olabilir)
-        if (mounted) {
+
+        // Eğer hata mesajı hile kaynaklıysa (ve HomePage'de dialog gösterilecekse)
+        // burada SnackBar gösterme.
+        final bool isCheatKickMessage = next.errorMessage ==
+            'Anormal aktivite nedeniyle yarıştan çıkarıldınız.';
+
+        if (mounted && !isCheatKickMessage) {
+          // KOŞULLU SNACKBAR
           _showErrorMessage(context,
               next.errorMessage!); // Show error/leave message immediately
         }
@@ -336,6 +347,18 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                                 iconColor: Colors.blueAccent,
                                 valueColor: Colors.white,
                               ),
+                            // Tahmini İç Mekan Mesafesi (Sadece Indoor Yarışlarda Gösterilir)
+                            if (raceState.isIndoorRace)
+                              _buildStatItem(
+                                icon: Icons
+                                    .alt_route, // Uygun bir ikon seçebilirsiniz
+                                value: raceState.estimatedIndoorDistance
+                                    .toStringAsFixed(2),
+                                label: 'Tahmini Km',
+                                iconColor:
+                                    Colors.purpleAccent, // Farklı bir renk
+                                valueColor: Colors.white,
+                              ),
                             _buildStatItem(
                               icon: Icons.directions_walk_outlined,
                               value: raceState.currentSteps.toString(),
@@ -437,25 +460,93 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
       context: context,
       barrierDismissible: false, // User must acknowledge
       builder: (context) => AlertDialog(
-        title: const Text('Anormal Aktivite Tespit Edildi'),
-        content: const SingleChildScrollView(
-          // Use ScrollView for potentially long text
-          child: Text(
-            'Adım ve mesafe verileriniz arasında bir tutarsızlık tespit edildi. Lütfen adımlarınıza uygun hızda koşmaya devam edin. Tekrarlanan ihlaller yarıştan çıkarılmanıza neden olabilir.',
-          ),
+        backgroundColor: const Color(0xFF2C2C2E), // Dark background color
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Dismiss the warning in the notifier state
-              ref
-                  .read(raceNotifierProvider.notifier)
-                  .dismissFirstCheatWarning();
-              Navigator.of(context).pop(); // Close the dialog
-            },
-            child: const Text('Anladım'),
-          ),
-        ],
+        contentPadding: const EdgeInsets.all(24.0),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            // Warning Icon (Using a standard one for now, can be replaced with a custom image/icon)
+            const Icon(
+              Icons.warning_amber_rounded, // Standard warning icon
+              color: Color(0xFFFFCC00), // Yellow warning color
+              size: 80,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Hız Sınırı Aşıldı',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Sistem olağan dışı bir hız tespit etti.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Devam etmek için hızınızı normale düşürün, aksi halde yarış iptal edilecektir.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFC4FF62), // Bright green button
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+              ),
+              onPressed: () {
+                // Dismiss the warning in the notifier state
+                ref
+                    .read(raceNotifierProvider.notifier)
+                    .dismissFirstCheatWarning();
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text(
+                'Yarışa devam et',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black, // Black text on green button
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+        // AlertDialog'un kendi actions bölümünü kullanmıyoruz,
+        // butonu content içinde Column ile yerleştirdik.
+        // Bu sayede daha fazla kontrolümüz oluyor.
+        // actions: [
+        //   TextButton(
+        //     onPressed: () {
+        //       // Dismiss the warning in the notifier state
+        //       ref
+        //           .read(raceNotifierProvider.notifier)
+        //           .dismissFirstCheatWarning();
+        //       Navigator.of(context).pop(); // Close the dialog
+        //     },
+        //     child: const Text('Anladım'),
+        //   ),
+        // ],
       ),
     );
   }
