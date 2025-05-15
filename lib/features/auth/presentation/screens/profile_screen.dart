@@ -735,6 +735,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Consumer(
                           builder: (context, ref, child) {
                             final racesAsync = ref.watch(recentRacesProvider);
+                            // Kullanıcının boyunu almak için userDataProvider'ı izle
+                            final userData = ref.watch(userDataProvider).value;
+                            final double? userHeightCm = userData?.height;
 
                             return racesAsync.when(
                               data: (races) {
@@ -772,6 +775,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     String rankText = '-';
                                     if (rank != null && rank > 0) {
                                       rankText = '$rank. Sıra';
+                                    }
+                                    String estimatedIndoorDistanceText = '';
+                                    if (isIndoor) {
+                                      final int currentSteps =
+                                          int.tryParse(stepsStr) ?? 0;
+                                      if (userHeightCm != null &&
+                                          userHeightCm > 0 &&
+                                          currentSteps > 0) {
+                                        final double stepLengthMeters =
+                                            userHeightCm * 0.00414;
+                                        final double estimatedDistanceKm =
+                                            (currentSteps * stepLengthMeters) /
+                                                1000.0;
+                                        estimatedIndoorDistanceText =
+                                            ' ~${estimatedDistanceKm.toStringAsFixed(2)} km';
+                                      }
                                     }
 
                                     return Container(
@@ -920,6 +939,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                             Colors.greenAccent,
                                                         fontSize: 12.0),
                                                   ),
+                                                  // İç mekan için tahmini mesafe (adımın yanında)
+                                                  if (isIndoor &&
+                                                      estimatedIndoorDistanceText
+                                                          .isNotEmpty) ...[
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      estimatedIndoorDistanceText,
+                                                      style: const TextStyle(
+                                                          color: Colors
+                                                              .white70, // Biraz farklı bir renk olabilir
+                                                          fontSize: 12.0),
+                                                    ),
+                                                  ],
                                                 ],
                                               ),
                                               // --- YENİ: Kalori, Mesafe, Adım Row'u Sonu ---
