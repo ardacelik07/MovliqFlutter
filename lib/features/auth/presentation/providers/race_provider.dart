@@ -33,6 +33,8 @@ class RaceNotifier extends _$RaceNotifier {
   StreamSubscription<List<RaceParticipant>>? _leaderboardSubscription;
   StreamSubscription<dynamic>?
       _raceEndedSubscription; // SignalR'dan gelen raceEnded
+  StreamSubscription<String?>?
+      _reconnectedSubscription; // SignalR yeniden bağlanma eventi için
 
   // Zamanlayıcılar
   Timer? _preRaceCountdownTimer;
@@ -382,6 +384,33 @@ class RaceNotifier extends _$RaceNotifier {
           endedRoomId != state.roomId) return;
       debugPrint('RaceNotifier: Yarış bitti eventi alındı.');
       _handleRaceEnd();
+    });
+
+    _reconnectedSubscription?.cancel(); // Önceki varsa iptal et
+    _reconnectedSubscription =
+        signalRService.reconnectedStream.listen((String? newConnectionId) {
+      if (newConnectionId != null) {
+        debugPrint(
+            'RaceNotifier: SignalR yeniden bağlandı. Yeni Bağlantı ID: $newConnectionId');
+        if (state.isRaceActive && state.roomId != null) {
+          debugPrint(
+              'RaceNotifier: Aktif yarış var (Oda ID: ${state.roomId}). Odaya tekrar katılım sağlanıyor...');
+          try {
+            signalRService.joinRaceRoom(state.roomId!).then((_) {
+              debugPrint(
+                  'RaceNotifier: Odaya (${state.roomId}) yeniden katılım isteği gönderildi.');
+            }).catchError((e) {
+              debugPrint('RaceNotifier: Odaya yeniden katılırken hata: $e');
+            });
+          } catch (e) {
+            debugPrint(
+                'RaceNotifier: signalRService.joinRaceRoom çağrılırken hata: $e');
+          }
+        } else {
+          debugPrint(
+              'RaceNotifier: SignalR yeniden bağlandı ancak aktif bir yarış veya oda ID bulunamadı.');
+        }
+      }
     });
     // Diğer SignalR eventleri (userJoined, userLeft) UI tarafından dinlenebilir veya burada ele alınabilir.
   }
@@ -1178,6 +1207,7 @@ class RaceNotifier extends _$RaceNotifier {
     _stepCountSubscription?.cancel();
     _leaderboardSubscription?.cancel();
     _raceEndedSubscription?.cancel();
+    _reconnectedSubscription?.cancel();
 
     _preRaceCountdownTimer = null;
     _raceTimerTimer = null;
@@ -1188,6 +1218,7 @@ class RaceNotifier extends _$RaceNotifier {
     _stepCountSubscription = null;
     _leaderboardSubscription = null;
     _raceEndedSubscription = null;
+    _reconnectedSubscription = null;
 
     // iOS için özel temizleme işlemleri
     if (Platform.isIOS) {
