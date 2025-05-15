@@ -18,7 +18,8 @@ import 'package:flutter/services.dart'; // MethodChannel için
 part 'race_provider.g.dart';
 
 // Flutter Local Notifications için plugin instance'ı
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 bool _isNotificationInitialized = false;
 
 @riverpod
@@ -80,88 +81,91 @@ class RaceNotifier extends _$RaceNotifier {
     // Check for necessary permissions
     bool hasLocation = false;
     bool hasActivity = false;
-    
+
     if (Platform.isIOS) {
       // iOS için: Geolocator ile konum izinlerini kontrol et
       final locationPermission = await Geolocator.checkPermission();
-      hasLocation = locationPermission == LocationPermission.always || 
-                    locationPermission == LocationPermission.whileInUse;
-      
+      hasLocation = locationPermission == LocationPermission.always ||
+          locationPermission == LocationPermission.whileInUse;
+
       // iOS için sensör iznini ve HealthKit iznini kontrol et
       // Hem sensör izni hem de Health Kit izinlerini kontrol etmeliyiz
       hasActivity = await Permission.sensors.isGranted;
-      
+
       debugPrint(
-        '--- RaceNotifier: iOS İzinler - Location: $hasLocation (${locationPermission.toString()}), Activity Sensor: $hasActivity ---');
-      
+          '--- RaceNotifier: iOS İzinler - Location: $hasLocation (${locationPermission.toString()}), Activity Sensor: $hasActivity ---');
+
       // HealthKit izinlerini özel olarak kontrol et - Pedometer çalışmasını test et
       try {
         // Bir Completer kullanarak HealthKit erişimini test edebiliriz
         final completer = Completer<bool>();
         StreamSubscription<StepCount>? testSubscription;
-        
+
         // Health Kit'e bağlanabiliyorsak adım verisini alabiliyor olmalıyız
-        testSubscription = Pedometer.stepCountStream.listen(
-          (event) {
-            // Veri geldi, izin var
-            if (!completer.isCompleted) {
-              debugPrint('--- RaceNotifier: HealthKit test - Adım verisi alındı: ${event.steps} ---');
-              completer.complete(true);
-              testSubscription?.cancel();
-            }
-          },
-          onError: (error) {
-            // Hata geldi, izin yok veya başka sorun var
-            if (!completer.isCompleted) {
-              debugPrint('--- RaceNotifier: HealthKit test - Hata: $error ---');
-              completer.complete(false);
-              testSubscription?.cancel();
-            }
-          }
-        );
-        
-        // Kısa bir süre bekle, veri gelmezse timeout ile false dön
-        Future.delayed(const Duration(seconds: 2), () {
+        testSubscription = Pedometer.stepCountStream.listen((event) {
+          // Veri geldi, izin var
           if (!completer.isCompleted) {
-            debugPrint('--- RaceNotifier: HealthKit test - Timeout oldu, izin yok veya veri gelmiyor ---');
+            debugPrint(
+                '--- RaceNotifier: HealthKit test - Adım verisi alındı: ${event.steps} ---');
+            completer.complete(true);
+            testSubscription?.cancel();
+          }
+        }, onError: (error) {
+          // Hata geldi, izin yok veya başka sorun var
+          if (!completer.isCompleted) {
+            debugPrint('--- RaceNotifier: HealthKit test - Hata: $error ---');
             completer.complete(false);
             testSubscription?.cancel();
           }
         });
-        
+
+        // Kısa bir süre bekle, veri gelmezse timeout ile false dön
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!completer.isCompleted) {
+            debugPrint(
+                '--- RaceNotifier: HealthKit test - Timeout oldu, izin yok veya veri gelmiyor ---');
+            completer.complete(false);
+            testSubscription?.cancel();
+          }
+        });
+
         // HealthKit izin sonucunu bekle
         final healthKitPermission = await completer.future;
-        
+
         // İzin yoksa hasActivity'yi false yap, varsa true (sensör izni önemli değil)
         hasActivity = healthKitPermission;
-        debugPrint('--- RaceNotifier: iOS HealthKit test sonucu: $hasActivity ---');
+        debugPrint(
+            '--- RaceNotifier: iOS HealthKit test sonucu: $hasActivity ---');
       } catch (e) {
         // Hata olursa izin yok kabul et
         debugPrint('--- RaceNotifier: iOS HealthKit test hatası: $e ---');
         hasActivity = false;
       }
-      
+
       // Eğer izin yoksa istemeyi dene
       if (!hasLocation) {
         final requestedPermission = await Geolocator.requestPermission();
-        hasLocation = requestedPermission == LocationPermission.always || 
-                      requestedPermission == LocationPermission.whileInUse;
-        debugPrint('--- RaceNotifier: iOS konum izni istendi, sonuç: $hasLocation (${requestedPermission.toString()}) ---');
+        hasLocation = requestedPermission == LocationPermission.always ||
+            requestedPermission == LocationPermission.whileInUse;
+        debugPrint(
+            '--- RaceNotifier: iOS konum izni istendi, sonuç: $hasLocation (${requestedPermission.toString()}) ---');
       }
-      
+
       if (!hasActivity) {
         final requestedSensors = await Permission.sensors.request();
         // Sadece sensör izni yeterli değil, zaten HealthKit'i test ettik
-        // hasActivity = requestedSensors.isGranted; 
-        debugPrint('--- RaceNotifier: iOS sensör izni istendi, sonuç: ${requestedSensors.isGranted} ---');
-        debugPrint('--- RaceNotifier: iOS için HealthKit izni alamadık, kullanıcı Health uygulamasını açıp izin vermeli ---');
+        // hasActivity = requestedSensors.isGranted;
+        debugPrint(
+            '--- RaceNotifier: iOS sensör izni istendi, sonuç: ${requestedSensors.isGranted} ---');
+        debugPrint(
+            '--- RaceNotifier: iOS için HealthKit izni alamadık, kullanıcı Health uygulamasını açıp izin vermeli ---');
       }
     } else {
       // Android için: Normal izin kontrolü değişmedi
       hasLocation = await _checkPermission(Permission.locationAlways);
       hasActivity = await _checkPermission(Permission.activityRecognition);
       debugPrint(
-        '--- RaceNotifier: Android İzinler - Location: $hasLocation, Activity: $hasActivity ---');
+          '--- RaceNotifier: Android İzinler - Location: $hasLocation, Activity: $hasActivity ---');
     }
 
     // State'i ilk değerlerle güncelle
@@ -176,6 +180,7 @@ class RaceNotifier extends _$RaceNotifier {
       hasPedometerPermission: hasActivity,
       profilePictureCache: initialProfileCache, // <-- Store the cache
       currentCalories: 0, // Başlangıç kalorisi
+      estimatedIndoorDistance: 0.0, // Tahmini iç mekan mesafesini başlat
       // Kalori hesaplama için başlangıç değerleri
     );
     _lastCalorieCheckDistance = 0.0;
@@ -240,10 +245,10 @@ class RaceNotifier extends _$RaceNotifier {
       // iOS için Geolocator ile konum izinlerini kontrol et
       final locationPermission = await Geolocator.checkPermission();
       debugPrint('RaceNotifier: iOS konum izni durumu: $locationPermission');
-      
+
       // Always veya WhileInUse izni yeterli olacak
-      return locationPermission == LocationPermission.always || 
-             locationPermission == LocationPermission.whileInUse;
+      return locationPermission == LocationPermission.always ||
+          locationPermission == LocationPermission.whileInUse;
     } else {
       // Android için veya konum dışı izinlerde normal Permission kullan
       final status = await permission.status;
@@ -309,11 +314,12 @@ class RaceNotifier extends _$RaceNotifier {
     if (!state.isIndoorRace) {
       _initializeAntiCheatSystem();
     }
-    
+
     // iOS için özel gecikme stratejisi
     if (Platform.isIOS) {
-      debugPrint('RaceNotifier: iOS için özel başlatma stratejisi uygulanıyor...');
-      
+      debugPrint(
+          'RaceNotifier: iOS için özel başlatma stratejisi uygulanıyor...');
+
       // HealthKit bağlantısı için kısa bir gecikme
       // SignalR ve diğer işlemlerin tamamlanması için bekleyelim
       Future.delayed(const Duration(milliseconds: 300), () {
@@ -322,21 +328,23 @@ class RaceNotifier extends _$RaceNotifier {
           _initPedometer();
         }
       });
-      
+
       // Yedek olarak belirli bir süre sonra tekrar deneyelim (bazı cihazlarda gerekebilir)
       Future.delayed(const Duration(milliseconds: 800), () {
-        if (state.isRaceActive && state.initialSteps == 0 && state.hasPedometerPermission) {
+        if (state.isRaceActive &&
+            state.initialSteps == 0 &&
+            state.hasPedometerPermission) {
           debugPrint('RaceNotifier: iOS - İkinci pedometer başlatma denemesi');
           _initPedometer();
         }
       });
-      
+
       // Konum izinleri varsa ve iç mekan yarışı değilse konum takibini başlat
       if (state.hasLocationPermission && !state.isIndoorRace) {
         // Konum için daha uzun bir gecikme kullanalım - iOS'ta kilit ekranı için önemli
         Future.delayed(const Duration(milliseconds: 500), () {
           _startLocationUpdates();
-          
+
           // Belirli aralıklarla konum başlatmayı tekrar dene
           // Bu, bazı iOS cihazlarında konum takibinin kilitleme/uygulama değişiminden sonra düzgün çalışmasını sağlar
           _schedulePeriodicLocationCheck();
@@ -745,9 +753,9 @@ class RaceNotifier extends _$RaceNotifier {
   void _initPedometer() {
     _stepCountSubscription?.cancel();
     state = state.copyWith(initialSteps: 0, currentSteps: 0); // Reset steps
-    
+
     debugPrint('RaceNotifier: Pedometer başlatılıyor...');
-    
+
     try {
       // iOS ve Android için ortak işlemler
       if (Platform.isIOS) {
@@ -760,119 +768,129 @@ class RaceNotifier extends _$RaceNotifier {
     } catch (e) {
       debugPrint('RaceNotifier: Pedometer başlatma hatası: $e');
       state = state.copyWith(
-        errorMessage: 'Adım sayar başlatılırken bir hata oluştu. Lütfen tekrar deneyin.'
-      );
+          errorMessage:
+              'Adım sayar başlatılırken bir hata oluştu. Lütfen tekrar deneyin.');
     }
   }
 
   // iOS için özel pedometer başlatma metodu
   void _initPedometerIOS() {
     debugPrint('RaceNotifier: iOS için pedometer başlatılıyor...');
-    
+
     // Daha kısa bekleme süresi ve daha agresif retry stratejisi
     // Apple HealthKit'i uyandırmak için bazı cihazlarda daha fazla bekleme gerekebilir
     Future.delayed(const Duration(milliseconds: 50), () {
       // İlk başlatma denemesi
       _attemptStepCountListening(isFirstAttempt: true);
-      
+
       // Farklı zamanlarda çoklu deneme - HealthKit bazen gecikmeli yanıt verebiliyor
       Future.delayed(const Duration(seconds: 1), () {
         if (state.isRaceActive && state.initialSteps == 0) {
-          debugPrint('RaceNotifier: [iOS] 1-saniye kontrolü - adım yok, tekrar deneniyor...');
+          debugPrint(
+              'RaceNotifier: [iOS] 1-saniye kontrolü - adım yok, tekrar deneniyor...');
           _attemptStepCountListening(retryCount: 1);
         }
       });
-      
+
       Future.delayed(const Duration(seconds: 3), () {
         if (state.isRaceActive && state.initialSteps == 0) {
-          debugPrint('RaceNotifier: [iOS] 3-saniye kontrolü - adım yok, tekrar deneniyor...');
+          debugPrint(
+              'RaceNotifier: [iOS] 3-saniye kontrolü - adım yok, tekrar deneniyor...');
           _attemptStepCountListening(retryCount: 2);
         }
       });
-      
+
       Future.delayed(const Duration(seconds: 7), () {
         if (state.isRaceActive && state.initialSteps == 0) {
-          debugPrint('RaceNotifier: [iOS] 7-saniye kontrolü - adım yok, son deneme...');
+          debugPrint(
+              'RaceNotifier: [iOS] 7-saniye kontrolü - adım yok, son deneme...');
           _attemptStepCountListening(retryCount: 3);
-          
+
           // Kullanıcıya bilgi vermek için state'i güncelle
           if (state.initialSteps == 0) {
             state = state.copyWith(
-              // Manuel başlatma için adım 1'den başlat
-              initialSteps: 1,
-              currentSteps: 0,
-              errorMessage: 'Adım verileri almakta zorluk yaşıyoruz. Apple Health uygulamasını açıp adım erişimini onayladığınızdan emin olun.'
-            );
+                // Manuel başlatma için adım 1'den başlat
+                initialSteps: 1,
+                currentSteps: 0,
+                errorMessage:
+                    'Adım verileri almakta zorluk yaşıyoruz. Apple Health uygulamasını açıp adım erişimini onayladığınızdan emin olun.');
           }
         }
       });
     });
   }
-  
+
   // Tekrar kullanılabilir step count dinleme metodu - iOS için
-  void _attemptStepCountListening({int retryCount = 0, bool isFirstAttempt = false}) {
+  void _attemptStepCountListening(
+      {int retryCount = 0, bool isFirstAttempt = false}) {
     // Eğer önceki bir subscription varsa iptal et
     if (retryCount > 0) {
       _stepCountSubscription?.cancel();
     }
-    
+
     try {
       debugPrint('RaceNotifier: [iOS] Adım dinleme #$retryCount başlıyor...');
-      
+
       _stepCountSubscription = Pedometer.stepCountStream.listen(
         (StepCount event) {
           final int stepValue = event.steps;
-          debugPrint('RaceNotifier: [iOS] Adım olayı alındı (#$retryCount): $stepValue');
-          
+          debugPrint(
+              'RaceNotifier: [iOS] Adım olayı alındı (#$retryCount): $stepValue');
+
           if (!state.isRaceActive) {
-            debugPrint('RaceNotifier: [iOS] Adım alındı, ancak yarış aktif değil');
+            debugPrint(
+                'RaceNotifier: [iOS] Adım alındı, ancak yarış aktif değil');
             return;
           }
-          
+
           // Eğer initialSteps henüz ayarlanmamışsa
           if (state.initialSteps == 0 && stepValue > 0) {
-            debugPrint('RaceNotifier: [iOS] Başlangıç adımları ayarlanıyor: $stepValue');
+            debugPrint(
+                'RaceNotifier: [iOS] Başlangıç adımları ayarlanıyor: $stepValue');
             state = state.copyWith(
-              initialSteps: stepValue,
-              currentSteps: 0,
-              errorMessage: null // Hata varsa temizle
-            );
-            
+                initialSteps: stepValue,
+                currentSteps: 0,
+                errorMessage: null // Hata varsa temizle
+                );
+
             // Başlangıç değeri ayarlandı, sunucuya bildir
             _updateLocation();
           } else if (state.initialSteps > 0) {
             // İlk değer ayarlandıysa adımları hesapla
             int calculatedSteps = stepValue - state.initialSteps;
             if (calculatedSteps < 0) calculatedSteps = 0;
-            
+
             // Sadece değişiklik varsa güncelle
             if (calculatedSteps != state.currentSteps) {
               state = state.copyWith(currentSteps: calculatedSteps);
-              debugPrint('RaceNotifier: [iOS] Adım güncellendi (#$retryCount): $calculatedSteps (Ham: $stepValue - Başlangıç: ${state.initialSteps})');
-              
-              // Adımlar değişti, sunucuya bildir
+              debugPrint(
+                  'RaceNotifier: [iOS] Adım güncellendi (#$retryCount): $calculatedSteps (Ham: $stepValue - Başlangıç: ${state.initialSteps})');
+
+              // Adımlar değişti, sunucuya bildir ve iç mekan mesafesini hesapla
               _updateLocation();
+              _calculateAndUpdateEstimatedIndoorDistance();
             }
           }
         },
         onError: (error) {
           debugPrint('RaceNotifier: [iOS] Adım hatası (#$retryCount): $error');
-          
+
           // İlk denemede veya retry 1'de hata mesajı gösterme, diğerlerinde göster
           if (retryCount >= 2) {
             state = state.copyWith(
-              errorMessage: 'Adım verisi alınamıyor. Apple Health iznini kontrol edin.'
-            );
+                errorMessage:
+                    'Adım verisi alınamıyor. Apple Health iznini kontrol edin.');
           }
         },
         cancelOnError: false, // Hatalarda otomatik iptal etme
       );
     } catch (e) {
-      debugPrint('RaceNotifier: [iOS] Adım dinleme başlatma hatası (#$retryCount): $e');
+      debugPrint(
+          'RaceNotifier: [iOS] Adım dinleme başlatma hatası (#$retryCount): $e');
       if (retryCount >= 2) {
         state = state.copyWith(
-          errorMessage: 'Adım ölçüm başlatılamadı. iOS Health ayarlarını kontrol edin.'
-        );
+            errorMessage:
+                'Adım ölçüm başlatılamadı. iOS Health ayarlarını kontrol edin.');
       }
     }
   }
@@ -880,48 +898,50 @@ class RaceNotifier extends _$RaceNotifier {
   // Android için pedometer başlatma metodu
   void _initPedometerAndroid() {
     debugPrint('RaceNotifier: Android için pedometer başlatılıyor...');
-    
+
     _stepCountSubscription = Pedometer.stepCountStream.listen(
       (StepCount event) {
         debugPrint('RaceNotifier: [Android] Adım olayı alındı: ${event.steps}');
-        
+
         if (!state.isRaceActive) {
-          debugPrint('RaceNotifier: [Android] Adım alındı, ancak yarış aktif değil');
+          debugPrint(
+              'RaceNotifier: [Android] Adım alındı, ancak yarış aktif değil');
           return;
         }
 
         // İlk adım sayısını kaydet
         if (state.initialSteps == 0) {
-          state = state.copyWith(
-            initialSteps: event.steps,
-            currentSteps: 0
-          );
-          debugPrint('RaceNotifier: [Android] Başlangıç adımları ayarlandı: ${event.steps}');
-          // İlk adımlar ayarlandı, sunucuya bildir
+          state = state.copyWith(initialSteps: event.steps, currentSteps: 0);
+          debugPrint(
+              'RaceNotifier: [Android] Başlangıç adımları ayarlandı: ${event.steps}');
+          // İlk adımlar ayarlandı, sunucuya bildir ve iç mekan mesafesini hesapla
           _updateLocation();
+          _calculateAndUpdateEstimatedIndoorDistance();
         } else {
           // Adım farkını hesapla
           int calculatedSteps = event.steps - state.initialSteps;
           if (calculatedSteps < 0) calculatedSteps = 0;
-          
+
           if (calculatedSteps != state.currentSteps) {
             state = state.copyWith(currentSteps: calculatedSteps);
-            debugPrint('RaceNotifier: [Android] Adım güncellendi: $calculatedSteps');
-            // Adım değişti, sunucuya bildir
+            debugPrint(
+                'RaceNotifier: [Android] Adım güncellendi: $calculatedSteps');
+            // Adım değişti, sunucuya bildir ve iç mekan mesafesini hesapla
             _updateLocation();
+            _calculateAndUpdateEstimatedIndoorDistance();
           }
         }
       },
       onError: (error) {
         debugPrint('RaceNotifier: [Android] Adım sayar hatası: $error');
         state = state.copyWith(
-          errorMessage: 'Adım verisi alınamıyor. Uygulama izinlerini kontrol edin.'
-        );
-        
+            errorMessage:
+                'Adım verisi alınamıyor. Uygulama izinlerini kontrol edin.');
+
         // Android için tekrar deneme
         if (state.isRaceActive && state.initialSteps == 0) {
           debugPrint('RaceNotifier: [Android] Pedometer tekrar deneniyor...');
-          
+
           _stepCountSubscription?.cancel();
           Future.delayed(const Duration(seconds: 1), () {
             _initPedometerAndroid(); // Tekrar başlatmayı dene
@@ -930,6 +950,36 @@ class RaceNotifier extends _$RaceNotifier {
       },
       cancelOnError: false,
     );
+  }
+
+  // Yeni metod: İç mekan için tahmini mesafeyi hesapla ve state'i güncelle
+  void _calculateAndUpdateEstimatedIndoorDistance() {
+    if (state.isIndoorRace && state.isRaceActive) {
+      final userData = ref.read(userDataProvider).value;
+      final double? userHeightCm = userData?.height;
+
+      if (userHeightCm != null && userHeightCm > 0) {
+        // Adım uzunluğu (metre cinsinden) = Boy (cm) * 0.00414 (yaygın bir yaklaşım)
+        // Veya Boy (cm) * 0.414 / 100
+        final double stepLengthMeters = userHeightCm * 0.00414;
+        final double estimatedDistanceKm =
+            (state.currentSteps * stepLengthMeters) / 1000.0;
+
+        if (state.estimatedIndoorDistance != estimatedDistanceKm) {
+          state = state.copyWith(estimatedIndoorDistance: estimatedDistanceKm);
+          debugPrint(
+              'RaceNotifier 📏 İç mekan tahmini mesafe güncellendi: ${estimatedDistanceKm.toStringAsFixed(3)} km (Boy: $userHeightCm cm, Adım: ${state.currentSteps})');
+        }
+      } else {
+        // Boy bilgisi yoksa veya geçersizse, tahmini mesafeyi 0 yap veya mevcut değeri koru
+        // Şimdilik 0 yapalım ki eski/yanlış bir değer gösterilmesin.
+        if (state.estimatedIndoorDistance != 0.0) {
+          state = state.copyWith(estimatedIndoorDistance: 0.0);
+          debugPrint(
+              'RaceNotifier 📏 İç mekan tahmini mesafe boy bilgisi olmadığı için sıfırlandı.');
+        }
+      }
+    }
   }
 
   void _startLocationUpdates() {
@@ -948,27 +998,28 @@ class RaceNotifier extends _$RaceNotifier {
     if (Platform.isIOS) {
       // iOS native konum takibini etkinleştir
       _enableIOSNativeLocationTracking();
-      
+
       Geolocator.isLocationServiceEnabled().then((serviceEnabled) {
         if (!serviceEnabled) {
-          debugPrint('RaceNotifier: iOS konum servisleri kapalı! Konum takibi başlatılamıyor.');
+          debugPrint(
+              'RaceNotifier: iOS konum servisleri kapalı! Konum takibi başlatılamıyor.');
           state = state.copyWith(
-            errorMessage: 'Konum servisleri kapalı, konum takibi yapılamıyor.'
-          );
+              errorMessage:
+                  'Konum servisleri kapalı, konum takibi yapılamıyor.');
           return;
         }
-        
+
         // Servisler açıksa izni kontrol et
         Geolocator.checkPermission().then((permission) {
-          if (permission != LocationPermission.always && 
+          if (permission != LocationPermission.always &&
               permission != LocationPermission.whileInUse) {
-            debugPrint('RaceNotifier: iOS konum izni yok! Konum takibi başlatılamıyor.');
+            debugPrint(
+                'RaceNotifier: iOS konum izni yok! Konum takibi başlatılamıyor.');
             state = state.copyWith(
-              errorMessage: 'Konum izni yok, konum takibi yapılamıyor.'
-            );
+                errorMessage: 'Konum izni yok, konum takibi yapılamıyor.');
             return;
           }
-          
+
           // Hem servisler açık hem de izin varsa konum takibini başlat
           _initializeLocationStream();
         });
@@ -978,7 +1029,7 @@ class RaceNotifier extends _$RaceNotifier {
       _initializeLocationStream();
     }
   }
-  
+
   // Konum takibi stream'ini başlatan yardımcı metot (platformdan bağımsız)
   void _initializeLocationStream() {
     LocationSettings locationSettings;
@@ -996,7 +1047,7 @@ class RaceNotifier extends _$RaceNotifier {
     } else if (Platform.isIOS) {
       // iOS için özel arka plan modu etkinleştirme
       _setIOSBackgroundLocationActive();
-      
+
       locationSettings = AppleSettings(
         accuracy: LocationAccuracy.high,
         activityType: ActivityType.fitness,
@@ -1006,7 +1057,7 @@ class RaceNotifier extends _$RaceNotifier {
         // Kilit ekranında çalışması için arka plan ayarlarını etkinleştir
         allowBackgroundLocationUpdates: true,
       );
-      
+
       // iOS için bildirim gösterme - iOS 10.0+ için bildirim
       // iOS, Android'den farklı olarak bildirimi burada değil, uygulama içinde ayrıca göstermemiz gerekiyor
       _showIOSNotification("Movliq yarış devam ediyor", "Konum takibi aktif");
@@ -1044,44 +1095,49 @@ class RaceNotifier extends _$RaceNotifier {
       _updateLocation(); // Konum değiştiğinde sunucuya bildir
     }, onError: (error) {
       debugPrint('RaceNotifier Konum Takibi Hatası: $error');
-      
     });
   }
 
   // iOS arka plan konum modunu etkinleştir
   void _setIOSBackgroundLocationActive() {
     if (!Platform.isIOS) return;
-    
+
     try {
       // iOS'un CLLocationManager arka plan modu için ek ayarlar
       // Bu metod Geolocator paketinin önerdiği çözümü uyguluyor
-      debugPrint('RaceNotifier: iOS için arka plan konum modu etkinleştiriliyor...');
-      
+      debugPrint(
+          'RaceNotifier: iOS için arka plan konum modu etkinleştiriliyor...');
+
       // iOS 14.0'dan sonra background izni kontrolü yapalım
       Geolocator.checkPermission().then((permission) {
         if (permission == LocationPermission.always) {
-          debugPrint('RaceNotifier: iOS konum izni ALWAYS, arka plan modu aktif edilebilir.');
-          
+          debugPrint(
+              'RaceNotifier: iOS konum izni ALWAYS, arka plan modu aktif edilebilir.');
+
           // iOS'un arka plan modu için sistemdeki "significant-change" servisi etkinleştirilmeli
           // Bu, enerji tasarrufu için iOS'un konum güncellemelerini optimize etmesini sağlar
           Geolocator.getServiceStatusStream().listen((status) {
-            debugPrint('RaceNotifier: iOS konum servis durumu değişti: $status');
+            debugPrint(
+                'RaceNotifier: iOS konum servis durumu değişti: $status');
           });
-          
+
           // Kilit ekranında konum takibi için lokasyon takibinin zaten aktif olduğundan emin olalım
           Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.high,
           ).then((position) {
-            debugPrint('RaceNotifier: iOS mevcut konum alındı, konum servisleri aktif.');
+            debugPrint(
+                'RaceNotifier: iOS mevcut konum alındı, konum servisleri aktif.');
           }).catchError((e) {
             debugPrint('RaceNotifier: iOS mevcut konum alınırken hata: $e');
           });
         } else {
-          debugPrint('RaceNotifier: iOS konum izni: $permission, arka plan konum takibi için "Her Zaman" seçili olmalı.');
+          debugPrint(
+              'RaceNotifier: iOS konum izni: $permission, arka plan konum takibi için "Her Zaman" seçili olmalı.');
         }
       });
     } catch (e) {
-      debugPrint('RaceNotifier: iOS arka plan konum modu etkinleştirme hatası: $e');
+      debugPrint(
+          'RaceNotifier: iOS arka plan konum modu etkinleştirme hatası: $e');
     }
   }
 
@@ -1128,12 +1184,12 @@ class RaceNotifier extends _$RaceNotifier {
     _stepCountSubscription = null;
     _leaderboardSubscription = null;
     _raceEndedSubscription = null;
-    
+
     // iOS için özel temizleme işlemleri
     if (Platform.isIOS) {
       // Bildirimler
       await _cancelIOSNotification();
-      
+
       // Native konum takibi
       await _disableIOSNativeLocationTracking();
     }
@@ -1142,23 +1198,26 @@ class RaceNotifier extends _$RaceNotifier {
   // iOS için bildirim gösterme ve yönetme metodları
   Future<void> _initializeNotifications() async {
     if (_isNotificationInitialized) return;
-    
+
     // iOS bildirimleri için
-    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
       requestSoundPermission: false,
       requestBadgePermission: false,
       requestAlertPermission: false, // İzinleri zaten başka yerde istiyoruz
     );
-    
+
     // Android bildirimleri için (zaten ForegroundNotificationConfig'i kullanıyoruz, ama yine de ayarlayalım)
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('launcher_icon');
-    
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('launcher_icon');
+
     // Uygulama için bildirim ayarlarını initialize et
-    const InitializationSettings initializationSettings = InitializationSettings(
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsIOS,
     );
-    
+
     try {
       await flutterLocalNotificationsPlugin.initialize(initializationSettings);
       _isNotificationInitialized = true;
@@ -1167,29 +1226,30 @@ class RaceNotifier extends _$RaceNotifier {
       debugPrint('RaceNotifier: Bildirim başlatma hatası: $e');
     }
   }
-  
+
   // iOS için bildirim gösterme
   Future<void> _showIOSNotification(String title, String body) async {
     if (!Platform.isIOS) return;
-    
+
     // Bildirimleri başlat
     await _initializeNotifications();
-    
+
     // iOS için bildirim detayları
-    const DarwinNotificationDetails iOSNotificationDetails = DarwinNotificationDetails(
+    const DarwinNotificationDetails iOSNotificationDetails =
+        DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: false,
       interruptionLevel: InterruptionLevel.active,
       threadIdentifier: 'movliq_race_tracking',
     );
-    
+
     // Bildirim detayları
     const NotificationDetails notificationDetails = NotificationDetails(
       iOS: iOSNotificationDetails,
       android: null, // Android için null, çünkü ForegroundService kullanıyoruz
     );
-    
+
     try {
       await flutterLocalNotificationsPlugin.show(
         1, // Notification ID (aynı ID ile bildirim güncellenecek)
@@ -1202,13 +1262,14 @@ class RaceNotifier extends _$RaceNotifier {
       debugPrint('RaceNotifier: iOS bildirim gösterme hatası: $e');
     }
   }
-  
+
   // iOS için bildirimi iptal etme
   Future<void> _cancelIOSNotification() async {
     if (!Platform.isIOS || !_isNotificationInitialized) return;
-    
+
     try {
-      await flutterLocalNotificationsPlugin.cancel(1); // ID:1 ile gösterilen bildirimi iptal et
+      await flutterLocalNotificationsPlugin
+          .cancel(1); // ID:1 ile gösterilen bildirimi iptal et
       debugPrint('RaceNotifier: iOS bildirimi iptal edildi.');
     } catch (e) {
       debugPrint('RaceNotifier: iOS bildirim iptal hatası: $e');
@@ -1238,11 +1299,11 @@ class RaceNotifier extends _$RaceNotifier {
 
   // iOS için periyodik konum kontrolü zamanla
   Timer? _locationCheckTimer;
-  
+
   void _schedulePeriodicLocationCheck() {
     // Önceki timer varsa iptal et
     _locationCheckTimer?.cancel();
-    
+
     // Her 15 saniyede bir konum takibini kontrol et/yenile - daha sık kontrol et
     _locationCheckTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       if (!state.isRaceActive) {
@@ -1250,23 +1311,27 @@ class RaceNotifier extends _$RaceNotifier {
         _locationCheckTimer = null;
         return;
       }
-      
-      if (Platform.isIOS && !state.isIndoorRace && state.hasLocationPermission) {
+
+      if (Platform.isIOS &&
+          !state.isIndoorRace &&
+          state.hasLocationPermission) {
         debugPrint('RaceNotifier: iOS periyodik konum kontrolü yapılıyor...');
-        
+
         // Native konum takibini tekrar etkinleştir
         _enableIOSNativeLocationTracking();
-        
+
         // Mevcut konum durumunu kontrol et
         Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 5)
-        ).then((position) {
-          debugPrint('RaceNotifier: iOS periyodik konum kontrolü başarılı: ${position.latitude}, ${position.longitude}');
-          
+                desiredAccuracy: LocationAccuracy.high,
+                timeLimit: const Duration(seconds: 5))
+            .then((position) {
+          debugPrint(
+              'RaceNotifier: iOS periyodik konum kontrolü başarılı: ${position.latitude}, ${position.longitude}');
+
           // Eğer positionStream dinleyicisi null ise yeniden başlat
           if (_positionStreamSubscription == null) {
-            debugPrint('RaceNotifier: iOS konum dinleyicisi null, yeniden başlatılıyor...');
+            debugPrint(
+                'RaceNotifier: iOS konum dinleyicisi null, yeniden başlatılıyor...');
             _startLocationUpdates();
           } else {
             // Stream var ama yine de mevcut konum alabiliyoruz, güncellemeleri kontrol et
@@ -1284,15 +1349,17 @@ class RaceNotifier extends _$RaceNotifier {
 
   // iOS için native konum takibini etkinleştirme metodları
   static const _platformChannelLocation = MethodChannel('com.movliq/location');
-  
+
   Future<void> _enableIOSNativeLocationTracking() async {
     if (!Platform.isIOS) return;
-    
+
     try {
       debugPrint('RaceNotifier: iOS native konum takibi etkinleştiriliyor...');
-      await _platformChannelLocation.invokeMethod('enableBackgroundLocationTracking');
-      debugPrint('RaceNotifier: iOS native konum takibi başarıyla etkinleştirildi.');
-      
+      await _platformChannelLocation
+          .invokeMethod('enableBackgroundLocationTracking');
+      debugPrint(
+          'RaceNotifier: iOS native konum takibi başarıyla etkinleştirildi.');
+
       // 5 saniye sonra konum izlemesinin hala aktif olduğunu kontrol et
       Future.delayed(const Duration(seconds: 5), () {
         if (state.isRaceActive && !state.isIndoorRace && Platform.isIOS) {
@@ -1300,51 +1367,59 @@ class RaceNotifier extends _$RaceNotifier {
         }
       });
     } catch (e) {
-      debugPrint('RaceNotifier: iOS native konum takibi etkinleştirme hatası: $e');
+      debugPrint(
+          'RaceNotifier: iOS native konum takibi etkinleştirme hatası: $e');
     }
   }
-  
+
   Future<void> _disableIOSNativeLocationTracking() async {
     if (!Platform.isIOS) return;
-    
+
     try {
-      debugPrint('RaceNotifier: iOS native konum takibi devre dışı bırakılıyor...');
-      await _platformChannelLocation.invokeMethod('disableBackgroundLocationTracking');
-      debugPrint('RaceNotifier: iOS native konum takibi başarıyla devre dışı bırakıldı.');
+      debugPrint(
+          'RaceNotifier: iOS native konum takibi devre dışı bırakılıyor...');
+      await _platformChannelLocation
+          .invokeMethod('disableBackgroundLocationTracking');
+      debugPrint(
+          'RaceNotifier: iOS native konum takibi başarıyla devre dışı bırakıldı.');
     } catch (e) {
-      debugPrint('RaceNotifier: iOS native konum takibi devre dışı bırakma hatası: $e');
+      debugPrint(
+          'RaceNotifier: iOS native konum takibi devre dışı bırakma hatası: $e');
     }
   }
-  
+
   // Yeni: Konum takibi durumunu kontrol et
   Future<void> _checkLocationTrackingStatus() async {
     if (!Platform.isIOS || !state.isRaceActive || state.isIndoorRace) return;
-    
+
     // Daha agresif bir yaklaşım - konum iznine ve servislerin açık olduğuna bakıp
     // gerekirse location stream'i yeniden oluştur
     try {
       bool servicesEnabled = await Geolocator.isLocationServiceEnabled();
       LocationPermission permission = await Geolocator.checkPermission();
-      
+
       debugPrint('RaceNotifier: iOS konum takibi durumu kontrol ediliyor... '
           'Servisler: ${servicesEnabled ? 'Aktif' : 'Kapalı'}, '
           'İzin: $permission');
-      
+
       if (!servicesEnabled) {
-        debugPrint('RaceNotifier: Konum servisleri kapalı, konum takibi yapılamıyor!');
+        debugPrint(
+            'RaceNotifier: Konum servisleri kapalı, konum takibi yapılamıyor!');
         return;
       }
-      
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-        debugPrint('RaceNotifier: Konum izni verilmemiş, konum takibi yapılamıyor!');
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        debugPrint(
+            'RaceNotifier: Konum izni verilmemiş, konum takibi yapılamıyor!');
         return;
       }
-      
+
       // Eğer hala buradaysak, izin ve servisler tamam demektir
       // Stream'i yeniden başlat
       _positionStreamSubscription?.cancel();
       _positionStreamSubscription = null;
-      
+
       // Kısa bir gecikme ekleyip stream'i yeniden oluştur
       Future.delayed(const Duration(milliseconds: 500), () {
         if (state.isRaceActive && !state.isIndoorRace) {

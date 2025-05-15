@@ -50,7 +50,9 @@ mixin _$RaceState {
   bool get showFirstCheatWarning =>
       throw _privateConstructorUsedError; // <-- İlk hile uyarısını göstermek için
 // Hata durumu
-  String? get errorMessage => throw _privateConstructorUsedError;
+  String? get errorMessage =>
+      throw _privateConstructorUsedError; // Yeni alan eklendi
+  double get estimatedIndoorDistance => throw _privateConstructorUsedError;
 
   /// Create a copy of RaceState
   /// with the given fields replaced by the non-null parameter values.
@@ -85,7 +87,8 @@ abstract class $RaceStateCopyWith<$Res> {
       Map<String, String?> profilePictureCache,
       int violationCount,
       bool showFirstCheatWarning,
-      String? errorMessage});
+      String? errorMessage,
+      double estimatedIndoorDistance});
 }
 
 /// @nodoc
@@ -124,6 +127,7 @@ class _$RaceStateCopyWithImpl<$Res, $Val extends RaceState>
     Object? violationCount = null,
     Object? showFirstCheatWarning = null,
     Object? errorMessage = freezed,
+    Object? estimatedIndoorDistance = null,
   }) {
     return _then(_value.copyWith(
       isRaceActive: null == isRaceActive
@@ -210,6 +214,10 @@ class _$RaceStateCopyWithImpl<$Res, $Val extends RaceState>
           ? _value.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
               as String?,
+      estimatedIndoorDistance: null == estimatedIndoorDistance
+          ? _value.estimatedIndoorDistance
+          : estimatedIndoorDistance // ignore: cast_nullable_to_non_nullable
+              as double,
     ) as $Val);
   }
 }
@@ -243,7 +251,8 @@ abstract class _$$RaceStateImplCopyWith<$Res>
       Map<String, String?> profilePictureCache,
       int violationCount,
       bool showFirstCheatWarning,
-      String? errorMessage});
+      String? errorMessage,
+      double estimatedIndoorDistance});
 }
 
 /// @nodoc
@@ -280,6 +289,7 @@ class __$$RaceStateImplCopyWithImpl<$Res>
     Object? violationCount = null,
     Object? showFirstCheatWarning = null,
     Object? errorMessage = freezed,
+    Object? estimatedIndoorDistance = null,
   }) {
     return _then(_$RaceStateImpl(
       isRaceActive: null == isRaceActive
@@ -366,6 +376,10 @@ class __$$RaceStateImplCopyWithImpl<$Res>
           ? _value.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
               as String?,
+      estimatedIndoorDistance: null == estimatedIndoorDistance
+          ? _value.estimatedIndoorDistance
+          : estimatedIndoorDistance // ignore: cast_nullable_to_non_nullable
+              as double,
     ));
   }
 }
@@ -394,7 +408,8 @@ class _$RaceStateImpl implements _RaceState {
       final Map<String, String?> profilePictureCache = const {},
       this.violationCount = 0,
       this.showFirstCheatWarning = false,
-      this.errorMessage = null})
+      this.errorMessage = null,
+      this.estimatedIndoorDistance = 0.0})
       : _leaderboard = leaderboard,
         _profilePictureCache = profilePictureCache;
 
@@ -489,10 +504,14 @@ class _$RaceStateImpl implements _RaceState {
   @override
   @JsonKey()
   final String? errorMessage;
+// Yeni alan eklendi
+  @override
+  @JsonKey()
+  final double estimatedIndoorDistance;
 
   @override
   String toString() {
-    return 'RaceState(isRaceActive: $isRaceActive, isPreRaceCountdownActive: $isPreRaceCountdownActive, preRaceCountdownValue: $preRaceCountdownValue, roomId: $roomId, raceStartTime: $raceStartTime, raceDuration: $raceDuration, remainingTime: $remainingTime, isIndoorRace: $isIndoorRace, isRaceFinished: $isRaceFinished, hasLocationPermission: $hasLocationPermission, hasPedometerPermission: $hasPedometerPermission, currentDistance: $currentDistance, currentSteps: $currentSteps, initialSteps: $initialSteps, currentCalories: $currentCalories, userEmail: $userEmail, leaderboard: $leaderboard, profilePictureCache: $profilePictureCache, violationCount: $violationCount, showFirstCheatWarning: $showFirstCheatWarning, errorMessage: $errorMessage)';
+    return 'RaceState(isRaceActive: $isRaceActive, isPreRaceCountdownActive: $isPreRaceCountdownActive, preRaceCountdownValue: $preRaceCountdownValue, roomId: $roomId, raceStartTime: $raceStartTime, raceDuration: $raceDuration, remainingTime: $remainingTime, isIndoorRace: $isIndoorRace, isRaceFinished: $isRaceFinished, hasLocationPermission: $hasLocationPermission, hasPedometerPermission: $hasPedometerPermission, currentDistance: $currentDistance, currentSteps: $currentSteps, initialSteps: $initialSteps, currentCalories: $currentCalories, userEmail: $userEmail, leaderboard: $leaderboard, profilePictureCache: $profilePictureCache, violationCount: $violationCount, showFirstCheatWarning: $showFirstCheatWarning, errorMessage: $errorMessage, estimatedIndoorDistance: $estimatedIndoorDistance)';
   }
 
   @override
@@ -541,7 +560,10 @@ class _$RaceStateImpl implements _RaceState {
             (identical(other.showFirstCheatWarning, showFirstCheatWarning) ||
                 other.showFirstCheatWarning == showFirstCheatWarning) &&
             (identical(other.errorMessage, errorMessage) ||
-                other.errorMessage == errorMessage));
+                other.errorMessage == errorMessage) &&
+            (identical(
+                    other.estimatedIndoorDistance, estimatedIndoorDistance) ||
+                other.estimatedIndoorDistance == estimatedIndoorDistance));
   }
 
   @override
@@ -567,7 +589,8 @@ class _$RaceStateImpl implements _RaceState {
         const DeepCollectionEquality().hash(_profilePictureCache),
         violationCount,
         showFirstCheatWarning,
-        errorMessage
+        errorMessage,
+        estimatedIndoorDistance
       ]);
 
   /// Create a copy of RaceState
@@ -601,7 +624,8 @@ abstract class _RaceState implements RaceState {
       final Map<String, String?> profilePictureCache,
       final int violationCount,
       final bool showFirstCheatWarning,
-      final String? errorMessage}) = _$RaceStateImpl;
+      final String? errorMessage,
+      final double estimatedIndoorDistance}) = _$RaceStateImpl;
 
 // Yarışın genel durumu
   @override
@@ -648,7 +672,9 @@ abstract class _RaceState implements RaceState {
   bool get showFirstCheatWarning; // <-- İlk hile uyarısını göstermek için
 // Hata durumu
   @override
-  String? get errorMessage;
+  String? get errorMessage; // Yeni alan eklendi
+  @override
+  double get estimatedIndoorDistance;
 
   /// Create a copy of RaceState
   /// with the given fields replaced by the non-null parameter values.

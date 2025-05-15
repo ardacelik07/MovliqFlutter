@@ -43,7 +43,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     WakelockPlus.toggle(enable: true);
     debugPrint('[RaceScreen initState] Wakelock TOGGLED ON');
     _startWakelockForceTimer(); // <-- YENİ TIMER'I BAŞLAT
-    
+
     // iOS cihazlarda race_screen açıldığında konum takibini garanti etmek için
     if (Platform.isIOS) {
       _warmupIOSLocationTracking();
@@ -52,22 +52,26 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 
   // iOS için konum servislerini uyandırma ve arka plan takibini garanti etme
   void _warmupIOSLocationTracking() {
-    debugPrint('[RaceScreen] iOS konum servislerini uyandırma ve arka plan takibini etkinleştirme');
-    
+    debugPrint(
+        '[RaceScreen] iOS konum servislerini uyandırma ve arka plan takibini etkinleştirme');
+
     try {
       // Native konum takibini aktif et
       const platform = MethodChannel('com.movliq/location');
       platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
-        debugPrint('[RaceScreen] iOS native konum takibi başarıyla etkinleştirildi.');
+        debugPrint(
+            '[RaceScreen] iOS native konum takibi başarıyla etkinleştirildi.');
       }).catchError((error) {
-        debugPrint('[RaceScreen] iOS native konum takibi etkinleştirme hatası: $error');
+        debugPrint(
+            '[RaceScreen] iOS native konum takibi etkinleştirme hatası: $error');
       });
-      
+
       // Mevcut konumu alarak servisleri uyandır
       Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best,
       ).then((position) {
-        debugPrint('[RaceScreen] iOS konum uyandırma başarılı: ${position.latitude}, ${position.longitude}');
+        debugPrint(
+            '[RaceScreen] iOS konum uyandırma başarılı: ${position.latitude}, ${position.longitude}');
       }).catchError((e) {
         debugPrint('[RaceScreen] iOS konum uyandırma hatası: $e');
       });
@@ -334,6 +338,18 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                                     .toStringAsFixed(2),
                                 label: 'Mesafe (km)',
                                 iconColor: Colors.blueAccent,
+                                valueColor: Colors.white,
+                              ),
+                            // Tahmini İç Mekan Mesafesi (Sadece Indoor Yarışlarda Gösterilir)
+                            if (raceState.isIndoorRace)
+                              _buildStatItem(
+                                icon: Icons
+                                    .alt_route, // Uygun bir ikon seçebilirsiniz
+                                value: raceState.estimatedIndoorDistance
+                                    .toStringAsFixed(2),
+                                label: 'Tahmini Km',
+                                iconColor:
+                                    Colors.purpleAccent, // Farklı bir renk
                                 valueColor: Colors.white,
                               ),
                             _buildStatItem(
