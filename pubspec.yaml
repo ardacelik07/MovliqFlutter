@@ -143,6 +143,7 @@ flutter:
     - assets/images/mCoin.png
     - assets/images/iclauncher.png
     - assets/images/coinchest.png
+    - assets/images/coinchest2.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

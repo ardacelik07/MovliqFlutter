@@ -12,32 +12,39 @@ class EarnCoinPopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth =
+        MediaQuery.of(context).size.width;
+    final screenHeight =
+        MediaQuery.of(context).size.height;
 
     return Dialog(
-      backgroundColor:
-          Colors.transparent, // Make default dialog background transparent
+      backgroundColor: Colors
+          .transparent, // Make default dialog background transparent
       insetPadding: const EdgeInsets.all(16.0),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
+        padding: const EdgeInsets.symmetric(
+            vertical: 32.0, horizontal: 24.0),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A), // Dark background similar to image
-          borderRadius: BorderRadius.circular(20.0),
+          color: const Color(
+              0xFF1A1A1A), // Dark background similar to image
+          borderRadius:
+              BorderRadius.circular(20.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color:
+                  Colors.black.withOpacity(0.5),
               blurRadius: 15,
               spreadRadius: 5,
             ),
           ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // Fit content vertically
+          mainAxisSize: MainAxisSize
+              .min, // Fit content vertically
           children: [
             // Title
             const Text(
-              'Tebrikler',
+              'Tebrikler 🎉',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -48,13 +55,21 @@ class EarnCoinPopup extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Image
-            Image.asset(
-              'assets/images/coinchest.png', // Ensure this path is correct
-              height: screenHeight * 0.3, // <-- 0.25'ten 0.3'e çıkarıldı
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.error_outline,
-                    color: Colors.red, size: 50); // Placeholder on error
-              },
+            Transform.scale(
+              scale: 1.2,
+              child: Image.asset(
+                'assets/images/coinchest2.png', // Ensure this path is correct
+                height: screenHeight *
+                    0.3, // <-- 0.25'ten 0.3'e çıkarıldı
+                errorBuilder:
+                    (context, error, stackTrace) {
+                  return const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size:
+                          50); // Placeholder on error
+                },
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -64,7 +79,8 @@ class EarnCoinPopup extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.white, // Or light green Color(0xFFC4FF62)?
+                color: Colors
+                    .white, // Or light green Color(0xFFC4FF62)?
                 height: 1.2, // Line height
               ),
               textAlign: TextAlign.center,
@@ -86,18 +102,25 @@ class EarnCoinPopup extends StatelessWidget {
             ElevatedButton(
               onPressed: onGoHomePressed,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white, // White background
-                foregroundColor: Colors.black, // Black text
-                minimumSize: Size(screenWidth * 0.6, 50), // Button size
+                backgroundColor: Colors
+                    .white, // White background
+                foregroundColor:
+                    Colors.black, // Black text
+                minimumSize: Size(
+                    screenWidth * 0.6,
+                    50), // Button size
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25.0), // Rounded corners
+                  borderRadius:
+                      BorderRadius.circular(
+                          25.0), // Rounded corners
                 ),
                 textStyle: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              child: const Text('Ana Sayfaya Dön'),
+              child:
+                  const Text('Ana Sayfaya Dön'),
             ),
 
             // Optional: Add the "Ödüller İncelemek İster Misin?" text if needed
