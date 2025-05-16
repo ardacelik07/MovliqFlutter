@@ -144,7 +144,17 @@ flutter:
     - assets/images/iclauncher.png
     - assets/images/coinchest.png
     - assets/images/coinchest2.png
-
+    - assets/icons/steps.png
+    - assets/icons/speed.png
+    - assets/icons/location.png
+    - assets/icons/bayrak.png
+    - assets/icons/1.png
+    - assets/icons/2.png
+    - assets/icons/3.png
+    - assets/icons/coupa.png
+    - assets/icons/greenman.png
+    - assets/icons/alev.png
+    - assets/images/raceui2.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
