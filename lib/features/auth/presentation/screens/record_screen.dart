@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb;
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:flutter/foundation.dart';
@@ -16,6 +16,8 @@ import '../widgets/earn_coin_widget.dart';
 import '../screens/tabs.dart';
 import './record_stats_screen.dart';
 import 'package:flutter/services.dart'; // Import for SystemUiOverlayStyle
+import 'dart:typed_data'; // Uint8List için eklendi
+import 'package:flutter/services.dart'; // rootBundle için eklendi
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -44,14 +46,16 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   // Selected activity type
   String _activityType = 'Running';
 
-  // Google Maps related properties
-  GoogleMapController? _mapController;
-  Position? _currentPosition;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
-  List<LatLng> _routeCoordinates = [];
+  // Mapbox related properties
+  mb.MapboxMap? _mapboxMap;
+  mb.PointAnnotationManager? _pointAnnotationManager;
+  mb.PolylineAnnotationManager? _polylineAnnotationManager;
+  List<mb.Point> _mapboxRouteCoordinates = [];
+  mb.Point? _currentMapboxPoint;
+  mb.PointAnnotation? _currentLocationMarker;
+  Uint8List? _markerImage;
+
   bool _hasLocationPermission = false;
-  StreamSubscription<Position>? _positionStreamSubscription;
 
   // Pedometer related properties
   int _steps = 0;
@@ -255,14 +259,21 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 ]
 ''';
 
-  static const CameraPosition _initialCameraPosition = CameraPosition(
-    target: LatLng(41.0082, 28.9784), // İstanbul koordinatları (varsayılan)
-    zoom: 15,
+  // Default camera position (Istanbul) - MODIFIED
+  final mb.CameraOptions _initialCameraOptions = mb.CameraOptions(
+    center: mb.Point(coordinates: mb.Position(28.9784, 41.0082)), // İstanbul
+    zoom: 12.0,
   );
+
+  geo.Position? _currentGeoPosition;
+  StreamSubscription<geo.Position>? _positionStreamSubscriptionGeo;
 
   @override
   void initState() {
     super.initState();
+    _loadMarkerImage();
+    // _requestPermissions(); // _initPermissions çağrılacak, bu direkt çağrı kaldırıldı.
+
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -290,23 +301,42 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   void dispose() {
     _pulseController.dispose();
     _timer?.cancel();
-    _calorieCalculationTimer?.cancel(); // Cancel new timer
-    _positionStreamSubscription?.cancel();
+    _calorieCalculationTimer?.cancel();
+    _positionStreamSubscriptionGeo?.cancel();
     _stepCountSubscription?.cancel();
-    _mapController?.dispose();
+    _timer?.cancel();
+    _calorieCalculationTimer?.cancel();
+    _mapboxMap?.dispose();
     super.dispose();
   }
 
   // --- ADDED: Method to handle finishing recording and hiding stats screen ---
   void _finishRecordingAndHideStats() {
-    _finishRecording(); // Call the existing finish logic
+    _finishRecording();
     if (mounted) {
       setState(() {
-        _showStatsScreen = false; // Hide stats screen, go back to map view
+        _showStatsScreen = false;
       });
     }
   }
   // --- END OF ADDED METHOD ---
+
+  Future<void> _loadMarkerImage() async {
+    try {
+      final ByteData byteData =
+          await rootBundle.load('assets/images/mapbox.png');
+      if (mounted) {
+        setState(() {
+          _markerImage = byteData.buffer.asUint8List();
+        });
+      }
+      debugPrint(
+          'RecordScreen: _loadMarkerImage - Özel işaretçi (14.png) yüklendi. Boyut: ${_markerImage?.lengthInBytes} bytes');
+    } catch (e) {
+      debugPrint(
+          'RecordScreen: _loadMarkerImage - Özel işaretçi yüklenirken HATA: $e');
+    }
+  }
 
   // Tüm izinleri başlatan fonksiyon
   Future<void> _initPermissions() async {
@@ -330,7 +360,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     // --- Bildirim İzni İsteği Bitişi ---
 
     // Konum servislerinin açık olup olmadığını kontrol et
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       // Konum servisleri kapalıysa, kullanıcıyı uyar
       if (mounted) {
@@ -342,16 +372,17 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         );
       }
       // Konum servislerini açma isteği göster
-      await Geolocator.openLocationSettings();
+      await geo.Geolocator.openLocationSettings();
       return;
     }
 
     // Önce izinleri kontrol et - zaten verilmişse istemek zorunda kalma
     if (Platform.isIOS) {
       // iOS için Geolocator ile izin kontrolü
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.always ||
-          permission == LocationPermission.whileInUse) {
+      geo.LocationPermission permission =
+          await geo.Geolocator.checkPermission();
+      if (permission == geo.LocationPermission.always ||
+          permission == geo.LocationPermission.whileInUse) {
         setState(() {
           _hasLocationPermission = true;
         });
@@ -374,6 +405,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
     // Aktivite izinlerini de kontrol et
     await _checkActivityPermission();
+
+    if (mounted) {
+      setState(() {}); // İşaretçi oluşturma denemesinden sonra UI'ı güncelle
+    }
   }
 
   // Aktivite izinlerini kontrol eden fonksiyon
@@ -437,18 +472,20 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
     if (Platform.isIOS) {
       // iOS için: Geolocator'ı doğrudan kullan (daha iyi çalışıyor)
-      LocationPermission permission = await Geolocator.checkPermission();
+      geo.LocationPermission permission =
+          await geo.Geolocator.checkPermission();
       print('RecordScreen - iOS konum izni durumu: $permission');
 
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+      if (permission == geo.LocationPermission.denied) {
+        permission = await geo.Geolocator.requestPermission();
         print('RecordScreen - iOS konum izni istendikten sonra: $permission');
       }
 
       // LocationPermission.whileInUse ve LocationPermission.always her ikisi de yeterli
       setState(() {
-        _hasLocationPermission = permission == LocationPermission.whileInUse ||
-            permission == LocationPermission.always;
+        _hasLocationPermission =
+            permission == geo.LocationPermission.whileInUse ||
+                permission == geo.LocationPermission.always;
       });
 
       print('RecordScreen - iOS konum izni var mı?: $_hasLocationPermission');
@@ -456,8 +493,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       if (_hasLocationPermission) {
         // İzin varsa konumu al
         await _getCurrentLocation();
-      } else if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {}
+      } else if (permission == geo.LocationPermission.denied ||
+          permission == geo.LocationPermission.deniedForever) {}
     } else {
       // Android için: Permission.locationAlways kullanmaya devam et
       final status = await Permission.locationAlways.status;
@@ -498,35 +535,85 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   // Mevcut konumu al ve haritayı oraya taşı
   Future<void> _getCurrentLocation() async {
     try {
-      print('Konum alınıyor...');
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+      debugPrint('RecordScreen: _getCurrentLocation çağrıldı.');
+      geo.Position position = await geo.Geolocator.getCurrentPosition(
+          desiredAccuracy: geo.LocationAccuracy.high);
 
-      print('Konum alındı: ${position.latitude}, ${position.longitude}');
+      debugPrint(
+          'RecordScreen: _getCurrentLocation - Konum alındı: ${position.latitude}, ${position.longitude}');
 
-      setState(() {
-        _currentPosition = position;
+      _currentGeoPosition = position;
+      _currentMapboxPoint = mb.Point(
+          coordinates: mb.Position(position.longitude, position.latitude));
+      debugPrint(
+          'RecordScreen: _getCurrentLocation - _currentMapboxPoint ayarlandı: ${_currentMapboxPoint?.encode()}');
 
-        // Haritaya mevcut konum için marker ekle
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position: LatLng(position.latitude, position.longitude),
-            infoWindow: const InfoWindow(title: 'Konumunuz'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
-          ),
-        );
+      if (_currentLocationMarker != null) {
+        debugPrint(
+            'RecordScreen: _getCurrentLocation - Önceki işaretçi (${_currentLocationMarker?.id}) siliniyor.');
+        try {
+          await _pointAnnotationManager?.delete(_currentLocationMarker!);
+          _currentLocationMarker = null;
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - Önceki işaretçi silindi.');
+        } catch (e) {
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - Önceki işaretçiyi silerken HATA: $e');
+        }
+      }
 
-        // Rota listesine başlangıç noktası olarak ekle
-        _routeCoordinates.add(LatLng(position.latitude, position.longitude));
-      });
+      debugPrint(
+          'RecordScreen: _getCurrentLocation - İşaretçi oluşturma kontrolü. Point: ${_currentMapboxPoint != null}, Manager: ${_pointAnnotationManager != null}');
+      if (_currentMapboxPoint != null && _pointAnnotationManager != null) {
+        debugPrint(
+            'RecordScreen: _getCurrentLocation - Özel işaretçi (14.png) oluşturuluyor. Point: ${_currentMapboxPoint?.encode()}');
+        try {
+          _currentLocationMarker = await _pointAnnotationManager!.create(
+            mb.PointAnnotationOptions(
+              geometry: _currentMapboxPoint!,
+              image: _markerImage,
+              iconSize: 0.15,
+            ),
+          );
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - İşaretçi OLUŞTURULDU. ID: ${_currentLocationMarker?.id}');
+          if (_mapboxMap != null && _currentMapboxPoint != null) {
+            debugPrint(
+                'RecordScreen: _getCurrentLocation - Kamera mevcut konuma (${_currentMapboxPoint?.encode()}) uçuruluyor.');
+            await _mapboxMap!.flyTo(
+              mb.CameraOptions(
+                center: _currentMapboxPoint!,
+                zoom: 17.0,
+              ),
+              mb.MapAnimationOptions(duration: 1500, startDelay: 0),
+            );
+            debugPrint('RecordScreen: _getCurrentLocation - Kamera uçuruldu.');
+          }
+          if (mounted) {
+            setState(() {});
+          }
+        } catch (e) {
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - Özel işaretçi oluşturulurken HATA: $e');
+        }
+      } else {
+        debugPrint(
+            'RecordScreen: _getCurrentLocation - İşaretçi oluşturma ATLANDI. _currentMapboxPoint: ${_currentMapboxPoint}, _pointAnnotationManager: ${_pointAnnotationManager}');
+      }
 
-      // Harita varsa kamerayı kullanıcının konumuna getir
-      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-          LatLng(position.latitude, position.longitude), 18));
+      if (!_isRecording &&
+          _mapboxRouteCoordinates.isEmpty &&
+          _currentMapboxPoint != null) {
+        _mapboxRouteCoordinates.add(_currentMapboxPoint!);
+        debugPrint(
+            'RecordScreen: _getCurrentLocation - Başlangıç noktası rotaya eklendi.');
+      }
     } catch (e) {
-      print('Konum alınamadı: $e');
+      debugPrint('RecordScreen: _getCurrentLocation genel HATA: $e');
+      if (mounted) {
+        // Hata durumunda da UI güncellenebilir (opsiyonel)
+        setState(() {});
+      }
     }
   }
 
@@ -539,94 +626,107 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
     try {
       print('Konum takibi başlatılıyor...');
-
-      // --- Platforma Özel LocationSettings ---
-      LocationSettings locationSettings;
-
+      geo.LocationSettings locationSettings;
       if (Platform.isAndroid) {
-        locationSettings = AndroidSettings(
-          accuracy: LocationAccuracy.high,
+        locationSettings = geo.AndroidSettings(
+          accuracy: geo.LocationAccuracy.high,
           distanceFilter: 5,
-          // intervalDuration: const Duration(seconds: 10), // Optional
-          foregroundNotificationConfig: const ForegroundNotificationConfig(
+          foregroundNotificationConfig: const geo.ForegroundNotificationConfig(
               notificationText:
                   "Movliq aktivitenizi kaydederken konumunuzu takip ediyor.",
               notificationTitle: "Movliq Kayıt Devam Ediyor",
               enableWakeLock: true,
-              notificationIcon: AndroidResource(
-                  name: 'launcher_icon', defType: 'mipmap') // App icon
-              ),
+              notificationIcon: geo.AndroidResource(
+                  name: 'launcher_icon', defType: 'mipmap')),
         );
       } else if (Platform.isIOS) {
-        locationSettings = AppleSettings(
-          accuracy: LocationAccuracy.high,
-          activityType: ActivityType.fitness, // Specify activity type
+        locationSettings = geo.AppleSettings(
+          accuracy: geo.LocationAccuracy.high,
+          activityType: geo.ActivityType.fitness,
           distanceFilter: 5,
-          pauseLocationUpdatesAutomatically:
-              false, // Prevent iOS from pausing updates
-          showBackgroundLocationIndicator:
-              true, // Show blue indicator bar on iOS
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
         );
       } else {
-        // Default settings for other platforms
-        locationSettings = const LocationSettings(
-          accuracy: LocationAccuracy.high,
+        locationSettings = const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.high,
           distanceFilter: 5,
         );
       }
-      // --- Platforma Özel LocationSettings Bitişi ---
 
-      // En az 5 metrede bir konum güncellemesi al
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        // Güncellenmiş locationSettings'i kullan
+      _positionStreamSubscriptionGeo = geo.Geolocator.getPositionStream(
         locationSettings: locationSettings,
-      ).listen((Position position) {
+      ).listen((geo.Position position) {
         print('Konum güncellendi: ${position.latitude}, ${position.longitude}');
         if (mounted && _isRecording && !_isPaused) {
-          // Only update if recording and not paused
+          final newMapboxPoint = mb.Point(
+              coordinates: mb.Position(position.longitude, position.latitude));
+
           setState(() {
-            // Eski konum varsa, iki nokta arasındaki mesafeyi hesapla
-            if (_currentPosition != null) {
-              double newDistance = Geolocator.distanceBetween(
-                _currentPosition!.latitude,
-                _currentPosition!.longitude,
+            if (_currentGeoPosition != null) {
+              double newDistance = geo.Geolocator.distanceBetween(
+                _currentGeoPosition!.latitude,
+                _currentGeoPosition!.longitude,
                 position.latitude,
                 position.longitude,
               );
-
-              // Kilometre cinsine çevirip toplam mesafeye ekle
               _distance += newDistance / 1000;
             }
 
-            _currentPosition = position;
+            _currentGeoPosition = position;
+            _currentMapboxPoint = newMapboxPoint;
+            _mapboxRouteCoordinates.add(newMapboxPoint);
 
-            // Rota listesine yeni konum ekle
-            LatLng newPosition = LatLng(position.latitude, position.longitude);
-            _routeCoordinates.add(newPosition);
+            debugPrint(
+                'RecordScreen: _startLocationTracking - İşaretçi güncelleme/oluşturma kontrolü. Manager: ${_pointAnnotationManager != null}, Marker: ${_currentLocationMarker != null}');
 
-            // Marker pozisyonunu güncelle
-            _markers = {
-              Marker(
-                markerId: const MarkerId('currentLocation'),
-                position: newPosition,
-                infoWindow: const InfoWindow(title: 'Konumunuz'),
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen),
-              )
-            };
+            if (_pointAnnotationManager != null &&
+                _currentLocationMarker != null) {
+              debugPrint(
+                  'RecordScreen: _startLocationTracking - Mevcut işaretçi (${_currentLocationMarker?.id}) güncelleniyor. Yeni Point: ${newMapboxPoint.encode()}');
+              _pointAnnotationManager
+                  ?.update(_currentLocationMarker!..geometry = newMapboxPoint)
+                  .then((_) => debugPrint(
+                      'RecordScreen: _startLocationTracking - İşaretçi GÜNCELLENDİ.'))
+                  .catchError((e) => debugPrint(
+                      "RecordScreen: _startLocationTracking - İşaretçi güncellerken HATA: $e"));
+            } else if (_pointAnnotationManager != null &&
+                _currentLocationMarker == null) {
+              debugPrint(
+                  'RecordScreen: _startLocationTracking - Yeni özel işaretçi (14.png) oluşturuluyor. Point: ${newMapboxPoint.encode()}');
+              _pointAnnotationManager
+                  ?.create(mb.PointAnnotationOptions(
+                geometry: newMapboxPoint,
+                image: _markerImage,
+                iconSize: 0.15,
+              ))
+                  .then((annotation) {
+                _currentLocationMarker = annotation;
+                debugPrint(
+                    'RecordScreen: _startLocationTracking - Yeni işaretçi OLUŞTURULDU. ID: ${annotation.id}');
+              }).catchError((e) => debugPrint(
+                      "RecordScreen: _startLocationTracking - Takip sırasında işaretçi oluşturulurken HATA: $e"));
+            }
 
-            // Polyline'ı güncelle
-            _polylines = {
-              Polyline(
-                polylineId: const PolylineId('route'),
-                points: _routeCoordinates,
-                color: const Color(0xFFC4FF62),
-                width: 5,
-              )
-            };
+            if (_polylineAnnotationManager != null &&
+                _mapboxRouteCoordinates.length > 1) {
+              _polylineAnnotationManager
+                  ?.deleteAll()
+                  .catchError((e) => print("Error deleting polylines: $e"));
+              _polylineAnnotationManager
+                  ?.create(mb.PolylineAnnotationOptions(
+                    geometry: mb.LineString(
+                        coordinates: _mapboxRouteCoordinates
+                            .map((p) => p.coordinates)
+                            .toList()), // Pass LineString object directly
+                    lineColor: const Color(0xFFC4FF62).value,
+                    lineWidth: 5.0,
+                  ))
+                  .catchError((e) => print("Error creating polyline: $e"));
+            }
 
-            // Harita varsa kamerayı kullanıcının konumuna getir
-            _mapController?.animateCamera(CameraUpdate.newLatLng(newPosition));
+            _mapboxMap?.flyTo(mb.CameraOptions(center: newMapboxPoint),
+                mb.MapAnimationOptions(duration: 500));
           });
         }
       }, onError: (e) {
@@ -639,16 +739,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   // Konum takibini durdur
   void _stopLocationTracking() {
-    _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = null;
+    _positionStreamSubscriptionGeo?.cancel();
+    _positionStreamSubscriptionGeo = null;
   }
 
   void _toggleRecording() {
     if (_isRecording) {
-      // Finishing recording
       _finishRecording();
     } else {
-      // Starting recording
       _startRecording();
     }
   }
@@ -664,36 +762,33 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _seconds = 0;
       _calories = 0;
       _pace = 0.0;
-      _routeCoordinates = [];
-      _polylines = {};
-      _lastCalorieCalculationTime = null; // Reset for new calculation cycle
-
+      _mapboxRouteCoordinates = []; // Reset Mapbox route coordinates
+      _polylineAnnotationManager
+          ?.deleteAll()
+          .catchError((e) => print("Error deleting polylines on start: $e"));
+      if (_currentLocationMarker != null) {
+        // Clear existing marker
+        _pointAnnotationManager
+            ?.delete(_currentLocationMarker!)
+            .catchError((e) => print("Error deleting marker on start: $e"));
+        _currentLocationMarker = null;
+      }
+      _lastCalorieCalculationTime = null;
       _pulseController.forward();
-
-      // Start main timer for seconds and pace
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (!_isPaused && _isRecording) {
           setState(() {
             _seconds++;
-            // REMOVED: Calorie calculation moved to its own timer
-            // if (_seconds % 10 == 0) {
-            //   _calculateCalories();
-            // }
             _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
           });
         }
       });
-
-      _initializeCalorieCalculation(); // Initialize dedicated calorie timer
-
-      // Start GPS tracking
+      _initializeCalorieCalculation();
       _startLocationTracking();
-      // Start pedometer if permission granted
       if (_hasPedometerPermission) {
         _initPedometer();
       }
     });
-    // Notify the state provider
     ref
         .read(recordStateProvider.notifier)
         .startRecording(_forceStopAndResetActivity);
@@ -722,14 +817,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
     setState(() {
       _isRecording = false;
+      _isPaused = false;
       _pulseController.stop();
       _pulseController.reset();
 
-      // Stop timers
       _timer?.cancel();
-      _calorieCalculationTimer?.cancel(); // Stop calorie timer
-
-      // Stop GPS tracking
+      _calorieCalculationTimer?.cancel();
       _stopLocationTracking();
 
       // Reset activity data
@@ -738,33 +831,27 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _calories = 0;
       _pace = 0.0;
       _steps = 0;
+      _initialSteps = 0;
       _startTime = null;
+      _lastCalorieCalculationTime = null;
 
-      // Clear map route data
-      _routeCoordinates = [];
-      _polylines = {};
+      // Harita rota verilerini temizle
+      _mapboxRouteCoordinates = [];
+      _polylineAnnotationManager
+          ?.deleteAll()
+          .catchError((e) => print("Error deleting polylines on finish: $e"));
 
-      // Clear markers except current location
-      if (_currentPosition != null) {
-        _markers = {
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position:
-                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-            infoWindow: const InfoWindow(title: 'Konumunuz'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
-          )
-        };
-      } else {
-        _markers = {};
+      // İşaretleyiciyi temizle
+      if (_currentLocationMarker != null) {
+        _pointAnnotationManager
+            ?.delete(_currentLocationMarker!)
+            .catchError((e) => print("Error deleting marker on finish: $e"));
+        _currentLocationMarker = null;
       }
 
-      // Get current location again and center map on it
-      _getCurrentLocation();
+      _getCurrentLocation(); // Haritayı mevcut konuma ortala
     });
 
-    // Notify the state provider
     ref.read(recordStateProvider.notifier).stopRecording();
   }
 
@@ -922,17 +1009,16 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   // Helper method for building stat displays with icon
   Widget _buildStat({
-    required IconData icon,
+    required String iconAsset,
     required String value,
     required String unit,
-    required Color iconColor,
   }) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: iconColor,
-          size: 26,
+        Image.asset(
+          iconAsset,
+          width: 26,
+          height: 26,
         ),
         const SizedBox(width: 8),
         Column(
@@ -981,44 +1067,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                   Container(
                       color: Colors.black), // Background to prevent white flash
                   _hasLocationPermission
-                      ? AnimatedOpacity(
-                          opacity: _isMapStyleSet ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: GoogleMap(
-                            mapType: MapType.normal,
-                            initialCameraPosition: _initialCameraPosition,
-                            myLocationEnabled: true,
-                            myLocationButtonEnabled: false,
-                            zoomControlsEnabled: false,
-                            compassEnabled: true,
-                            markers: _markers,
-                            polylines: _polylines,
-                            onMapCreated:
-                                (GoogleMapController controller) async {
-                              _mapController = controller;
-                              try {
-                                print("Applying dark map style...");
-                                await _mapController
-                                    ?.setMapStyle(_darkMapStyleJson);
-                                print("Dark map style applied successfully.");
-                                if (mounted) {
-                                  setState(() {
-                                    _isMapStyleSet = true;
-                                  });
-                                }
-                              } catch (e) {
-                                print("Error applying map style: $e");
-                                if (mounted) {
-                                  setState(() {
-                                    _isMapStyleSet = true;
-                                  });
-                                }
-                              }
-                              if (_hasLocationPermission && mounted) {
-                                await _getCurrentLocation();
-                              }
-                            },
-                          ),
+                      ? mb.MapWidget(
+                          key: const ValueKey("mapbox_map_record"),
+                          styleUri: mb.MapboxStyles.STANDARD,
+                          cameraOptions: _initialCameraOptions,
+                          onMapCreated: _onMapCreated,
+                          onScrollListener: null,
+                          onTapListener: null,
+                          onStyleLoadedListener: _onStyleLoadedListener,
                         )
                       : Container(
                           color: Colors.grey[850],
@@ -1080,6 +1136,52 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                     // If map view, wrap its content in SafeArea
                     child: Column(
                       children: [
+                        // --- MOVED: Activity Type Selection Card ---
+                        if (!_isRecording &&
+                            !_showStatsScreen) // CORRECTED: Show only when not recording AND not on stats screen
+                          Container(
+                            margin: const EdgeInsets.only(
+                                bottom: 8.0, // Reduced bottom margin
+                                left: 16.0,
+                                right: 16.0,
+                                top: 8.0), // Added top margin
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 6.0, horizontal: 12.0),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 0, 0, 0)
+                                  .withOpacity(0.7), // Slightly less opaque
+                              borderRadius: BorderRadius.circular(16.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildActivityTypeButton(
+                                    'Running',
+                                    Icons.directions_run,
+                                    _activityType == 'Running',
+                                    () => _selectActivityType('Running')),
+                                _buildActivityTypeButton(
+                                    'Walking',
+                                    Icons.directions_walk,
+                                    _activityType == 'Walking',
+                                    () => _selectActivityType('Walking')),
+                                _buildActivityTypeButton(
+                                    'Cycling',
+                                    Icons.directions_bike,
+                                    _activityType == 'Cycling',
+                                    () => _selectActivityType('Cycling')),
+                              ],
+                            ),
+                          ),
+                        // --- END OF MOVED Activity Type Selection Card ---
+
                         // Original layout when _showStatsScreen is false (map view)
                         if (_isRecording && !_showStatsScreen)
                           Container(
@@ -1130,29 +1232,25 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                       MainAxisAlignment.spaceEvenly,
                                   children: [
                                     _buildStat(
-                                      icon: Icons.directions_run,
+                                      iconAsset: 'assets/icons/location.png',
                                       value: _distance.toStringAsFixed(2),
                                       unit: 'km',
-                                      iconColor: Colors.orange,
                                     ),
                                     _buildStat(
-                                      icon: Icons.local_fire_department,
+                                      iconAsset: 'assets/icons/alev.png',
                                       value: _calories.toString(),
                                       unit: 'kcal',
-                                      iconColor: Colors.red,
                                     ),
                                     const SizedBox(width: 8),
                                     _buildStat(
-                                      icon: Icons.do_not_step_outlined,
+                                      iconAsset: 'assets/icons/steps.png',
                                       value: _steps.toString(),
                                       unit: 'steps',
-                                      iconColor: Colors.green,
                                     ),
                                     _buildStat(
-                                      icon: Icons.bolt,
+                                      iconAsset: 'assets/icons/speed.png',
                                       value: _pace.toStringAsFixed(1),
                                       unit: 'km/hr',
-                                      iconColor: Colors.blue,
                                     ),
                                   ],
                                 ),
@@ -1317,52 +1415,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                       ),
                                   ],
                                 ),
-                                if (!_isRecording && !_showStatsScreen)
-                                  Container(
-                                    margin: const EdgeInsets.only(
-                                        bottom: 16.0,
-                                        left: 16.0,
-                                        right: 16.0,
-                                        top: 8.0),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 6.0, horizontal: 12.0),
-                                    decoration: BoxDecoration(
-                                      color: const Color.fromARGB(255, 0, 0, 0)
-                                          .withOpacity(0.9),
-                                      borderRadius: BorderRadius.circular(16.0),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      children: [
-                                        _buildActivityTypeButton(
-                                            'Running',
-                                            Icons.directions_run,
-                                            _activityType == 'Running',
-                                            () =>
-                                                _selectActivityType('Running')),
-                                        _buildActivityTypeButton(
-                                            'Walking',
-                                            Icons.directions_walk,
-                                            _activityType == 'Walking',
-                                            () =>
-                                                _selectActivityType('Walking')),
-                                        _buildActivityTypeButton(
-                                            'Cycling',
-                                            Icons.directions_bike,
-                                            _activityType == 'Cycling',
-                                            () =>
-                                                _selectActivityType('Cycling')),
-                                      ],
-                                    ),
-                                  ),
                               ],
                             ),
                           ),
@@ -1701,11 +1753,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
       _timer?.cancel();
       _timer = null;
+      _calorieCalculationTimer?.cancel();
       _stopLocationTracking();
       _stepCountSubscription?.cancel();
       _stepCountSubscription = null;
 
-      // Aktivite verilerini sıfırla
       _seconds = 0;
       _distance = 0.0;
       _calories = 0;
@@ -1715,25 +1767,118 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _startTime = null;
       _lastCalorieCalculationTime = null;
 
-      // Harita rota verilerini temizle
-      _routeCoordinates = [];
-      _polylines = {};
+      _mapboxRouteCoordinates = [];
+      _polylineAnnotationManager?.deleteAll().catchError(
+          (e) => print("Error deleting polylines on force stop: $e"));
+      if (_currentLocationMarker != null) {
+        _pointAnnotationManager?.delete(_currentLocationMarker!).catchError(
+            (e) => print("Error deleting marker on force stop: $e"));
+        _currentLocationMarker = null;
+      }
+      _currentMapboxPoint = null;
+      _currentGeoPosition = null;
+      _mapboxMap?.flyTo(
+          _initialCameraOptions, mb.MapAnimationOptions(duration: 1000));
+    });
+    // ref.read(recordStateProvider.notifier).forceStop(); // Bu metod RecordStateNotifier'da yoksa yorumda kalsın
+  }
 
-      // Markerları temizle (mevcut konum hariç)
-      if (_currentPosition != null) {
-        _markers = {
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position:
-                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-            infoWindow: const InfoWindow(title: 'Konumunuz'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
-          )
-        };
-      } else {
-        _markers = {};
+  void _onMapCreated(mb.MapboxMap mapboxMap) async {
+    _mapboxMap = mapboxMap;
+    debugPrint('MapboxMap oluşturuldu ve _mapboxMap atandı.');
+    // Annotation manager oluşturma ve _getCurrentLocation çağrısı onStyleLoadedListener içine taşındı.
+  }
+
+  void _onStyleLoadedListener(dynamic data) async {
+    debugPrint(
+        'RecordScreen: _onStyleLoadedListener çağrıldı - Stil yüklendi. Gelen data runtimeType: ${data.runtimeType}');
+    if (_mapboxMap == null) {
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - _mapboxMap null, işlem yapılamıyor.');
+      return;
+    }
+    try {
+      _pointAnnotationManager =
+          await _mapboxMap!.annotations.createPointAnnotationManager();
+      debugPrint(
+          'PointAnnotationManager oluşturuldu ve atandı. Manager: ${_pointAnnotationManager}');
+    } catch (e) {
+      debugPrint('PointAnnotationManager oluşturulurken HATA: $e');
+    }
+
+    try {
+      _polylineAnnotationManager =
+          await _mapboxMap!.annotations.createPolylineAnnotationManager();
+      debugPrint(
+          'PolylineAnnotationManager oluşturuldu ve atandı. Manager: ${_polylineAnnotationManager}');
+    } catch (e) {
+      debugPrint('PolylineAnnotationManager oluşturulurken HATA: $e');
+    }
+
+    // _getCurrentLocation çağrısını 500ms geciktir
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && !(_isRecording || _isPaused)) {
+        debugPrint(
+            "RecordScreen: _onStyleLoadedListener - Gecikmeli _getCurrentLocation çağrılıyor.");
+        _getCurrentLocation();
       }
     });
+    debugPrint('MapboxMap stili yüklendi ve annotation managerlar ayarlandı.');
+  }
+
+  Future<void> _requestPermissions() async {
+    // Bu fonksiyon artık sadece _initPermissions'ı çağırmalı
+    // veya _initPermissions'ın içeriğini buraya taşımalıyız.
+    // Şimdilik _initPermissions'ı çağıralım ve içindeki eski marker/map
+    // mantığının _initPermissions içerisinde doğru yönetildiğinden emin olalım.
+    // _initPermissions zaten initState içinde gecikmeli çağrılıyor,
+    // bu fonksiyonun initState'den direkt çağrılmasına gerek kalmadı.
+    // Eğer bu fonksiyon başka bir yerden çağrılıyorsa, o çağrıyı _initPermissions'a yönlendirmek daha doğru olabilir.
+    // Şimdilik bu fonksiyonu boş bırakıyorum, çünkü _initPermissions zaten görevini yapıyor.
+    // Eğer harici bir çağrısı varsa, orayı düzeltmek gerekir.
+    // Loglardan gördüğüm kadarıyla initState'den çağrılıyordu ve _initPermissions da oradan çağrılıyor.
+    // Bu yüzden bu fonksiyonun içeriğini boşaltmak ve initState'deki çağrısını kaldırmak en temizi olacak.
+    debugPrint(
+        "RecordScreen: _requestPermissions çağrıldı - Artık sadece _initPermissions'ı tetiklemeli (veya _initPermissions içeriğini almalı). Mevcut durumda _initPermissions zaten initState'de yönetiliyor.");
+    // _initPermissions(); // _initPermissions zaten initState'de gecikmeli çağrılıyor.
+  }
+
+  void _onTapListener(mb.ScreenCoordinate coordinate) {
+    if (kDebugMode) {
+      print('Map tapped at: ${coordinate.x}, ${coordinate.y}');
+    }
+    // Example: Convert screen coordinate to map coordinate and log
+    // This requires the map controller (_mapboxMap) to be initialized
+    _mapboxMap
+        ?.pixelForCoordinate(mb.Point(
+            coordinates:
+                mb.Position(coordinate.x.toDouble(), coordinate.y.toDouble())))
+        .then((point) {
+      if (kDebugMode) {
+        print('Map coordinate: ${point.encode()}');
+      }
+    }).catchError((e) {
+      if (kDebugMode) {
+        print('Error converting screen coordinate to map coordinate: $e');
+      }
+    });
+  }
+
+  void _onScrollListener(mb.ScreenCoordinate coordinate) {
+    // For simplicity, we're not doing much with scroll events here
+    // but you could use them to detect map interaction.
+    // if (kDebugMode) {
+    //   print('Map scrolled to: ${coordinate.x}, ${coordinate.y}');
+    // }
+  }
+
+  void _onCameraChangeListener(mb.CameraChangedEventData event) {
+    // You can get the new camera state from event.cameraState
+    // For example, to get the new zoom level:
+    // final newZoom = event.cameraState.zoom;
+    // if (kDebugMode) {
+    //   print("Camera new zoom: $newZoom");
+    // }
+    // _currentZoomLevel = newZoom; // Update current zoom level
   }
 }

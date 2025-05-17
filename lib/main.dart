@@ -13,15 +13,28 @@ import 'core/theme/app_theme.dart'; // AppTheme import (varsayılan tema için)
 import 'features/auth/presentation/screens/welcome_screen.dart'; // WelcomeScreen import
 import 'features/auth/presentation/screens/finish_race_screen.dart'; // FinishRaceScreen import
 import 'package:intl/date_symbol_data_local.dart'; // Import for locale initialization
+import 'package:my_flutter_project/core/services/signalr_service.dart';
+import 'package:my_flutter_project/features/auth/presentation/providers/auth_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart'; // Mapbox SDK importu
 
 // Global navigator anahtarı
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure bindings are initialized
 
   // Initialize date formatting for Turkish locale
   await initializeDateFormatting('tr_TR', null);
+
+  // Mapbox Erişim Anahtarını Yapılandır
+  MapboxOptions.setAccessToken(
+      'pk.eyJ1IjoiYXJkb250YTA3MTIiLCJhIjoiY21hbGFyZTNjMDZzazJrc2d2dGY1dXFzbyJ9.Wne_cJmA2EOyEbLDVOfhtg');
+  print("Mapbox Erişim Anahtarı doğrudan ayarlandı (test için).");
 
   // HttpInterceptor'a NavigatorKey'i daha sonra atayacağız
   runApp(const ProviderScope(child: MyApp()));

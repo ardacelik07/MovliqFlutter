@@ -29,15 +29,17 @@
 	<key>MKDirectionsApplicationSupportedModes</key>
 	<array/>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app requires background location access to track your activities even when the app is in the background.</string>
+	<string>Movliq, uygulama arka plandayken bile yarış aktivitenizi doğru bir şekilde kaydetmek için konumunuza sürekli erişime ihtiyaç duyar.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app requires access to your location to track your running, walking or cycling activity and match you with other users.</string>
+	<string>Movliq, yarışlar sırasında konumunuzu takip etmek ve size daha iyi bir deneyim sunmak için konumunuza ihtiyaç duyar.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Movliq, uygulama arka plandayken bile yarış aktivitenizi doğru bir şekilde kaydetmek için konumunuza sürekli erişime ihtiyaç duyar.</string>
 	<key>NSMotionUsageDescription</key>
-	<string>This app requires access to track your steps and activity for fitness tracking purposes.</string>
+	<string>Movliq, adım sayınızı ve aktivite seviyenizi ölçmek için hareket sensörlerinize erişim ister.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>This app requires access to your health data to read your step count and other fitness metrics.</string>
+	<string>Movliq, adım verilerinizi Apple Sağlık uygulamasından okumak için izin ister.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>This app requires permission to write fitness data to Apple Health.</string>
+	<string>Movliq, antrenmanlarınızı Apple Sağlık uygulamasına kaydetmek için izin ister.</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>This app would like to send you notifications about your races, step counts, and fitness achievements.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

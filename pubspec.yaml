@@ -42,11 +42,12 @@ dependencies:
   freezed_annotation: ^2.4.1
   cached_network_image: ^3.3.1
   share_plus: ^11.0.0
+  video_player: ^2.8.1
+  mapbox_maps_flutter: ^2.8.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  google_maps_flutter: ^2.10.1
   geolocator: ^13.0.2
   permission_handler: ^11.4.0
   pedometer: ^4.0.2
@@ -155,6 +156,9 @@ flutter:
     - assets/icons/greenman.png
     - assets/icons/alev.png
     - assets/images/raceui2.png
+    - assets/images/racevideo.mp4
+    - assets/images/14.png
+    - assets/images/mapbox.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

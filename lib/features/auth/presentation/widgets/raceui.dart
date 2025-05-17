@@ -1,7 +1,9 @@
+import 'dart:async'; // ADDED for TimeoutException
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/core/services/signalr_service.dart'; // For RaceParticipant
 import 'package:my_flutter_project/features/auth/presentation/widgets/user_profile_avatar.dart';
+import 'package:video_player/video_player.dart';
 
 // --- Yeni: Katılımcı İşaretleyici Widget'ı ---
 class _ParticipantMarkerWidget extends StatelessWidget {
@@ -102,8 +104,48 @@ class RaceUIWidget extends ConsumerStatefulWidget {
 }
 
 class _RaceUIWidgetState extends ConsumerState<RaceUIWidget> {
-  final double _unscaledMarkerHeight = 100.0; // Artırıldı içerik büyüdüğü için
+  VideoPlayerController? _videoController;
+  Future<void>? _initializeVideoPlayerFuture;
+
+  final double _unscaledMarkerHeight = 100.0;
   final double _bottomScreenPadding = 10.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _videoController =
+        VideoPlayerController.asset('assets/images/racevideo.mp4');
+    _initializeVideoPlayerFuture = _videoController!
+        .initialize()
+        .timeout(const Duration(seconds: 10), onTimeout: () {
+      print("Video player initialization timed out after 10 seconds.");
+      throw TimeoutException(
+          'Video player initialization timed out after 10 seconds');
+    }).then((_) {
+      if (!mounted) return;
+      _videoController!.setLooping(true);
+      _videoController!.play();
+      print("Video player initialized and playing.");
+      if (mounted) {
+        setState(() {});
+      }
+    }).catchError((error, stackTrace) {
+      print("Video player initialization error: $error");
+      print("Video player stackTrace: $stackTrace");
+      if (mounted) {
+        setState(() {
+          // Optionally, you could set a flag here to explicitly show an error message
+          // instead of relying on snapshot.hasError in FutureBuilder, if that's not working.
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
 
   String _getRankAsset(int rank) {
     if (rank == 1) return 'assets/icons/1.png';
@@ -230,11 +272,30 @@ class _RaceUIWidgetState extends ConsumerState<RaceUIWidget> {
       return Stack(
         fit: StackFit.expand,
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/raceui2.png',
-              fit: BoxFit.cover,
-            ),
+          FutureBuilder(
+            future: _initializeVideoPlayerFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done &&
+                  _videoController != null &&
+                  _videoController!.value.isInitialized) {
+                return SizedBox.expand(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: _videoController!.value.size.width,
+                      height: _videoController!.value.size.height,
+                      child: VideoPlayer(_videoController!),
+                    ),
+                  ),
+                );
+              } else if (snapshot.hasError) {
+                return const Center(
+                    child: Text("Video yüklenemedi",
+                        style: TextStyle(color: Colors.white)));
+              }
+              return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFC4FF62)));
+            },
           ),
           const Center(
             child: Text(
@@ -249,11 +310,35 @@ class _RaceUIWidgetState extends ConsumerState<RaceUIWidget> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Positioned.fill(
-          child: Image.asset(
-            'assets/images/raceui2.png',
-            fit: BoxFit.cover,
-          ),
+        FutureBuilder(
+          future: _initializeVideoPlayerFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done &&
+                _videoController != null &&
+                _videoController!.value.isInitialized) {
+              return SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _videoController!.value.size.width,
+                    height: _videoController!.value.size.height,
+                    child: VideoPlayer(_videoController!),
+                  ),
+                ),
+              );
+            } else if (snapshot.hasError) {
+              print(
+                  "Video Player Error, falling back to image: ${snapshot.error}");
+              return Positioned.fill(
+                child: Image.asset(
+                  'assets/images/raceui2.png',
+                  fit: BoxFit.cover,
+                ),
+              );
+            }
+            return const Center(
+                child: CircularProgressIndicator(color: Color(0xFFC4FF62)));
+          },
         ),
         Positioned(
           top: 10.0,

@@ -1,6 +1,6 @@
 import Flutter
 import UIKit
-import GoogleMaps
+// import GoogleMaps // Google Maps importunu kaldır
 import UserNotifications
 import CoreLocation
 
@@ -23,7 +23,7 @@ import CoreLocation
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     // Add your Google Maps API key here
-    GMSServices.provideAPIKey("AIzaSyAKS4a9rCu2hRTebc2lHA9o24BthtqyLjc")
+    // GMSServices.provideAPIKey("AIzaSyAKS4a9rCu2hRTebc2lHA9o24BthtqyLjc") // Google Maps API anahtarını kaldır
     
     // Hazırlık yapılıyor ama izin istenmeyecek
     prepareLocationServices()
