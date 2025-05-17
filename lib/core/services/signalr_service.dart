@@ -6,6 +6,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/api_config.dart';
 import 'storage_service.dart';
 import '../../features/auth/domain/models/room_participant.dart';
+import 'package:signalr_netcore/iretry_policy.dart'; // IRetryPolicy için import
+
+// --- YENİ: Özel Yeniden Deneme Politikası ---
+class ContinuousRetryPolicy implements IRetryPolicy {
+  final int retryIntervalMilliseconds;
+
+  ContinuousRetryPolicy(
+      {this.retryIntervalMilliseconds = 5000}); // Varsayılan 5 saniye
+
+  @override
+  int? nextRetryDelayInMilliseconds(RetryContext retryContext) {
+    debugPrint(
+        '[SignalR Retry] Attempting reconnect. Attempt: ${retryContext.previousRetryCount + 1}, Elapsed: ${retryContext.elapsedMilliseconds}ms. Reason: ${retryContext.retryReason}');
+    return retryIntervalMilliseconds; // Her zaman belirlenen aralığı döndür
+  }
+}
+// --- YENİ SONU ---
 
 final signalRServiceProvider = Provider<SignalRService>((ref) {
   final service = SignalRService();
@@ -167,7 +184,9 @@ class SignalRService {
               ))
           // Enable automatic reconnection with a sequence of delays (in milliseconds)
           // [0ms, 2s, 5s, 10s, 20s, 30s, then stop]
-          .withAutomaticReconnect()
+          .withAutomaticReconnect(
+              reconnectPolicy:
+                  ContinuousRetryPolicy(retryIntervalMilliseconds: 5000))
           .build();
 
       // Listen to connection state changes
@@ -339,12 +358,13 @@ class SignalRService {
       _raceStartingController.add({
         'roomId': roomId,
         'countdownSeconds': countdownSeconds,
+        'isRaceAlreadyStarted': false,
       });
 
       debugPrint(
-          'Yarış başlıyor! Oda: $roomId, Kalan süre: $countdownSeconds saniye');
+          '[SignalRService] Normal yarış başlıyor! Oda: $roomId, Geri Sayım: $countdownSeconds saniye');
     } catch (e) {
-      debugPrint('Yarış başlama olayı işleme hatası: $e');
+      debugPrint('[SignalRService] Yarış başlama olayı işleme hatası: $e');
     }
   }
 
@@ -497,6 +517,12 @@ class SignalRService {
     // It might carry different data or imply a different UI action (e.g., show results, navigate away).
     _handleRaceEnded(arguments); // Reuse existing logic for now
     debugPrint('[SignalR] RaceFinished (on join attempt) received.');
+    _raceStartingController.close();
+    _roomParticipantsController.close();
+    // Close new controllers
+    _connectionStateController.close();
+    _reconnectedController.close();
+    _reconnectingController.close();
   }
 
   // Servis dispose edildiğinde kaynakları temizle

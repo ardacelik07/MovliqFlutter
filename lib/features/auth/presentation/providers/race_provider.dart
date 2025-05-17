@@ -70,11 +70,12 @@ class RaceNotifier extends _$RaceNotifier {
     required int countdownSeconds,
     required int raceDurationMinutes,
     required bool isIndoorRace,
-    required String userEmail, // Kullanıcı email'ini başta alalım
-    required Map<String, String?> initialProfileCache, // <-- Add cache param
+    required String userEmail,
+    required Map<String, String?> initialProfileCache,
+    double? initialRemainingTimeSeconds,
   }) async {
     debugPrint(
-        '--- RaceNotifier: startRace CALLED --- Room: $roomId, Countdown: $countdownSeconds, Duration (minutes): $raceDurationMinutes <--- TYPE CHECK: ${raceDurationMinutes.runtimeType}, Indoor: $isIndoorRace, Email: $userEmail');
+        '--- RaceNotifier: startRace CALLED --- Room: $roomId, Countdown: $countdownSeconds, Duration (minutes): $raceDurationMinutes, Indoor: $isIndoorRace, Email: $userEmail, InitialRemainingTime: $initialRemainingTimeSeconds');
 
     // Zaten aktif bir yarış varsa başlatma
     if (state.isRaceActive || state.isPreRaceCountdownActive) {
@@ -196,7 +197,8 @@ class RaceNotifier extends _$RaceNotifier {
         '--- RaceNotifier: Initial state SET --- State: $state'); // <-- YENİ LOG
 
     // Geri sayımı başlat
-    _startPreRaceCountdown();
+    _startPreRaceCountdown(
+        initialRemainingTimeSecondsForTimer: initialRemainingTimeSeconds);
   }
 
   Future<void> leaveRace() async {
@@ -261,9 +263,9 @@ class RaceNotifier extends _$RaceNotifier {
     }
   }
 
-  void _startPreRaceCountdown() {
+  void _startPreRaceCountdown({double? initialRemainingTimeSecondsForTimer}) {
     debugPrint(
-        '--- RaceNotifier: _startPreRaceCountdown CALLED --- Initial Countdown: ${state.preRaceCountdownValue}'); // <-- YENİ LOG
+        '--- RaceNotifier: _startPreRaceCountdown CALLED --- Initial Countdown: ${state.preRaceCountdownValue}, InitialRemainingTimeForTimer: $initialRemainingTimeSecondsForTimer'); // <-- YENİ LOG
     _preRaceCountdownTimer?.cancel();
     // State'in zaten doğru ayarlandığını varsayıyoruz startRace içinde
     // state = state.copyWith(isPreRaceCountdownActive: true, preRaceCountdownValue: state.preRaceCountdownValue);
@@ -297,7 +299,9 @@ class RaceNotifier extends _$RaceNotifier {
               isPreRaceCountdownActive: false, isRaceActive: true);
           debugPrint(
               '--- RaceNotifier: State updated for actual race start. State: $state ---'); // <-- YENİ LOG
-          _startActualRaceTracking(); // Geri sayım bitti, asıl takibi başlat
+          _startActualRaceTracking(
+            initialRemainingTimeSeconds: initialRemainingTimeSecondsForTimer,
+          ); // Geri sayım bitti, asıl takibi başlat
         } else {
           debugPrint(
               '--- RaceNotifier: Countdown finished, but state says countdown was already inactive? State: $state ---'); // <-- YENİ LOG
@@ -306,13 +310,14 @@ class RaceNotifier extends _$RaceNotifier {
     });
   }
 
-  void _startActualRaceTracking() async {
+  void _startActualRaceTracking({double? initialRemainingTimeSeconds}) async {
     debugPrint(
-        '--- RaceNotifier: _startActualRaceTracking CALLED --- State: $state'); // <-- YENİ LOG
+        '--- RaceNotifier: _startActualRaceTracking CALLED --- InitialRemainingTime: $initialRemainingTimeSeconds, State: $state'); // <-- YENİ LOG
     state = state.copyWith(raceStartTime: DateTime.now());
 
     _listenToSignalREvents();
-    _initializeRaceTimer();
+    _initializeRaceTimer(
+        initialRemainingTimeSeconds: initialRemainingTimeSeconds);
     // Kalori hesaplama timer'ını başlat (veya _raceTimerTimer içine entegre et)
     _initializeCalorieCalculation(); // <-- Yeni metod çağrısı
 
@@ -442,10 +447,26 @@ class RaceNotifier extends _$RaceNotifier {
     // state = state.copyWith(isRaceActive: false); // sadece aktifliği kapat
   }
 
-  void _initializeRaceTimer() {
+  void _initializeRaceTimer({double? initialRemainingTimeSeconds}) {
     _raceTimerTimer?.cancel();
     if (state.raceDuration == null) return;
-    state = state.copyWith(remainingTime: state.raceDuration!);
+
+    Duration actualStartingRemainingTime;
+    if (initialRemainingTimeSeconds != null &&
+        initialRemainingTimeSeconds > 0) {
+      // Eğer dışarıdan bir kalan süre geldiyse (yarışa ortadan katılındıysa) onu kullan
+      actualStartingRemainingTime =
+          Duration(seconds: initialRemainingTimeSeconds.round());
+      debugPrint(
+          'RaceNotifier: Yarış zamanlayıcısı özel kalan süre ile başlatılıyor: $actualStartingRemainingTime');
+    } else {
+      // Yoksa yarışın toplam süresini kullan (yeni başlıyorsa)
+      actualStartingRemainingTime = state.raceDuration!;
+      debugPrint(
+          'RaceNotifier: Yarış zamanlayıcısı toplam yarış süresi ile başlatılıyor: $actualStartingRemainingTime');
+    }
+    state = state.copyWith(remainingTime: actualStartingRemainingTime);
+
     _raceTimerTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!state.isRaceActive) {
         timer.cancel();
