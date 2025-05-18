@@ -21,6 +21,8 @@ import 'package:flutter/services.dart'; // MethodChannel için
 import 'package:geolocator/geolocator.dart'; // Location servisleri için
 import '../providers/race_coin_tracker_provider.dart';
 import '../providers/user_data_provider.dart'; // Eğer yoksa ekle
+import 'package:share_plus/share_plus.dart'; // SharePlus paketi eklendi
+import 'package:flutter/rendering.dart';
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -826,19 +828,46 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                             Row(
                               children: [
                                 const Icon(
-                                    Icons
-                                        .meeting_room_outlined, // Or Icons.vpn_key_outlined
-                                    color: _accentColor,
-                                    size: 20),
+                                  Icons.meeting_room_outlined,
+                                  color: _accentColor,
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 8),
-                                SelectableText(
-                                  // Make room code selectable
-                                  widget.roomCode,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: _primaryTextColor,
+                                Expanded(
+                                  child: SelectableText(
+                                    widget.roomCode,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: _primaryTextColor,
+                                    ),
                                   ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.copy,
+                                      color: _accentColor, size: 20),
+                                  tooltip: 'Kodu Kopyala',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: widget.roomCode));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content:
+                                              Text('Oda kodu kopyalandı!')),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.share,
+                                      color: _accentColor, size: 20),
+                                  tooltip: 'Kodu Paylaş',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () {
+                                    Share.share(' ${widget.roomCode}');
+                                  },
                                 ),
                               ],
                             ),
