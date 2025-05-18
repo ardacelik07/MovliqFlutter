@@ -5,6 +5,7 @@ import 'package:my_flutter_project/features/auth/presentation/providers/race_sta
 import 'package:my_flutter_project/features/auth/presentation/screens/race_screen.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/http_interceptor.dart'; // Added HttpInterceptor import
 import '../providers/race_settings_provider.dart';
 import 'dart:convert';
 import 'dart:async'; // StreamSubscription için import ekliyorum
@@ -34,10 +35,14 @@ class WaitingRoomScreen extends ConsumerStatefulWidget {
   final DateTime? startTime;
   final String? activityType;
   final int? duration;
+  final String roomCode;
+  final bool isHost;
 
   const WaitingRoomScreen({
     super.key,
     required this.roomId,
+    required this.roomCode,
+    required this.isHost,
     this.startTime,
     this.activityType,
     this.duration,
@@ -55,6 +60,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   String? _myEmail; // Email adresi
   String? _lastJoinedUser;
   bool _isLoading = false; // Son katılan kullanıcı
+  bool _isLoadingStartRace = false;
 
   // Fotoğraf önbelleği için harita ekliyoruz
   final Map<String, String?> _profilePictureCache = {};
@@ -73,6 +79,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     _participants = []; // Boş liste ile başlat
     debugPrint('🔄 WaitingRoom initState - Başlangıç durumu:');
     debugPrint('🏠 Oda ID: ${widget.roomId}');
+    debugPrint('🔑 Oda Kodu: ${widget.roomCode}');
+    debugPrint('👑 Host mu: ${widget.isHost}');
 
     // Kullanıcı adını al
     _loadUsername().then((_) {
@@ -83,7 +91,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     _setupSignalR().then((_) {
       // SignalR bağlantısı kurulduktan sonra ilk katılımcı listesini al
       if (_isConnected) {
-        debugPrint('📥 İlk katılımcı listesi alınıyor...');
+        debugPrint('�� İlk katılımcı listesi alınıyor...');
         ref.read(signalRServiceProvider).joinRaceRoom(widget.roomId);
       }
     });
@@ -804,6 +812,37 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                               ),
                             ],
                           ),
+                          // Display Room Code
+                          if (widget.roomCode.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              'Oda Kodu',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: _secondaryTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                    Icons
+                                        .meeting_room_outlined, // Or Icons.vpn_key_outlined
+                                    color: _accentColor,
+                                    size: 20),
+                                const SizedBox(width: 8),
+                                SelectableText(
+                                  // Make room code selectable
+                                  widget.roomCode,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: _primaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -848,6 +887,41 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
+
+                    // Start Race Button (Conditional)
+                    if (widget.isHost && _participants.length >= 2)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: 10.0), // Add some space below
+                        child: Center(
+                          child: _isLoadingStartRace
+                              ? const CircularProgressIndicator(
+                                  color: _accentColor)
+                              : ElevatedButton.icon(
+                                  onPressed: _startRaceButtonPressed,
+                                  icon: const Icon(Icons.sports_kabaddi,
+                                      color: Colors.black), // Icon for start
+                                  label: const Text(
+                                    'Yarışı Başlat',
+                                    style: TextStyle(
+                                      color: Colors
+                                          .black, // Text color black for contrast
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        _accentColor, // Button background
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12, horizontal: 24),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
 
                     // Leave Button
                     if (!_isLoading) // Hide button while loading/leaving
@@ -1123,6 +1197,58 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       });
     } catch (e) {
       debugPrint('WaitingRoom: Sürekli konum başlatma hatası: $e');
+    }
+  }
+
+  // Method to handle "Start Race" button press
+  Future<void> _startRaceButtonPressed() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingStartRace = true;
+    });
+
+    debugPrint('🏁 Yarış başlatılıyor... Oda ID: ${widget.roomId}');
+
+    try {
+      // Token is handled by HttpInterceptor, no need to fetch manually here
+      // final token = await StorageService.getToken();
+      // if (token == null) {
+      //   _showErrorMessage('Kimlik doğrulama başarısız.');
+      //   setState(() => _isLoadingStartRace = false);
+      //   return;
+      // }
+
+      final String url =
+          '${ApiConfig.startCreatedRoomEndpoint}/${widget.roomId}'; // Construct URL with roomId as path parameter
+      debugPrint('🏁 Yarışı Başlat API URL: $url');
+
+      final response = await HttpInterceptor.post(
+        Uri.parse(url),
+        body: jsonEncode({}), // Send an empty JSON object as the body
+      );
+
+      debugPrint('🏁 Yarışı Başlat API yanıt kodu: ${response.statusCode}');
+      debugPrint('🏁 Yarışı Başlat API yanıt body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Success, SignalR should handle navigation via raceStartingStream
+        // Optionally, show a success message, though it might be quick if navigation is fast
+        // _showInfoMessage('Yarış başlatma komutu gönderildi.');
+        // The raceNotifier and SignalR stream should now trigger navigation to RaceScreen
+      } else {
+        final responseData = jsonDecode(response.body);
+        _showErrorMessage(responseData['message'] ??
+            'Yarış başlatılamadı. Hata kodu: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showErrorMessage('Yarış başlatılırken bir hata oluştu: $e');
+      debugPrint('🏁 Yarış başlatma hatası: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingStartRace = false;
+        });
+      }
     }
   }
 }

@@ -142,6 +142,8 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                           : null,
                                       activityType: activityType,
                                       duration: duration,
+                                      roomCode: '',
+                                      isHost: false,
                                     ),
                                   ),
                                 );
