@@ -19,7 +19,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardHeight = screenWidth * 0.65;
+    final cardHeight = screenWidth * 0.40;
 
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 0, 0, 0),
@@ -63,7 +63,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                 _buildOptionCard(
                   titleLines: ["Özel Yarış"],
                   description: "Arkadaşlarınla yarış veya yeni odalar keşfet",
-                  imagePath: "assets/images/manOnRunningInside.png",
+                  imagePath: "assets/images/waiting.png",
                   value: "private",
                   isSelected: _selectedPreference == "private",
                   cardHeight: cardHeight,

@@ -112,8 +112,7 @@ flutter:
     - assets/images/runningclock.png
     - assets/images/waitingman.png
     - assets/images/record.png
-    - assets/images/indoorfilterbckgrnd.jpg
-    - assets/images/outdoorfilterbckgrnd.jpg
+
     - assets/images/playstore.png
     - assets/images/loading.png
     - assets/images/onlycolor.jpeg
