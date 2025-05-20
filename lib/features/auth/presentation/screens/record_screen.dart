@@ -734,7 +734,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                       ? mb.MapWidget(
                           key: const ValueKey("mapbox_map_record"),
                           styleUri: mb.MapboxStyles.STANDARD,
-                          cameraOptions: _initialCameraOptions,
+                          cameraOptions: (_currentMapboxPoint != null)
+                              ? mb.CameraOptions(
+                                  center: _currentMapboxPoint!, zoom: 17.0)
+                              : _initialCameraOptions,
                           onMapCreated: _onMapCreated,
                           onScrollListener: null,
                           onTapListener: null,
@@ -1377,27 +1380,119 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _onStyleLoadedListener(dynamic data) async {
-    if (_mapboxMap == null) {
+    if (_mapboxMap == null || !mounted) {
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Map is null or widget not mounted, returning.');
       return;
     }
+
+    debugPrint(
+        'RecordScreen: _onStyleLoadedListener - Style loaded, (re)initializing annotation managers.');
+
     try {
       _pointAnnotationManager =
           await _mapboxMap!.annotations.createPointAnnotationManager();
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - PointAnnotationManager created.');
     } catch (e) {
-      debugPrint('PointAnnotationManager oluşturulurken HATA: $e');
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Error creating PointAnnotationManager: $e');
     }
 
     try {
       _polylineAnnotationManager =
           await _mapboxMap!.annotations.createPolylineAnnotationManager();
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - PolylineAnnotationManager created.');
     } catch (e) {
-      debugPrint('PolylineAnnotationManager oluşturulurken HATA: $e');
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Error creating PolylineAnnotationManager: $e');
     }
 
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted && !(_isRecording || _isPaused)) {
-        _getCurrentLocation();
+    if (!mounted) {
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Widget unmounted after creating managers, returning.');
+      return;
+    }
+
+    if (_isRecording) {
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Recording is active. Restoring route and marker.');
+      // Restore polyline
+      if (_polylineAnnotationManager != null &&
+          _mapboxRouteCoordinates.length > 1) {
+        debugPrint(
+            'RecordScreen: _onStyleLoadedListener - Restoring polyline with ${_mapboxRouteCoordinates.length} points.');
+        _polylineAnnotationManager!.deleteAll().then((_) {
+          return _polylineAnnotationManager!
+              .create(mb.PolylineAnnotationOptions(
+            geometry: mb.LineString(
+                coordinates:
+                    _mapboxRouteCoordinates.map((p) => p.coordinates).toList()),
+            lineColor: const Color(0xFFC4FF62).value,
+            lineWidth: 5.0,
+          ));
+        }).then((_) {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Polyline restored.');
+        }).catchError((e) {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Error restoring polyline: $e');
+        });
+      } else {
+        debugPrint(
+            'RecordScreen: _onStyleLoadedListener - Polyline manager null or not enough points for polyline (${_mapboxRouteCoordinates.length}).');
       }
-    });
+
+      // Restore current location marker
+      if (_currentMapboxPoint != null && _pointAnnotationManager != null) {
+        if (_markerImage == null) {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Marker image is null, loading it.');
+          await _loadMarkerImage();
+          if (!mounted) return;
+        }
+        if (_markerImage != null) {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Restoring current location marker.');
+          _pointAnnotationManager!
+              .create(
+            mb.PointAnnotationOptions(
+              geometry: _currentMapboxPoint!,
+              image: _markerImage,
+              iconSize: 0.15,
+            ),
+          )
+              .then((newMarker) {
+            if (mounted) {
+              _currentLocationMarker = newMarker;
+              debugPrint(
+                  'RecordScreen: _onStyleLoadedListener - Current location marker restored/created. ID: ${newMarker.id}');
+            }
+          }).catchError((e) {
+            debugPrint(
+                'RecordScreen: _onStyleLoadedListener - Error restoring current location marker: $e');
+          });
+        } else {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Marker image still null after attempting load, cannot create marker.');
+        }
+      } else {
+        debugPrint(
+            'RecordScreen: _onStyleLoadedListener - Current mapbox point or point manager is null, cannot restore marker.');
+      }
+    } else {
+      // Not recording
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Not recording. Calling _getCurrentLocation after delay.');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _getCurrentLocation();
+        } else {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Widget unmounted before _getCurrentLocation callback.');
+        }
+      });
+    }
   }
 }
