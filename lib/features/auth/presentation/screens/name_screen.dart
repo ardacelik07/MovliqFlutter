@@ -158,12 +158,19 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                                   _usernameController.text.trim();
 
                               try {
+                                // Step 1: Validate and set username via the new API
+                                await ref
+                                    .read(userProfileProvider.notifier)
+                                    .validateAndSetUsername(username);
+
+                                // Step 2: Update the name locally in the profile model
+                                // (validateAndSetUsername already updated the username in _profile object of the notifier)
                                 ref
                                     .read(userProfileProvider.notifier)
-                                    .updateProfile(
-                                      name: name,
-                                      username: username,
-                                    );
+                                    .updateProfile(name: name);
+
+                                // Step 3: Save the entire profile (name and validated username)
+                                // using the general /User/update-profile endpoint.
                                 await ref
                                     .read(userProfileProvider.notifier)
                                     .saveProfile();
@@ -181,8 +188,9 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                        content: Text(
-                                            'Failed to update profile: ${e.toString()}')),
+                                        content: Text(e
+                                            .toString()
+                                            .replaceFirst("Exception: ", ""))),
                                   );
                                 }
                               } finally {
