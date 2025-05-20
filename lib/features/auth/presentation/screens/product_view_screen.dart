@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:my_flutter_project/features/auth/domain/models/product.dart';
@@ -6,8 +7,13 @@ import 'package:flutter/services.dart'; // Clipboard için
 import 'package:url_launcher/url_launcher.dart'; // URL açmak için
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod importu
 import 'package:my_flutter_project/features/auth/presentation/providers/product_provider.dart'; // Provider importu
+// import 'package:my_flutter_project/features/auth/data/models/product_model.dart'; // Product modeli için eklendi - Removed as it might be unnecessary and path is likely incorrect
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart'; // DateFormat için eklendi
+import 'package:my_flutter_project/core/config/api_config.dart'; // Corrected import path
+import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Corrected import path
+import 'package:http/http.dart'
+    as http; // Standard http package for tokenless request
 
 // Sabit renkleri ve stilleri tanımlayalım (StoreScreen'den alınabilir veya ortak bir yerden)
 const Color limeGreen = Color(0xFFC4FF62);
@@ -168,6 +174,31 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                   onPressed: () async {
                     final String? code = response.acquiredCoupon?.code;
                     final String? urlString = response.productUrl;
+
+                    // Increment product traffic (fire and forget)
+                    try {
+                      // Assuming widget.productId holds the current product's ID
+                      final int currentProductId = widget.productId;
+
+                      final String trafficUrl =
+                          ApiConfig.incrementProductTrafficEndpoint(
+                              currentProductId);
+                      // Use standard http.post for tokenless request
+                      final trafficIncrementResponse = await http.post(
+                        Uri.parse(trafficUrl),
+                        // No token, no custom headers, no body for this specific POST request
+                      );
+
+                      if (trafficIncrementResponse.statusCode == 200) {
+                        print(
+                            'Successfully incremented traffic for product $currentProductId');
+                      } else {
+                        print(
+                            'Failed to increment traffic for product $currentProductId: ${trafficIncrementResponse.statusCode} ${trafficIncrementResponse.body}');
+                      }
+                    } catch (e) {
+                      print('Error calling increment traffic API: $e');
+                    }
 
                     if (code != null) {
                       await Clipboard.setData(ClipboardData(text: code));

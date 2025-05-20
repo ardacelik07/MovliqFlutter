@@ -64,6 +64,10 @@ class ApiConfig {
   static const String userRecordEarnCoinEndpoint =
       '$baseUrl/UserResults/user-record-earn-coin';
 
+  // Endpoint to increment product traffic
+  static String incrementProductTrafficEndpoint(int productId) =>
+      '$baseUrl/Products/$productId/increment-traffic';
+
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
