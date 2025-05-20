@@ -45,11 +45,12 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
             SnackBar(content: Text('Error: ${error.toString()}')),
           );
         },
-        data: (_) {
+        data: (_) async {
           setState(() => _isLoading = false);
           // Fetch user data and reset tab before navigating
-          ref.read(userDataProvider.notifier).fetchUserData();
-          ref.read(selectedTabProvider.notifier).state = 0; // YENI DEGISIKLER
+          await ref.read(userDataProvider.notifier).fetchUserData();
+          if (!mounted) return;
+          ref.read(selectedTabProvider.notifier).state = 0;
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -232,6 +233,11 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
 
       // Profili kaydet
       await ref.read(userProfileProvider.notifier).saveProfile();
+
+      // Kullanıcı verilerini yenile (navigasyondan önce)
+      await ref.read(userDataProvider.notifier).fetchUserData();
+      // ref.listen zaten başarılı saveProfile sonrası fetchUserData çağırıyor,
+      // bu satır _handleComplete akışında navigasyon öncesi garantiliyor.
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
