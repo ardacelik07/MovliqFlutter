@@ -158,6 +158,17 @@ flutter:
     - assets/images/racevideo.mp4
     - assets/images/14.png
     - assets/images/mapbox.png
+
+    - assets/icons/join.png
+    - assets/icons/add.png
+    - assets/icons/getin.png
+    - assets/icons/create.png
+    - assets/images/createroom.png
+    - assets/icons/time.png
+    - assets/icons/createroom1.png
+    - assets/icons/outdoor.png
+    - assets/icons/indoor.png
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

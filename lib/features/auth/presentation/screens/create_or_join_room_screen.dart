@@ -6,6 +6,14 @@ import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Adde
 import 'package:my_flutter_project/features/auth/presentation/screens/waitingRoom_screen.dart'; // Added for WaitingRoomScreen
 import 'package:intl/intl.dart'; // For DateTime formatting
 
+// Define colors for consistency at file level
+const Color _kAccentColor = Color(0xFFC4FF62);
+const Color _kDarkBackgroundColor = Colors.black;
+const Color _kInputFillColor = Color(0xFF2A2A2A);
+const Color _kLightTextColor = Colors.white;
+const Color _kHintTextColor = Colors.grey;
+final Color _kUnselectedTabIconColor = Colors.grey[400]!;
+
 class CreateOrJoinRoomScreen extends ConsumerStatefulWidget {
   const CreateOrJoinRoomScreen({super.key});
 
@@ -27,23 +35,23 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
   bool _isLoadingJoin = false; // Loading state for joining room
   bool _isLoadingCreate = false; // Loading state for creating room
 
-  // Define colors for consistency
-  static const Color _accentColor = Color(0xFFC4FF62);
-  static const Color _darkBackgroundColor = Colors.black;
-  static const Color _inputFillColor = Color(0xFF2A2A2A); // Darker input fill
-  static const Color _lightTextColor = Colors.white;
-  static const Color _hintTextColor = Colors.grey; // Softer hint text
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Add listener to rebuild tabs on swipe for selection style
+    _tabController.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
     _selectedRoomType = 'outdoor';
     _selectedDuration = _durationOptions.first;
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(() {}); // Remove listener
     _tabController.dispose();
     _roomCodeController.dispose();
     _entryCoinController.dispose();
@@ -85,7 +93,8 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
                   content: Text('Oda ID bilgisi yanıtta bulunamadı.')),
             );
           }
-          setState(() => _isLoadingJoin = false);
+          if (mounted)
+            setState(() => _isLoadingJoin = false); // Ensure mounted check
           return;
         }
 
@@ -96,7 +105,8 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
               const SnackBar(content: Text('Geçersiz oda ID formatı alındı.')),
             );
           }
-          setState(() => _isLoadingJoin = false);
+          if (mounted)
+            setState(() => _isLoadingJoin = false); // Ensure mounted check
           return;
         }
 
@@ -208,7 +218,8 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
               const SnackBar(content: Text('Oda kodu yanıtta bulunamadı.')),
             );
           }
-          setState(() => _isLoadingCreate = false);
+          if (mounted)
+            setState(() => _isLoadingCreate = false); // Ensure mounted check
           return;
         }
 
@@ -218,7 +229,8 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
               const SnackBar(content: Text('Oda ID yanıtta bulunamadı.')),
             );
           }
-          setState(() => _isLoadingCreate = false);
+          if (mounted)
+            setState(() => _isLoadingCreate = false); // Ensure mounted check
           return;
         }
 
@@ -230,7 +242,8 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
                   content: Text('Geçersiz Oda ID formatı yanıtta alındı.')),
             );
           }
-          setState(() => _isLoadingCreate = false);
+          if (mounted)
+            setState(() => _isLoadingCreate = false); // Ensure mounted check
           return;
         }
 
@@ -274,22 +287,25 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
 
   // Helper for input decoration
   InputDecoration _buildInputDecoration(String label,
-      {IconData? prefixIcon, String? hintText}) {
+      {Widget? prefixIcon, String? hintText}) {
+    // Changed IconData to Widget
     return InputDecoration(
       labelText: label,
       hintText: hintText,
-      labelStyle: const TextStyle(color: _hintTextColor),
-      hintStyle: const TextStyle(color: _hintTextColor),
-      prefixIcon:
-          prefixIcon != null ? Icon(prefixIcon, color: _accentColor) : null,
+      labelStyle: const TextStyle(color: _kHintTextColor),
+      hintStyle: const TextStyle(color: _kHintTextColor),
+      prefixIcon: prefixIcon, // Use Widget directly
       filled: true,
-      fillColor: _inputFillColor,
+      fillColor: _kInputFillColor,
+      contentPadding: const EdgeInsets.symmetric(
+          vertical: 18.0, horizontal: 16.0), // Added content padding
       enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.grey[700]!),
+        borderSide: BorderSide(
+            color: Colors.white.withOpacity(0.5), width: 1.5), // Updated border
         borderRadius: BorderRadius.circular(12),
       ),
       focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: _accentColor, width: 2),
+        borderSide: const BorderSide(color: _kAccentColor, width: 2),
         borderRadius: BorderRadius.circular(12),
       ),
       border: OutlineInputBorder(
@@ -301,9 +317,10 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
   // Helper for elevated button style
   ButtonStyle _buildElevatedButtonStyle() {
     return ElevatedButton.styleFrom(
-      backgroundColor: _accentColor,
-      foregroundColor: _darkBackgroundColor,
-      minimumSize: const Size(double.infinity, 50), // Full width, fixed height
+      backgroundColor: _kAccentColor,
+      foregroundColor: _kDarkBackgroundColor,
+      minimumSize:
+          const Size(double.infinity, 60), // Increased height from 50 to 60
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -312,43 +329,82 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
     );
   }
 
+  // Helper to build tab content for the TabBar
+  Widget _buildTabContent(String imagePath, String text, int tabIndex) {
+    bool isSelected = _tabController.index == tabIndex;
+    return Container(
+      height: 45, // Fixed height for tab buttons
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? _kAccentColor.withOpacity(0.15)
+            : _kDarkBackgroundColor,
+        borderRadius: BorderRadius.circular(30), // Fully rounded corners
+        border: Border.all(
+          color: isSelected ? _kAccentColor : Colors.grey[700]!,
+          width: isSelected ? 2.0 : 1.5,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            imagePath,
+            width: 20,
+            height: 20,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              color: isSelected ? _kAccentColor : _kUnselectedTabIconColor,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _darkBackgroundColor,
+      backgroundColor: _kDarkBackgroundColor,
       appBar: AppBar(
         title: const Text('Özel Oda',
-            style:
-                TextStyle(color: _lightTextColor, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.grey[900]?.withOpacity(0.8),
-        elevation: 0, // Changed elevation to 0 to remove the line/shadow
-        iconTheme: const IconThemeData(color: _lightTextColor),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: _accentColor, // Selected tab text color
-          unselectedLabelColor: _hintTextColor,
-          indicatorColor: _accentColor,
-          indicatorWeight: 3.0, // Make indicator thicker
-          indicatorPadding: const EdgeInsets.symmetric(
-              horizontal: 8.0), // Add padding to indicator
-          tabs: const [
-            Tab(
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                  Icon(Icons.group_add_outlined),
-                  SizedBox(width: 8),
-                  Text('Odaya Katıl')
-                ])),
-            Tab(
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                  Icon(Icons.add_box_outlined),
-                  SizedBox(width: 8),
-                  Text('Oda Oluştur')
-                ])),
-          ],
+            style: TextStyle(
+                color: _kLightTextColor, fontWeight: FontWeight.bold)),
+        backgroundColor: _kDarkBackgroundColor, // Match screen background
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _kLightTextColor),
+        bottom: PreferredSize(
+          // Use PreferredSize for custom height
+          preferredSize: const Size.fromHeight(60.0), // Adjust height as needed
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: Colors.transparent, // Hide default indicator line
+              indicatorPadding: EdgeInsets.zero,
+              labelPadding: const EdgeInsets.symmetric(
+                  horizontal: 4.0), // spacing between tabs
+              dividerColor: Colors.transparent, // Hide default divider
+              onTap: (index) {
+                // setState is called by the listener
+              },
+              tabs: [
+                Tab(
+                    child: _buildTabContent(
+                        'assets/icons/add.png', 'Odaya Katıl', 0)),
+                Tab(
+                    child: _buildTabContent(
+                        'assets/icons/create.png', 'Oda Oluştur', 1)),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(
@@ -394,12 +450,9 @@ class _JoinRoomTabWidget extends ConsumerWidget {
   final TextEditingController roomCodeController;
   final bool isLoadingJoin;
   final Future<void> Function() onJoinRoomPressed;
-  final InputDecoration Function(String,
-      {IconData? prefixIcon, String? hintText}) buildInputDecoration;
+  final InputDecoration Function(String, {Widget? prefixIcon, String? hintText})
+      buildInputDecoration; // Updated to Widget
   final ButtonStyle Function() buildElevatedButtonStyle;
-  static const Color _accentColor = _CreateOrJoinRoomScreenState._accentColor;
-  static const Color _lightTextColor =
-      _CreateOrJoinRoomScreenState._lightTextColor;
 
   const _JoinRoomTabWidget({
     // super.key, // ConsumerWidget does not need a key in its constructor in this context if not passed down
@@ -414,28 +467,68 @@ class _JoinRoomTabWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          TextFormField(
-            controller: roomCodeController,
-            style: const TextStyle(color: _lightTextColor),
-            decoration: buildInputDecoration('Oda Kodu',
-                prefixIcon: Icons.sensor_door_outlined, hintText: 'ABCXYZ'),
-            enabled: !isLoadingJoin,
-          ),
-          const SizedBox(height: 24),
-          isLoadingJoin
-              ? const Center(
-                  child: CircularProgressIndicator(color: _accentColor))
-              : ElevatedButton.icon(
-                  icon: const Icon(Icons.login),
-                  label: const Text('Odaya Katıl'),
-                  onPressed: isLoadingJoin ? null : onJoinRoomPressed,
-                  style: buildElevatedButtonStyle(),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment:
+              MainAxisAlignment.center, // Center content vertically
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            // Placeholder for the character image.
+            // TODO: User, please add your character image to 'assets/images/team_characters.png'
+            // and uncomment the line below, or replace with your actual asset.
+            // Image.asset('assets/images/team_characters.png', height: 200, fit: BoxFit.contain),
+            // Using a container as a placeholder for now
+            Container(
+              height: 400,
+              margin: const EdgeInsets.only(bottom: 10),
+              // decoration: BoxDecoration(
+              //   border: Border.all(color: Colors.grey),
+              //   borderRadius: BorderRadius.circular(12),
+              // ),
+              // child: const Center(child: Text('Your Image Here', style: TextStyle(color: _lightTextColor))),
+              // Temporary: Using one of the provided assets as a placeholder visually
+              child: Image.asset('assets/images/createroom.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Text('Error loading image',
+                          style: TextStyle(color: Colors.red)))),
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: roomCodeController,
+              style: const TextStyle(color: _kLightTextColor),
+              decoration: buildInputDecoration(
+                'Oda Kodu Giriniz', // Changed label to hint
+                hintText: 'Oda Kodu Giriniz',
+                prefixIcon: Padding(
+                  // Add padding to the icon if needed
+                  padding: const EdgeInsets.all(12.0),
+                  child: Image.asset(
+                    'assets/icons/getin.png', // Reverted to getin.png as roomcode.png does not exist
+                    width: 24,
+                    height: 24,
+                  ),
                 ),
-        ],
+              ),
+              textAlign: TextAlign.center, // Center the text input
+              enabled: !isLoadingJoin,
+            ),
+            const SizedBox(height: 24),
+            isLoadingJoin
+                ? const Center(
+                    child: CircularProgressIndicator(color: _kAccentColor))
+                : ElevatedButton.icon(
+                    icon: Image.asset(
+                      'assets/icons/join.png', // As per image, this is the open locker icon
+                      width: 24,
+                      height: 24,
+                    ),
+                    label: const Text('Odaya Katıl'),
+                    onPressed: isLoadingJoin ? null : onJoinRoomPressed,
+                    style: buildElevatedButtonStyle(),
+                  ),
+          ],
+        ),
       ),
     );
   }
@@ -453,16 +546,9 @@ class _CreateRoomTabWidget extends ConsumerStatefulWidget {
   final void Function(String?) onRoomTypeChanged;
   final void Function(int?) onDurationChanged;
   final Future<void> Function() onCreateRoomPressed;
-  final InputDecoration Function(String,
-      {IconData? prefixIcon, String? hintText}) buildInputDecoration;
+  final InputDecoration Function(String, {Widget? prefixIcon, String? hintText})
+      buildInputDecoration;
   final ButtonStyle Function() buildElevatedButtonStyle;
-  static const Color _accentColor = _CreateOrJoinRoomScreenState._accentColor;
-  static const Color _lightTextColor =
-      _CreateOrJoinRoomScreenState._lightTextColor;
-  static const Color _darkBackgroundColor =
-      _CreateOrJoinRoomScreenState._darkBackgroundColor;
-  static const Color _inputFillColor =
-      _CreateOrJoinRoomScreenState._inputFillColor;
 
   const _CreateRoomTabWidget({
     // super.key, // ConsumerStatefulWidget does not need a key in its constructor in this context
@@ -514,12 +600,14 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            const SizedBox(
+                height: 16), // Adjusted from 24, as image was removed
             const Text('Oda Tipi:',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: _CreateRoomTabWidget._lightTextColor)),
-            const SizedBox(height: 12),
+                    color: _kLightTextColor)),
+            const SizedBox(height: 16), // Increased from 12
             ToggleButtons(
               isSelected: [
                 _internalSelectedRoomType == 'indoor',
@@ -533,53 +621,59 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                 widget.onRoomTypeChanged(newRoomType);
               },
               borderColor: Colors.grey[700],
-              selectedBorderColor: _CreateRoomTabWidget._accentColor,
-              selectedColor: _CreateRoomTabWidget._darkBackgroundColor,
-              color: _CreateRoomTabWidget._lightTextColor,
-              fillColor: _CreateRoomTabWidget._accentColor,
+              selectedBorderColor: _kAccentColor,
+              selectedColor: _kDarkBackgroundColor,
+              color: _kLightTextColor,
+              fillColor: _kAccentColor,
               borderRadius: BorderRadius.circular(12),
               constraints: BoxConstraints(
-                  minHeight: 45,
+                  minHeight: 55,
                   minWidth: (MediaQuery.of(context).size.width - 48 - 12) / 2),
-              children: const <Widget>[
+              children: <Widget>[
                 Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(children: [
-                      Icon(Icons.home_work_outlined, size: 20),
+                      Image.asset('assets/icons/indoor.png',
+                          width: 25, height: 25),
                       SizedBox(width: 8),
-                      Text('İç Mekan')
+                      Text('İç Mekan',
+                          style:
+                              TextStyle(fontSize: 15.0)) // Increased font size
                     ])),
                 Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(children: [
-                      Icon(Icons.nature_people_outlined, size: 20),
+                      Image.asset('assets/icons/outdoor.png',
+                          width: 25, height: 25),
                       SizedBox(width: 8),
-                      Text('Dış Mekan')
+                      Text('Dış Mekan',
+                          style:
+                              TextStyle(fontSize: 15.0)) // Increased font size
                     ])),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 30), // Increased from 24
             const Text('Süre (dakika):',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: _CreateRoomTabWidget._lightTextColor)),
-            const SizedBox(height: 12),
+                    color: _kLightTextColor)),
+            const SizedBox(height: 16), // Increased from 12
             DropdownButtonFormField<int>(
               value: _internalSelectedDuration,
-              style:
-                  const TextStyle(color: _CreateRoomTabWidget._lightTextColor),
+              style: const TextStyle(color: _kLightTextColor),
               decoration: widget.buildInputDecoration('Süre Seçin',
-                  prefixIcon: Icons.timer_outlined),
-              dropdownColor: _CreateRoomTabWidget._inputFillColor,
-              iconEnabledColor: _CreateRoomTabWidget._accentColor,
+                  prefixIcon: Image.asset('assets/icons/time.png',
+                      width: 24,
+                      height: 24)), // Increased icon size from 10x10 to 24x24
+              dropdownColor: _kInputFillColor,
+              iconEnabledColor: _kAccentColor,
               items: widget.durationOptions
                   .map<DropdownMenuItem<int>>((int value) {
                 return DropdownMenuItem<int>(
                   value: value,
                   child: Text('$value dakika',
-                      style: const TextStyle(
-                          color: _CreateRoomTabWidget._lightTextColor)),
+                      style: const TextStyle(color: _kLightTextColor)),
                 );
               }).toList(),
               onChanged: widget.isLoadingCreate
@@ -591,37 +685,41 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                       widget.onDurationChanged(newValue);
                     },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 30), // Increased from 24
             const Text('Giriş Coini:',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: _CreateRoomTabWidget._lightTextColor)),
-            const SizedBox(height: 12),
+                    color: _kLightTextColor)),
+            const SizedBox(height: 16), // Increased from 12
             TextFormField(
               controller: widget.entryCoinController,
-              style:
-                  const TextStyle(color: _CreateRoomTabWidget._lightTextColor),
+              style: const TextStyle(color: _kLightTextColor),
               decoration: widget.buildInputDecoration('Coin Miktarı',
-                  prefixIcon: Icons.monetization_on_outlined,
+                  prefixIcon: Image.asset('assets/images/mCoin.png',
+                      width: 24,
+                      height: 24), // Increased icon size from 10x10 to 24x24
                   hintText: 'Örn: 100'),
               keyboardType: TextInputType.number,
               enabled: !widget.isLoadingCreate,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 40), // Increased from 32
             widget.isLoadingCreate
                 ? const Center(
-                    child: CircularProgressIndicator(
-                        color: _CreateRoomTabWidget._accentColor))
+                    child: CircularProgressIndicator(color: _kAccentColor))
                 : ElevatedButton.icon(
-                    icon: const Icon(Icons.add_circle_outline),
+                    icon: Image.asset(
+                      'assets/icons/createroom1.png', // Using add icon for create button
+                      width: 24,
+                      height: 24,
+                    ),
                     label: const Text('Oda Oluştur'),
                     onPressed: widget.isLoadingCreate
                         ? null
                         : widget.onCreateRoomPressed,
                     style: widget.buildElevatedButtonStyle(),
                   ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24), // Increased from 16
           ],
         ),
       ),
