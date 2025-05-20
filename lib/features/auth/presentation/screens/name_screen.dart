@@ -17,6 +17,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false; // Added isLoading state
 
   @override
   void dispose() {
@@ -147,29 +148,53 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState?.validate() ?? false) {
-                        // Update user profile
-                        ref.read(userProfileProvider.notifier).updateProfile(
-                              name: _nameController.text.trim(),
-                              // Prepend @ if not already present, ensure no extra @
-                              username: _usernameController.text
-                                      .trim()
-                                      .startsWith('@')
-                                  ? _usernameController.text.trim()
-                                  : '${_usernameController.text.trim()}',
-                            );
+                    onPressed: _isLoading
+                        ? null
+                        : () async {
+                            if (_formKey.currentState?.validate() ?? false) {
+                              setState(() => _isLoading = true);
+                              final String name = _nameController.text.trim();
+                              final String username =
+                                  _usernameController.text.trim();
 
-                        // Navigate to next screen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AgeGenderScreen(),
-                          ),
-                        );
-                      }
-                    },
-                    child: const Text('Devam Et'),
+                              try {
+                                ref
+                                    .read(userProfileProvider.notifier)
+                                    .updateProfile(
+                                      name: name,
+                                      username: username,
+                                    );
+                                await ref
+                                    .read(userProfileProvider.notifier)
+                                    .saveProfile();
+
+                                if (mounted) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const AgeGenderScreen(),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(
+                                            'Failed to update profile: ${e.toString()}')),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isLoading = false);
+                                }
+                              }
+                            }
+                          },
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Devam Et'),
                   ),
                   SizedBox(
                       height: MediaQuery.of(context).padding.bottom +
