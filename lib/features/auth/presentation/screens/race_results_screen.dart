@@ -231,6 +231,10 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                       return _buildEmptyState(); // Boş durum widget'ı
                     }
 
+                    // Aktiviteleri yeniden eskiye doğru sırala (startTime alanına göre)
+                    activities
+                        .sort((a, b) => b.startTime.compareTo(a.startTime));
+
                     // ListView.separated ile ayraç ekle
                     return ListView.separated(
                       itemCount: activities.length,
