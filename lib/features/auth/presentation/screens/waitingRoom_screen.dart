@@ -319,7 +319,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       }));
 
       // --- YENİ: Yeniden Bağlanma Olayını Dinle ---
-      _subscriptions.add(
+      /*_subscriptions.add(
           signalRService.reconnectedStream.listen((String? newConnectionId) {
         if (newConnectionId != null && mounted) {
           debugPrint(
@@ -340,7 +340,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                 '❌ WaitingRoom: signalRService.joinRaceRoom çağrılırken hata: $e');
           }
         }
-      }));
+      }));*/
     } catch (e) {
       debugPrint('SignalR bağlantı hatası: $e');
     }
