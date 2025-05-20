@@ -192,8 +192,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           // Önbellekten de profil fotoğrafını kaldır
           _profilePictureCache.remove(leftUserName);
         });
-
-        _showInfoMessage('$leftUserName odadan ayrıldı');
       }));
 
       // Mevcut oda katılımcılarını dinle
@@ -263,8 +261,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         if (_myEmail == null) {
           debugPrint(
               '--- WaitingRoom: HATA - Kullanıcı email bilgisi null! Yarış başlatılamıyor. ---');
-          _showErrorMessage(
-              'Kullanıcı bilgileri yüklenemediği için yarış başlatılamadı.');
+
           return;
         }
 
@@ -337,20 +334,15 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
               // Şimdilik joinRaceRoom'un sunucudan RoomParticipants göndermesini bekliyoruz.
             }).catchError((e) {
               debugPrint('❌ WaitingRoom: Odaya yeniden katılırken hata: $e');
-              _showErrorMessage(
-                  'Yeniden bağlanma sonrası odaya katılım başarısız oldu.');
             });
           } catch (e) {
             debugPrint(
                 '❌ WaitingRoom: signalRService.joinRaceRoom çağrılırken hata: $e');
-            _showErrorMessage(
-                'Yeniden bağlanma sonrası odaya katılım sırasında bir hata oluştu.');
           }
         }
       }));
     } catch (e) {
       debugPrint('SignalR bağlantı hatası: $e');
-      _showErrorMessage('SignalR bağlantı hatası: $e');
     }
   }
 
@@ -399,14 +391,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       }
     } catch (e) {
       debugPrint('❌ Odadan çıkış sırasında hata: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Odadan çıkış sırasında bir hata oluştu: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) {}
     } finally {
       if (mounted) {
         setState(() {
@@ -484,17 +469,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     }
   }
 
-  void _showErrorMessage(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   void _navigateToRaceScreen() async {
     debugPrint('🚀 1. WaitingRoom -> RaceScreen geçişi başlıyor');
     debugPrint('🚀 2. Mevcut _myUsername değeri: $_myUsername');
@@ -539,7 +513,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           }
         } else {
           debugPrint('🚀 10. Token null geldi! Kullanıcı adı alınamadı');
-          _showErrorMessage('Kullanıcı bilgileri alınamadı!');
+
           return; // Kullanıcı adı olmadan devam etmeyelim
         }
       }
@@ -1266,11 +1240,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         // The raceNotifier and SignalR stream should now trigger navigation to RaceScreen
       } else {
         final responseData = jsonDecode(response.body);
-        _showErrorMessage(responseData['message'] ??
-            'Yarış başlatılamadı. Hata kodu: ${response.statusCode}');
       }
     } catch (e) {
-      _showErrorMessage('Yarış başlatılırken bir hata oluştu: $e');
       debugPrint('🏁 Yarış başlatma hatası: $e');
     } finally {
       if (mounted) {

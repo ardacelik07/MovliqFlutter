@@ -9,7 +9,7 @@ import '../../../../core/services/storage_service.dart';
 import '../providers/user_data_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import 'dart:io';  // Platform detection için
+import 'dart:io'; // Platform detection için
 
 class LoginInputScreen extends ConsumerStatefulWidget {
   const LoginInputScreen({super.key});
@@ -30,17 +30,17 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
     _passwordController.dispose();
     super.dispose();
   }
-  
+
   // iOS izinlerini isteyecek metod
   void _requestIOSPermissions() {
     if (!Platform.isIOS) return;
-    
+
     try {
       // Bildirim izni iste
       const notificationChannel = MethodChannel('com.movliq/notifications');
       notificationChannel.invokeMethod('requestNotificationPermission');
       print('Login sonrası iOS bildirim izni istendi');
-      
+
       // Konum izni iste
       const locationChannel = MethodChannel('com.movliq/location');
       locationChannel.invokeMethod('enableBackgroundLocationTracking');
@@ -64,28 +64,20 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
 
     ref.listen(authProvider, (previous, next) {
       next.whenOrNull(
-        loading: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Giriş yapılıyor...')),
-          );
-        },
-        error: (error, _) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Hata: ${error.toString()}')),
-          );
-        },
+        loading: () {},
+        error: (error, _) {},
         data: (token) {
           if (token != null) {
             print('Login successful! Token: $token');
-            
+
             // Kullanıcı verilerini getir
             ref.read(userDataProvider.notifier).fetchUserData();
             ref.read(userDataProvider.notifier).fetchCoins();
             ref.read(selectedTabProvider.notifier).state = 0;
-            
+
             // İOS izinlerini iste - login sonrası
             _requestIOSPermissions();
-            
+
             // TabsScreen'e yönlendir
             Navigator.pushReplacement(
               context,

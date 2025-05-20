@@ -42,16 +42,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     ref.listen(authProvider, (previous, next) {
       next.whenOrNull(
-        loading: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Hesap oluşturuluyor...')),
-          );
-        },
-        error: (error, _) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Hata: ${error.toString()}')),
-          );
-        },
+        loading: () {},
+        error: (error, _) {},
         data: (token) {
           if (token != null) {
             print('Registration successful! Token: $token');
