@@ -63,7 +63,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                 _buildOptionCard(
                   titleLines: ["Özel Yarış"],
                   description: "Arkadaşlarınla yarış veya yeni odalar keşfet",
-                  imagePath: "assets/images/waiting.png",
+                  imagePath: "assets/images/registerpicture.png",
                   value: "private",
                   isSelected: _selectedPreference == "private",
                   cardHeight: cardHeight,
