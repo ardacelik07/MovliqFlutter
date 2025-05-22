@@ -175,7 +175,7 @@ flutter:
     - assets/images/userguide3.png
     - assets/images/userguide4.png
     - assets/images/userguide5.png
-  
+    - assets/icons/konfeti.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
