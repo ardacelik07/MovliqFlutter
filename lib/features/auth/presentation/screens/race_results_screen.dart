@@ -677,19 +677,19 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment:
-                      MainAxisAlignment.center, // Align metrics to the start
+                      MainAxisAlignment.end, // Align metrics to the start
                   children: [
                     _buildNewRaceMetricItem(
                       assetPath: _flameIcon,
                       valueText: '$caloriesStr kcal',
                     ),
-                    const SizedBox(width: 40), // Consistent spacing
+                    const SizedBox(width: 20), // Consistent spacing
                     _buildNewRaceMetricItem(
                       assetPath: _locationIcon,
                       valueText:
                           distanceTextForCard, // Use the determined distance text
                     ),
-                    const SizedBox(width: 40), // Consistent spacing
+                    const SizedBox(width: 20), // Consistent spacing
                     _buildNewRaceMetricItem(
                       assetPath: _stepsIcon,
                       valueText: stepsStr,
