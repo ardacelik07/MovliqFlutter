@@ -306,7 +306,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         Expanded(
           child: _buildTypeButton(
             title: 'İç Mekan',
-            icon: Icons.fitness_center, // İkon örneği
+            assetPath: _treadmillImage, // Use asset path
             value: 'indoor',
             isSelected: _selectedType == 'indoor',
           ),
@@ -315,7 +315,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         Expanded(
           child: _buildTypeButton(
             title: 'Dış Mekan',
-            icon: Icons.directions_run, // İkon örneği
+            assetPath: _outdoorImage, // Use asset path
             value: 'outdoor',
             isSelected: _selectedType == 'outdoor',
           ),
@@ -326,7 +326,8 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
 
   Widget _buildTypeButton({
     required String title,
-    required IconData icon,
+    String? assetPath, // Made assetPath optional
+    IconData? icon, // Keep IconData for potential future use or fallback
     required String value,
     required bool isSelected,
   }) {
@@ -346,11 +347,28 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.black : Colors.white.withOpacity(0.8),
-              size: 20,
-            ),
+            if (assetPath != null) ...[
+              Image.asset(
+                assetPath,
+                width: 40, // Adjust size as needed
+                height: 40, // Adjust size as needed
+                color:
+                    isSelected ? Colors.black : Colors.white.withOpacity(0.8),
+                errorBuilder: (context, error, stackTrace) => Icon(
+                    icon ?? Icons.error,
+                    color: isSelected
+                        ? Colors.black
+                        : Colors.white.withOpacity(0.8),
+                    size: 20), // Fallback icon
+              ),
+            ] else if (icon != null) ...[
+              Icon(
+                icon,
+                color:
+                    isSelected ? Colors.black : Colors.white.withOpacity(0.8),
+                size: 20,
+              ),
+            ],
             const SizedBox(width: 8),
             Text(
               title,
@@ -484,20 +502,12 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start, // Sola yasla
         mainAxisAlignment: MainAxisAlignment.center, // Ortala
         children: [
-          Text(
-            period, // "Bu Hafta", "Bu Ay", "Bu Yıl"
-            style: const TextStyle(
-              color: _secondaryTextColor, // Gri renk
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
           const SizedBox(height: 1),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white, // Beyaz renk
-              fontSize: 22, // Daha büyük font
+              fontSize: 32, // Daha büyük font
               fontWeight: FontWeight.bold,
             ),
             maxLines: 1,
