@@ -254,6 +254,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   });
 
+  // Asset paths (adjust if necessary)
+  static const String _treadmillImage = 'assets/icons/indoor.png';
+  static const String _outdoorImage = 'assets/icons/outdoor.png';
+  static const String _flameIcon = 'assets/icons/alev.png';
+  static const String _locationIcon = 'assets/icons/location.png';
+  static const String _stepsIcon = 'assets/icons/steps.png';
+
+  // New helper widget for individual metrics (flame, location, shoe)
+  Widget _buildNewRaceMetricItem({
+    required String assetPath,
+    required String valueText,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.asset(
+          assetPath,
+          width: 32, // Adjusted size based on image
+          height: 32, // Adjusted size based on image
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.error, color: Colors.red, size: 32),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          valueText,
+          style: const TextStyle(color: Colors.white, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userDataAsync = ref.watch(userDataProvider);
@@ -757,175 +789,143 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                                 // Display the 3 most recent races
                                 return Column(
-                                  children: races.take(3).map((race) {
+                                  children: races.take(3).map((raceData) {
                                     final startTime =
-                                        DateTime.parse(race['startTime']);
-                                    // Format date as: 28 Mar, 2025 - 20:51
+                                        DateTime.parse(raceData['startTime']);
                                     final formattedDate =
                                         '${startTime.day} ${_getMonthName(startTime.month)}, ${startTime.year} - ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
-                                    final distanceStr = race['distancekm']
-                                        ?.toStringAsFixed(
-                                            2); // Keep 2 decimal places for KM
-                                    final stepsStr =
-                                        race['steps']?.toString() ??
-                                            '0'; // Handle null steps
+
+                                    final distanceKm =
+                                        raceData['distancekm'] as num?;
+                                    final distanceStr = distanceKm != null
+                                        ? distanceKm.toStringAsFixed(2)
+                                        : '0.00';
+
+                                    final steps = raceData['steps'] as int?;
+                                    final stepsStr = steps?.toString() ?? '0';
+
+                                    final calories =
+                                        raceData['calories'] as num?;
+                                    final caloriesStr =
+                                        calories?.toInt().toString() ?? '0';
+
                                     final isIndoor =
-                                        race['roomType'] == 'indoor';
-                                    final rank = race['rank'];
+                                        raceData['roomType'] == 'indoor';
+                                    final rank = raceData['rank'] as int?;
                                     String rankText = '-';
                                     if (rank != null && rank > 0) {
-                                      rankText = '$rank. Sıra';
-                                    }
-                                    String estimatedIndoorDistanceText = '';
-                                    if (isIndoor) {
-                                      final int currentSteps =
-                                          int.tryParse(stepsStr) ?? 0;
-                                      if (userHeightCm != null &&
-                                          userHeightCm > 0 &&
-                                          currentSteps > 0) {
-                                        final double stepLengthMeters =
-                                            userHeightCm * 0.00414;
-                                        final double estimatedDistanceKm =
-                                            (currentSteps * stepLengthMeters) /
-                                                1000.0;
-                                        estimatedIndoorDistanceText =
-                                            ' ~${estimatedDistanceKm.toStringAsFixed(2)} km';
-                                      }
+                                      rankText = '$rank.Sıra';
                                     }
 
                                     return Container(
-                                      margin: const EdgeInsets.only(
-                                          bottom: 10), // Spacing between items
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 12),
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
                                         color: const Color(
-                                            0xFF2A2A2A), // Darker item background
-                                        borderRadius: BorderRadius.circular(12),
+                                            0xFF2A2A2A), // Dark card background from image
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
-                                          // Icon
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF93C53E)
-                                                  .withOpacity(
-                                                      0.15), // Subtle green background
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              isIndoor
-                                                  ? Icons
-                                                      .directions_run // Running icon for indoor
-                                                  : Icons
-                                                      .terrain_outlined, // Mountain icon for outdoor
-                                              color: const Color(0xFF93C53E),
-                                              size: 22,
-                                            ),
+                                          Image.asset(
+                                            isIndoor
+                                                ? _treadmillImage
+                                                : _outdoorImage,
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.contain,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              return Container(
+                                                width: 80,
+                                                height: 80,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade800,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Icon(
+                                                  isIndoor
+                                                      ? Icons.fitness_center
+                                                      : Icons.terrain,
+                                                  color: Colors.white54,
+                                                  size: 40,
+                                                ),
+                                              );
+                                            },
                                           ),
-                                          const SizedBox(width: 12),
-                                          // Middle section (Type, Date)
+                                          const SizedBox(width: 16),
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
                                               children: [
-                                                Text(
-                                                  isIndoor
-                                                      ? 'İç Mekan'
-                                                      : 'Dış Mekan',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      isIndoor
+                                                          ? 'İç Mekan'
+                                                          : 'Dış Mekan',
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      rankText,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  formattedDate, // Use the new format
+                                                  formattedDate,
                                                   style: TextStyle(
-                                                    fontSize:
-                                                        12, // Smaller date font
                                                     color: Colors.white
-                                                        .withOpacity(
-                                                            0.6), // Dimmer date
+                                                        .withOpacity(0.7),
+                                                    fontSize: 12,
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 12),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    _buildNewRaceMetricItem(
+                                                      assetPath: _flameIcon,
+                                                      valueText:
+                                                          '$caloriesStr kcal',
+                                                    ),
+                                                    const SizedBox(width: 40),
+                                                    _buildNewRaceMetricItem(
+                                                      assetPath: _locationIcon,
+                                                      valueText:
+                                                          '$distanceStr km',
+                                                    ),
+                                                    const SizedBox(width: 40),
+                                                    _buildNewRaceMetricItem(
+                                                      assetPath: _stepsIcon,
+                                                      valueText:
+                                                          stepsStr, // As per image, no "steps" unit
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          // Right section (Rank, Distance/Steps, Calories)
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                rankText, // Display rank text
-                                                style: TextStyle(
-                                                  color: Colors.white
-                                                      .withOpacity(0.8),
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                  height:
-                                                      6), // Metrikler için biraz daha boşluk
-
-                                              // Dış Mekan ise Mesafeyi Göster
-                                              if (!isIndoor)
-                                                _buildRaceMetricItem(
-                                                    Icons
-                                                        .directions_run_outlined,
-                                                    '$distanceStr km',
-                                                    Colors.blueAccent),
-                                              // İç Mekan ise Tahmini Mesafeyi Göster
-                                              if (isIndoor &&
-                                                  estimatedIndoorDistanceText
-                                                      .isNotEmpty)
-                                                Padding(
-                                                  padding: EdgeInsets.only(
-                                                      top: !isIndoor ? 0 : 0,
-                                                      bottom: isIndoor ? 2 : 0),
-                                                  child: _buildRaceMetricItem(
-                                                      Icons.alt_route,
-                                                      estimatedIndoorDistanceText
-                                                          .replaceFirst(
-                                                              ' ~ ', '~ '),
-                                                      Colors.purpleAccent),
-                                                ),
-
-                                              // Adım Sayısını her zaman göster (mesafe altına veya tek başına)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    top: 2.0),
-                                                child: _buildRaceMetricItem(
-                                                    Icons
-                                                        .directions_walk_outlined,
-                                                    '$stepsStr Adım',
-                                                    Colors.greenAccent),
-                                              ),
-
-                                              // Kalori (varsa göster)
-                                              if (race['calories'] != null &&
-                                                  race['calories'] > 0) ...[
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          top: 2.0),
-                                                  child: _buildRaceMetricItem(
-                                                      Icons
-                                                          .local_fire_department_outlined,
-                                                      '${race['calories']} kcal',
-                                                      Colors.orangeAccent),
-                                                ),
-                                              ],
-                                            ],
                                           ),
                                         ],
                                       ),
@@ -1297,29 +1297,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             color: Colors.white.withOpacity(0.7),
             fontSize: 12,
           ),
-        ),
-      ],
-    );
-  }
-
-  // Yardımcı metod: Yarış metriklerini satır olarak oluşturur
-  Widget _buildRaceMetricItem(
-      IconData icon, String text, Color iconColorToIgnore,
-      {double iconSize = 14, double textSize = 12}) {
-    return Row(
-      mainAxisSize:
-          MainAxisSize.min, // Row'un içeriği kadar yer kaplamasını sağlar
-      mainAxisAlignment: MainAxisAlignment.end, // Sağa yaslar
-      children: [
-        Icon(icon,
-            color: Colors.white, size: iconSize), // İkon rengi her zaman beyaz
-        const SizedBox(width: 5), // İkon ve metin arası boşluk
-        Text(
-          text,
-          style: TextStyle(
-              color: Colors.white,
-              fontSize: textSize,
-              fontWeight: FontWeight.w500), // Metin rengi her zaman beyaz
         ),
       ],
     );
