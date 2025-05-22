@@ -6,7 +6,8 @@ class GuidePageFour extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
-    const Color backgroundColor = Color(0xFFAEFF00); // Diğer sayfalarla aynı canlı yeşil tonu
+    const Color backgroundColor =
+        Color(0xFFC9FB4B); // Diğer sayfalarla aynı canlı yeşil tonu
     const Color textColor = Colors.black;
 
     return Container(
@@ -16,7 +17,9 @@ class GuidePageFour extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 60), // Üstteki noktalar ve X butonu için daha fazla boşluk (noktalar artık yukarıda)
+          const SizedBox(
+              height:
+                  60), // Üstteki noktalar ve X butonu için daha fazla boşluk (noktalar artık yukarıda)
           Column(
             children: const [
               Text(
@@ -76,4 +79,4 @@ class GuidePageFour extends StatelessWidget {
       ),
     );
   }
-} 
+}

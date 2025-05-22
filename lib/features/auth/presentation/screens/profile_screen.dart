@@ -1457,19 +1457,36 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
 
         // Get the latest user data, falling back to initial widget data if needed
         final UserDataModel currentUserData = userDataAsync.maybeWhen(
-          data: (userData) => userData ?? widget.userData,
+          data: (userDataFromProvider) =>
+              userDataFromProvider ??
+              widget.userData, // Use provider data if available
           orElse: () => widget.userData,
         );
 
         final profileUrl = currentUserData.profilePictureUrl;
+        final gender =
+            currentUserData.gender; // Get gender from currentUserData
+
+        // Define default asset paths
+        const String defaultManPhoto = 'assets/images/defaultmanphoto.png';
+        const String defaultWomanPhoto =
+            'assets/images/defaultwomenphoto.png'; // Make sure asset name is correct
+
+        String selectedDefaultImageAsset;
+        if (gender?.toLowerCase() == 'female') {
+          selectedDefaultImageAsset = defaultWomanPhoto;
+        } else {
+          selectedDefaultImageAsset =
+              defaultManPhoto; // Default to man if gender is male, null, or other
+        }
 
         // Determine the image provider
         final ImageProvider imageProvider = _localImageFile != null
             ? FileImage(_localImageFile!) // Show local file if selected
             : (profileUrl != null && profileUrl.isNotEmpty
                 ? NetworkImage(profileUrl) // Use NetworkImage directly
-                : const AssetImage(
-                    'assets/images/runningman.png')); // Fallback asset
+                : AssetImage(
+                    selectedDefaultImageAsset)); // Use gender-specific fallback asset
 
         const double imageSize = 100; // Increased size
         const double cameraIconSize = 30; // Size of the camera icon circle
@@ -1525,58 +1542,6 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                           ),
                         )
                       : null, // No child when not uploading
-                  // Fallback for when backgroundImage fails (e.g., invalid URL, network issue)
-                  // Note: This might not be reached if AssetImage is the fallback in imageProvider
-                  // Consider using a custom Image widget inside if more control is needed.
-                  // Example using Image.network with errorBuilder (more robust):
-                  /*
-                     child: ClipOval(
-                       child: Image(
-                         image: imageProvider,
-                         key: _imageKey, // Key for Image widget if used directly
-                         width: imageSize,
-                         height: imageSize,
-                         fit: BoxFit.cover,
-                         gaplessPlayback: true, // Prevents flicker on image update
-                         errorBuilder: (context, error, stackTrace) {
-                           debugPrint('Profile image load error: $error');
-                           return Container( // Fallback placeholder
-                             width: imageSize,
-                             height: imageSize,
-                             decoration: BoxDecoration(
-                               shape: BoxShape.circle,
-                               color: Colors.grey.shade700, // Darker placeholder
-                             ),
-                             child: Icon(
-                               Icons.person_outline, // Outlined icon
-                               color: Colors.white70,
-                               size: imageSize * 0.6, // Adjust icon size relative to circle
-                             ),
-                           );
-                         },
-                         loadingBuilder: (context, child, loadingProgress) {
-                           if (loadingProgress == null) return child; // Image loaded
-                           return Container( // Placeholder during loading
-                             width: imageSize,
-                             height: imageSize,
-                             decoration: BoxDecoration(
-                               shape: BoxShape.circle,
-                               color: Colors.grey.shade800,
-                             ),
-                             child: Center(
-                               child: CircularProgressIndicator(
-                                 value: loadingProgress.expectedTotalBytes != null
-                                     ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                     : null,
-                                 color: const Color(0xFF93C53E),
-                                 strokeWidth: 2,
-                               ),
-                             ),
-                           );
-                         },
-                       ),
-                     ),
-                     */
                 ),
               ),
               // Camera Icon (Styled as per image)

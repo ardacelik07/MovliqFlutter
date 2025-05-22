@@ -6,7 +6,8 @@ class GuidePageSix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
-    const Color backgroundColor = Color(0xFFAEFF00); // Same vibrant green as other pages
+    const Color backgroundColor =
+        Color(0xFFC9FB4B); // Same vibrant green as other pages
     const Color textColor = Colors.black;
     const Color buttonTextColor = Colors.white;
     const Color buttonColor = Colors.black;
@@ -18,7 +19,8 @@ class GuidePageSix extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 20), // Adjusted spacing for elements at the top
+          const SizedBox(
+              height: 20), // Adjusted spacing for elements at the top
           Column(
             children: const [
               Text(
@@ -62,29 +64,10 @@ class GuidePageSix extends StatelessWidget {
               ),
             ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: buttonColor,
-              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-              textStyle: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30.0),
-              ),
-            ),
-            onPressed: () {
-              // Add navigation to the next screen or action
-            },
-            child: const Text(
-              'Hadi Yarışalım',
-              style: TextStyle(color: buttonTextColor),
-            ),
-          ),
+
           const SizedBox(height: 20), // Spacing at the bottom
         ],
       ),
     );
   }
-} 
+}

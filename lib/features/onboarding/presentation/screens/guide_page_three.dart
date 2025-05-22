@@ -6,7 +6,8 @@ class GuidePageThree extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
-    const Color backgroundColor = Color(0xFFAEFF00); // Diğer sayfalarla aynı canlı yeşil tonu
+    const Color backgroundColor =
+        Color(0xFFC9FB4B); // Diğer sayfalarla aynı canlı yeşil tonu
     const Color textColor = Colors.black;
 
     return Container(
@@ -16,7 +17,9 @@ class GuidePageThree extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 20), // Üstteki noktalar ve X butonu için boşluk (GuidingMainScreen'de X son sayfada gizli)
+          const SizedBox(
+              height:
+                  20), // Üstteki noktalar ve X butonu için boşluk (GuidingMainScreen'de X son sayfada gizli)
           Column(
             children: const [
               Text(
@@ -58,9 +61,10 @@ class GuidePageThree extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 120), // Alttaki buton ve sayfa indikatörleri için boşluk
+          const SizedBox(
+              height: 120), // Alttaki buton ve sayfa indikatörleri için boşluk
         ],
       ),
     );
   }
-} 
+}
