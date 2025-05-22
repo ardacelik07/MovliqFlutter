@@ -675,7 +675,23 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
     // final raceSettings = ref.watch(raceSettingsProvider); // REMOVE this - Use widget props directly
     // Use widget.activityType directly, provide default if null
-    final String displayActivityType = widget.activityType ?? 'Bilinmiyor';
+    // final String displayActivityType = widget.activityType ?? 'Bilinmiyor'; // OLD WAY
+
+    // --- YENİ: Yarış tipini tersine çevirerek göster ---
+    final String rawActivityType =
+        widget.activityType?.toLowerCase() ?? 'bilinmiyor';
+    final String displayActivityType;
+
+    if (rawActivityType == 'outdoor') {
+      displayActivityType = 'İç Mekan';
+    } else if (rawActivityType == 'indoor' || rawActivityType == 'iç mekan') {
+      displayActivityType = 'Dış Mekan';
+    } else {
+      displayActivityType = widget.activityType ??
+          'Bilinmiyor'; // Fallback to original or default
+    }
+    // --- YENİ SONU ---
+
     // Use widget.duration directly, provide default if null
     // --- DEĞİŞİKLİK: Planlanan süreyi önceliklendir ---
     final String displayDuration;
