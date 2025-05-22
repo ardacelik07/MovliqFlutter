@@ -903,20 +903,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                 const SizedBox(height: 12),
                                                 Row(
                                                   mainAxisAlignment:
-                                                      MainAxisAlignment.center,
+                                                      MainAxisAlignment.end,
                                                   children: [
                                                     _buildNewRaceMetricItem(
                                                       assetPath: _flameIcon,
                                                       valueText:
                                                           '$caloriesStr kcal',
                                                     ),
-                                                    const SizedBox(width: 40),
+                                                    const SizedBox(width: 20),
                                                     _buildNewRaceMetricItem(
                                                       assetPath: _locationIcon,
                                                       valueText:
                                                           '$distanceStr km',
                                                     ),
-                                                    const SizedBox(width: 40),
+                                                    const SizedBox(width: 20),
                                                     _buildNewRaceMetricItem(
                                                       assetPath: _stepsIcon,
                                                       valueText:
