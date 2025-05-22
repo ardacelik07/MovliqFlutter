@@ -5,6 +5,7 @@ import 'guide_page_two.dart'; // Yeni eklenen ikinci sayfa
 import 'guide_page_three.dart';
 import 'guide_page_four.dart'; // Yeni eklenen dördüncü sayfa
 import 'guide_page_five.dart';
+import 'guide_page_six.dart';
 
 // Diğer yönlendirme sayfalarını buraya import edin
 // import 'guide_page_three.dart';
@@ -27,7 +28,8 @@ class _GuidingMainScreenState extends State<GuidingMainScreen> {
     const GuidePageTwo(), // İkinci sayfayı ekledik
     const GuidePageThree(),
     const GuidePageFour(), 
-    const GuidePageFive()
+    const GuidePageFive(),
+    const GuidePageSix() // Altıncı sayfayı ekledik
     // Dördüncü sayfayı ekledik
   ];
 
