@@ -61,27 +61,40 @@ class HelpScreen extends ConsumerWidget {
         'question': 'Canlı Yarış Nasıl Çalışır?',
         'answer':
             '''Kullanıcı, uygulama üzerinden canlı yarış lobisine katılırken yarışın türünü (iç veya dış mekân) ve süresini seçer. Sistem, aynı yarış ayarlarına sahip diğer kullanıcılarla eşleştirme yapar veya kullanıcı yeni bir yarış başlatarak oda oluşturabilir.
-Tüm yarışmacılar belirlenen saatte veya "başlat" komutuyla aynı anda yarışa başlar. Uygulama, yarış süresi boyunca tüm katılımcıların adım sayısı, hız, ve mesafe verilerini gerçek zamanlı takip eder. Yarış bitiminde sistem verileri analiz eder ve bir sıralama oluşturur.İlk üçe giren kullanıcılar mCoin ile ödüllendirilir. Aynı zamanda özel başarılar ve görevler de ek coin kazanımı sağlayabilir.
+Tüm yarışmacılar belirlenen saatte veya “başlat” komutuyla aynı anda yarışa başlar.
 
-• Gerçek zamanlı süre ve takip
-• Adım, mesafe ve hız bazlı skor
-• Yarış sonunda sıralama + coin/ödül dağıtımı
-• Performansına göre günlük başarılar
-• Liderlik tabloları ile rekabet duygusu''',
+Yarış sonucunda;
+
+🥇 1. olan: Aldığı toplam mesafe × 3
+
+🥈 2. olan: Aldığı toplam mesafe × 2
+
+🥉 3. olan: Aldığı toplam mesafe × 1.5
+kadar mCoin kazanır.
+
+Diğer sıralamalardaki katılımcılar da aldıkları toplam mesafe kadar mCoin kazanır.
+Yani sonuncu olsan bile üzülme — yine de coin kazanırsın! 🏆''',
         'isExpanded': true,
       },
       {
         'question': 'Solo Mod',
-        'answer':
-            '''Kullanıcı, herhangi bir zaman kısıtlaması olmadan tek başına koşu veya yürüyüşe başlayabilir. Uygulama, kullanıcının hareket verilerini (adım, hız, mesafe) arka planda anlık olarak takip eder. Süre ve mesafe hedefi kullanıcıya bağlıdır, istediği yerde istediği zaman performansını ortaya koyabilir.
-Kayıt edilen yürüyüş veya koşu aktivitleri sonucunda kullanıcı mCoin kazanır ve ilerleme kaydeder.
-Yarışma havası olmasa da, kullanıcı kendi gelişimini takip edebilir ve günlük/haftalık başarı hedeflerini tamamlayarak mCoin ve ödüller kazanabilir.
+        'answer': '''Zaman sınırlaması olmadan kendi ritmini yakala!
+İster yürüyüş, ister koşu — Solo Mod tam sana göre!
 
-• Kullanıcı dilediği zaman "Solo Mod"u başlatır
-• Sistem adım, hız ve mesafeyi anlık olarak izler
-• Her hareket ödül potansiyeli taşır
-• Günlük bireysel görevler tamamlandıkça mCoin kazanılır
-• İstatistik sayfasında kişisel gelişim takip edilir''',
+🕒 Dilediğin an başla, istediğin zaman dur
+
+📡 Adım, hız ve mesafe verilerin anlık takip edilir
+
+🗺️ Nerede olursan ol, performansını sergile
+
+🧠 Kişisel hedeflerine ulaşırken ilerlemeni kaydet
+
+🎯 Kayıt edilen her aktiviteyle mCoin kazanırsın.
+Ama unutma:
+💡 Solo Mod\'da kazandığın mCoin, canlı yarışlara göre biraz daha azdır.
+Yine de her adımın ödül!
+
+🟢 Solo mod = özgürlük, esneklik ve motivasyon!''',
         'isExpanded': true,
       },
       {
@@ -104,7 +117,7 @@ Movliq Kültürünün Temel Taşları:
             '''Ne kadar çok hareket edersen, o kadar çok kazanırsın! mCoin, movliq evreninde hareketin karşılığıdır. Attığın her adım, çıktığın her yarış, gösterdiğin her performans sana mCoin olarak geri döner.
 Kazandığın mCoin\'leri Movliq mağazasında; kuponlara, özel kampanyalara, sürpriz hediyelere ve daha fazlasına dönüştürebilirsin.
 Nasıl Kazanırsın?
-• Canlı yarışlara katılarak dereceye gir
+• Canlı yarışlara katıl
 • Solo modda aktif ol
 • Günlük,haftalık,aylık hedefleri tamamla
 • Özel görevlerde başarı göster
@@ -126,13 +139,14 @@ Sosyal Kullanım (Özel Odalar & Topluluk):
       {
         'question': 'Ortak Havuz Yarışları',
         'answer':
-            '''Arkadaşlarınla heyecanı artırmak için özel odalarda bir mCoin sayısı belirlenir. Her katılımcı istedikleri miktarda mCoin ile yarışa dahil olur.
-Yarış sonunda birinci olan kullanıcı, tüm mCoinleri toplar!
-Nasıl İşler?
-• Yarış başında her katılımcı istediği mCoin\'i ile yarışa katılım yapar
-• Performansınıza göre sıralama belirlenir
-• Kazanan kişi tüm mCoin havuzunu alır
-• Diğer katılımcılar mCoinlerini kaybeder''',
+            '''Arkadaşlarınla heyecanı artırmak istiyorsan doğru yerdesin! Movliq\'te özel odalarda "ortak havuz yarışları" oluşturabilirsin.
+
+🧩 Odayı kuran kişi, yarış için bir mCoin miktarı belirler.
+👥 Katılmak isteyen arkadaşlar, belirlenen mCoin miktarına sahipse yarışa dahil olabilir.
+🏁 Yarış sonunda birinci olan kişi, o odada toplanan tüm mCoinleri kazanır!
+
+Hazırlığını iyi yap — çünkü bu yarışta ödül büyük!
+mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
         'isExpanded': true,
       },
     ];
