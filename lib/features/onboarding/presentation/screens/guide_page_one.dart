@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
 
 class GuidePageOne extends StatelessWidget {
   const GuidePageOne({super.key});
@@ -20,24 +21,26 @@ class GuidePageOne extends StatelessWidget {
           const SizedBox(
               height: 20), // Üstteki noktalar ve X butonu için boşluk bırakır
           Column(
-            children: const [
+            children: [
               Text(
                 'HAREKETE GEÇ,',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: textColor,
+                  color: Colors.black,
                   height: 1.1, // Satır yüksekliğini azaltmak için
                 ),
               ),
               Text(
                 'KAZANMAYA BAŞLA!',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: textColor,
+                  color: Colors.black,
                   height: 1.1, // Satır yüksekliğini azaltmak için
                 ),
               ),
@@ -48,14 +51,15 @@ class GuidePageOne extends StatelessWidget {
             height: screenSize.height * 0.4, // Resim boyutunu ayarla
             fit: BoxFit.contain,
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'Movliq; koşu, yürüyüş ve tempolu aktivitelere dayalı canlı yarışlarla seni ödüllendiren bir spor platformudur.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: GoogleFonts.poppins(
+                // Coco Gothic alternatifi
                 fontSize: 20, // Metin boyutunu biraz büyüttüm
-                color: textColor,
+                color: Colors.black,
                 height: 1.4, // Satır aralığını artırdım
               ),
             ),

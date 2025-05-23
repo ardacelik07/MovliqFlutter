@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
 
 class GuidePageFour extends StatelessWidget {
   const GuidePageFour({super.key});
@@ -21,11 +22,12 @@ class GuidePageFour extends StatelessWidget {
               height:
                   60), // Üstteki noktalar ve X butonu için daha fazla boşluk (noktalar artık yukarıda)
           Column(
-            children: const [
+            children: [
               Text(
                 'ÖZEL ODALARLA',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 34, // Font boyutunu biraz ayarladım
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -36,7 +38,8 @@ class GuidePageFour extends StatelessWidget {
               Text(
                 'EĞLENCEYİ ZİRVEYE',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -47,7 +50,8 @@ class GuidePageFour extends StatelessWidget {
               Text(
                 'TAŞI!',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -62,12 +66,13 @@ class GuidePageFour extends StatelessWidget {
             height: screenSize.height * 0.35, // Resim boyutunu biraz ayarladım
             fit: BoxFit.contain,
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'Arkadaşlarınla kendi yarışınızı başlatmak artık çok kolay! Movliq\'te özel odalar sayesinde sadece davet ettiğin kişilerle yarışabilir, kendi kurallarınızı belirleyerek eğlenceyi kişiselleştirebilirsiniz.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: GoogleFonts.poppins(
+                // Coco Gothic alternatifi
                 fontSize: 17, // Font boyutunu biraz ayarladım
                 color: textColor,
                 height: 1.4,

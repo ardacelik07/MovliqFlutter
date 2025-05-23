@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
 
 class GuidePageTwo extends StatelessWidget {
   const GuidePageTwo({super.key});
@@ -20,11 +21,12 @@ class GuidePageTwo extends StatelessWidget {
           const SizedBox(
               height: 20), // Üstteki noktalar ve X butonu için boşluk bırakır
           Column(
-            children: const [
+            children: [
               Text(
                 'CANLI YARIŞLARA',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 36, // Biraz küçülttüm sığması için
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -34,7 +36,8 @@ class GuidePageTwo extends StatelessWidget {
               Text(
                 'KATILMAK ÇOK KOLAY!',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 36, // Biraz küçülttüm sığması için
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -48,12 +51,13 @@ class GuidePageTwo extends StatelessWidget {
             height: screenSize.height * 0.4, // Resim boyutunu ayarla
             fit: BoxFit.contain,
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'Ana sayfadaki Movliq butonuna tıkla, canlı yarışın eğlenceli kapışmasına sen de katıl! İster arkadaşların ile istersen uygulamadaki diğer rakiplerin ile rekabetin sınırlarını zorla.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: GoogleFonts.poppins(
+                // Coco Gothic alternatifi
                 fontSize: 18,
                 color: textColor,
                 height: 1.4,

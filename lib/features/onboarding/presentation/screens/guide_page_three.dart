@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
 
 class GuidePageThree extends StatelessWidget {
   const GuidePageThree({super.key});
@@ -21,11 +22,12 @@ class GuidePageThree extends StatelessWidget {
               height:
                   20), // Üstteki noktalar ve X butonu için boşluk (GuidingMainScreen'de X son sayfada gizli)
           Column(
-            children: const [
+            children: [
               Text(
                 'HER YARIŞTA',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -35,7 +37,8 @@ class GuidePageThree extends StatelessWidget {
               Text(
                 'M-COIN KAZAN!',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -49,12 +52,13 @@ class GuidePageThree extends StatelessWidget {
             height: screenSize.height * 0.45, // Resim boyutunu biraz ayarladım
             fit: BoxFit.contain,
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'Yarışta gösterdiğin performansa göre mCoin kazan. mCoin\'leri profilinde biriktir ve mağazada özel ürünlere ve kuponlara erişim sağla.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: GoogleFonts.poppins(
+                // Coco Gothic alternatifi
                 fontSize: 18,
                 color: textColor,
                 height: 1.4,

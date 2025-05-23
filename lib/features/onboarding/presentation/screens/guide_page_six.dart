@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
 
 class GuidePageSix extends StatelessWidget {
   const GuidePageSix({super.key});
@@ -22,11 +23,12 @@ class GuidePageSix extends StatelessWidget {
           const SizedBox(
               height: 20), // Adjusted spacing for elements at the top
           Column(
-            children: const [
+            children: [
               Text(
                 'HAZIRSAN!',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -37,7 +39,8 @@ class GuidePageSix extends StatelessWidget {
               Text(
                 'ŞİMDİ SAHNE SENİN',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.bangers(
+                  // Cheddar alternatifi
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -52,12 +55,13 @@ class GuidePageSix extends StatelessWidget {
             height: screenSize.height * 0.35, // Adjust image size as needed
             fit: BoxFit.contain,
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
               'Artık nasıl oynanacağını biliyorsun. Şimdi harekete geç, yarışlara katıl, ödülleri topla!',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: GoogleFonts.poppins(
+                // Coco Gothic alternatifi
                 fontSize: 17,
                 color: textColor,
                 height: 1.4,
