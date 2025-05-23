@@ -51,20 +51,25 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
   // Map database values to enums and vice-versa if needed
   // Example: Map integer values from UserDataModel to enums
   GenderChoice? _mapGenderFromString(String? genderString) {
-    if (genderString == 'Kadın') return GenderChoice.female;
-    if (genderString == 'Erkek') return GenderChoice.male;
-    if (genderString == 'Diğer') return GenderChoice.other;
+    if (genderString == null) return null;
+    final String lowerGenderString = genderString.toLowerCase();
+    if (lowerGenderString == 'female' || lowerGenderString == 'kadın')
+      return GenderChoice.female;
+    if (lowerGenderString == 'male' || lowerGenderString == 'erkek')
+      return GenderChoice.male;
+    if (lowerGenderString == 'other' || lowerGenderString == 'diğer')
+      return GenderChoice.other;
     return null;
   }
 
   String? _mapGenderToString(GenderChoice? choice) {
     switch (choice) {
       case GenderChoice.female:
-        return 'Kadın';
+        return 'Female'; // Save as English
       case GenderChoice.male:
-        return 'Erkek';
+        return 'Male'; // Save as English
       case GenderChoice.other:
-        return 'Diğer';
+        return 'Other'; // Save as English
       default:
         return null;
     }

@@ -50,7 +50,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   List<mb.Point> _mapboxRouteCoordinates = [];
   mb.Point? _currentMapboxPoint;
   mb.PointAnnotation? _currentLocationMarker;
-  Uint8List? _markerImage;
+  Uint8List? _maleMarkerIcon;
+  Uint8List? _femaleMarkerIcon;
 
   bool _hasLocationPermission = false;
 
@@ -96,6 +97,32 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _initPermissions();
       }
     });
+
+    // Listen to userDataProvider for gender changes
+    // Ensure this is called after _pointAnnotationManager and _mapboxMap are potentially initialized.
+    // It might be better to set up this listener after _onMapCreated or _onStyleLoaded.
+    // For now, we'll add a null check for managers.
+    ref.listenManual(userDataProvider, (previous, next) {
+      final prevGender = previous?.value?.gender;
+      final String? nextGender = next.value?.gender;
+
+      debugPrint(
+          'RecordScreen: userDataProvider listener triggered. Prev gender: $prevGender, Next gender: $nextGender');
+
+      // Check if gender actually changed or became available
+      if (prevGender != nextGender && nextGender != null) {
+        debugPrint(
+            'RecordScreen: Gender changed from $prevGender to $nextGender or became available. Attempting to update marker icon.');
+        if (_pointAnnotationManager != null && _mapboxMap != null) {
+          // Ensure map and manager are ready
+          // Call async function without awaiting, or make listener async if needed
+          _updateMarkerIconForGenderChange();
+        } else {
+          debugPrint(
+              'RecordScreen: userDataProvider listener - map or annotation manager not ready for icon update.');
+        }
+      }
+    });
   }
 
   @override
@@ -120,12 +147,24 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   Future<void> _loadMarkerImage() async {
     try {
-      final ByteData byteData =
+      final ByteData maleByteData =
           await rootBundle.load('assets/images/mapbox.png');
+      _maleMarkerIcon = maleByteData.buffer.asUint8List();
+      debugPrint('RecordScreen: _loadMarkerImage - Male marker icon LOADED.');
+
+      final ByteData femaleByteData =
+          await rootBundle.load('assets/icons/locaitonwomen.webp');
+      _femaleMarkerIcon = femaleByteData.buffer.asUint8List();
+      debugPrint('RecordScreen: _loadMarkerImage - Female marker icon LOADED.');
+
       if (mounted) {
-        setState(() {
-          _markerImage = byteData.buffer.asUint8List();
-        });
+        setState(() {});
+        // If a marker already exists and icons just loaded, try to update it
+        if (_currentLocationMarker != null && _pointAnnotationManager != null) {
+          debugPrint(
+              'RecordScreen: Icons loaded after marker existed, attempting refresh.');
+          await _updateMarkerIconForGenderChange();
+        }
       }
     } catch (e) {
       debugPrint(
@@ -285,17 +324,28 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }
       } else if (_currentMapboxPoint != null &&
           _pointAnnotationManager != null) {
-        if (_markerImage == null) {
+        if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
           await _loadMarkerImage();
         }
+        final Uint8List? selectedMarkerIconBytes = _getCurrentMarkerIconBytes();
+
+        if (selectedMarkerIconBytes == null) {
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - Seçilen işaretçi resmi yüklenemedi veya bulunamadı.');
+          return;
+        }
+
         try {
           _currentLocationMarker = await _pointAnnotationManager!.create(
             mb.PointAnnotationOptions(
               geometry: _currentMapboxPoint!,
-              image: _markerImage,
-              iconSize: 0.15,
+              image: selectedMarkerIconBytes,
+              iconSize:
+                  selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
             ),
           );
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - Marker created. Icon was: ${selectedMarkerIconBytes == _femaleMarkerIcon ? "FEMALE" : (selectedMarkerIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
         } catch (e) {
           debugPrint(
               'RecordScreen: _getCurrentLocation - Yeni işaretçi oluşturulurken HATA: $e');
@@ -399,19 +449,25 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             } else if (_pointAnnotationManager != null &&
                 _currentLocationMarker == null) {
               debugPrint(
-                  'RecordScreen: _startLocationTracking - Yeni özel işaretçi (mapbox.png) oluşturuluyor. Point: ${newMapboxPoint.encode()}');
-              _pointAnnotationManager
-                  ?.create(mb.PointAnnotationOptions(
-                geometry: newMapboxPoint,
-                image: _markerImage,
-                iconSize: 0.15,
-              ))
-                  .then((annotation) {
-                _currentLocationMarker = annotation;
-                debugPrint(
-                    'RecordScreen: _startLocationTracking - Yeni işaretçi OLUŞTURULDU. ID: ${annotation.id}');
-              }).catchError((e) => debugPrint(
-                      "RecordScreen: _startLocationTracking - Takip sırasında işaretçi oluşturulurken HATA: $e"));
+                  'RecordScreen: _startLocationTracking - Yeni özel işaretçi oluşturuluyor. Point: ${newMapboxPoint.encode()}');
+              final Uint8List? selectedMarkerIconBytes =
+                  _getCurrentMarkerIconBytes();
+              if (selectedMarkerIconBytes != null) {
+                _pointAnnotationManager
+                    ?.create(mb.PointAnnotationOptions(
+                  geometry: newMapboxPoint,
+                  image: selectedMarkerIconBytes,
+                  iconSize: selectedMarkerIconBytes == _femaleMarkerIcon
+                      ? 0.20
+                      : 0.15,
+                ))
+                    .then((annotation) {
+                  _currentLocationMarker = annotation;
+                  debugPrint(
+                      'RecordScreen: _startLocationTracking - Yeni işaretçi OLUŞTURULDU. ID: ${annotation.id}. Icon was: ${selectedMarkerIconBytes == _femaleMarkerIcon ? "FEMALE" : (selectedMarkerIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
+                }).catchError((e) => debugPrint(
+                        "RecordScreen: _startLocationTracking - Takip sırasında işaretçi oluşturulurken HATA: $e"));
+              }
             }
 
             if (_polylineAnnotationManager != null &&
@@ -1446,28 +1502,32 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
       // Restore current location marker
       if (_currentMapboxPoint != null && _pointAnnotationManager != null) {
-        if (_markerImage == null) {
+        if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
           debugPrint(
-              'RecordScreen: _onStyleLoadedListener - Marker image is null, loading it.');
+              'RecordScreen: _onStyleLoadedListener - İşaretçi resimleri null, yükleniyor.');
           await _loadMarkerImage();
           if (!mounted) return;
         }
-        if (_markerImage != null) {
+
+        final Uint8List? selectedMarkerIconBytes = _getCurrentMarkerIconBytes();
+
+        if (selectedMarkerIconBytes != null) {
           debugPrint(
-              'RecordScreen: _onStyleLoadedListener - Restoring current location marker.');
+              'RecordScreen: _onStyleLoadedListener - Mevcut konum işaretçisi geri yükleniyor/oluşturuluyor.');
           _pointAnnotationManager!
               .create(
             mb.PointAnnotationOptions(
               geometry: _currentMapboxPoint!,
-              image: _markerImage,
-              iconSize: 0.15,
+              image: selectedMarkerIconBytes,
+              iconSize:
+                  selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
             ),
           )
               .then((newMarker) {
             if (mounted) {
               _currentLocationMarker = newMarker;
               debugPrint(
-                  'RecordScreen: _onStyleLoadedListener - Current location marker restored/created. ID: ${newMarker.id}');
+                  'RecordScreen: _onStyleLoadedListener - Current location marker restored/created. ID: ${newMarker.id}. Icon was: ${selectedMarkerIconBytes == _femaleMarkerIcon ? "FEMALE" : (selectedMarkerIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
             }
           }).catchError((e) {
             debugPrint(
@@ -1493,6 +1553,86 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
               'RecordScreen: _onStyleLoadedListener - Widget unmounted before _getCurrentLocation callback.');
         }
       });
+    }
+  }
+
+  Uint8List? _getCurrentMarkerIconBytes() {
+    final userData = ref.read(userDataProvider).value;
+    final String? genderFromProvider = userData?.gender;
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - Gender from provider: $genderFromProvider');
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - _femaleMarkerIcon is null: ${_femaleMarkerIcon == null}');
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - _maleMarkerIcon is null: ${_maleMarkerIcon == null}');
+
+    // Default to 'male' if gender is null, not available, or not 'female'
+    final String effectiveGender =
+        (genderFromProvider?.toLowerCase() == 'female') ? 'female' : 'male';
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - Effective gender for icon choice: $effectiveGender');
+
+    if (effectiveGender == 'female' && _femaleMarkerIcon != null) {
+      debugPrint(
+          'RecordScreen: _getCurrentMarkerIconBytes - Returning FEMALE icon.');
+      return _femaleMarkerIcon;
+    }
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - Returning MALE icon (or null if male icon not loaded).');
+    return _maleMarkerIcon;
+  }
+
+  // Function to update marker icon, typically called when gender changes or icons load late.
+  Future<void> _updateMarkerIconForGenderChange() async {
+    // Ensure point manager and a current point are available
+    if (_pointAnnotationManager == null || _currentMapboxPoint == null) {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - PointAnnotationManager or currentMapboxPoint is null. Cannot update icon yet.');
+      return;
+    }
+
+    // If a current marker exists, delete it first
+    if (_currentLocationMarker != null) {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - Deleting existing marker ID: ${_currentLocationMarker!.id} to update icon.');
+      try {
+        await _pointAnnotationManager!.delete(_currentLocationMarker!);
+        _currentLocationMarker = null; // Nullify after deletion
+      } catch (e) {
+        debugPrint(
+            'RecordScreen: _updateMarkerIconForGenderChange - Error deleting existing marker: $e');
+        // Continue, as we want to try creating a new one anyway
+      }
+    } else {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - No existing marker to delete.');
+    }
+
+    final Uint8List? newIconBytes =
+        _getCurrentMarkerIconBytes(); // Get the latest icon based on current gender and loaded icons
+
+    if (newIconBytes != null) {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - Attempting to create new marker with fresh icon.');
+      try {
+        _currentLocationMarker = await _pointAnnotationManager!.create(
+          mb.PointAnnotationOptions(
+            geometry: _currentMapboxPoint!, // Use the current map point
+            image: newIconBytes,
+            iconSize: newIconBytes == _femaleMarkerIcon
+                ? 0.20
+                : 0.15, // Dynamic icon size
+          ),
+        );
+        debugPrint(
+            'RecordScreen: _updateMarkerIconForGenderChange - Marker recreated/created. ID: ${_currentLocationMarker?.id}. Icon is: ${newIconBytes == _femaleMarkerIcon ? "FEMALE" : (newIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
+      } catch (e) {
+        debugPrint(
+            'RecordScreen: _updateMarkerIconForGenderChange - Error recreating marker: $e');
+      }
+    } else {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - Failed to get new icon bytes. Marker not created/updated.');
     }
   }
 }
