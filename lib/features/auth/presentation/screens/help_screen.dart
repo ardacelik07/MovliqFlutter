@@ -46,25 +46,94 @@ class HelpScreen extends ConsumerWidget {
 
     final List<Map<String, dynamic>> faqs = [
       {
-        'question': 'Puanlar nasıl kazanılır?',
-        'answer': 'Puan kazanma detayları burada açıklanacak.',
-        'isExpanded': false,
-      },
-      {
-        'question': 'Yarışa nasıl katılırım?',
-        'answer': 'Yarışa katılım adımları burada yer alacak.',
-        'isExpanded': false,
-      },
-      {
-        'question': 'Kupon kodumu nasıl kullanırım?',
-        'answer': 'Kupon kodu kullanımı hakkında bilgi burada olacak.',
-        'isExpanded': false,
-      },
-      {
-        'question': 'Koşu verilerimi nasıl senkronize edebilirim?',
+        'question': 'Movliq Nedir?',
         'answer':
-            'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.',
-        'isExpanded': true, // This one is expandable
+            '''Movliq, yürüyüşü ve koşuyu oyunlaştırarak kullanıcıları gerçek zamanlı yarışlara dahil eden, adımlarını mCoin\'e ve ödüllere dönüştüren yenilikçi bir mobil uygulamadır. Sporu yalnızca fiziksel değil, aynı zamanda sosyal ve eğlenceli bir deneyime dönüştürür.
+
+• Gerçek zamanlı yürüyüş/koşu yarışları
+• Arkadaşlarla özel odalarda yarışma
+• Solo (tek başına) mod
+• Ödül sistemi ve coin kazanımı
+• Sosyal etkileşim, kültür ve motivasyon''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Canlı Yarış Nasıl Çalışır?',
+        'answer':
+            '''Kullanıcı, uygulama üzerinden canlı yarış lobisine katılırken yarışın türünü (iç veya dış mekân) ve süresini seçer. Sistem, aynı yarış ayarlarına sahip diğer kullanıcılarla eşleştirme yapar veya kullanıcı yeni bir yarış başlatarak oda oluşturabilir.
+Tüm yarışmacılar belirlenen saatte veya "başlat" komutuyla aynı anda yarışa başlar. Uygulama, yarış süresi boyunca tüm katılımcıların adım sayısı, hız, ve mesafe verilerini gerçek zamanlı takip eder. Yarış bitiminde sistem verileri analiz eder ve bir sıralama oluşturur.İlk üçe giren kullanıcılar mCoin ile ödüllendirilir. Aynı zamanda özel başarılar ve görevler de ek coin kazanımı sağlayabilir.
+
+• Gerçek zamanlı süre ve takip
+• Adım, mesafe ve hız bazlı skor
+• Yarış sonunda sıralama + coin/ödül dağıtımı
+• Performansına göre günlük başarılar
+• Liderlik tabloları ile rekabet duygusu''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Solo Mod',
+        'answer':
+            '''Kullanıcı, herhangi bir zaman kısıtlaması olmadan tek başına koşu veya yürüyüşe başlayabilir. Uygulama, kullanıcının hareket verilerini (adım, hız, mesafe) arka planda anlık olarak takip eder. Süre ve mesafe hedefi kullanıcıya bağlıdır, istediği yerde istediği zaman performansını ortaya koyabilir.
+Kayıt edilen yürüyüş veya koşu aktivitleri sonucunda kullanıcı mCoin kazanır ve ilerleme kaydeder.
+Yarışma havası olmasa da, kullanıcı kendi gelişimini takip edebilir ve günlük/haftalık başarı hedeflerini tamamlayarak mCoin ve ödüller kazanabilir.
+
+• Kullanıcı dilediği zaman "Solo Mod"u başlatır
+• Sistem adım, hız ve mesafeyi anlık olarak izler
+• Her hareket ödül potansiyeli taşır
+• Günlük bireysel görevler tamamlandıkça mCoin kazanılır
+• İstatistik sayfasında kişisel gelişim takip edilir''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Sadece Uygulama Değil, Bir Kültür',
+        'answer':
+            '''Movliq, sadece bir fitness uygulaması değil; kazanmak, paylaşmak ve sosyalleşmek isteyenlerin buluşma noktasıdır.
+Burada attığın her adım sadece fiziksel bir hareket değil; bir bağ kurma, bir yaşam tarzı oluşturma ve ilham verme fırsatıdır.
+Her yarış, bir bağlantı; her adım, daha aktif bir hayatın parçası!
+Movliq Kültürünün Temel Taşları:
+• Topluluk Ruhu: Birlikte hareket etmek, birlikte motive olmak
+• Paylaşmak: Kazandığını sadece kendin için değil, ilham olmak için de kullan
+• Etkileşim: Arkadaşlarını davet et, özel odalarda yarış, deneyimini paylaş
+• Motivasyon: Her gün, bir öncekinden daha iyi olmak için bir fırsat
+• Erişilebilirlik: Profesyonel atlet olman gerekmez sadece harekete geç!''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Ödül Sistemi & mCoin',
+        'answer':
+            '''Ne kadar çok hareket edersen, o kadar çok kazanırsın! mCoin, movliq evreninde hareketin karşılığıdır. Attığın her adım, çıktığın her yarış, gösterdiğin her performans sana mCoin olarak geri döner.
+Kazandığın mCoin\'leri Movliq mağazasında; kuponlara, özel kampanyalara, sürpriz hediyelere ve daha fazlasına dönüştürebilirsin.
+Nasıl Kazanırsın?
+• Canlı yarışlara katılarak dereceye gir
+• Solo modda aktif ol
+• Günlük,haftalık,aylık hedefleri tamamla
+• Özel görevlerde başarı göster
+• Ortak havuz yarışlarında birinci ol''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Bireysel & Sosyal Deneyim',
+        'answer':
+            '''İster tek başına, ister arkadaşlarınla yarış! Movliq\'te özel yarış odaları oluşturabilir, kodla arkadaşlarını davet edebilir, toplulukla etkileşime geçebilir, birlikte motive olabilirsiniz.
+Sosyal Kullanım (Özel Odalar & Topluluk):
+• Özel yarış odaları oluşturabilir, kodla arkadaşlarını davet edebilirsin
+• Aynı anda yarışarak birlikte hareket etmenin keyfini yaşarsın
+• Grup içi sıralama ile rekabet artar, motivasyon yükselir
+• Haftalık etkinlikler, meydan okumalar ve sosyal görevlerle toplulukla bağ kurarsın
+• Paylaşım, destek ve birlikte kazanma kültürü ön plandadır''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Ortak Havuz Yarışları',
+        'answer':
+            '''Arkadaşlarınla heyecanı artırmak için özel odalarda bir mCoin sayısı belirlenir. Her katılımcı istedikleri miktarda mCoin ile yarışa dahil olur.
+Yarış sonunda birinci olan kullanıcı, tüm mCoinleri toplar!
+Nasıl İşler?
+• Yarış başında her katılımcı istediği mCoin\'i ile yarışa katılım yapar
+• Performansınıza göre sıralama belirlenir
+• Kazanan kişi tüm mCoin havuzunu alır
+• Diğer katılımcılar mCoinlerini kaybeder''',
+        'isExpanded': true,
       },
     ];
 
@@ -186,7 +255,7 @@ class HelpScreen extends ConsumerWidget {
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         title: Text(
           question,
-          style: TextStyle(color: textColor, fontSize: 15),
+          style: TextStyle(color: textColor, fontSize: 17),
         ),
         trailing: Icon(Icons.arrow_forward_ios, color: accentColor, size: 16),
         onTap: () {
@@ -218,7 +287,7 @@ class HelpScreen extends ConsumerWidget {
         title: Text(
           question,
           style: TextStyle(
-              color: textColor, fontSize: 15, fontWeight: FontWeight.w500),
+              color: textColor, fontSize: 17, fontWeight: FontWeight.w500),
         ),
         childrenPadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0)

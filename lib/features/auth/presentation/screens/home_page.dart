@@ -30,6 +30,7 @@ import '../providers/race_coin_tracker_provider.dart';
 import '../widgets/earn_coin_widget.dart'; // Popup için
 import '../providers/race_provider.dart'; // For cheatKickedStateProvider
 import '../widgets/cheated_race.dart'; // For CheatedRaceDialogContent
+import 'help_screen.dart';
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -553,13 +554,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Hoşgeldiniz',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[400],
-                                ),
-                              ),
-                              Text(
                                 userData?.userName ??
                                     'Kullanıcı', // Display name or default
                                 style: const TextStyle(
@@ -578,8 +572,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                               Stack(
                                 alignment: Alignment.topRight,
                                 children: [
-                                  Icon(Icons.notifications_outlined,
-                                      color: Colors.white, size: 26),
+                                  IconButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  HelpScreen()));
+                                    },
+                                    icon: Icon(Icons.info_outline,
+                                        color: Colors.white, size: 26),
+                                  ),
                                   // Add badge if needed
                                 ],
                               ),
