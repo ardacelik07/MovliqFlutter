@@ -90,34 +90,10 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images/loginbackground.jpg
-    - assets/images/movliq_beyaz.png
-    - assets/images/welcome.png
-    - assets/images/startscreen.jpg
-    - assets/images/age_gender.jpg
-    - assets/images/height.jpg
-    - assets/images/weight.jpg
-    - assets/images/active.jpg
-    - assets/images/finish.jpg
-    - assets/images/slider.png
-    - assets/images/nike.png
-    - assets/images/logowithouttext.jpg
-    - assets/images/Movliq_beyaz.png
-    - assets/images/movliqonlylogo.jpg
     - assets/icons/google.svg
     - assets/icons/facebook.svg
     - assets/icons/microsoft.svg
-    - assets/images/movliqonlylogo.png
-    - assets/images/runningman.png
-    - assets/images/runningwomen.png
-    - assets/images/runningclock.png
-    - assets/images/waitingman.png
-    - assets/images/record.png
     - assets/images/splashekran.png
-
-    - assets/images/playstore.png
-    - assets/images/loading.png
-    - assets/images/onlycolor.jpeg
     - assets/images/logo.png
     - assets/images/registerpicture.png
     - assets/images/loginpicture.png
@@ -130,7 +106,6 @@ flutter:
     - assets/images/finish1.png
     - assets/images/loginpagephoto.png
     - assets/images/movliq_blackxt.png
-    - assets/images/movliq_withtext.png
     - assets/images/manOnRunningInside.png
     - assets/images/womanRunOutside.png
     - assets/images/waiting.png
@@ -156,10 +131,10 @@ flutter:
     - assets/icons/coupa.png
     - assets/icons/greenman.png
     - assets/icons/alev.png
-    - assets/images/raceui2.png
     - assets/images/racevideo.mp4
     - assets/images/14.png
     - assets/images/mapbox.png
+    - assets/images/movliq_withtext.png
 
     - assets/icons/join.png
     - assets/icons/add.png
