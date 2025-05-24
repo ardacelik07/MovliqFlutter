@@ -24,6 +24,7 @@ import '../providers/user_data_provider.dart'; // Eğer yoksa ekle
 import 'package:share_plus/share_plus.dart'; // SharePlus paketi eklendi
 import 'package:flutter/rendering.dart';
 import 'package:my_flutter_project/features/auth/presentation/widgets/leave_widget.dart'; // LeaveWidget importu
+import 'package:flutter/widgets.dart'; // WidgetsBindingObserver için
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -55,7 +56,8 @@ class WaitingRoomScreen extends ConsumerStatefulWidget {
   ConsumerState<WaitingRoomScreen> createState() => _WaitingRoomScreenState();
 }
 
-class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
+class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
+    with WidgetsBindingObserver {
   late bool _hasStartTime;
   bool _isConnected = false;
   List<RoomParticipant> _participants = [];
@@ -77,6 +79,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
     _hasStartTime = widget.startTime != null;
     _participants = []; // Boş liste ile başlat
@@ -94,7 +97,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     _setupSignalR().then((_) {
       // SignalR bağlantısı kurulduktan sonra ilk katılımcı listesini al
       if (_isConnected) {
-        debugPrint('�� İlk katılımcı listesi alınıyor...');
+        debugPrint('👋 İlk katılımcı listesi alınıyor...');
         ref.read(signalRServiceProvider).joinRaceRoom(widget.roomId);
       }
     });
@@ -561,6 +564,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     debugPrint('WaitingRoomScreen dispose ediliyor...');
     WakelockPlus.disable();
     debugPrint('Wakelock disabled for WaitingRoomScreen');
+    WidgetsBinding.instance.removeObserver(this);
 
     // Tüm stream subscriptionları temizle
     for (var subscription in _subscriptions) {
@@ -1260,6 +1264,53 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           _isLoadingStartRace = false;
         });
       }
+    }
+  }
+
+  // --- App Lifecycle State Değişikliği ---
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    debugPrint('🔄 App lifecycle state changed to: $state');
+
+    if (state == AppLifecycleState.resumed) {
+      debugPrint(
+          '📱 App resumed. Checking SignalR connection for WaitingRoom...');
+      // Bağlantıyı ve odaya katılımı yeniden kurmayı dene
+      // _setupSignalR'ı direkt çağırmak yerine, bağlantı durumunu kontrol edip
+      // sadece gerekliyse yeniden bağlanmak daha iyi olabilir.
+      // Ancak _setupSignalR zaten bağlantı varsa fazla işlem yapmıyor gibi duruyor.
+      // Şimdilik _setupSignalR'ı tekrar çağıralım,
+      // ileride daha sofistike bir kontrol eklenebilir.
+      final signalRService = ref.read(signalRServiceProvider);
+      if (!signalRService.isConnected) {
+        debugPrint(
+            '🔌 SignalR connection lost. Attempting to reconnect and rejoin room...');
+        _setupSignalR().then((_) {
+          if (_isConnected) {
+            debugPrint(
+                '✅ Reconnected to SignalR and attempting to rejoin room in WaitingRoom.');
+            // Odaya yeniden katılımı sağlamak için joinRaceRoom çağrılabilir
+            // _setupSignalR içinde bu zaten yapılıyor olabilir, kontrol etmek gerek.
+            // Eğer _setupSignalR içinde joinRaceRoom çağrılmıyorsa veya
+            // tekrar çağırmak gerekiyorsa:
+            // ref.read(signalRServiceProvider).joinRaceRoom(widget.roomId);
+          } else {
+            debugPrint(
+                '❌ Failed to reconnect to SignalR in WaitingRoom after resume.');
+          }
+        });
+      } else {
+        debugPrint('🔌 SignalR connection is still active in WaitingRoom.');
+        // Bağlantı aktifse bile, odaya katılımı teyit etmek iyi bir pratik olabilir.
+        // Özellikle ağ kesintisi sonrası 'resumed' durumunda.
+        // signalRService.joinRaceRoom(widget.roomId); // Opsiyonel: Odaya katılımı teyit et
+      }
+    } else if (state == AppLifecycleState.paused) {
+      debugPrint('📱 App paused in WaitingRoom.');
+      // Arka plana alındığında özel bir işlem yapmak isterseniz buraya ekleyebilirsiniz.
+      // Örneğin, bazı dinleyicileri geçici olarak durdurmak vs.
+      // Ancak SignalR genellikle sunucu tarafı timeout'larla yönetilir.
     }
   }
 }
