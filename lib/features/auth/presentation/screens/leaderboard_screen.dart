@@ -292,7 +292,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               Icon(Icons.info_outline, color: Color(0xFFC4FF62)),
               SizedBox(width: 8),
               Text(
-                'Liderlik Tablosu Hakkında',
+                '🏅 Liderlik Tablosu Hakkında',
                 style:
                     TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
@@ -300,54 +300,60 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           ),
           content: SizedBox(
             width: double.infinity,
-            child: const SingleChildScrollView(
+            child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
-                    'Liderlik tablosu her ay aktif yarış performansına göre sifirlanir.',
+                  const Text(
+                    'Liderlik tablosu her ay sonunda sıfırlanır ve yalnızca canlı, genel yarışlardaki performansına göre şekillenir.',
                     style: TextStyle(color: Colors.white70),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Yarışlar ve özel oda mücadelelerinde yaptığın aktiviteler, kat ettiğin toplam mesafe (km) üzerinden siralamaya yansir.',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '📌 Solo Mod bu siralamaya dahil değildir.',
+                  const SizedBox(height: 8),
+                  const Text(
+                    '📌 Solo Mod ve arkadaşlarla yapılan özel oda yarışları sıralamaya dahil değildir.',
                     style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+                        color: Colors.white70, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 16),
-                  Text(
-                    '🎁 Her Ayın Kazananları:',
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Canlı yarışlarda kat ettiğin toplam mesafe (km) baz alınarak sıralama oluşturulur.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Ayrıca iç mekân ve dış mekân yarışları ayrı kategorilerde değerlendirilir.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '🎁 Her Kategoride Ödül Var!',
                     style: TextStyle(
                         color: Color(0xFFC4FF62),
                         fontWeight: FontWeight.bold,
                         fontSize: 16),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Ay sonunda ilk 3\'e giren kullanıcılar sürpriz ödüller kazanır!',
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Ay sonunda iç mekân ve dış mekân kategorilerinde ayrı ayrı:',
                     style: TextStyle(color: Colors.white70),
                   ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Ne kadar çok yarışa katılır ve hareket edersen, zirveye o kadar yaklaşırsın.',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    '🥇 Sıralamalar sadece puan değil, ödül de getirir!',
+                  const SizedBox(height: 8),
+                  const Text(
+                    '🥇 İlk 3\'e giren kullanıcılar sürpriz ödüller kazanır!',
                     style: TextStyle(
                         color: Color(0xFFC4FF62), fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 24),
-                  Center(
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Ne kadar çok yarışa katılır ve hareket edersen, zirveye o kadar yaklaşırsın.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 24),
+                  const Center(
                     child: Text(
-                      'Hazırsan, şimdi yarış zamanı! ⏱️',
+                      '🏃‍♂️ Şimdi sıranı al, yarışlara katıl, ödülleri kap! 💥',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
