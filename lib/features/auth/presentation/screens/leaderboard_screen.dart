@@ -80,7 +80,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     children: [
                       const Icon(Icons.emoji_events, color: Colors.black),
                       const SizedBox(width: 8),
-                      Text(
+                      const Text(
                         'Ödül Reklamı',
                         style: TextStyle(
                           color: Colors.black,
@@ -172,7 +172,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 16),
 
                 // --- User Rank Card (handles its own loading/error state internally) ---
@@ -262,6 +261,104 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           );
         },
       ),
+    );
+  }
+
+  void _showLeaderboardInfoDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+          backgroundColor: const Color(0xFF333333),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFFC4FF62)),
+              SizedBox(width: 8),
+              Text(
+                'Liderlik Tablosu Hakkında',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.infinity,
+            child: const SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'Liderlik tablosu her ay aktif yarış performansına göre sifirlanir.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Yarışlar ve özel oda mücadelelerinde yaptığın aktiviteler, kat ettiğin toplam mesafe (km) üzerinden siralamaya yansir.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '📌 Solo Mod bu siralamaya dahil değildir.',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    '🎁 Her Ayın Kazananları:',
+                    style: TextStyle(
+                        color: Color(0xFFC4FF62),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Ay sonunda ilk 3\'e giren kullanıcılar sürpriz ödüller kazanır!',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Ne kadar çok yarışa katılır ve hareket edersen, zirveye o kadar yaklaşırsın.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    '🥇 Sıralamalar sadece puan değil, ödül de getirir!',
+                    style: TextStyle(
+                        color: Color(0xFFC4FF62), fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 24),
+                  Center(
+                    child: Text(
+                      'Hazırsan, şimdi yarış zamanı! ⏱️',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                'Anladım',
+                style: TextStyle(color: Color(0xFFC4FF62)),
+              ),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -700,13 +797,29 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           ),
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Text(
-          valueText, // Değer (km veya adım)
-          style: const TextStyle(
-            color: Colors.white, // Değer rengi
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+        trailing: Row(
+          // Modified trailing to include IconButton
+          mainAxisSize: MainAxisSize.min, // To keep Row compact
+          children: [
+            Text(
+              valueText, // Değer (km veya adım)
+              style: const TextStyle(
+                color: Colors.white, // Değer rengi
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8), // Space between text and icon
+            IconButton(
+              icon: const Icon(Icons.info_outline, color: Color(0xFFC4FF62)),
+              onPressed: () => _showLeaderboardInfoDialog(context),
+              tooltip: 'Liderlik Tablosu Hakkında Bilgi',
+              padding:
+                  EdgeInsets.zero, // Remove default padding for tighter spacing
+              constraints:
+                  const BoxConstraints(), // Remove default constraints for tighter spacing
+            ),
+          ],
         ),
         dense: true, // Daha kompakt görünüm
       ),
