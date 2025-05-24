@@ -66,6 +66,18 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           return SafeArea(
             child: Column(
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.info_outline,
+                          color: Color(0xFFC4FF62)),
+                      onPressed: () => _showLeaderboardInfoDialog(context),
+                    ),
+                  ],
+                ),
+                // Title Section
+
                 // Title Section
                 Container(
                   margin: const EdgeInsets.all(16.0),
@@ -808,16 +820,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
-            ),
-            const SizedBox(width: 8), // Space between text and icon
-            IconButton(
-              icon: const Icon(Icons.info_outline, color: Color(0xFFC4FF62)),
-              onPressed: () => _showLeaderboardInfoDialog(context),
-              tooltip: 'Liderlik Tablosu Hakkında Bilgi',
-              padding:
-                  EdgeInsets.zero, // Remove default padding for tighter spacing
-              constraints:
-                  const BoxConstraints(), // Remove default constraints for tighter spacing
             ),
           ],
         ),
