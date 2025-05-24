@@ -195,6 +195,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
     final currentTabIndex = ref.read(selectedTabProvider);
     final bool isRecordingActive = ref.read(recordStateProvider);
 
+    // Original logic for handling tab changes when recording is active
     if (currentTabIndex == 2 && index != 2 && isRecordingActive) {
       final confirm = await _showConfirmationDialog();
       if (!confirm) {
@@ -203,6 +204,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
       ref.read(recordStateProvider.notifier).cancelRecording();
     }
 
+    // Original logic for preventing navigation to RecordScreen if already recording and on that tab
     if (index == 2 && currentTabIndex == 2 && isRecordingActive) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -212,15 +214,19 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
       return;
     }
 
-    if (currentTabIndex == index && !(index == 2 && isRecordingActive)) {
-      if (currentTabIndex == index) return;
+    // Original logic to prevent re-selecting the same tab
+    // (unless it's index 2 and not recording, or a different scenario where re-selection is allowed)
+    if (currentTabIndex == index && !(index == 2 && !isRecordingActive)) {
+      // Adjusted condition
+      if (currentTabIndex == index)
+        return; // Simplified: if same tab, do nothing
     }
 
     _previousIndex = currentTabIndex;
-
     ref.read(selectedTabProvider.notifier).state = index;
 
     if (index == 3) {
+      // Leaderboard tab
       Future.microtask(() {
         try {
           final isOutdoor = ref.read(isOutdoorSelectedProvider);

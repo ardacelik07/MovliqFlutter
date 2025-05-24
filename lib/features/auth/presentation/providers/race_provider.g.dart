@@ -6,7 +6,7 @@ part of 'race_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$raceNotifierHash() => r'd7257a89f9fa17629e96dd966407d1aaa51b6ab3';
+String _$raceNotifierHash() => r'9acba45b68f3f1c403ce001ffb977b4f59ee5188';
 
 /// See also [RaceNotifier].
 @ProviderFor(RaceNotifier)

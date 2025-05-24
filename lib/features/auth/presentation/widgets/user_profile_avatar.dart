@@ -1,33 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../features/auth/presentation/providers/user_data_provider.dart';
 
-class UserProfileAvatar extends StatelessWidget {
-  final String? imageUrl; // Null olabilir
+class UserProfileAvatar extends ConsumerWidget {
+  final String? imageUrl;
   final double radius;
-  final String defaultImageAsset =
-      'assets/images/defaultprofile.png'; // Varsayılan asset
+
+
+  static const String _defaultManPhoto = 'assets/images/defaultmanphoto.png';
+  static const String _defaultWomanPhoto =
+      'assets/images/defaultwomenphoto.png';
+
 
   const UserProfileAvatar({
-    super.key, // Use super parameter for Key
+    super.key,
     required this.imageUrl,
-    this.radius = 25.0, // Varsayılan bir boyut
+    this.radius = 25.0,
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Check if imageUrl is not null and not an empty string
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userDataAsync = ref.watch(userDataProvider);
+    final String? gender = userDataAsync.value?.gender;
+
     final bool hasValidUrl = imageUrl?.isNotEmpty ?? false;
+
+    String selectedDefaultImageAsset;
+    if (gender?.toLowerCase() == 'female') {
+      selectedDefaultImageAsset = _defaultWomanPhoto;
+    } else {
+      selectedDefaultImageAsset = _defaultManPhoto;
+    }
 
     return CircleAvatar(
       radius: radius,
       backgroundImage: hasValidUrl
-          ? NetworkImage(imageUrl!) // Use NetworkImage
-          : AssetImage(defaultImageAsset) as ImageProvider, // Cast AssetImage
-      // Optional: Add error handling for NetworkImage if needed
-      // onBackgroundImageError: hasValidUrl ? (exception, stackTrace) {
-      //   print("Error loading profile image: $exception");
-      //   // Optionally show default image on error, but backgroundImage setter handles this implicitly if NetworkImage fails
-      // } : null,
-      backgroundColor: Colors.grey[800], // Darker background for dark theme
+          ? NetworkImage(imageUrl!)
+          : AssetImage(selectedDefaultImageAsset) as ImageProvider,
+      backgroundColor: Colors.grey[800],
     );
   }
 }

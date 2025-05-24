@@ -5,6 +5,7 @@ import 'package:my_flutter_project/features/auth/presentation/providers/race_sta
 import 'package:my_flutter_project/features/auth/presentation/screens/race_screen.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/http_interceptor.dart'; // Added HttpInterceptor import
 import '../providers/race_settings_provider.dart';
 import 'dart:convert';
 import 'dart:async'; // StreamSubscription için import ekliyorum
@@ -18,6 +19,12 @@ import '../widgets/user_profile_avatar.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart'; // MethodChannel için
 import 'package:geolocator/geolocator.dart'; // Location servisleri için
+import '../providers/race_coin_tracker_provider.dart';
+import '../providers/user_data_provider.dart'; // Eğer yoksa ekle
+import 'package:share_plus/share_plus.dart'; // SharePlus paketi eklendi
+import 'package:flutter/rendering.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/leave_widget.dart'; // LeaveWidget importu
+import 'package:flutter/widgets.dart'; // WidgetsBindingObserver için
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -32,10 +39,14 @@ class WaitingRoomScreen extends ConsumerStatefulWidget {
   final DateTime? startTime;
   final String? activityType;
   final int? duration;
+  final String roomCode;
+  final bool isHost;
 
   const WaitingRoomScreen({
     super.key,
     required this.roomId,
+    required this.roomCode,
+    required this.isHost,
     this.startTime,
     this.activityType,
     this.duration,
@@ -45,15 +56,16 @@ class WaitingRoomScreen extends ConsumerStatefulWidget {
   ConsumerState<WaitingRoomScreen> createState() => _WaitingRoomScreenState();
 }
 
-class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
+class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
+    with WidgetsBindingObserver {
   late bool _hasStartTime;
   bool _isConnected = false;
-  bool _isRaceStarting = false;
   List<RoomParticipant> _participants = [];
   String? _myUsername; // Kullanıcı adı
   String? _myEmail; // Email adresi
   String? _lastJoinedUser;
   bool _isLoading = false; // Son katılan kullanıcı
+  bool _isLoadingStartRace = false;
 
   // Fotoğraf önbelleği için harita ekliyoruz
   final Map<String, String?> _profilePictureCache = {};
@@ -67,23 +79,46 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WakelockPlus.enable();
     _hasStartTime = widget.startTime != null;
     _participants = []; // Boş liste ile başlat
     debugPrint('🔄 WaitingRoom initState - Başlangıç durumu:');
     debugPrint('🏠 Oda ID: ${widget.roomId}');
+    debugPrint('🔑 Oda Kodu: ${widget.roomCode}');
+    debugPrint('👑 Host mu: ${widget.isHost}');
 
     // Kullanıcı adını al
-    _loadUsername();
+    _loadUsername().then((_) {
+      _storeBeforeRaceCoin();
+    });
 
     // SignalR bağlantısını başlat
     _setupSignalR().then((_) {
       // SignalR bağlantısı kurulduktan sonra ilk katılımcı listesini al
       if (_isConnected) {
-        debugPrint('📥 İlk katılımcı listesi alınıyor...');
+        debugPrint('👋 İlk katılımcı listesi alınıyor...');
         ref.read(signalRServiceProvider).joinRaceRoom(widget.roomId);
       }
     });
+  }
+
+  Future<void> _storeBeforeRaceCoin() async {
+    // userDataProvider'dan mevcut coin'i almayı dene
+    // valueOrNull kullanmak state null ise hata vermez
+    final currentUserData = ref.read(userDataProvider).valueOrNull;
+    if (currentUserData != null && currentUserData.coins != null) {
+      ref
+          .read(raceCoinTrackingProvider.notifier)
+          .setBeforeRaceCoin(currentUserData.coins!);
+    } else {
+      // Eğer veri henüz yoksa veya coin null ise, kısa bir süre bekleyip tekrar dene
+      // Veya fetchCoins tetiklenebilir ama bu karmaşıklaştırabilir.
+      // Şimdilik sadece loglayalım.
+      print(
+          "🏁 RaceCoinTracker: Yarış öncesi coin alınamadı (userData null veya coin null).");
+      // İsteğe bağlı: Future.delayed ile tekrar deneme eklenebilir
+    }
   }
 
   Future<void> _loadUsername() async {
@@ -150,7 +185,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
       // Kullanıcı ayrılma olayını dinle
       _subscriptions.add(signalRService.userLeftStream.listen((leftUserName) {
-        if (!mounted || _isRaceStarting) return;
+        if (!mounted) return;
 
         debugPrint('👋 Kullanıcı ayrıldı: $leftUserName');
 
@@ -161,14 +196,12 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           // Önbellekten de profil fotoğrafını kaldır
           _profilePictureCache.remove(leftUserName);
         });
-
-        _showInfoMessage('$leftUserName odadan ayrıldı');
       }));
 
       // Mevcut oda katılımcılarını dinle
       _subscriptions
           .add(signalRService.roomParticipantsStream.listen((participants) {
-        if (!mounted || _isRaceStarting) return;
+        if (!mounted) return;
 
         debugPrint('🏠 WaitingRoom - Katılımcı Listesi Alındı');
         debugPrint(
@@ -209,80 +242,111 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
         }
       }));
 
-      // Yarış başlama olayını dinle
+      // Yarış başlama olayını dinle (Bu artık RaceAlreadyStarted olarak düşünülmeli)
       _subscriptions.add(signalRService.raceStartingStream.listen((data) {
         debugPrint(
-            '--- WaitingRoom: RaceStarting event RECEIVED --- Data: $data');
+            '--- WaitingRoom: RaceStarting (or RaceAlreadyStarted) event RECEIVED --- Data: $data');
 
         if (!mounted) {
           debugPrint(
-              '--- WaitingRoom: RaceStarting - Widget not mounted, skipping. ---');
-          return;
-        }
-        // Yarış zaten UI tarafında başladıysa tekrar tetikleme (güvenlik)
-        if (_isRaceStarting) {
-          debugPrint(
-              '--- WaitingRoom: RaceStarting - UI already starting, skipping notifier call. ---');
+              '--- WaitingRoom: RaceStarting - Widget not mounted, skipping. --- ');
           return;
         }
 
         final int roomId = data['roomId'];
-        final int countdownSeconds = data['countdownSeconds'] ?? 10;
-        debugPrint(
-            '--- WaitingRoom: RaceStarting - Parsed Room ID: $roomId, Countdown: $countdownSeconds ---');
+        final bool isRaceReallyAlreadyStarted =
+            data['isRaceAlreadyStarted'] as bool? ?? false;
+        final raceNotifier = ref.read(raceNotifierProvider.notifier);
+        final String activityLower = widget.activityType?.toLowerCase() ?? '';
+        final bool isIndoor = activityLower.contains('indoor') ||
+            activityLower.contains('iç mekan');
+        final int durationMinutes = widget.duration ?? 10; // Varsayılan süre
+
+        if (_myEmail == null) {
+          debugPrint(
+              '--- WaitingRoom: HATA - Kullanıcı email bilgisi null! Yarış başlatılamıyor. ---');
+
+          return;
+        }
 
         if (roomId == widget.roomId) {
-          debugPrint(
-              '--- WaitingRoom: RaceStarting - Event matches current room ID. ---');
-
-          // --- SADECE NOTIFIER'I TETİKLE ---
-          final raceNotifier = ref.read(raceNotifierProvider.notifier);
-          final String activityLower = widget.activityType?.toLowerCase() ?? '';
-          final bool isIndoor = activityLower.contains('indoor') ||
-              activityLower.contains('iç mekan');
-          final int durationMinutes = widget.duration ?? 10;
-
-          debugPrint(
-              '--- WaitingRoom: RaceStarting - Preparing to call notifier. Email: $_myEmail, Indoor: $isIndoor, Duration: $durationMinutes ---');
-
-          if (_myEmail == null) {
+          if (isRaceReallyAlreadyStarted) {
+            // --- DEVAM EDEN YARIŞA KATILMA SENARYOSU ---
+            final double? remainingTimeForOngoingRace =
+                data['remainingTimeSeconds'] as double?;
+            if (remainingTimeForOngoingRace != null) {
+              debugPrint(
+                  '--- WaitingRoom: Event is for ONGOING race. Room ID: $roomId, RemainingTime: $remainingTimeForOngoingRace ---');
+              debugPrint(
+                  '--- WaitingRoom: >>> Calling raceNotifier.startRace for ONGOING race... ---');
+              raceNotifier.startRace(
+                roomId: roomId,
+                countdownSeconds: 0, // Devam eden yarış için geri sayım yok
+                raceDurationMinutes: durationMinutes,
+                isIndoorRace: isIndoor,
+                userEmail: _myEmail!,
+                initialProfileCache:
+                    Map<String, String?>.from(_profilePictureCache),
+                initialRemainingTimeSeconds: remainingTimeForOngoingRace,
+              );
+              debugPrint(
+                  '--- WaitingRoom: raceNotifier.startRace CALLED for ONGOING race. ---');
+            } else {
+              debugPrint(
+                  '--- WaitingRoom: RaceAlreadyStarted event BUT remainingTimeForOngoingRace is NULL. Data: $data ---');
+            }
+          } else {
+            // --- NORMAL YARIŞ BAŞLANGICI SENARYOSU ---
+            final int countdownSeconds = data['countdownSeconds'] ?? 10;
             debugPrint(
-                '--- WaitingRoom: HATA - Kullanıcı email bilgisi null! Yarış başlatılamıyor. ---');
-            _showErrorMessage(
-                'Kullanıcı bilgileri yüklenemediği için yarış başlatılamadı.');
-            return;
+                '--- WaitingRoom: Event is for NEW race starting. Room ID: $roomId, Countdown: $countdownSeconds ---');
+            debugPrint(
+                '--- WaitingRoom: >>> Calling raceNotifier.startRace for NEW race... ---');
+            raceNotifier.startRace(
+              roomId: roomId,
+              countdownSeconds: countdownSeconds, // Sunucudan gelen geri sayım
+              raceDurationMinutes: durationMinutes,
+              isIndoorRace: isIndoor,
+              userEmail: _myEmail!,
+              initialProfileCache:
+                  Map<String, String?>.from(_profilePictureCache),
+              initialRemainingTimeSeconds:
+                  null, // Yeni yarış için kalan süre yok
+            );
+            debugPrint(
+                '--- WaitingRoom: raceNotifier.startRace CALLED for NEW race. ---');
           }
-
-          debugPrint(
-              '--- WaitingRoom: >>> Calling raceNotifier.startRace... ---');
-          raceNotifier.startRace(
-            roomId: roomId,
-            countdownSeconds: countdownSeconds,
-            raceDurationMinutes: durationMinutes,
-            isIndoorRace: isIndoor,
-            userEmail: _myEmail!,
-            initialProfileCache:
-                Map<String, String?>.from(_profilePictureCache),
-          );
-          debugPrint('--- WaitingRoom: raceNotifier.startRace CALLED. ---');
-          // --- TETİKLEME SONU ---
-
-          // --- LOCAL STATE VE TIMER KALDIRILDI ---
-          setState(() {
-            _isRaceStarting = true; // Sadece genel mod için
-          });
-
-          debugPrint(
-              '--- WaitingRoom: Local state/timer removed. Waiting for notifier state change for navigation. ---');
-          // --- LOCAL STATE VE TIMER KALDIRILDI SONU ---
         } else {
           debugPrint(
-              'WaitingRoom: Başka oda için yarış başlıyor: $roomId (bizim oda: ${widget.roomId})');
+              '--- WaitingRoom: RaceStarting/RaceAlreadyStarted event for a DIFFERENT room ID. Current: ${widget.roomId}, Event: $roomId. Data: $data ---');
         }
       }));
+
+      // --- YENİ: Yeniden Bağlanma Olayını Dinle ---
+      /*_subscriptions.add(
+          signalRService.reconnectedStream.listen((String? newConnectionId) {
+        if (newConnectionId != null && mounted) {
+          debugPrint(
+              '🔄 WaitingRoom: SignalR yeniden bağlandı. Yeni Bağlantı ID: $newConnectionId');
+          debugPrint(
+              '🚪 Odaya (${widget.roomId}) yeniden katılım sağlanıyor...');
+          try {
+            signalRService.joinRaceRoom(widget.roomId).then((_) {
+              debugPrint(
+                  '✅ WaitingRoom: Odaya (${widget.roomId}) yeniden katılım isteği gönderildi.');
+              // Katılımcı listesini yenilemek için bir flag veya metod çağrısı eklenebilir.
+              // Şimdilik joinRaceRoom'un sunucudan RoomParticipants göndermesini bekliyoruz.
+            }).catchError((e) {
+              debugPrint('❌ WaitingRoom: Odaya yeniden katılırken hata: $e');
+            });
+          } catch (e) {
+            debugPrint(
+                '❌ WaitingRoom: signalRService.joinRaceRoom çağrılırken hata: $e');
+          }
+        }
+      }));*/
     } catch (e) {
       debugPrint('SignalR bağlantı hatası: $e');
-      _showErrorMessage('SignalR bağlantı hatası: $e');
     }
   }
 
@@ -331,14 +395,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       }
     } catch (e) {
       debugPrint('❌ Odadan çıkış sırasında hata: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Odadan çıkış sırasında bir hata oluştu: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) {}
     } finally {
       if (mounted) {
         setState(() {
@@ -350,23 +407,17 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
   // Onay dialogu göster
   Future<bool> _showLeaveConfirmationDialog() async {
-    final result = await showDialog<bool>(
+    // Yeni LeaveWidget'ı kullan
+    final String leaveMessage = widget.roomCode.isNotEmpty
+        ? 'Yarışı tamamlamadan çıkarsan, yatırdığın mCoin iade edilmez ve yarış dışı kalırsın.'
+        : 'Odadan çıkmak istediğine emin misin?'; // Oda kodu yoksa daha genel bir mesaj
+
+    final result = await showLeaveConfirmationDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Odadan Çıkış'),
-        content:
-            const Text('Yarış odasından çıkmak istediğinize emin misiniz?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Çıkış Yap'),
-          ),
-        ],
-      ),
+      imagePath: 'assets/images/leaveimage.png', // Belirttiğiniz resim yolu
+      title: 'Odadan Ayrılmak İstiyor Musun?',
+      message: leaveMessage, // Dinamik mesaj
+      // confirmButtonText ve cancelButtonText varsayılan değerleri kullanacak ('Çıkış Yap', 'Devam Et')
     );
     return result ?? false;
   }
@@ -416,23 +467,12 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     }
   }
 
-  void _showErrorMessage(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   void _navigateToRaceScreen() async {
     debugPrint('🚀 1. WaitingRoom -> RaceScreen geçişi başlıyor');
     debugPrint('🚀 2. Mevcut _myUsername değeri: $_myUsername');
 
     // Eğer zaten RaceScreen'e geçiş başladıysa tekrar başlatma
-    if (!mounted || _isRaceStarting == false) {
+    if (!mounted) {
       debugPrint(
           '🚫 Geçiş zaten başlamış veya widget artık mounted değil. Geçiş iptal edildi.');
       return;
@@ -471,13 +511,13 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           }
         } else {
           debugPrint('🚀 10. Token null geldi! Kullanıcı adı alınamadı');
-          _showErrorMessage('Kullanıcı bilgileri alınamadı!');
+
           return; // Kullanıcı adı olmadan devam etmeyelim
         }
       }
     }
 
-    if (mounted && _isRaceStarting) {
+    if (mounted) {
       debugPrint('🚀 11. RaceScreen\'e geçiş yapılıyor');
 
       // Yarış tipini belirle (indoor/outdoor)
@@ -490,8 +530,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           MaterialPageRoute(
             builder: (context) => RaceScreen(
               roomId: widget.roomId,
-              // myUsername: _myUsername, // Removed
-              // profilePictureCache: Map<String, String?>.from(_profilePictureCache), // Removed
             ),
           ),
           (route) => false,
@@ -507,8 +545,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                 MaterialPageRoute(
                   builder: (context) => RaceScreen(
                     roomId: widget.roomId,
-                    // myUsername: _myUsername, // Removed
-                    // profilePictureCache: Map<String, String?>.from(_profilePictureCache), // Removed
                   ),
                 ),
                 (route) => false,
@@ -528,6 +564,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
     debugPrint('WaitingRoomScreen dispose ediliyor...');
     WakelockPlus.disable();
     debugPrint('Wakelock disabled for WaitingRoomScreen');
+    WidgetsBinding.instance.removeObserver(this);
 
     // Tüm stream subscriptionları temizle
     for (var subscription in _subscriptions) {
@@ -582,7 +619,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   @override
   Widget build(BuildContext context) {
     // --- Notifier Dinleme ve Navigasyon ---
-    ref.listen<RaceState>(raceNotifierProvider, (RaceState? previous, RaceState next) {
+    ref.listen<RaceState>(raceNotifierProvider,
+        (RaceState? previous, RaceState next) {
       // Skip if already navigating
       if (_navigationTriggered) return;
 
@@ -597,13 +635,13 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       if ((next.isPreRaceCountdownActive || next.isRaceActive) &&
           next.roomId != null &&
           next.roomId == widget.roomId) {
-        
         // iOS cihazlar için ön konum etkinleştirme
         if (Platform.isIOS) {
-          debugPrint('--- WaitingRoom: iOS için ön konum etkinleştirme yapılıyor... ---');
+          debugPrint(
+              '--- WaitingRoom: iOS için ön konum etkinleştirme yapılıyor... ---');
           _enableIOSLocationForRace();
         }
-        
+
         // --- NAVİGASYON Mantığı ---
         if (!_navigationTriggered) {
           _navigationTriggered = true;
@@ -636,21 +674,39 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
     // final raceSettings = ref.watch(raceSettingsProvider); // REMOVE this - Use widget props directly
     // Use widget.activityType directly, provide default if null
-    final String displayActivityType = widget.activityType ?? 'Bilinmiyor';
+    // final String displayActivityType = widget.activityType ?? 'Bilinmiyor'; // OLD WAY
+
+    // --- YENİ: Yarış tipini tersine çevirerek göster ---
+    final String rawActivityType =
+        widget.activityType?.toLowerCase() ?? 'bilinmiyor';
+    final String displayActivityType;
+
+    if (rawActivityType == 'outdoor') {
+      displayActivityType = 'İç Mekan';
+    } else if (rawActivityType == 'indoor' || rawActivityType == 'iç mekan') {
+      displayActivityType = 'Dış Mekan';
+    } else {
+      displayActivityType = widget.activityType ??
+          'Bilinmiyor'; // Fallback to original or default
+    }
+    // --- YENİ SONU ---
+
     // Use widget.duration directly, provide default if null
-    final String displayDuration =
-        widget.duration != null ? '${widget.duration} dakika' : 'Belirsiz';
+    // --- DEĞİŞİKLİK: Planlanan süreyi önceliklendir ---
+    final String displayDuration;
+    if (widget.duration != null) {
+      displayDuration = '${widget.duration} dakika';
+    } else {
+      displayDuration = 'Belirsiz';
+    }
 
     // --- Subtitle Text'i _isRaceStarting ve Notifier State'ine Göre Al (Güncellendi) ---
     final String subtitleText;
-    if (_isRaceStarting && raceState.isPreRaceCountdownActive) {
-      // Geri sayım overlay tarafından gösterildiği için burası genel bir mesaj
+    if (raceState.isPreRaceCountdownActive) {
       subtitleText = 'Yarış Başlıyor...';
-    } else if (_isRaceStarting && !raceState.isPreRaceCountdownActive) {
-      // Geri sayım bitti (veya timer başladı ama değer 0 oldu)
+    } else if (raceState.isRaceActive && !raceState.isPreRaceCountdownActive) {
       subtitleText = 'Yarış Başladı';
     } else {
-      // Geri sayım süreci hiç başlamadı
       subtitleText = 'Diğer yarışmacılar bekleniyor...';
     }
     // --- Subtitle Text Logic Sonu ---
@@ -747,6 +803,64 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                               ),
                             ],
                           ),
+                          // Display Room Code
+                          if (widget.roomCode.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              'Oda Kodu',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: _secondaryTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.meeting_room_outlined,
+                                  color: _accentColor,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: SelectableText(
+                                    widget.roomCode,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: _primaryTextColor,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.copy,
+                                      color: _accentColor, size: 20),
+                                  tooltip: 'Kodu Kopyala',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: widget.roomCode));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content:
+                                              Text('Oda kodu kopyalandı!')),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.share,
+                                      color: _accentColor, size: 20),
+                                  tooltip: 'Kodu Paylaş',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () {
+                                    Share.share(' ${widget.roomCode}');
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -792,6 +906,41 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
                     ),
                     const SizedBox(height: 20),
 
+                    // Start Race Button (Conditional)
+                    if (widget.isHost && _participants.length >= 2)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: 10.0), // Add some space below
+                        child: Center(
+                          child: _isLoadingStartRace
+                              ? const CircularProgressIndicator(
+                                  color: _accentColor)
+                              : ElevatedButton.icon(
+                                  onPressed: _startRaceButtonPressed,
+                                  icon: const Icon(Icons.sports_kabaddi,
+                                      color: Colors.black), // Icon for start
+                                  label: const Text(
+                                    'Yarışı Başlat',
+                                    style: TextStyle(
+                                      color: Colors
+                                          .black, // Text color black for contrast
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        _accentColor, // Button background
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12, horizontal: 24),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+
                     // Leave Button
                     if (!_isLoading) // Hide button while loading/leaving
                       Center(
@@ -825,7 +974,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
               ),
 
               // **** KOŞULLU GERİ SAYIM OVERLAY'İ ****
-              if (_isRaceStarting && raceState.isPreRaceCountdownActive)
+              if (/*!_isWaitingForPendingStart &&*/ raceState
+                  .isPreRaceCountdownActive)
                 Container(
                   color:
                       Colors.black.withOpacity(0.85), // Opaklık ayarlanabilir
@@ -950,29 +1100,31 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
   void _enableIOSLocationForRace() {
     if (!Platform.isIOS) return;
-    
+
     try {
-      debugPrint('WaitingRoom: iOS arka plan konum takibi etkinleştiriliyor...');
-      
+      debugPrint(
+          'WaitingRoom: iOS arka plan konum takibi etkinleştiriliyor...');
+
       // Method channel aracılığıyla iOS native konum takibini etkinleştir
       const platform = MethodChannel('com.movliq/location');
       platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
-        debugPrint('WaitingRoom: iOS native konum takibi başarıyla etkinleştirildi.');
+        debugPrint(
+            'WaitingRoom: iOS native konum takibi başarıyla etkinleştirildi.');
       }).catchError((error) {
-        debugPrint('WaitingRoom: iOS native konum takibi etkinleştirme hatası: $error');
+        debugPrint(
+            'WaitingRoom: iOS native konum takibi etkinleştirme hatası: $error');
       });
-      
+
       // Konum takibi için daha kapsamlı ısınma - birkaç kez konum alalım
       _aggressiveLocationWarmup();
-      
     } catch (e) {
       debugPrint('WaitingRoom: iOS konum takibi genel hatası: $e');
     }
   }
-  
+
   void _warmupLocationServices() {
     if (!Platform.isIOS) return;
-    
+
     try {
       // Servis durumunu kontrol et
       Geolocator.isLocationServiceEnabled().then((enabled) {
@@ -980,22 +1132,23 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
           debugPrint('WaitingRoom: Konum servisleri kapalı!');
           return;
         }
-        
+
         // İzinleri kontrol et
         Geolocator.checkPermission().then((permission) {
-          if (permission == LocationPermission.denied || 
+          if (permission == LocationPermission.denied ||
               permission == LocationPermission.deniedForever) {
             debugPrint('WaitingRoom: Konum izinleri reddedilmiş!');
             return;
           }
-          
+
           // Location warmup - servisleri başlatmak için tek bir istek yap
           debugPrint('WaitingRoom: Konum servislerini ısındırma...');
           Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.best,
-            timeLimit: const Duration(seconds: 2)
-          ).then((position) {
-            debugPrint('WaitingRoom: Konum alındı: ${position.latitude}, ${position.longitude}');
+                  desiredAccuracy: LocationAccuracy.best,
+                  timeLimit: const Duration(seconds: 2))
+              .then((position) {
+            debugPrint(
+                'WaitingRoom: Konum alındı: ${position.latitude}, ${position.longitude}');
           }).catchError((e) {
             // Zaman aşımı olabilir, sorun değil - servisler başlatılmış olur
             debugPrint('WaitingRoom: Konum ısındırma hatası: $e');
@@ -1010,51 +1163,51 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
   // Daha agresif konum ısındırma yaklaşımı - birkaç kez konum almayı dene
   void _aggressiveLocationWarmup() {
     if (!Platform.isIOS) return;
-    
+
     debugPrint('WaitingRoom: Agresif konum ısındırma başlatılıyor...');
-    
+
     // İlk ısındırma
     _warmupLocationServices();
-    
+
     // Kısa bir süre sonra tekrar dene
     Future.delayed(const Duration(milliseconds: 500), () {
       _warmupLocationServices();
-      
+
       // Bir 1 saniye sonra tekrar konumu al ve sürekli izleme başlat
       Future.delayed(const Duration(seconds: 1), () {
         _startContinuousLocationUpdates();
       });
     });
-    
+
     // Biraz daha sonra tekrar ısındırma
     Future.delayed(const Duration(seconds: 2), () {
       _warmupLocationServices();
     });
   }
-  
+
   // Sürekli konum güncellemesi - GPS'i sürekli açık tutmak için
   void _startContinuousLocationUpdates() {
     if (!Platform.isIOS) return;
-    
+
     debugPrint('WaitingRoom: Sürekli konum güncellemesi başlatılıyor...');
-    
+
     try {
       LocationSettings locationSettings = AppleSettings(
-        accuracy: LocationAccuracy.best,
-        activityType: ActivityType.fitness,
-        distanceFilter: 5,
-        pauseLocationUpdatesAutomatically: false,
-        showBackgroundLocationIndicator: true,
-        allowBackgroundLocationUpdates: true
-      );
-      
+          accuracy: LocationAccuracy.best,
+          activityType: ActivityType.fitness,
+          distanceFilter: 5,
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
+          allowBackgroundLocationUpdates: true);
+
       // Kısa bir stream başlat, hemen iptal edilecek ama iOS'un konum servisini başlatmasını sağlayacak
-      var tempSubscription = Geolocator.getPositionStream(
-        locationSettings: locationSettings
-      ).listen((position) {
-        debugPrint('WaitingRoom: Sürekli konum - Position update: ${position.latitude}, ${position.longitude}');
+      var tempSubscription =
+          Geolocator.getPositionStream(locationSettings: locationSettings)
+              .listen((position) {
+        debugPrint(
+            'WaitingRoom: Sürekli konum - Position update: ${position.latitude}, ${position.longitude}');
       });
-      
+
       // 10 saniye sonra bu stream'i kapat - bu süre içinde RaceScreen'e geçilmiş olmalı
       Future.delayed(const Duration(seconds: 10), () {
         tempSubscription.cancel();
@@ -1062,6 +1215,102 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
       });
     } catch (e) {
       debugPrint('WaitingRoom: Sürekli konum başlatma hatası: $e');
+    }
+  }
+
+  // Method to handle "Start Race" button press
+  Future<void> _startRaceButtonPressed() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingStartRace = true;
+    });
+
+    debugPrint('🏁 Yarış başlatılıyor... Oda ID: ${widget.roomId}');
+
+    try {
+      // Token is handled by HttpInterceptor, no need to fetch manually here
+      // final token = await StorageService.getToken();
+      // if (token == null) {
+      //   _showErrorMessage('Kimlik doğrulama başarısız.');
+      //   setState(() => _isLoadingStartRace = false);
+      //   return;
+      // }
+
+      final String url =
+          '${ApiConfig.startCreatedRoomEndpoint}/${widget.roomId}'; // Construct URL with roomId as path parameter
+      debugPrint('🏁 Yarışı Başlat API URL: $url');
+
+      final response = await HttpInterceptor.post(
+        Uri.parse(url),
+        body: jsonEncode({}), // Send an empty JSON object as the body
+      );
+
+      debugPrint('🏁 Yarışı Başlat API yanıt kodu: ${response.statusCode}');
+      debugPrint('🏁 Yarışı Başlat API yanıt body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Success, SignalR should handle navigation via raceStartingStream
+        // Optionally, show a success message, though it might be quick if navigation is fast
+        // _showInfoMessage('Yarış başlatma komutu gönderildi.');
+        // The raceNotifier and SignalR stream should now trigger navigation to RaceScreen
+      } else {
+        final responseData = jsonDecode(response.body);
+      }
+    } catch (e) {
+      debugPrint('🏁 Yarış başlatma hatası: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingStartRace = false;
+        });
+      }
+    }
+  }
+
+  // --- App Lifecycle State Değişikliği ---
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    debugPrint('🔄 App lifecycle state changed to: $state');
+
+    if (state == AppLifecycleState.resumed) {
+      debugPrint(
+          '📱 App resumed. Checking SignalR connection for WaitingRoom...');
+      // Bağlantıyı ve odaya katılımı yeniden kurmayı dene
+      // _setupSignalR'ı direkt çağırmak yerine, bağlantı durumunu kontrol edip
+      // sadece gerekliyse yeniden bağlanmak daha iyi olabilir.
+      // Ancak _setupSignalR zaten bağlantı varsa fazla işlem yapmıyor gibi duruyor.
+      // Şimdilik _setupSignalR'ı tekrar çağıralım,
+      // ileride daha sofistike bir kontrol eklenebilir.
+      final signalRService = ref.read(signalRServiceProvider);
+      if (!signalRService.isConnected) {
+        debugPrint(
+            '🔌 SignalR connection lost. Attempting to reconnect and rejoin room...');
+        _setupSignalR().then((_) {
+          if (_isConnected) {
+            debugPrint(
+                '✅ Reconnected to SignalR and attempting to rejoin room in WaitingRoom.');
+            // Odaya yeniden katılımı sağlamak için joinRaceRoom çağrılabilir
+            // _setupSignalR içinde bu zaten yapılıyor olabilir, kontrol etmek gerek.
+            // Eğer _setupSignalR içinde joinRaceRoom çağrılmıyorsa veya
+            // tekrar çağırmak gerekiyorsa:
+            // ref.read(signalRServiceProvider).joinRaceRoom(widget.roomId);
+          } else {
+            debugPrint(
+                '❌ Failed to reconnect to SignalR in WaitingRoom after resume.');
+          }
+        });
+      } else {
+        debugPrint('🔌 SignalR connection is still active in WaitingRoom.');
+        // Bağlantı aktifse bile, odaya katılımı teyit etmek iyi bir pratik olabilir.
+        // Özellikle ağ kesintisi sonrası 'resumed' durumunda.
+        // signalRService.joinRaceRoom(widget.roomId); // Opsiyonel: Odaya katılımı teyit et
+      }
+    } else if (state == AppLifecycleState.paused) {
+      debugPrint('📱 App paused in WaitingRoom.');
+      // Arka plana alındığında özel bir işlem yapmak isterseniz buraya ekleyebilirsiniz.
+      // Örneğin, bazı dinleyicileri geçici olarak durdurmak vs.
+      // Ancak SignalR genellikle sunucu tarafı timeout'larla yönetilir.
     }
   }
 }

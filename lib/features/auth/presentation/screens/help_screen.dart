@@ -46,25 +46,108 @@ class HelpScreen extends ConsumerWidget {
 
     final List<Map<String, dynamic>> faqs = [
       {
-        'question': 'Puanlar nasıl kazanılır?',
-        'answer': 'Puan kazanma detayları burada açıklanacak.',
-        'isExpanded': false,
-      },
-      {
-        'question': 'Yarışa nasıl katılırım?',
-        'answer': 'Yarışa katılım adımları burada yer alacak.',
-        'isExpanded': false,
-      },
-      {
-        'question': 'Kupon kodumu nasıl kullanırım?',
-        'answer': 'Kupon kodu kullanımı hakkında bilgi burada olacak.',
-        'isExpanded': false,
-      },
-      {
-        'question': 'Koşu verilerimi nasıl senkronize edebilirim?',
+        'question': 'Movliq Nedir?',
         'answer':
-            'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.',
-        'isExpanded': true, // This one is expandable
+            '''Movliq, yürüyüşü ve koşuyu oyunlaştırarak kullanıcıları gerçek zamanlı yarışlara dahil eden, adımlarını mCoin\'e ve ödüllere dönüştüren yenilikçi bir mobil uygulamadır. Sporu yalnızca fiziksel değil, aynı zamanda sosyal ve eğlenceli bir deneyime dönüştürür.
+
+• Gerçek zamanlı yürüyüş/koşu yarışları
+• Arkadaşlarla özel odalarda yarışma
+• Solo (tek başına) mod
+• Ödül sistemi ve coin kazanımı
+• Sosyal etkileşim, kültür ve motivasyon''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Canlı Yarış Nasıl Çalışır?',
+        'answer':
+            '''Kullanıcı, uygulama üzerinden canlı yarış lobisine katılırken yarışın türünü (iç veya dış mekân) ve süresini seçer. Sistem, aynı yarış ayarlarına sahip diğer kullanıcılarla eşleştirme yapar veya kullanıcı yeni bir yarış başlatarak oda oluşturabilir.
+Tüm yarışmacılar belirlenen saatte veya “başlat” komutuyla aynı anda yarışa başlar.
+
+Yarış sonucunda;
+
+🥇 1. olan: Aldığı toplam mesafe × 3
+
+🥈 2. olan: Aldığı toplam mesafe × 2
+
+🥉 3. olan: Aldığı toplam mesafe × 1.5
+kadar mCoin kazanır.
+
+Diğer sıralamalardaki katılımcılar da aldıkları toplam mesafe kadar mCoin kazanır.
+Yani sonuncu olsan bile üzülme — yine de coin kazanırsın! 🏆''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Solo Mod',
+        'answer': '''Zaman sınırlaması olmadan kendi ritmini yakala!
+İster yürüyüş, ister koşu — Solo Mod tam sana göre!
+
+🕒 Dilediğin an başla, istediğin zaman dur
+
+📡 Adım, hız ve mesafe verilerin anlık takip edilir
+
+🗺️ Nerede olursan ol, performansını sergile
+
+🧠 Kişisel hedeflerine ulaşırken ilerlemeni kaydet
+
+🎯 Kayıt edilen her aktiviteyle mCoin kazanırsın.
+Ama unutma:
+💡 Solo Mod\'da kazandığın mCoin, canlı yarışlara göre biraz daha azdır.
+Yine de her adımın ödül!
+
+🟢 Solo mod = özgürlük, esneklik ve motivasyon!''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Sadece Uygulama Değil, Bir Kültür',
+        'answer':
+            '''Movliq, sadece bir fitness uygulaması değil; kazanmak, paylaşmak ve sosyalleşmek isteyenlerin buluşma noktasıdır.
+Burada attığın her adım sadece fiziksel bir hareket değil; bir bağ kurma, bir yaşam tarzı oluşturma ve ilham verme fırsatıdır.
+Her yarış, bir bağlantı; her adım, daha aktif bir hayatın parçası!
+Movliq Kültürünün Temel Taşları:
+• Topluluk Ruhu: Birlikte hareket etmek, birlikte motive olmak
+• Paylaşmak: Kazandığını sadece kendin için değil, ilham olmak için de kullan
+• Etkileşim: Arkadaşlarını davet et, özel odalarda yarış, deneyimini paylaş
+• Motivasyon: Her gün, bir öncekinden daha iyi olmak için bir fırsat
+• Erişilebilirlik: Profesyonel atlet olman gerekmez sadece harekete geç!''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Ödül Sistemi & mCoin',
+        'answer':
+            '''Ne kadar çok hareket edersen, o kadar çok kazanırsın! mCoin, movliq evreninde hareketin karşılığıdır. Attığın her adım, çıktığın her yarış, gösterdiğin her performans sana mCoin olarak geri döner.
+Kazandığın mCoin\'leri Movliq mağazasında; kuponlara, özel kampanyalara, sürpriz hediyelere ve daha fazlasına dönüştürebilirsin.
+Nasıl Kazanırsın?
+• Canlı yarışlara katıl
+• Solo modda aktif ol
+• Günlük,haftalık,aylık hedefleri tamamla
+• Özel görevlerde başarı göster
+• Ortak havuz yarışlarında birinci ol''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Bireysel & Sosyal Deneyim',
+        'answer':
+            '''İster tek başına, ister arkadaşlarınla yarış! Movliq\'te özel yarış odaları oluşturabilir, kodla arkadaşlarını davet edebilir, toplulukla etkileşime geçebilir, birlikte motive olabilirsiniz.
+Sosyal Kullanım (Özel Odalar & Topluluk):
+• Özel yarış odaları oluşturabilir, kodla arkadaşlarını davet edebilirsin
+• Aynı anda yarışarak birlikte hareket etmenin keyfini yaşarsın
+• Grup içi sıralama ile rekabet artar, motivasyon yükselir
+• Haftalık etkinlikler, meydan okumalar ve sosyal görevlerle toplulukla bağ kurarsın
+• Paylaşım, destek ve birlikte kazanma kültürü ön plandadır''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Ortak Havuz Yarışları',
+        'answer':
+            '''Arkadaşlarınla heyecanı artırmak istiyorsan doğru yerdesin! Movliq\'te özel odalarda "ortak havuz yarışları" oluşturabilirsin.
+
+🧩 Odayı kuran kişi, yarış için bir mCoin miktarı belirler.
+👥 Katılmak isteyen arkadaşlar, belirlenen mCoin miktarına sahipse yarışa dahil olabilir.
+🏁 Yarış sonunda birinci olan kişi, o odada toplanan tüm mCoinleri kazanır!
+
+Hazırlığını iyi yap — çünkü bu yarışta ödül büyük!
+mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
+        'isExpanded': true,
       },
     ];
 
@@ -186,7 +269,7 @@ class HelpScreen extends ConsumerWidget {
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         title: Text(
           question,
-          style: TextStyle(color: textColor, fontSize: 15),
+          style: TextStyle(color: textColor, fontSize: 17),
         ),
         trailing: Icon(Icons.arrow_forward_ios, color: accentColor, size: 16),
         onTap: () {
@@ -218,7 +301,7 @@ class HelpScreen extends ConsumerWidget {
         title: Text(
           question,
           style: TextStyle(
-              color: textColor, fontSize: 15, fontWeight: FontWeight.w500),
+              color: textColor, fontSize: 17, fontWeight: FontWeight.w500),
         ),
         childrenPadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0)

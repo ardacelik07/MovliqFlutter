@@ -254,6 +254,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   });
 
+  // Asset paths (adjust if necessary)
+  static const String _treadmillImage = 'assets/icons/indoor.png';
+  static const String _outdoorImage = 'assets/icons/outdoor.png';
+  static const String _flameIcon = 'assets/icons/alev.png';
+  static const String _locationIcon = 'assets/icons/location.png';
+  static const String _stepsIcon = 'assets/icons/steps.png';
+
+  // New helper widget for individual metrics (flame, location, shoe)
+  Widget _buildNewRaceMetricItem({
+    required String assetPath,
+    required String valueText,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.asset(
+          assetPath,
+          width: 32, // Adjusted size based on image
+          height: 32, // Adjusted size based on image
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.error, color: Colors.red, size: 32),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          valueText,
+          style: const TextStyle(color: Colors.white, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userDataAsync = ref.watch(userDataProvider);
@@ -735,6 +767,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Consumer(
                           builder: (context, ref, child) {
                             final racesAsync = ref.watch(recentRacesProvider);
+                            // Kullanıcının boyunu almak için userDataProvider'ı izle
+                            final userData = ref.watch(userDataProvider).value;
+                            final double? userHeightCm = userData?.height;
 
                             return racesAsync.when(
                               data: (races) {
@@ -754,176 +789,143 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                                 // Display the 3 most recent races
                                 return Column(
-                                  children: races.take(3).map((race) {
+                                  children: races.take(3).map((raceData) {
                                     final startTime =
-                                        DateTime.parse(race['startTime']);
-                                    // Format date as: 28 Mar, 2025 - 20:51
+                                        DateTime.parse(raceData['startTime']);
                                     final formattedDate =
                                         '${startTime.day} ${_getMonthName(startTime.month)}, ${startTime.year} - ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
-                                    final distanceStr = race['distancekm']
-                                        ?.toStringAsFixed(
-                                            2); // Keep 2 decimal places for KM
-                                    final stepsStr =
-                                        race['steps']?.toString() ??
-                                            '0'; // Handle null steps
+
+                                    final distanceKm =
+                                        raceData['distancekm'] as num?;
+                                    final distanceStr = distanceKm != null
+                                        ? distanceKm.toStringAsFixed(2)
+                                        : '0.00';
+
+                                    final steps = raceData['steps'] as int?;
+                                    final stepsStr = steps?.toString() ?? '0';
+
+                                    final calories =
+                                        raceData['calories'] as num?;
+                                    final caloriesStr =
+                                        calories?.toInt().toString() ?? '0';
+
                                     final isIndoor =
-                                        race['roomType'] == 'indoor';
-                                    final rank = race['rank'];
+                                        raceData['roomType'] == 'indoor';
+                                    final rank = raceData['rank'] as int?;
                                     String rankText = '-';
                                     if (rank != null && rank > 0) {
-                                      rankText = '$rank. Sıra';
+                                      rankText = '$rank.Sıra';
                                     }
 
                                     return Container(
-                                      margin: const EdgeInsets.only(
-                                          bottom: 10), // Spacing between items
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 12),
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
                                         color: const Color(
-                                            0xFF2A2A2A), // Darker item background
-                                        borderRadius: BorderRadius.circular(12),
+                                            0xFF2A2A2A), // Dark card background from image
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
-                                          // Icon
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF93C53E)
-                                                  .withOpacity(
-                                                      0.15), // Subtle green background
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              isIndoor
-                                                  ? Icons
-                                                      .directions_run // Running icon for indoor
-                                                  : Icons
-                                                      .terrain_outlined, // Mountain icon for outdoor
-                                              color: const Color(0xFF93C53E),
-                                              size: 22,
-                                            ),
+                                          Image.asset(
+                                            isIndoor
+                                                ? _treadmillImage
+                                                : _outdoorImage,
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.contain,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              return Container(
+                                                width: 80,
+                                                height: 80,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade800,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Icon(
+                                                  isIndoor
+                                                      ? Icons.fitness_center
+                                                      : Icons.terrain,
+                                                  color: Colors.white54,
+                                                  size: 40,
+                                                ),
+                                              );
+                                            },
                                           ),
-                                          const SizedBox(width: 12),
-                                          // Middle section (Type, Date)
+                                          const SizedBox(width: 16),
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
                                               children: [
-                                                Text(
-                                                  isIndoor
-                                                      ? 'İç Mekan'
-                                                      : 'Dış Mekan',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      isIndoor
+                                                          ? 'İç Mekan'
+                                                          : 'Dış Mekan',
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      rankText,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  formattedDate, // Use the new format
+                                                  formattedDate,
                                                   style: TextStyle(
-                                                    fontSize:
-                                                        12, // Smaller date font
                                                     color: Colors.white
-                                                        .withOpacity(
-                                                            0.6), // Dimmer date
+                                                        .withOpacity(0.7),
+                                                    fontSize: 12,
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 12),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  children: [
+                                                    _buildNewRaceMetricItem(
+                                                      assetPath: _flameIcon,
+                                                      valueText:
+                                                          '$caloriesStr kcal',
+                                                    ),
+                                                    const SizedBox(width: 20),
+                                                    _buildNewRaceMetricItem(
+                                                      assetPath: _locationIcon,
+                                                      valueText:
+                                                          '$distanceStr km',
+                                                    ),
+                                                    const SizedBox(width: 20),
+                                                    _buildNewRaceMetricItem(
+                                                      assetPath: _stepsIcon,
+                                                      valueText:
+                                                          stepsStr, // As per image, no "steps" unit
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          // Right section (Rank, Distance/Steps, Calories)
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                rankText, // Display rank text
-                                                style: TextStyle(
-                                                  color: Colors.white
-                                                      .withOpacity(0.8),
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              // --- YENİ: Kalori, Mesafe, Adım Row'u ---
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.end,
-                                                children: [
-                                                  // Kalori (varsa göster)
-                                                  if (race['calories'] !=
-                                                          null &&
-                                                      race['calories'] > 0) ...[
-                                                    Icon(
-                                                        Icons
-                                                            .local_fire_department_outlined,
-                                                        color:
-                                                            Colors.orangeAccent,
-                                                        size: 14),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      '${race['calories']} kcal',
-                                                      style: const TextStyle(
-                                                          color: Colors
-                                                              .orangeAccent,
-                                                          fontSize: 12.0),
-                                                    ),
-                                                    const SizedBox(
-                                                        width:
-                                                            8), // Kalori ve diğerleri arasına boşluk
-                                                  ],
-                                                  // Mesafe (Dış Mekan ise)
-                                                  if (!isIndoor)
-                                                    Icon(
-                                                        Icons
-                                                            .directions_run_outlined,
-                                                        color:
-                                                            Colors.blueAccent,
-                                                        size: 14),
-                                                  if (!isIndoor)
-                                                    const SizedBox(width: 4),
-                                                  if (!isIndoor)
-                                                    Text(
-                                                      '$distanceStr km',
-                                                      style: const TextStyle(
-                                                          color:
-                                                              Colors.blueAccent,
-                                                          fontSize: 12.0),
-                                                    ),
-                                                  if (!isIndoor)
-                                                    const SizedBox(
-                                                        width:
-                                                            8), // Mesafe ve adım arasına boşluk
-
-                                                  // Adım Sayısı
-                                                  Icon(
-                                                      Icons
-                                                          .directions_walk_outlined,
-                                                      color: Colors.greenAccent,
-                                                      size: 14),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '$stepsStr Adım',
-                                                    style: const TextStyle(
-                                                        color:
-                                                            Colors.greenAccent,
-                                                        fontSize: 12.0),
-                                                  ),
-                                                ],
-                                              ),
-                                              // --- YENİ: Kalori, Mesafe, Adım Row'u Sonu ---
-                                            ],
                                           ),
                                         ],
                                       ),
@@ -1056,7 +1058,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return streakAsync.when(
           data: (streakCount) {
             return _buildStatIcon(
-              icon: Icons.local_fire_department_outlined, // Use outlined icon
+              //icon: Icons.local_fire_department_outlined, // Use outlined icon
+              iconWidget: Image.asset(
+                'assets/icons/alev.png',
+                width: 24,
+                height: 24,
+              ),
               value: streakCount.toString(),
               label: 'Günlük Seri',
               iconColor:
@@ -1243,22 +1250,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       padding: const EdgeInsets.symmetric(
           horizontal: 16.0, vertical: 10.0), // Add vertical padding
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment:
+            MainAxisAlignment.spaceBetween, // Distribute space equally
         children: [
-          _buildSummaryStatItem(
+          _buildStatIcon(
             icon: Icons.directions_run,
             value: totalSteps.toString(),
             label: 'Toplam Adım',
             iconColor: const Color(0xFF93C53E),
           ),
-          _buildSummaryStatItem(
+          _buildStatIcon(
             icon: middleIcon, // Use dynamic icon
             value: middleValue, // Use dynamic value
             label: middleLabel, // Use dynamic label
             iconColor: const Color(0xFF93C53E),
           ),
-          _buildSummaryStatItem(
-            icon: Icons.local_fire_department_outlined,
+          _buildStatIcon(
+            //icon: Icons.local_fire_department_outlined,
+            iconWidget: Image.asset(
+              'assets/icons/alev.png',
+              width: 24,
+              height: 24,
+            ),
             value: '$totalCalories kcal',
             label: 'Toplam Kalori',
             iconColor: const Color(0xFFFFA000), // Orange for calories
@@ -1455,19 +1468,38 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
 
         // Get the latest user data, falling back to initial widget data if needed
         final UserDataModel currentUserData = userDataAsync.maybeWhen(
-          data: (userData) => userData ?? widget.userData,
+          data: (userDataFromProvider) =>
+              userDataFromProvider ??
+              widget.userData, // Use provider data if available
           orElse: () => widget.userData,
         );
 
         final profileUrl = currentUserData.profilePictureUrl;
+        final gender =
+            currentUserData.gender; // Get gender from currentUserData
+
+        // Define default asset paths
+        const String defaultManPhoto = 'assets/images/defaultmanphoto.png';
+        const String defaultWomanPhoto =
+            'assets/images/defaultwomenphoto.png'; // Make sure asset name is correct
+
+        String selectedDefaultImageAsset;
+        if (gender?.toLowerCase() == 'female') {
+          selectedDefaultImageAsset = defaultWomanPhoto;
+        } else {
+          selectedDefaultImageAsset =
+              defaultManPhoto; // Default to man if gender is male, null, or other
+        }
 
         // Determine the image provider
         final ImageProvider imageProvider = _localImageFile != null
             ? FileImage(_localImageFile!) // Show local file if selected
             : (profileUrl != null && profileUrl.isNotEmpty
                 ? NetworkImage(profileUrl) // Use NetworkImage directly
-                : const AssetImage(
-                    'assets/images/defaultprofile.png')); // Fallback asset
+
+                : AssetImage(
+                    selectedDefaultImageAsset)); // Use gender-specific fallback asset
+
 
         const double imageSize = 100; // Increased size
         const double cameraIconSize = 30; // Size of the camera icon circle
@@ -1523,58 +1555,6 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                           ),
                         )
                       : null, // No child when not uploading
-                  // Fallback for when backgroundImage fails (e.g., invalid URL, network issue)
-                  // Note: This might not be reached if AssetImage is the fallback in imageProvider
-                  // Consider using a custom Image widget inside if more control is needed.
-                  // Example using Image.network with errorBuilder (more robust):
-                  /*
-                     child: ClipOval(
-                       child: Image(
-                         image: imageProvider,
-                         key: _imageKey, // Key for Image widget if used directly
-                         width: imageSize,
-                         height: imageSize,
-                         fit: BoxFit.cover,
-                         gaplessPlayback: true, // Prevents flicker on image update
-                         errorBuilder: (context, error, stackTrace) {
-                           debugPrint('Profile image load error: $error');
-                           return Container( // Fallback placeholder
-                             width: imageSize,
-                             height: imageSize,
-                             decoration: BoxDecoration(
-                               shape: BoxShape.circle,
-                               color: Colors.grey.shade700, // Darker placeholder
-                             ),
-                             child: Icon(
-                               Icons.person_outline, // Outlined icon
-                               color: Colors.white70,
-                               size: imageSize * 0.6, // Adjust icon size relative to circle
-                             ),
-                           );
-                         },
-                         loadingBuilder: (context, child, loadingProgress) {
-                           if (loadingProgress == null) return child; // Image loaded
-                           return Container( // Placeholder during loading
-                             width: imageSize,
-                             height: imageSize,
-                             decoration: BoxDecoration(
-                               shape: BoxShape.circle,
-                               color: Colors.grey.shade800,
-                             ),
-                             child: Center(
-                               child: CircularProgressIndicator(
-                                 value: loadingProgress.expectedTotalBytes != null
-                                     ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                     : null,
-                                 color: const Color(0xFF93C53E),
-                                 strokeWidth: 2,
-                               ),
-                             ),
-                           );
-                         },
-                       ),
-                     ),
-                     */
                 ),
               ),
               // Camera Icon (Styled as per image)

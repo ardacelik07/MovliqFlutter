@@ -18,6 +18,8 @@ import '../providers/race_provider.dart';
 import '../providers/race_state.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
+import '../widgets/raceui.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/leave_widget.dart'; // LeaveWidget importu
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
@@ -34,40 +36,38 @@ class RaceScreen extends ConsumerStatefulWidget {
 class _RaceScreenState extends ConsumerState<RaceScreen> {
   bool _leaveConfirmationShown = false;
   bool _navigationTriggered = false; // Flag to prevent multiple navigations
-  Timer? _wakelockForceTimer; // <-- YENİ TIMER
+  Timer? _wakelockForceTimer;
+  bool _showNewRaceUI = false;
 
   @override
   void initState() {
     super.initState();
-    // WidgetsBinding.instance.addObserver(this); // <-- OBSERVER EKLEMEYİ KALDIR
     WakelockPlus.toggle(enable: true);
     debugPrint('[RaceScreen initState] Wakelock TOGGLED ON');
-    _startWakelockForceTimer(); // <-- YENİ TIMER'I BAŞLAT
-    
-    // iOS cihazlarda race_screen açıldığında konum takibini garanti etmek için
+    _startWakelockForceTimer();
+
     if (Platform.isIOS) {
       _warmupIOSLocationTracking();
     }
   }
 
-  // iOS için konum servislerini uyandırma ve arka plan takibini garanti etme
   void _warmupIOSLocationTracking() {
-    debugPrint('[RaceScreen] iOS konum servislerini uyandırma ve arka plan takibini etkinleştirme');
-    
+    debugPrint(
+        '[RaceScreen] iOS konum servislerini uyandırma ve arka plan takibini etkinleştirme');
     try {
-      // Native konum takibini aktif et
       const platform = MethodChannel('com.movliq/location');
       platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
-        debugPrint('[RaceScreen] iOS native konum takibi başarıyla etkinleştirildi.');
+        debugPrint(
+            '[RaceScreen] iOS native konum takibi başarıyla etkinleştirildi.');
       }).catchError((error) {
-        debugPrint('[RaceScreen] iOS native konum takibi etkinleştirme hatası: $error');
+        debugPrint(
+            '[RaceScreen] iOS native konum takibi etkinleştirme hatası: $error');
       });
-      
-      // Mevcut konumu alarak servisleri uyandır
       Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best,
       ).then((position) {
-        debugPrint('[RaceScreen] iOS konum uyandırma başarılı: ${position.latitude}, ${position.longitude}');
+        debugPrint(
+            '[RaceScreen] iOS konum uyandırma başarılı: ${position.latitude}, ${position.longitude}');
       }).catchError((e) {
         debugPrint('[RaceScreen] iOS konum uyandırma hatası: $e');
       });
@@ -76,39 +76,23 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     }
   }
 
-  // **** didChangeAppLifecycleState METODUNU KALDIR ****
-  /*
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      WakelockPlus.toggle(enable: true);
-      debugPrint('[RaceScreen didChangeAppLifecycleState] Resumed - Wakelock TOGGLED ON');
-    }
-  }
-  */
-
-  // **** WAKELOCK ZORLAMA TIMER METODU ****
   void _startWakelockForceTimer() {
-    _wakelockForceTimer?.cancel(); // Önceki varsa iptal et
+    _wakelockForceTimer?.cancel();
     _wakelockForceTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
-      // Durumu kontrol etmeden doğrudan tekrar etkinleştir
       WakelockPlus.toggle(enable: true);
       debugPrint('[Wakelock Force Timer] Wakelock TOGGLED ON (Forced)');
     });
   }
-  // **** WAKELOCK ZORLAMA TIMER METODU SONU ****
 
   @override
   void dispose() {
     debugPrint('[RaceScreen dispose] Attempting to toggle Wakelock OFF...');
-    _wakelockForceTimer?.cancel(); // <-- TIMER'I DURDUR
+    _wakelockForceTimer?.cancel();
     WakelockPlus.toggle(enable: false);
-    // WidgetsBinding.instance.removeObserver(this); // <-- OBSERVER KALDIRMAYI KALDIR
     debugPrint('[RaceScreen dispose] Wakelock toggled OFF.');
     super.dispose();
   }
@@ -120,36 +104,37 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     return '$minutes:$seconds';
   }
 
+  // Ortalama Hız Hesaplama Fonksiyonu
+  String _calculateAverageSpeed(double distanceKm, Duration elapsedTime) {
+    if (elapsedTime.inSeconds == 0 || distanceKm == 0) {
+      return '0.0';
+    }
+    double hours = elapsedTime.inSeconds / 3600.0;
+    double speedKmh = distanceKm / hours;
+    return speedKmh.toStringAsFixed(1);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // RaceNotifier state'ini dinle
     final raceState = ref.watch(raceNotifierProvider);
-    // **** isIndoorRace DEĞERİNİ LOGLA ****
-    debugPrint(
-        '[RaceScreen build] raceState.isIndoorRace = ${raceState.isIndoorRace}');
     final raceNotifier = ref.read(raceNotifierProvider.notifier);
 
-    // Listen for state changes to handle navigation
     ref.listen<RaceState>(raceNotifierProvider,
         (RaceState? previous, RaceState next) {
-      // Check if navigation has already been triggered
       if (_navigationTriggered) return;
 
       debugPrint(
           '[RaceScreen Listener] State changed: isRaceFinished=${next.isRaceFinished}, errorMessage=${next.errorMessage}, showWarning=${next.showFirstCheatWarning}');
 
-      // --- GÜNCELLENMİŞ NAVİGASYON MANTIĞI ---
-
-      // 1. Yarış Bitti mi? (Uyarıdan bağımsız kontrol et)
       if (next.isRaceFinished == true &&
           (previous == null || previous.isRaceFinished == false)) {
         debugPrint(
             '[RaceScreen Listener] Race finished normally. Navigating to FinishRaceScreen...');
         if (mounted) {
-          _navigationTriggered = true; // Set flag before navigating
+          _navigationTriggered = true;
           debugPrint(
               '[RaceScreen Listener] Toggling Wakelock OFF before navigating to FinishRaceScreen...');
-          _wakelockForceTimer?.cancel(); // <-- TIMER'I DURDUR
+          _wakelockForceTimer?.cancel();
           WakelockPlus.toggle(enable: false);
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -161,110 +146,129 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               ),
             ),
           );
-          return; // Bitiş navigasyonu yapıldı, diğer kontrolleri atla
+          return;
         }
       }
 
-      // 2. Hata veya Ayrılma Durumu mu Var?
       if (next.errorMessage != null &&
           (previous == null || previous.errorMessage != next.errorMessage)) {
-        // Hata mesajını göster (Ayrılma mesajı da olabilir)
-        if (mounted) {
-          _showErrorMessage(context,
-              next.errorMessage!); // Show error/leave message immediately
+        final bool isCheatKickMessage = next.errorMessage ==
+            'Anormal aktivite nedeniyle yarıştan çıkarıldınız.';
+        if (mounted && !isCheatKickMessage) {
+          _showErrorMessage(context, next.errorMessage!);
         }
-
-        // Eğer hata mesajı ayrılma kaynaklı değilse (örneğin hile) VEYA ayrılma mesajı ise ve uyarı aktif değilse, TabsScreen'e git
-        // Not: Hile durumunda zaten leaveRace çağrılıyor ve errorMessage ayarlanıyor.
         if (!next.showFirstCheatWarning) {
-          // Eğer ilk uyarı aktif DEĞİLSE git
           debugPrint(
               '[RaceScreen Listener] Error/Leave detected: ${next.errorMessage}. Navigating to TabsScreen...');
           if (mounted) {
-            _navigationTriggered = true; // Set flag before navigating
+            _navigationTriggered = true;
             debugPrint(
                 '[RaceScreen Listener] Toggling Wakelock OFF before navigating to TabsScreen (Error/Leave)...');
-            _wakelockForceTimer?.cancel(); // <-- TIMER'I DURDUR
+            _wakelockForceTimer?.cancel();
             WakelockPlus.toggle(enable: false);
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => const TabsScreen()),
               (route) => false,
             );
-            return; // Hata/Ayrılma navigasyonu yapıldı
+            return;
           }
         }
       }
 
-      // 3. İlk Hile Uyarısı mı Var? (Yarış bitmediyse ve hata/ayrılma yoksa)
       if (next.showFirstCheatWarning == true &&
           (previous == null || previous.showFirstCheatWarning == false)) {
         debugPrint(
             '[RaceScreen Listener] Showing first cheat warning dialog...');
         if (mounted) {
-          // Show the first warning dialog
           _showFirstCheatWarningDialog(context, ref);
-          // Navigasyon yapma, sadece dialog göster
         }
       }
-      // --- GÜNCELLENMİŞ NAVİGASYON MANTIĞI SONU ---
     });
+
+    // Ortalama Hız Değişkeni
+    String averageSpeed = '0.0';
+    if (raceState.isRaceActive && raceState.raceStartTime != null) {
+      final Duration elapsedTime =
+          DateTime.now().difference(raceState.raceStartTime!);
+      averageSpeed = _calculateAverageSpeed(
+          raceState.isIndoorRace
+              ? raceState.estimatedIndoorDistance
+              : raceState.currentDistance,
+          elapsedTime);
+    }
+
+    // Süre için progress bar değeri
+    double progress = 0.0;
+    if (raceState.raceDuration != null &&
+        raceState.raceDuration!.inSeconds > 0) {
+      progress =
+          raceState.remainingTime.inSeconds / raceState.raceDuration!.inSeconds;
+      if (progress < 0) progress = 0;
+      if (progress > 1) progress = 1;
+    }
 
     return WillPopScope(
       onWillPop: () async {
-        // Yarış aktifse veya geri sayım varsa onay iste
         if (raceState.isRaceActive || raceState.isPreRaceCountdownActive) {
           return await _showLeaveConfirmationDialog(context, raceNotifier);
         }
-        return true; // Yarış aktif değilse direkt çık
+        return true;
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: const Color(0xFF121212), // Koyu arka plan
         appBar: AppBar(
-          backgroundColor: const Color(0xFF1E1E1E),
+          backgroundColor: Colors.transparent, // Şeffaf AppBar
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () async {
-              // Geri tuşu gibi davran
               if (raceState.isRaceActive ||
                   raceState.isPreRaceCountdownActive) {
                 await _showLeaveConfirmationDialog(context, raceNotifier);
               } else {
-                Navigator.of(context).pop(); // Yarış yoksa normal pop
+                Navigator.of(context).pop();
               }
             },
           ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          centerTitle: true, // Başlığı ortala
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Yarış Odası',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
-              ),
+              Image.asset('assets/icons/bayrak.png',
+                  width: 24, height: 24), // Bayrak ikonu
+              const SizedBox(width: 8),
               Text(
                 raceState.isPreRaceCountdownActive
                     ? 'Başlıyor...'
                     : (raceState.isRaceActive
-                        ? 'Yarış devam ediyor'
-                        : 'Yarış bitti'),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: raceState.isPreRaceCountdownActive
-                      ? Colors.orangeAccent
-                      : (raceState.isRaceActive
-                          ? Colors.greenAccent
-                          : Colors.redAccent),
-                ),
+                        ? 'Yarış Başladı!'
+                        : 'Yarış Bitti'),
+                style: const TextStyle(
+                    fontSize: 22, // Font boyutu büyütüldü
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
               ),
+              const SizedBox(width: 8),
+              if (raceState.isRaceActive) // Sadece yarış aktifken göster
+                IconButton(
+                  padding: EdgeInsets.zero, // Olası iç padding'i kaldır
+                  constraints:
+                      const BoxConstraints(), // Olası boyut kısıtlamalarını kaldır
+                  icon: const Icon(
+                    Icons.add_road_rounded, // Değişiklik: İkonu sabit yap
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showNewRaceUI = !_showNewRaceUI; // Toggle the UI state
+                    });
+                    debugPrint(
+                        'Road icon tapped, _showNewRaceUI is now: $_showNewRaceUI');
+                  },
+                ),
             ],
           ),
-          actions: [
-            // Bağlantı durumu göstergesi (Opsiyonel, SignalRService'den alınabilir)
-            // Container(...),
-          ],
         ),
         body: SafeArea(
           child: Column(
@@ -273,7 +277,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               if (raceState.isPreRaceCountdownActive)
                 Expanded(
                   child: Container(
-                    color: Colors.black.withOpacity(0.7),
+                    color: Colors.black.withOpacity(0.8), // Daha koyu overlay
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -281,7 +285,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                           const Text(
                             'Yarış Başlıyor',
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: 32, // Font boyutu büyütüldü
                               color: Color(0xFFC4FF62),
                               fontWeight: FontWeight.w600,
                             ),
@@ -290,7 +294,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                           Text(
                             raceState.preRaceCountdownValue.toString(),
                             style: const TextStyle(
-                                fontSize: 96,
+                                fontSize: 120, // Font boyutu büyütüldü
                                 color: Color(0xFFC4FF62),
                                 fontWeight: FontWeight.bold),
                           ),
@@ -303,117 +307,168 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               // Ana Yarış İçeriği
               if (!raceState.isPreRaceCountdownActive)
                 Expanded(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      // İstatistikler
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 20, horizontal: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade800,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildStatItem(
-                              icon: Icons.timer_outlined,
-                              value: _formatDuration(raceState.remainingTime),
-                              label: 'Kalan Süre',
-                              iconColor: Colors.redAccent,
-                              valueColor: raceState.remainingTime.inSeconds < 60
-                                  ? Colors.redAccent
-                                  : Colors.white,
-                            ),
-                            if (!raceState.isIndoorRace)
-                              _buildStatItem(
-                                icon: Icons.directions_run_outlined,
-                                value: raceState.currentDistance
-                                    .toStringAsFixed(2),
-                                label: 'Mesafe (km)',
-                                iconColor: Colors.blueAccent,
-                                valueColor: Colors.white,
+                  child: _showNewRaceUI
+                      ? RaceUIWidget(
+                          participants: raceState.leaderboard,
+                          myEmail: raceState.userEmail,
+                          profilePictureCache: raceState.profilePictureCache,
+                          isIndoorRace: raceState.isIndoorRace,
+                          remainingTime: raceState.remainingTime,
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 20),
+                              // Zamanlayıcı ve Progress Bar
+                              if (raceState.isRaceActive)
+                                Column(
+                                  children: [
+                                    Text(
+                                      'Kalan süre: ${_formatDuration(raceState.remainingTime)}',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18, // Font boyutu ayarlandı
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      height: 12, // Bar kalınlığı
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(6),
+                                        color: Colors
+                                            .grey.shade800, // Arka plan rengi
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: LinearProgressIndicator(
+                                          value: progress,
+                                          backgroundColor: Colors.transparent,
+                                          valueColor: const AlwaysStoppedAnimation<
+                                                  Color>(
+                                              Color(
+                                                  0xFFC4FF62)), // Yeşil progress
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                  ],
+                                ),
+
+                              // İstatistikler Kartı
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 20, horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E1E1E), // Kart rengi
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _buildStatItem(
+                                      iconAsset:
+                                          'assets/icons/alev.png', // Kalori ikonu
+                                      value:
+                                          raceState.currentCalories.toString(),
+                                      label: 'kcal',
+                                    ),
+                                    if (!raceState.isIndoorRace)
+                                      _buildStatItem(
+                                        iconAsset:
+                                            'assets/icons/location.png', // Mesafe/Konum ikonu
+                                        value: raceState.currentDistance
+                                            .toStringAsFixed(2),
+                                        label: 'km',
+                                      ),
+                                    if (raceState.isIndoorRace)
+                                      _buildStatItem(
+                                        iconAsset:
+                                            'assets/icons/location.png', // Tahmini KM için de aynı ikon
+                                        value: raceState.estimatedIndoorDistance
+                                            .toStringAsFixed(2),
+                                        label: 'km',
+                                      ),
+                                    _buildStatItem(
+                                      iconAsset:
+                                          'assets/icons/steps.png', // Adım ikonu
+                                      value: raceState.currentSteps.toString(),
+                                      label: 'adım',
+                                    ),
+                                    _buildStatItem(
+                                      iconAsset:
+                                          'assets/icons/speed.png', // Hız ikonu
+                                      value: averageSpeed, // Ortalama hız
+                                      label: 'km/sa',
+                                    ),
+                                  ],
+                                ),
                               ),
-                            _buildStatItem(
-                              icon: Icons.directions_walk_outlined,
-                              value: raceState.currentSteps.toString(),
-                              label: 'Adım',
-                              iconColor: Colors.greenAccent,
-                              valueColor: Colors.white,
-                            ),
-                            _buildStatItem(
-                              icon: Icons.local_fire_department_outlined,
-                              value: raceState.currentCalories.toString(),
-                              label: 'Kalori',
-                              iconColor: Colors.deepOrangeAccent,
-                              valueColor: Colors.white,
-                            ),
-                            // Hız göstergesi (opsiyonel)
-                            // if (!raceState.isIndoorRace) ...
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 25),
-                      // Leaderboard başlığı
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.emoji_events,
-                                color: Colors.amber, size: 28),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Yarış Sıralaması',
-                              style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      // Leaderboard Listesi
-                      Expanded(
-                        child: raceState.leaderboard.isEmpty
-                            ? Center(
-                                child: raceState.isRaceActive
-                                    ? const CircularProgressIndicator() // Yarış aktifse yükleniyor
-                                    : const Text('Yarışmacı bulunamadı.',
-                                        style: TextStyle(
-                                            color:
-                                                Colors.grey)) // Yarış bittiyse
-                                )
-                            : ListView.builder(
-                                itemCount: raceState.leaderboard.length,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                itemBuilder: (context, index) {
-                                  final participant =
-                                      raceState.leaderboard[index];
-                                  final bool isMe =
-                                      participant.email?.toLowerCase() ==
-                                          raceState.userEmail?.toLowerCase();
-                                  return ParticipantTile(
-                                    participant: participant,
-                                    isMe: isMe,
-                                    isIndoorRace: raceState.isIndoorRace,
-                                  );
-                                },
+                              const SizedBox(height: 25),
+                              // Canlı Sıralama Başlığı
+                              Row(
+                                children: [
+                                  Image.asset('assets/icons/coupa.png',
+                                      width: 28, height: 28), // Kupa ikonu
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Canlı Sıralama',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                                ],
                               ),
-                      ),
-                    ],
-                  ),
+                              const SizedBox(height: 15),
+                              // Leaderboard Listesi
+                              Expanded(
+                                child: raceState.leaderboard.isEmpty
+                                    ? Center(
+                                        child: raceState.isRaceActive
+                                            ? const CircularProgressIndicator(
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                            Color>(
+                                                        Color(0xFFC4FF62)))
+                                            : const Text(
+                                                'Yarışmacı bulunamadı.',
+                                                style: TextStyle(
+                                                    color: Colors.grey)))
+                                    : ListView.builder(
+                                        itemCount: raceState.leaderboard.length,
+                                        itemBuilder: (context, index) {
+                                          final participant =
+                                              raceState.leaderboard[index];
+                                          final bool isMe = participant.email
+                                                  ?.toLowerCase() ==
+                                              raceState.userEmail
+                                                  ?.toLowerCase();
+                                          return ParticipantTile(
+                                            participant: participant,
+                                            isMe: isMe,
+                                            isIndoorRace:
+                                                raceState.isIndoorRace,
+                                            rank: participant.rank,
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ],
+                          ),
+                        ),
                 ),
-              // Hata Mesajı Göstergesi (Opsiyonel)
-              if (raceState.errorMessage != null)
+              // Hata Mesajı Göstergesi
+              if (raceState.errorMessage != null &&
+                  !raceState.isPreRaceCountdownActive &&
+                  !raceState.isRaceActive) // Sadece yarış bittiyse göster
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     'Hata: ${raceState.errorMessage}',
                     style: const TextStyle(color: Colors.redAccent),
+                    textAlign: TextAlign.center,
                   ),
                 ),
             ],
@@ -423,100 +478,142 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     );
   }
 
-  // --- UI Yardımcıları ---
-
-  // --- Yeni Dialog: İlk Hile Uyarısı ---
   Future<void> _showFirstCheatWarningDialog(
       BuildContext context, WidgetRef ref) async {
-    // Get the state to display details in the dialog
-    // final state = ref.read(raceNotifierProvider);
-    // final distance = (state.currentDistance - state.lastCheckDistance) * 1000; // Removed
-    // Let's use a generic message for now
-
     await showDialog<void>(
       context: context,
-      barrierDismissible: false, // User must acknowledge
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Anormal Aktivite Tespit Edildi'),
-        content: const SingleChildScrollView(
-          // Use ScrollView for potentially long text
-          child: Text(
-            'Adım ve mesafe verileriniz arasında bir tutarsızlık tespit edildi. Lütfen adımlarınıza uygun hızda koşmaya devam edin. Tekrarlanan ihlaller yarıştan çıkarılmanıza neden olabilir.',
-          ),
+        backgroundColor: const Color(0xFF2C2C2E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Dismiss the warning in the notifier state
-              ref
-                  .read(raceNotifierProvider.notifier)
-                  .dismissFirstCheatWarning();
-              Navigator.of(context).pop(); // Close the dialog
-            },
-            child: const Text('Anladım'),
-          ),
-        ],
+        contentPadding: const EdgeInsets.all(24.0),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFFFFCC00),
+              size: 80,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Hız Sınırı Aşıldı',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Sistem olağan dışı bir hız tespit etti.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Devam etmek için hızınızı normale düşürün, aksi halde yarış iptal edilecektir.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFC4FF62),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+              ),
+              onPressed: () {
+                ref
+                    .read(raceNotifierProvider.notifier)
+                    .dismissFirstCheatWarning();
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Yarışa devam et',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
 
-  // Ayrılma onayı (Notifier'ı çağıracak şekilde güncellendi)
   Future<bool> _showLeaveConfirmationDialog(
       BuildContext context, RaceNotifier raceNotifier) async {
-    if (_leaveConfirmationShown)
-      return false; // Zaten gösteriliyorsa tekrar gösterme
+    if (_leaveConfirmationShown) return false;
     _leaveConfirmationShown = true;
 
-    bool? result = await showDialog<bool>(
+    // bool? result = await showDialog<bool>(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (context) => AlertDialog(
+    //     backgroundColor: const Color(0xFF1E1E1E), // Koyu dialog arkaplanı
+    //     title:
+    //         const Text('Yarıştan Ayrıl', style: TextStyle(color: Colors.white)),
+    //     content: const Text(
+    //         'Yarış devam ediyor. Ayrılmak istediğinize emin misiniz?',
+    //         style: TextStyle(color: Colors.white70)),
+    //     actions: [
+    //       TextButton(
+    //         onPressed: () {
+    //           _leaveConfirmationShown = false;
+    //           Navigator.of(context).pop(false);
+    //         },
+    //         child:
+    //             const Text('Hayır', style: TextStyle(color: Color(0xFFC4FF62))),
+    //       ),
+    //       TextButton(
+    //         onPressed: () {
+    //           _leaveConfirmationShown = false;
+    //           Navigator.of(context).pop(true);
+    //         },
+    //         child: const Text('Evet, Ayrıl',
+    //             style: TextStyle(color: Colors.redAccent)),
+    //       ),
+    //     ],
+    //   ),
+    // );
+
+    // Yeni LeaveWidget'ı kullan
+    bool? result = await showLeaveConfirmationDialog(
       context: context,
-      barrierDismissible: false, // Kullanıcı dışarı tıklayarak kapatamasın
-      builder: (context) => AlertDialog(
-        title: const Text('Yarıştan Ayrıl'),
-        content: const Text(
-            'Yarış devam ediyor. Ayrılmak istediğinize emin misiniz?'), // Mesaj sadeleştirildi
-        actions: [
-          TextButton(
-            onPressed: () {
-              _leaveConfirmationShown =
-                  false; // Dialog kapandı, tekrar gösterilebilir
-              Navigator.of(context).pop(false);
-            },
-            child: const Text('Hayır'),
-          ),
-          TextButton(
-            onPressed: () {
-              _leaveConfirmationShown = false; // Dialog kapandı
-              Navigator.of(context).pop(true); // Evet seçildi
-            },
-            child: const Text('Evet, Ayrıl'),
-          ),
-        ],
-      ),
+      imagePath: 'assets/images/leaveimage.png', // Belirttiğiniz resim yolu
+      title: 'Yarıştan Ayrılmak İstiyor Musun?',
+      message:
+          'Canlı yarıştan ayrıldığında, yarış verilerin silinecek ve sıralamaya dahil edilmeyeceksin.',
+      // Buton metinleri varsayılan olacak
     );
 
     if (result == true) {
       debugPrint('Kullanıcı yarıştan ayrılmayı onayladı.');
-      await raceNotifier.leaveRace(); // Notifier üzerinden ayrıl
-
-      // --- MANUEL NAVİGASYON KALDIRILDI ---
-      // if (context.mounted) {
-      //   Navigator.of(context).pushAndRemoveUntil(
-      //     MaterialPageRoute(builder: (context) => const TabsScreen()),
-      //     (route) => false,
-      //   );
-      // }
-      // --- MANUEL NAVİGASYON KALDIRILDI SONU ---
-
-      return true; // Geri tuşunun işlemi yapmasını engelle (ayrılma başlatıldı)
+      await raceNotifier.leaveRace();
+      return true;
     } else {
-      _leaveConfirmationShown =
-          false; // Kullanıcı hayır dedi veya dialog kapandı
+      _leaveConfirmationShown = false;
     }
-
-    return false; // Geri tuşunun işlemi yapmasını engelleme (dialog kapatıldı)
+    return false;
   }
 
-  // Hata mesajı gösterme fonksiyonu (context alır)
   void _showErrorMessage(BuildContext context, String message) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -529,37 +626,28 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   }
 
   Widget _buildStatItem({
-    required IconData icon,
+    required String iconAsset, // IconData yerine String asset path
     required String value,
     required String label,
-    required Color iconColor,
-    Color? valueColor,
   }) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.2),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 28, color: iconColor),
-        ),
+        Image.asset(iconAsset, width: 36, height: 36), // Asset ikonu
         const SizedBox(height: 8),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 20,
+          style: const TextStyle(
+            fontSize: 20, // Font boyutu güncellendi
             fontWeight: FontWeight.bold,
-            color: valueColor ?? Colors.white,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 12, // Font boyutu güncellendi
             color: Colors.grey,
           ),
         ),
@@ -572,171 +660,95 @@ class ParticipantTile extends ConsumerWidget {
   final RaceParticipant participant;
   final bool isMe;
   final bool isIndoorRace;
+  final int rank; // Sıralama bilgisi eklendi
 
   const ParticipantTile({
     super.key,
     required this.participant,
     this.isMe = false,
     required this.isIndoorRace,
+    required this.rank, // Constructor'a eklendi
   });
+
+  String _getRankAsset(int rank) {
+    if (rank == 1) return 'assets/icons/1.png';
+    if (rank == 2) return 'assets/icons/2.png';
+    if (rank == 3) return 'assets/icons/3.png';
+    return ''; // Diğer sıralamalar için asset yoksa boş string
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Read the cache from the provider state
-    // **** Gelen isIndoorRace DEĞERİNİ LOGLA ****
-    debugPrint(
-        '[ParticipantTile build] Received isIndoorRace = $isIndoorRace for ${participant.userName}');
     final profileCache = ref.watch(
         raceNotifierProvider.select((state) => state.profilePictureCache));
     final String? profilePicUrl = profileCache[participant.userName];
-
-    Color rankColor;
-    Color rankTextColor = Colors.black87;
-    if (participant.rank == 1) {
-      rankColor = const Color(0xFFFFD700);
-      rankTextColor = Colors.black;
-    } else if (participant.rank == 2) {
-      rankColor = const Color(0xFFC0C0C0);
-      rankTextColor = Colors.black;
-    } else if (participant.rank == 3) {
-      rankColor = const Color(0xFFCD7F32);
-      rankTextColor = Colors.white;
-    } else {
-      rankColor = Colors.grey.shade600;
-    }
+    final String rankAsset = _getRankAsset(rank);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+      padding: const EdgeInsets.symmetric(
+          vertical: 12.0, horizontal: 16.0), // Padding ayarlandı
       decoration: BoxDecoration(
-        color: Colors.grey.shade800,
+        color: const Color(0xFF1E1E1E), // Kart rengi güncellendi
         borderRadius: BorderRadius.circular(12),
         border: isMe
-            ? Border.all(color: Colors.lightGreenAccent, width: 2.5)
+            ? Border.all(
+                color: const Color(0xFFC4FF62), width: 2.0) // Vurgu rengi
             : null,
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-        child: Row(
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                UserProfileAvatar(
-                  imageUrl: profilePicUrl,
-                  radius: 25,
-                ),
+      child: Row(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomLeft, // İkonun pozisyonu için
+            children: [
+              UserProfileAvatar(
+                imageUrl: profilePicUrl,
+                radius: 25, // Avatar boyutu
+              ),
+              if (rankAsset.isNotEmpty &&
+                  rank <= 3) // Sadece ilk 3 için ikonu göster
                 Positioned(
-                  top: -4,
-                  left: -4,
-                  child: Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: rankColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade800, width: 2),
-                    ),
-                    child: Center(
-                      child: Text(
-                        participant.rank.toString(),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: rankTextColor,
-                        ),
-                      ),
-                    ),
-                  ),
+                  left: -8, // İkonun pozisyonu ayarlandı
+                  bottom: -8, // İkonun pozisyonu ayarlandı
+                  child: Image.asset(rankAsset,
+                      width: 24, height: 24), // Sıralama ikonu
                 ),
-              ],
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: participant.rank <= 3
-                              ? rankColor
-                              : Colors.lightGreenAccent,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        participant.userName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                      if (isMe)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 6.0),
-                          child: Text(
-                            '(Ben)',
-                            style: TextStyle(
-                              fontStyle: FontStyle.normal,
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      if (!isIndoorRace)
-                        _buildInfoChip(
-                          label:
-                              '${participant.distance.toStringAsFixed(2)} km',
-                          backgroundColor:
-                              Colors.blue.shade900.withOpacity(0.7),
-                          textColor: Colors.blue.shade100,
-                        ),
-                      if (!isIndoorRace) const SizedBox(width: 8),
-                      _buildInfoChip(
-                        label: 'Adım: ${participant.steps}',
-                        backgroundColor: Colors.green.shade900.withOpacity(0.7),
-                        textColor: Colors.green.shade100,
-                      ),
-                    ],
-                  ),
-                ],
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              participant.userName,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600, // Font ağırlığı güncellendi
+                fontSize: 16,
+                color: Colors.white,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip({
-    required String label,
-    required Color backgroundColor,
-    required Color textColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-          color: textColor,
-        ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${(isIndoorRace ? participant.distance : participant.distance).toStringAsFixed(2)} km', // İç mekan/dış mekan ayrımı kaldırıldı, SignalR'dan gelen distance kullanılacak
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${participant.steps} adım',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          )
+        ],
       ),
     );
   }

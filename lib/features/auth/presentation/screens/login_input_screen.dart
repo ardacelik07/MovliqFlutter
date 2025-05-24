@@ -9,6 +9,7 @@ import '../../../../core/services/storage_service.dart';
 import '../providers/user_data_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import 'dart:io'; // Platform detection için
 
 class LoginInputScreen extends ConsumerStatefulWidget {
   const LoginInputScreen({super.key});
@@ -31,6 +32,25 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
     super.dispose();
   }
 
+  // iOS izinlerini isteyecek metod
+  void _requestIOSPermissions() {
+    if (!Platform.isIOS) return;
+
+    try {
+      // Bildirim izni iste
+      const notificationChannel = MethodChannel('com.movliq/notifications');
+      notificationChannel.invokeMethod('requestNotificationPermission');
+      print('Login sonrası iOS bildirim izni istendi');
+
+      // Konum izni iste
+      const locationChannel = MethodChannel('com.movliq/location');
+      locationChannel.invokeMethod('enableBackgroundLocationTracking');
+      print('Login sonrası iOS konum izni istendi');
+    } catch (e) {
+      print('iOS izin isteme hatası: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Set edge-to-edge display and transparent system bars
@@ -45,6 +65,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
 
     ref.listen(authProvider, (previous, next) {
       next.whenOrNull(
+
         loading: () {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Giriş yapılıyor...')),
@@ -63,9 +84,15 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
             setState(() {
               _errorText = null; // <- Clear error message if login successful
             });
+
             ref.read(userDataProvider.notifier).fetchUserData();
             ref.read(userDataProvider.notifier).fetchCoins();
             ref.read(selectedTabProvider.notifier).state = 0;
+
+            // İOS izinlerini iste - login sonrası
+            _requestIOSPermissions();
+
+            // TabsScreen'e yönlendir
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(

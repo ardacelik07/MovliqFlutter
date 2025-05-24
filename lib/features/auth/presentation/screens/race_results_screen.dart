@@ -8,6 +8,7 @@ import '../providers/activity_provider.dart';
 import '../providers/activity_stats_provider.dart';
 import '../../domain/models/activity_stats_model.dart';
 import '../../domain/models/activity_model.dart' as activity_model;
+import '../providers/user_data_provider.dart';
 // import '../widgets/network_error_widget.dart'; // Bu import muhtemelen kullanılmıyor, kontrol edilebilir.
 
 // Aktivite tipine göre yarış sonuçlarını çekmek için provider
@@ -103,6 +104,38 @@ class RaceResultsScreen extends ConsumerStatefulWidget {
 class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
   String _selectedType = 'indoor'; // Varsayılan olarak indoor seçili
   String _selectedPeriod = 'weekly'; // Varsayılan olarak haftalık
+
+  // Asset paths (Ensure these are correct and match your assets folder)
+  static const String _treadmillImage = 'assets/icons/indoor.png';
+  static const String _outdoorImage = 'assets/icons/outdoor.png';
+  static const String _flameIcon = 'assets/icons/alev.png';
+  static const String _locationIcon = 'assets/icons/location.png';
+  static const String _stepsIcon = 'assets/icons/steps.png';
+
+  // Helper widget for individual metrics (flame, location, shoe)
+  Widget _buildNewRaceMetricItem({
+    required String assetPath,
+    required String valueText,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.asset(
+          assetPath,
+          width: 32,
+          height: 32,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.error, color: Colors.red, size: 32),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          valueText,
+          style: const TextStyle(color: Colors.white, fontSize: 12),
+        ),
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -230,6 +263,10 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                       return _buildEmptyState(); // Boş durum widget'ı
                     }
 
+                    // Aktiviteleri yeniden eskiye doğru sırala (startTime alanına göre)
+                    activities
+                        .sort((a, b) => b.startTime.compareTo(a.startTime));
+
                     // ListView.separated ile ayraç ekle
                     return ListView.separated(
                       itemCount: activities.length,
@@ -269,7 +306,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         Expanded(
           child: _buildTypeButton(
             title: 'İç Mekan',
-            icon: Icons.fitness_center, // İkon örneği
+            assetPath: _treadmillImage, // Use asset path
             value: 'indoor',
             isSelected: _selectedType == 'indoor',
           ),
@@ -278,7 +315,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         Expanded(
           child: _buildTypeButton(
             title: 'Dış Mekan',
-            icon: Icons.directions_run, // İkon örneği
+            assetPath: _outdoorImage, // Use asset path
             value: 'outdoor',
             isSelected: _selectedType == 'outdoor',
           ),
@@ -289,7 +326,8 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
 
   Widget _buildTypeButton({
     required String title,
-    required IconData icon,
+    String? assetPath, // Made assetPath optional
+    IconData? icon, // Keep IconData for potential future use or fallback
     required String value,
     required bool isSelected,
   }) {
@@ -309,11 +347,28 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.black : Colors.white.withOpacity(0.8),
-              size: 20,
-            ),
+            if (assetPath != null) ...[
+              Image.asset(
+                assetPath,
+                width: 40, // Adjust size as needed
+                height: 40, // Adjust size as needed
+                color:
+                    isSelected ? Colors.black : Colors.white.withOpacity(0.8),
+                errorBuilder: (context, error, stackTrace) => Icon(
+                    icon ?? Icons.error,
+                    color: isSelected
+                        ? Colors.black
+                        : Colors.white.withOpacity(0.8),
+                    size: 20), // Fallback icon
+              ),
+            ] else if (icon != null) ...[
+              Icon(
+                icon,
+                color:
+                    isSelected ? Colors.black : Colors.white.withOpacity(0.8),
+                size: 20,
+              ),
+            ],
             const SizedBox(width: 8),
             Text(
               title,
@@ -447,20 +502,12 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start, // Sola yasla
         mainAxisAlignment: MainAxisAlignment.center, // Ortala
         children: [
-          Text(
-            period, // "Bu Hafta", "Bu Ay", "Bu Yıl"
-            style: const TextStyle(
-              color: _secondaryTextColor, // Gri renk
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
           const SizedBox(height: 1),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white, // Beyaz renk
-              fontSize: 22, // Daha büyük font
+              fontSize: 32, // Daha büyük font
               fontWeight: FontWeight.bold,
             ),
             maxLines: 1,
@@ -532,134 +579,134 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
 
   // Aktivite Kartı (Yeni Tasarım)
   Widget _buildActivityCard(ActivityModel activity) {
-    // Tarih ve saat formatı
+    final bool isIndoor = activity.roomType == 'indoor';
     final startTime = activity.startTime;
-    final formattedDateTime =
-        '${startTime.day} ${_getMonthName(startTime.month)} ${startTime.year}  ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
+    final formattedDate =
+        '${startTime.day} ${_getMonthName(startTime.month)} ${startTime.year} - ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
 
-    // Süre formatı
-    final duration = activity.duration; // duration'ın int olduğu varsayıldı
-    final formattedDuration = '$duration Dakika';
+    String rankText = '-';
+    if (activity.rank != null) {
+      rankText = '${activity.rank}.Sıra';
+    }
 
-    // Rank
-    final rank = activity.rank ?? 0;
-    final rankText = rank > 0 ? '$rank. Sıra' : '-';
+    final calories = activity.calories;
+    final caloriesStr = calories?.toInt().toString() ?? '0';
 
-    // Ana metrik (Adım sayısı veya Mesafe)
-    final steps = activity.steps; // Adım sayısını al
-    final distance = activity.distancekm; // Mesafeyi al
-    final bool isOutdoor = activity.roomType == 'outdoor';
+    final int currentSteps = activity.steps ?? 0;
+    final stepsStr = currentSteps.toString();
 
-    String primaryMetricText = '-'; // Varsayılan olarak tire göster
-    String secondaryMetricText = ''; // İkincil metrik başlangıçta boş
+    // Determine distance text: actual or estimated for indoor
+    String distanceTextForCard;
+    final actualDistanceKm = activity.distancekm;
+    final actualDistanceStr =
+        actualDistanceKm != null ? actualDistanceKm.toStringAsFixed(2) : '0.00';
 
-    if (isOutdoor) {
-      // Dış Mekan: Ana metrik Mesafe, ikincil metrik Adım
-      primaryMetricText = '${(distance ?? 0.0).toStringAsFixed(2)} km';
-      if (steps != null && steps > 0) {
-        // Adım varsa göster
-        secondaryMetricText = '$steps Adım';
+    if (isIndoor) {
+      final userData = ref.watch(userDataProvider).value;
+      final double? userHeightCm = userData?.height;
+      if (userHeightCm != null && userHeightCm > 0 && currentSteps > 0) {
+        final double stepLengthMeters = userHeightCm * 0.00414;
+        final double estimatedDistanceKm =
+            (currentSteps * stepLengthMeters) / 1000.0;
+        distanceTextForCard = ' ~${estimatedDistanceKm.toStringAsFixed(2)} km';
+      } else {
+        distanceTextForCard =
+            '$actualDistanceStr km'; // Fallback to actual (likely 0.00 km for indoor)
       }
     } else {
-      // İç Mekan: Ana metrik Adım
-      if (steps != null && steps >= 0) {
-        // Adım null değilse ve 0 veya daha büyükse göster
-        primaryMetricText = '$steps Adım';
-      }
-      // İç mekan için ikincil metrik yok (veya isterseniz eklenebilir)
+      distanceTextForCard =
+          '$actualDistanceStr km'; // For outdoor, always use actual distance
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      margin: const EdgeInsets.only(bottom: 0),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardBackgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        color: _cardBackgroundColor, // Using the screen's card background color
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Top Row: Date/Time, Duration, and Calories
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                formattedDateTime,
-                style: const TextStyle(
-                  fontSize: 12, // Biraz daha küçük
-                  color: _secondaryTextColor, // Gri renk
+          Image.asset(
+            isIndoor ? _treadmillImage : _outdoorImage,
+            width: 80,
+            height: 80,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade800,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ),
-              // Duration and Calories together
-              Row(
-                mainAxisSize: MainAxisSize.min, // Prevent taking full width
-                children: [
-                  if (activity.calories != null && activity.calories! > 0) ...[
-                    Icon(Icons.local_fire_department_outlined,
-                        color: Colors.orangeAccent, size: 14),
-                    SizedBox(width: 4),
+                child: Icon(
+                  isIndoor ? Icons.fitness_center : Icons.terrain,
+                  color: Colors.white54,
+                  size: 40,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                     Text(
-                      '${activity.calories!.toStringAsFixed(0)} kcal', // Show calories
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.orangeAccent, // Orange color for calories
+                      isIndoor ? 'İç Mekan' : 'Dış Mekan',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(width: 8), // Space between calories and duration
-                  ],
-                  Text(
-                    formattedDuration,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: _primaryAccentColor, // Yeşil renk
+                    Text(
+                      rankText, // Display rank text (will be '-' if rank is not found)
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
-              )
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          // Middle: Main Metric (Steps) and Optional Distance
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                primaryMetricText, // Hesaplanan ana metriği göster
-                style: const TextStyle(
-                  fontSize: 24, // Daha büyük
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  ],
                 ),
-              ),
-              if (secondaryMetricText.isNotEmpty) ...[
-                // İkincil metrik varsa göster (sadece outdoor için adım)
-                const SizedBox(width: 8),
+                const SizedBox(height: 4),
                 Text(
-                  secondaryMetricText,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color:
-                        _secondaryTextColor, // Outdoor mesafesi için gri renk
+                  formattedDate,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 12,
                   ),
                 ),
-              ]
-            ],
-          ),
-
-          const SizedBox(height: 4),
-
-          // Bottom: Rank
-          Text(
-            rankText,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600, // Biraz daha kalın
-              color: _primaryAccentColor, // Yeşil renk
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.end, // Align metrics to the start
+                  children: [
+                    _buildNewRaceMetricItem(
+                      assetPath: _flameIcon,
+                      valueText: '$caloriesStr kcal',
+                    ),
+                    const SizedBox(width: 20), // Consistent spacing
+                    _buildNewRaceMetricItem(
+                      assetPath: _locationIcon,
+                      valueText:
+                          distanceTextForCard, // Use the determined distance text
+                    ),
+                    const SizedBox(width: 20), // Consistent spacing
+                    _buildNewRaceMetricItem(
+                      assetPath: _stepsIcon,
+                      valueText: stepsStr,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],

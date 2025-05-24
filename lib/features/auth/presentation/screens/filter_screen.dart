@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen2.dart';
 import '../providers/race_settings_provider.dart';
 import 'verification_screen.dart';
+// import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Commented out or remove
+import 'package:my_flutter_project/features/auth/presentation/screens/create_or_join_room_screen.dart'; // Added import
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -17,68 +19,68 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardHeight = screenWidth * 0.65;
+    final cardHeight = screenWidth * 0.40;
 
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final availableHeight = constraints.maxHeight;
-            final cardHeight =
-                (availableHeight - 240) / 2; // adjust to fit better
 
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        "Koşu Türünü Seç",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 40),
+                const Text(
+                  "Koşu Türünü Seç",
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 20),
-                  _buildOptionCard(
-                    titleLines: ["İç Mekan", "Koşusu"],
-                    description: "Spor salonu ve kapalı alanlarda koşu",
-                    imagePath: "assets/images/manOnRunningInside.png",
-                    value: "indoor",
-                    isSelected: _selectedPreference == "indoor",
-                    cardHeight: cardHeight,
-                    onTap: () => setState(() => _selectedPreference = "indoor"),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildOptionCard(
-                    titleLines: ["Dış Mekan", "Koşusu"],
-                    description: "Park ve açık alanlarda koşu",
-                    imagePath: "assets/images/womanRunOutside.png",
-                    value: "outdoor",
-                    isSelected: _selectedPreference == "outdoor",
-                    cardHeight: cardHeight,
-                    onTap: () =>
-                        setState(() => _selectedPreference = "outdoor"),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_selectedPreference != null)
-                    SizedBox(
+                ),
+                const SizedBox(height: 40),
+                _buildOptionCard(
+                  titleLines: ["İç Mekan", "Koşusu"],
+                  description: "Spor salonu ve kapalı alanlarda koşu",
+                  imagePath: "assets/images/manOnRunningInside.png",
+                  value: "indoor",
+                  isSelected: _selectedPreference == "indoor",
+                  cardHeight: cardHeight,
+                  onTap: () => setState(() => _selectedPreference = "indoor"),
+                ),
+                const SizedBox(height: 24),
+                _buildOptionCard(
+                  titleLines: ["Dış Mekan", "Koşusu"],
+                  description: "Park ve açık alanlarda koşu",
+                  imagePath: "assets/images/womanRunOutside.png",
+                  value: "outdoor",
+                  isSelected: _selectedPreference == "outdoor",
+                  cardHeight: cardHeight,
+                  onTap: () => setState(() => _selectedPreference = "outdoor"),
+                ),
+                const SizedBox(height: 24),
+                _buildOptionCard(
+                  titleLines: ["Özel Yarış"],
+                  description: "Arkadaşlarınla yarış veya yeni odalar keşfet",
+                  imagePath: "assets/images/registerpicture.png",
+                  value: "private",
+                  isSelected: _selectedPreference == "private",
+                  cardHeight: cardHeight,
+                  onTap: () => setState(() => _selectedPreference = "private"),
+                ),
+                const SizedBox(height: 30),
+                if (_selectedPreference != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFC4FF62),
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -97,11 +99,20 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                                     const VerificationScreen(),
                               ),
                             );
-                          } else {
+                          } else if (_selectedPreference == 'outdoor') {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const FilterScreen2(),
+                                  builder: (context) => const FilterScreen2()),
+                            );
+                          } else if (_selectedPreference == 'private') {
+                            // print("Private race selected. Navigation to PrivateRacesView commented out due to missing parameters.");
+                            // TODO: Investigate PrivateRacesView constructor and pass required parameters.
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const CreateOrJoinRoomScreen(),
                               ),
                             );
                           }
@@ -112,13 +123,27 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
+
                         ),
                       ),
-                    ),
-                ],
-              ),
-            );
-          },
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildOptionCard(
+                    titleLines: ["İç Mekan", "Koşusu"],
+                    description: "Spor salonu ve kapalı alanlarda koşu",
+                    imagePath: "assets/images/manOnRunningInside.png",
+                    value: "indoor",
+                    isSelected: _selectedPreference == "indoor",
+                    cardHeight: cardHeight,
+                    onTap: () => setState(() => _selectedPreference = "indoor"),
+                  ),
+
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+
         ),
       ),
     );
@@ -165,6 +190,10 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                         imagePath,
                         fit: BoxFit.contain,
                         alignment: Alignment.centerLeft,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.sports_kabaddi,
+                              color: Colors.white54, size: 50);
+                        },
                       ),
                     ),
                   ),

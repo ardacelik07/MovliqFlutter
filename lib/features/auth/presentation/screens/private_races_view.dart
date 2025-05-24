@@ -91,6 +91,9 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
                 startTime: widget.race.startTime,
                 activityType: widget.race.type,
                 duration: widget.race.duration,
+                roomCode: widget.race.specialRaceRoomName ??
+                    '', // Added roomCode using race name
+                isHost: false, // Assuming user is not a host in this context
               ),
             ),
           );

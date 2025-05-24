@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 import '../providers/user_data_provider.dart';
+import '../../domain/models/user_data_model.dart'; // <-- Eklendi
 import '../providers/user_ranks_provider.dart'; // For streak
 import '../providers/latest_product_provider.dart'; // Import LatestProductProvider
 import '../providers/private_race_provider.dart'; // Import PrivateRaceProvider
@@ -25,7 +26,15 @@ import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
 import 'package:pedometer/pedometer.dart'; // Import pedometer
 import 'package:flutter/services.dart'; // Import flutter/services
+
 import '../screens/profile_screen.dart';
+
+import '../providers/race_coin_tracker_provider.dart';
+import '../widgets/earn_coin_widget.dart'; // Popup için
+import '../providers/race_provider.dart'; // For cheatKickedStateProvider
+import '../widgets/cheated_race.dart'; // For CheatedRaceDialogContent
+import 'help_screen.dart';
+
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -42,8 +51,40 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Request permissions when the home page initializes
     _checkAndRequestPermissionsSequentially();
+
+    // Check for cheat kicked status when HomePage initializes and listen for changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        // Ensure the widget is still in the tree
+        final isKicked =
+            ref.read(cheatKickedStateProvider); // Read current state
+        if (isKicked) {
+          _showCheatKickedDialog();
+        }
+      }
+    });
+
+    // Listen for subsequent changes to the cheatKickedStateProvider
+    ref.listenManual(cheatKickedStateProvider, (previous, next) {
+      if (next == true && mounted) {
+        _showCheatKickedDialog();
+      }
+    });
+  }
+
+  void _showCheatKickedDialog() {
+    // Avoid showing dialog if one is already active or not mounted
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must interact with the dialog
+      builder: (BuildContext dialogContext) {
+        return const CheatedRaceDialogContent();
+      },
+    );
+    // Provider is reset to false from within the CheatedRaceDialogContent's button.
   }
 
   // Request permissions sequentially
@@ -179,31 +220,80 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        if (mounted) {
-          _showSettingsDialog('Konum İzni Gerekli',
-              'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir.');
-        }
+        if (mounted) {}
       } else {
         print('Ana Sayfa - iOS konum izni alındı: $permission');
       }
     } else {
-      // For Android: Continue using Permission.locationAlways which works well
-      final status = await Permission.locationAlways.status;
-      print('Ana Sayfa - Android konum izin durumu (Always): $status');
+      // For Android: Request Permission.location first to show the standard system dialog.
+      final status = await Permission.location.status;
+      print('Ana Sayfa - Android konum izin durumu (Genel): $status');
+
+      // Define the critical permission dialog details for races
+      const String criticalDialogTitle = 'Her Zaman Konum İzni Gerekli';
+      const String criticalDialogContent =
+          'Yarışlara kesintisiz katılabilmek ve aktivite verilerinizi doğru bir şekilde kaydedebilmek için Movliq\'in konumunuza \'Her Zaman\' erişmesi gerekmektedir. Lütfen uygulama ayarlarından konum iznini \'Her zaman izin ver\' olarak güncelleyiniz.';
 
       if (!status.isGranted && !status.isLimited) {
-        final requestedStatus = await Permission.locationAlways.request();
-        print(
-            'Ana Sayfa - Android izin istenen durum (Always): $requestedStatus');
 
-        if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+        final requestedStatus = await Permission.location.request();
+        print(
+            'Ana Sayfa - Android izin istenen durum (Genel): $requestedStatus');
+
+
+        if (requestedStatus.isPermanentlyDenied) {
           if (mounted) {
-            _showSettingsDialog('Konum İzni Gerekli',
-                'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir.');
+            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
+          }
+        } else if (requestedStatus.isDenied) {
+          print(
+              'Ana Sayfa - Android konum izni (Genel) reddedildi ancak kalıcı değil.');
+          if (mounted) {
+            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
           }
         }
+        // If permission granted here, proceed to check for 'Always'
+      }
+
+      // After the initial request (or if already granted), check current general status again
+      // to decide if we should proceed to request 'Always'.
+      final currentGeneralLocationStatus = await Permission.location.status;
+      if (currentGeneralLocationStatus.isGranted ||
+          currentGeneralLocationStatus.isLimited) {
+        print(
+            'Ana Sayfa - Android konum izni (Genel) verilmiş veya kısıtlı. Şimdi "Always" kontrol ediliyor.');
+
+        final alwaysStatus = await Permission.locationAlways.status;
+        print(
+            'Ana Sayfa - Android "Always" konum izin durumu kontrol ediliyor: $alwaysStatus');
+
+        if (!alwaysStatus.isGranted) {
+          print(
+              'Ana Sayfa - "Genel/Kullanımda" izni var, ancak "Always" izni yok. "Always" izni isteniyor.');
+          // Requesting locationAlways typically opens settings directly on modern Android.
+          final requestedAlwaysStatus =
+              await Permission.locationAlways.request();
+          print(
+              'Ana Sayfa - Android "Always" izin talep sonucu: $requestedAlwaysStatus');
+
+          // After the request, check the status again.
+          // If still not granted (denied or permanently denied), show the dialog.
+          final finalAlwaysStatus = await Permission.locationAlways.status;
+          if (!finalAlwaysStatus.isGranted) {
+            if (mounted) {
+              _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
+            }
+          } else {
+            print('Ana Sayfa - Android "Always" konum izni şimdi verildi.');
+          }
+        } else {
+          print('Ana Sayfa - Android "Always" konum izni zaten verilmiş.');
+        }
       } else {
-        print('Ana Sayfa - Android konum izni zaten verilmiş.');
+        // This means general location was not granted even after an attempt (if made).
+        // The dialogs for denied/permanentlyDenied for the initial request should have been shown.
+        print(
+            'Ana Sayfa - Genel konum izni hala verilmemiş, bu nedenle "Always" istenemiyor/kontrol edilemiyor.');
       }
     }
   }
@@ -256,91 +346,20 @@ class _HomePageState extends ConsumerState<HomePage> {
         if (!healthKitPermissionVerified && mounted) {
           print(
               'Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
-          _showHealthKitDialog();
+
+
         } else {
           print(
               'Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
         }
       } catch (e) {
         print('Ana Sayfa - Health Kit izin kontrolü sırasında hata: $e');
-        if (mounted) {
-          _showHealthKitDialog();
-        }
+        if (mounted) {}
       }
     }
   }
 
-  // Health Kit izni için özel dialog (iOS)
-  void _showHealthKitDialog() {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Health İzni Gerekli'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Adım sayınızı takip edebilmek için Apple Health uygulamasında izin vermelisiniz:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            const Text('1. iPhone\'unuzda "Sağlık" (Health) uygulamasını açın'),
-            const SizedBox(height: 8),
-            const Text('2. Alt kısımda "İndeks" (Browse) sekmesine tıklayın'),
-            const SizedBox(height: 8),
-            const Text('3. Sağ üstteki profil simgesine tıklayın'),
-            const SizedBox(height: 8),
-            const Text(
-                '4. "Veri Kaynakları ve Erişim" (Data Sources & Access) seçeneğine tıklayın'),
-            const SizedBox(height: 8),
-            const Text(
-                '5. "Uygulamalar" (Apps) listesinden bu uygulamayı bulun'),
-            const SizedBox(height: 8),
-            const Text(
-                '6. "Açık ve Kapalı" (Turn On/Off) kısmından aşağıdaki izinleri açın:'),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('• Adımlar (Steps)'),
-                  Text(
-                      '• Yürüme + Koşma Mesafesi (Walking + Running Distance)'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'İzinleri verdikten sonra bu uygulamaya dönün ve tekrar deneyin.',
-              style: TextStyle(fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Sağlık Uygulamasını Aç'),
-            onPressed: () async {
-              Navigator.of(context).pop();
-              // Health Kit ayarlarına doğrudan erişilemez, Sağlık uygulamasını açmak için URL Schemes kullan
-              final url = Uri.parse('x-apple-health://');
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url);
-              } else {
-                openAppSettings();
-              }
-            },
-          ),
-          TextButton(
-            child: const Text('Daha Sonra'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   // Dialog to show if permission is denied (Consolidated for Settings)
   void _showSettingsDialog(String title, String content) {
@@ -438,11 +457,71 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Fetch initial data providers
     final userDataAsync = ref.watch(userDataProvider);
     final userStreakAsync =
         ref.watch(userStreakProvider); // Watch streak provider
     final latestProductsAsync =
         ref.watch(latestProductProvider); // Watch latest products
+
+    // --- YENİ: Yarış sonrası Coin Popup Logic ---
+    final trackingState = ref.watch(raceCoinTrackingProvider);
+
+    if (trackingState != null && trackingState.justFinishedRace) {
+      print("🏁 HomePage Build: Race finished flag detected.");
+      // Durumu kontrol ettikten hemen sonra temizle
+      // Bu, build sırasında state değişikliği hatasını önler
+      // ve popup'ın tekrar tekrar tetiklenmesini engeller.
+      // Kullanıcı coin verisi gelene kadar beklemeyecek,
+      // build sırasında flag'i kontrol edip temizleyeceğiz.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(raceCoinTrackingProvider.notifier).clearState();
+          print("🏁 HomePage Build: Race finished flag cleared after check.");
+        }
+      });
+
+      // Şimdi userData'nın durumuna bak
+      if (userDataAsync is AsyncData<UserDataModel?>) {
+        final currentUserData = userDataAsync.value;
+        if (currentUserData != null &&
+            currentUserData.coins != null &&
+            trackingState.beforeRaceCoin != null) {
+          final double earnedCoin =
+              currentUserData.coins! - trackingState.beforeRaceCoin!;
+          print("🏁 HomePage Build: UserData loaded. Earned Coin: $earnedCoin");
+
+          if (earnedCoin > 0.001) {
+            // Build bittikten sonra popup'ı göster
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _showCoinPopup(context, earnedCoin);
+              }
+            });
+          } else {
+            print(
+                "🏁 HomePage Build: No significant coin difference detected.");
+          }
+        } else {
+          print(
+              "🏁 HomePage Build: UserData not ready or coin info missing for diff calc.");
+        }
+      } else if (userDataAsync is AsyncError) {
+        print(
+            "🏁 HomePage Build: Error loading UserData, cannot calculate diff.");
+      } else {
+        print(
+            "🏁 HomePage Build: UserData is loading, cannot calculate diff yet.");
+      }
+    }
+    // --- Coin Popup Logic Sonu ---
+
+    // Display loading indicator while user data is loading
+    if (userDataAsync is AsyncLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFC4FF62)),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.black, // Set background to black
@@ -493,13 +572,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Hoşgeldiniz',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[400],
-                                ),
-                              ),
-                              Text(
                                 userData?.userName ??
                                     'Kullanıcı', // Display name or default
                                 style: const TextStyle(
@@ -514,35 +586,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                           // Icons Row
                           Row(
                             children: [
-                              // Notification Icon (Placeholder)
-                              Stack(
-                                alignment: Alignment.topRight,
-                                children: [
-                                  Icon(Icons.notifications_outlined,
-                                      color: Colors.white, size: 26),
-                                  // Add badge if needed
-                                ],
-                              ),
-                              const SizedBox(width: 12),
-                              // Coin Icon & Count
                               Image.asset(
-                                'assets/images/mCoin.png',
-                                width: 25,
-                                height: 25,
+                                'assets/icons/alev.png',
+                                width: 20,
+                                height: 20,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                userCoins?.toStringAsFixed(2) ??
-                                    '0.00', // Format to 2 decimal places
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14),
-                              ),
-                              const SizedBox(width: 12),
-                              // Streak Icon & Count - Simpler error/loading
-                              const Icon(Icons.local_fire_department,
-                                  color: Colors.deepOrangeAccent, size: 22),
+
                               const SizedBox(width: 4),
                               userStreakAsync.maybeWhen(
                                 data: (streak) => Text(
@@ -560,6 +609,42 @@ class _HomePageState extends ConsumerState<HomePage> {
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14),
                                 ),
+                              ),
+
+                              const SizedBox(width: 4),
+
+                              // Coin Icon & Count
+                              Image.asset(
+                                'assets/images/mCoin.png',
+                                width: 25,
+                                height: 25,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                userCoins?.toStringAsFixed(2) ??
+                                    '0.00', // Format to 2 decimal places
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14),
+                              ),
+
+                              Stack(
+                                alignment: Alignment.topRight,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  HelpScreen()));
+                                    },
+                                    icon: Icon(Icons.info_outline,
+                                        color: Colors.white, size: 20),
+                                  ),
+                                  // Add badge if needed
+                                ],
                               ),
                             ],
                           ),
@@ -822,7 +907,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     child: Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: SelectableText(
-                                        'Ürünler yüklenemedi: $error',
+                                        'Ürünler yüklenemedi.',
                                         style: const TextStyle(
                                             color: Colors.redAccent),
                                         textAlign: TextAlign.center,
@@ -1020,6 +1105,25 @@ class _HomePageState extends ConsumerState<HomePage> {
         },
       ),
     );
+  }
+
+  // --- YENİ: Popup gösterme fonksiyonu ---
+  void _showCoinPopup(BuildContext context, double coins) {
+    // Zaten bir dialog açık mı kontrol et (isteğe bağlı, çift popup engelleme)
+    if (ModalRoute.of(context)?.isCurrent ?? false) {
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
+        builder: (BuildContext dialogContext) {
+          return EarnCoinPopup(
+            earnedCoin: coins,
+            onGoHomePressed: () {
+              Navigator.of(dialogContext).pop(); // Sadece popup'ı kapat
+            },
+          );
+        },
+      );
+    }
   }
 }
 

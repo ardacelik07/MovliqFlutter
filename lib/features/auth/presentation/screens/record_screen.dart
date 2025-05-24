@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb;
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:flutter/foundation.dart';
@@ -12,6 +12,12 @@ import '../providers/record_provider.dart';
 import '../providers/user_data_provider.dart';
 import '../providers/recording_state_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/earn_coin_widget.dart';
+import '../screens/tabs.dart';
+import './record_stats_screen.dart';
+import 'package:flutter/services.dart';
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -24,239 +30,53 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     with SingleTickerProviderStateMixin {
   bool _isRecording = false;
   bool _isPaused = false;
+  bool _showStatsScreen = false;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
-  // Timer related properties
   int _seconds = 0;
   Timer? _timer;
+  Timer? _calorieCalculationTimer;
   double _distance = 0.0;
   int _calories = 0;
   double _pace = 0.0;
   DateTime? _startTime;
 
-  // Selected activity type
   String _activityType = 'Running';
 
-  // Google Maps related properties
-  GoogleMapController? _mapController;
-  Position? _currentPosition;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
-  List<LatLng> _routeCoordinates = [];
-  bool _hasLocationPermission = false;
-  StreamSubscription<Position>? _positionStreamSubscription;
+  mb.MapboxMap? _mapboxMap;
+  mb.PointAnnotationManager? _pointAnnotationManager;
+  mb.PolylineAnnotationManager? _polylineAnnotationManager;
+  List<mb.Point> _mapboxRouteCoordinates = [];
+  mb.Point? _currentMapboxPoint;
+  mb.PointAnnotation? _currentLocationMarker;
+  Uint8List? _maleMarkerIcon;
+  Uint8List? _femaleMarkerIcon;
 
-  // Pedometer related properties
+  bool _hasLocationPermission = false;
+
   int _steps = 0;
   int _initialSteps = 0;
   StreamSubscription<StepCount>? _stepCountSubscription;
   bool _hasPedometerPermission = false;
 
-  // Hareketsiz durumdaki kalori hesaplaması için değişkenler
   double _lastDistance = 0.0;
   int _lastSteps = 0;
   DateTime? _lastCalorieCalculationTime;
 
-  // Add state for map style and the style JSON itself
-  bool _isMapStyleSet = false;
-  final String _darkMapStyleJson = '''
-[
-  {
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#212121"
-      }
-    ]
-  },
-  {
-    "elementType": "labels.icon",
-    "stylers": [
-      {
-        "visibility": "on"
-      }
-    ]
-  },
-  {
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "elementType": "labels.text.stroke",
-    "stylers": [
-      {
-        "color": "#212121"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative.country",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#9e9e9e"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative.land_parcel",
-    "stylers": [
-      {
-        "visibility": "off"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative.locality",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#bdbdbd"
-      }
-    ]
-  },
-  {
-    "featureType": "poi",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#181818"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#616161"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "labels.text.stroke",
-    "stylers": [
-      {
-        "color": "#1b1b1b"
-      }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry.fill",
-    "stylers": [
-      {
-        "color": "#2c2c2c"
-      }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#8a8a8a"
-      }
-    ]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#373737"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#3c3c3c"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway.controlled_access",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#4e4e4e"
-      }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#616161"
-      }
-    ]
-  },
-  {
-    "featureType": "transit",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "featureType": "water",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#000000"
-      }
-    ]
-  },
-  {
-    "featureType": "water",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#3d3d3d"
-      }
-    ]
-  }
-]
-''';
-
-  static const CameraPosition _initialCameraPosition = CameraPosition(
-    target: LatLng(41.0082, 28.9784), // İstanbul koordinatları (varsayılan)
-    zoom: 15,
+  final mb.CameraOptions _initialCameraOptions = mb.CameraOptions(
+    center: mb.Point(coordinates: mb.Position(28.9784, 41.0082)),
+    zoom: 12.0,
   );
+
+  geo.Position? _currentGeoPosition;
+  StreamSubscription<geo.Position>? _positionStreamSubscriptionGeo;
 
   @override
   void initState() {
     super.initState();
+    _loadMarkerImage();
+
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -272,10 +92,35 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }
       });
 
-    // İzinleri başlat - hafif bir gecikmeyle (ekranın önce yüklenmesine izin ver)
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
         _initPermissions();
+      }
+    });
+
+    // Listen to userDataProvider for gender changes
+    // Ensure this is called after _pointAnnotationManager and _mapboxMap are potentially initialized.
+    // It might be better to set up this listener after _onMapCreated or _onStyleLoaded.
+    // For now, we'll add a null check for managers.
+    ref.listenManual(userDataProvider, (previous, next) {
+      final prevGender = previous?.value?.gender;
+      final String? nextGender = next.value?.gender;
+
+      debugPrint(
+          'RecordScreen: userDataProvider listener triggered. Prev gender: $prevGender, Next gender: $nextGender');
+
+      // Check if gender actually changed or became available
+      if (prevGender != nextGender && nextGender != null) {
+        debugPrint(
+            'RecordScreen: Gender changed from $prevGender to $nextGender or became available. Attempting to update marker icon.');
+        if (_pointAnnotationManager != null && _mapboxMap != null) {
+          // Ensure map and manager are ready
+          // Call async function without awaiting, or make listener async if needed
+          _updateMarkerIconForGenderChange();
+        } else {
+          debugPrint(
+              'RecordScreen: userDataProvider listener - map or annotation manager not ready for icon update.');
+        }
       }
     });
   }
@@ -284,37 +129,58 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   void dispose() {
     _pulseController.dispose();
     _timer?.cancel();
-    _positionStreamSubscription?.cancel();
+    _calorieCalculationTimer?.cancel();
+    _positionStreamSubscriptionGeo?.cancel();
     _stepCountSubscription?.cancel();
-    _mapController?.dispose();
+    _mapboxMap?.dispose();
     super.dispose();
   }
 
-  // Tüm izinleri başlatan fonksiyon
-  Future<void> _initPermissions() async {
-    print('RecordScreen - İzin kontrolü başlatılıyor...');
-    
-    // --- Bildirim İzni İsteği (Android 13+) ---
-    if (Platform.isAndroid) {
-      // Cihazın SDK versiyonunu almak için device_info_plus gerekebilir,
-      // ancak permission_handler genellikle bunu kendi içinde yönetir.
-      // Direkt olarak izni isteyebiliriz.
-      final notificationStatus = await Permission.notification.request();
-      print('Bildirim İzin Durumu: $notificationStatus');
-      if (notificationStatus.isPermanentlyDenied) {
-        // Kullanıcı kalıcı olarak reddettiyse ayarlara yönlendirme gösterilebilir.
-        // _showSettingsDialog("Bildirim İzni", "Uygulamanın bildirim gönderebilmesi için izin gereklidir.");
-      } else if (notificationStatus.isDenied) {
-        // Kullanıcı reddettiyse, belki bir açıklama gösterilebilir.
-        print('Bildirim izni reddedildi.');
-      }
+  void _finishRecordingAndHideStats() {
+    _finishRecording();
+    if (mounted) {
+      setState(() {
+        _showStatsScreen = false;
+      });
     }
-    // --- Bildirim İzni İsteği Bitişi ---
+  }
 
-    // Konum servislerinin açık olup olmadığını kontrol et
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  Future<void> _loadMarkerImage() async {
+    try {
+      final ByteData maleByteData =
+          await rootBundle.load('assets/images/mapbox.png');
+      _maleMarkerIcon = maleByteData.buffer.asUint8List();
+      debugPrint('RecordScreen: _loadMarkerImage - Male marker icon LOADED.');
+
+      final ByteData femaleByteData =
+          await rootBundle.load('assets/icons/locaitonwomen.webp');
+      _femaleMarkerIcon = femaleByteData.buffer.asUint8List();
+      debugPrint('RecordScreen: _loadMarkerImage - Female marker icon LOADED.');
+
+      if (mounted) {
+        setState(() {});
+        // If a marker already exists and icons just loaded, try to update it
+        if (_currentLocationMarker != null && _pointAnnotationManager != null) {
+          debugPrint(
+              'RecordScreen: Icons loaded after marker existed, attempting refresh.');
+          await _updateMarkerIconForGenderChange();
+        }
+      }
+    } catch (e) {
+      debugPrint(
+          'RecordScreen: _loadMarkerImage - Özel işaretçi yüklenirken HATA: $e');
+    }
+  }
+
+  Future<void> _initPermissions() async {
+    if (Platform.isAndroid) {
+      final notificationStatus = await Permission.notification.request();
+      if (notificationStatus.isPermanentlyDenied) {
+      } else if (notificationStatus.isDenied) {}
+    }
+
+    bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Konum servisleri kapalıysa, kullanıcıyı uyar
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -323,46 +189,43 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           ),
         );
       }
-      // Konum servislerini açma isteği göster
-      await Geolocator.openLocationSettings();
+      await geo.Geolocator.openLocationSettings();
       return;
     }
 
-    // Önce izinleri kontrol et - zaten verilmişse istemek zorunda kalma
     if (Platform.isIOS) {
-      // iOS için Geolocator ile izin kontrolü
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.always || 
-          permission == LocationPermission.whileInUse) {
+      geo.LocationPermission permission =
+          await geo.Geolocator.checkPermission();
+      if (permission == geo.LocationPermission.always ||
+          permission == geo.LocationPermission.whileInUse) {
         setState(() {
           _hasLocationPermission = true;
         });
-        await _getCurrentLocation(); // Hemen konum almaya başla
+        await _getCurrentLocation();
       } else {
-        await _checkLocationPermission(); // İzin yoksa iste
+        await _checkLocationPermission();
       }
     } else {
-      // Android için Permission.locationAlways ile kontrol
       final status = await Permission.locationAlways.status;
       if (status.isGranted) {
         setState(() {
           _hasLocationPermission = true;
         });
-        await _getCurrentLocation(); // Hemen konum almaya başla
+        await _getCurrentLocation();
       } else {
-        await _checkLocationPermission(); // İzin yoksa iste
+        await _checkLocationPermission();
       }
     }
-    
-    // Aktivite izinlerini de kontrol et
+
     await _checkActivityPermission();
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
-  // Aktivite izinlerini kontrol eden fonksiyon
   Future<void> _checkActivityPermission() async {
-    // Platform-specific permission checks
     if (Platform.isAndroid) {
-      // Android'de adım sayar iznini kontrol et
       if (await Permission.activityRecognition.request().isGranted) {
         setState(() {
           _hasPedometerPermission = true;
@@ -370,242 +233,152 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _initPedometer();
       }
     } else if (Platform.isIOS) {
-      // iOS için pedometer'ı her koşulda başlatmayı deneyelim
       setState(() {
         _hasPedometerPermission = true;
       });
-      
+
       try {
-        // Pedometer'ı başlatmayı dene
         _initPedometer();
-        
-        // Sensör iznini kontrol et ve iste
-        final sensorStatus = await Permission.sensors.request();
-        print('RecordScreen - iOS sensör izin durumu: $sensorStatus');
-        
-        // HealthKit izinlerinin verilip verilmediğini kontrol etmek için
-        // adım sayma stream'ini dinlemeye başla ve 3 saniye bekle
+        await Permission.sensors.request();
         bool stepsAvailable = false;
         final subscription = Pedometer.stepCountStream.listen((step) {
-          print('RecordScreen - Adım algılandı: ${step.steps}');
           stepsAvailable = true;
-          // Eğer adım algılanırsa, artık Health izni var demektir
           setState(() {
             _hasPedometerPermission = true;
           });
-        }, onError: (error) {
-          print('RecordScreen - Adım algılama hatası: $error');
-        });
-        
-        // 3 saniye bekle, eğer bu sürede step eventi gelmezse:
+        }, onError: (error) {});
+
         await Future.delayed(const Duration(seconds: 3));
         subscription.cancel();
-        
-        // Eğer adım bilgisi alınamadıysa ve daha önce dialog gösterilmediyse Health app'e yönlendir
-        if (!stepsAvailable && mounted) {
-          _showHealthKitDialog();
-        }
+
+        if (!stepsAvailable && mounted) {}
       } catch (e) {
-        print('RecordScreen - Pedometer başlatma hatası: $e');
-        // Hata durumunda dialog göster
-        if (mounted) {
-          _showHealthKitDialog();
-        }
+        if (mounted) {}
       }
     }
   }
 
-  // Health Kit izni için özel dialog (iOS)
-  void _showHealthKitDialog() {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Health İzni Gerekli'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Adım sayınızı takip edebilmek için Apple Health uygulamasında izin vermelisiniz:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            const Text('1. iPhone\'unuzda "Sağlık" (Health) uygulamasını açın'),
-            const SizedBox(height: 8),
-            const Text('2. Alt kısımda "İndeks" (Browse) sekmesine tıklayın'),
-            const SizedBox(height: 8),
-            const Text('3. Sağ üstteki profil simgesine tıklayın'),
-            const SizedBox(height: 8),
-            const Text('4. "Veri Kaynakları ve Erişim" (Data Sources & Access) seçeneğine tıklayın'),
-            const SizedBox(height: 8),
-            const Text('5. "Uygulamalar" (Apps) listesinden bu uygulamayı bulun'),
-            const SizedBox(height: 8),
-            const Text('6. "Açık ve Kapalı" (Turn On/Off) kısmından aşağıdaki izinleri açın:'),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('• Adımlar (Steps)'),
-                  Text('• Yürüme + Koşma Mesafesi (Walking + Running Distance)'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'İzinleri verdikten sonra bu uygulamaya dönün ve tekrar deneyin.',
-              style: TextStyle(fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Sağlık Uygulamasını Aç'),
-            onPressed: () async {
-              Navigator.of(context).pop();
-              // Health Kit ayarlarına doğrudan erişilemez, Sağlık uygulamasını açmak için URL Schemes kullan
-              final url = Uri.parse('x-apple-health://');
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url);
-              } else {
-                openAppSettings();
-              }
-            },
-          ),
-          TextButton(
-            child: const Text('Daha Sonra'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Konum izinlerini kontrol eden fonksiyon
   Future<void> _checkLocationPermission() async {
-    print('RecordScreen - Konum izni kontrolü başlatılıyor...');
-    
     if (Platform.isIOS) {
-      // iOS için: Geolocator'ı doğrudan kullan (daha iyi çalışıyor)
-      LocationPermission permission = await Geolocator.checkPermission();
-      print('RecordScreen - iOS konum izni durumu: $permission');
-      
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        print('RecordScreen - iOS konum izni istendikten sonra: $permission');
+      geo.LocationPermission permission =
+          await geo.Geolocator.checkPermission();
+
+      if (permission == geo.LocationPermission.denied) {
+        permission = await geo.Geolocator.requestPermission();
       }
-      
-      // LocationPermission.whileInUse ve LocationPermission.always her ikisi de yeterli
+
       setState(() {
-        _hasLocationPermission = permission == LocationPermission.whileInUse || 
-                                 permission == LocationPermission.always;
+        _hasLocationPermission =
+            permission == geo.LocationPermission.whileInUse ||
+                permission == geo.LocationPermission.always;
       });
-      
-      print('RecordScreen - iOS konum izni var mı?: $_hasLocationPermission');
-      
+
       if (_hasLocationPermission) {
-        // İzin varsa konumu al
         await _getCurrentLocation();
-      } else if (permission == LocationPermission.denied || 
-                 permission == LocationPermission.deniedForever) {
-        _showLocationPermissionDeniedDialog();
-      }
+      } else if (permission == geo.LocationPermission.denied ||
+          permission == geo.LocationPermission.deniedForever) {}
     } else {
-      // Android için: Permission.locationAlways kullanmaya devam et
       final status = await Permission.locationAlways.status;
-      print('RecordScreen - Android konum izni durumu: $status');
-      
-      // Eğer izin henüz verilmemişse iste
+
       if (!status.isGranted && !status.isLimited) {
         final requestedStatus = await Permission.locationAlways.request();
-        print('RecordScreen - Android izin istendikten sonra: $requestedStatus');
-        
+
         setState(() {
-          _hasLocationPermission = requestedStatus.isGranted || requestedStatus.isLimited;
+          _hasLocationPermission =
+              requestedStatus.isGranted || requestedStatus.isLimited;
         });
-        
-        if (!_hasLocationPermission && (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied)) {
-          _showLocationPermissionDeniedDialog();
-        }
+
+        if (!_hasLocationPermission &&
+            (requestedStatus.isDenied ||
+                requestedStatus.isPermanentlyDenied)) {}
       } else {
         setState(() {
           _hasLocationPermission = true;
         });
       }
-      
-      print('RecordScreen - Android konum izni var mı?: $_hasLocationPermission');
-      
+
       if (_hasLocationPermission) {
-        // İzin varsa konumu al
         await _getCurrentLocation();
       }
     }
   }
 
-  // Kullanıcı izin vermediğinde gösterilecek dialog (Opsiyonel)
-  void _showLocationPermissionDeniedDialog() {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Konum İzni Gerekli'),
-        content: const Text(
-            'Yarış veya kayıt sırasında mesafenizi arka planda doğru ölçebilmek için "Her Zaman İzin Ver" konum izni gereklidir. Lütfen uygulama ayarlarından bu izni verin.'),
-        actions: [
-          TextButton(
-            child: const Text('Ayarları Aç'),
-            onPressed: () {
-              openAppSettings(); // Open app settings
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: const Text('İptal'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Mevcut konumu al ve haritayı oraya taşı
   Future<void> _getCurrentLocation() async {
     try {
-      print('Konum alınıyor...');
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+      geo.Position position = await geo.Geolocator.getCurrentPosition(
+          desiredAccuracy: geo.LocationAccuracy.high);
 
-      print('Konum alındı: ${position.latitude}, ${position.longitude}');
+      _currentGeoPosition = position;
+      _currentMapboxPoint = mb.Point(
+          coordinates: mb.Position(position.longitude, position.latitude));
 
-      setState(() {
-        _currentPosition = position;
+      if (_currentLocationMarker != null &&
+          _pointAnnotationManager != null &&
+          _currentMapboxPoint != null) {
+        try {
+          _currentLocationMarker!.geometry = _currentMapboxPoint!;
+          await _pointAnnotationManager!.update(_currentLocationMarker!);
+        } catch (e) {
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - İşaretçi güncellenirken HATA: $e');
+        }
+      } else if (_currentMapboxPoint != null &&
+          _pointAnnotationManager != null) {
+        if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
+          await _loadMarkerImage();
+        }
+        final Uint8List? selectedMarkerIconBytes = _getCurrentMarkerIconBytes();
 
-        // Haritaya mevcut konum için marker ekle
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position: LatLng(position.latitude, position.longitude),
-            infoWindow: const InfoWindow(title: 'Konumunuz'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
+        if (selectedMarkerIconBytes == null) {
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - Seçilen işaretçi resmi yüklenemedi veya bulunamadı.');
+          return;
+        }
+
+        try {
+          _currentLocationMarker = await _pointAnnotationManager!.create(
+            mb.PointAnnotationOptions(
+              geometry: _currentMapboxPoint!,
+              image: selectedMarkerIconBytes,
+              iconSize:
+                  selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
+            ),
+          );
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - Marker created. Icon was: ${selectedMarkerIconBytes == _femaleMarkerIcon ? "FEMALE" : (selectedMarkerIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
+        } catch (e) {
+          debugPrint(
+              'RecordScreen: _getCurrentLocation - Yeni işaretçi oluşturulurken HATA: $e');
+        }
+      }
+
+      if (_mapboxMap != null && _currentMapboxPoint != null) {
+        await _mapboxMap!.flyTo(
+          mb.CameraOptions(
+            center: _currentMapboxPoint!,
+            zoom: 17.0,
           ),
+          mb.MapAnimationOptions(duration: 1500, startDelay: 0),
         );
+      }
 
-        // Rota listesine başlangıç noktası olarak ekle
-        _routeCoordinates.add(LatLng(position.latitude, position.longitude));
-      });
+      if (mounted) {
+        setState(() {});
+      }
 
-      // Harita varsa kamerayı kullanıcının konumuna getir
-      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-          LatLng(position.latitude, position.longitude), 18));
+      if (!_isRecording &&
+          _mapboxRouteCoordinates.isEmpty &&
+          _currentMapboxPoint != null) {
+        _mapboxRouteCoordinates.add(_currentMapboxPoint!);
+      }
     } catch (e) {
-      print('Konum alınamadı: $e');
+      debugPrint('RecordScreen: _getCurrentLocation genel HATA: $e');
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
-  // Konum takibini başlat
   void _startLocationTracking() {
     if (!_hasLocationPermission) {
       _checkLocationPermission();
@@ -613,122 +386,133 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }
 
     try {
-      print('Konum takibi başlatılıyor...');
-
-      // --- Platforma Özel LocationSettings ---
-      LocationSettings locationSettings;
-
+      geo.LocationSettings locationSettings;
       if (Platform.isAndroid) {
-        locationSettings = AndroidSettings(
-          accuracy: LocationAccuracy.high,
+        locationSettings = geo.AndroidSettings(
+          accuracy: geo.LocationAccuracy.high,
           distanceFilter: 5,
-          // intervalDuration: const Duration(seconds: 10), // Optional
-          foregroundNotificationConfig: const ForegroundNotificationConfig(
+          foregroundNotificationConfig: const geo.ForegroundNotificationConfig(
               notificationText:
                   "Movliq aktivitenizi kaydederken konumunuzu takip ediyor.",
               notificationTitle: "Movliq Kayıt Devam Ediyor",
               enableWakeLock: true,
-              notificationIcon: AndroidResource(
-                  name: 'launcher_icon', defType: 'mipmap') // App icon
-              ),
+              notificationIcon: geo.AndroidResource(
+                  name: 'launcher_icon', defType: 'mipmap')),
         );
       } else if (Platform.isIOS) {
-        locationSettings = AppleSettings(
-          accuracy: LocationAccuracy.high,
-          activityType: ActivityType.fitness, // Specify activity type
+        locationSettings = geo.AppleSettings(
+          accuracy: geo.LocationAccuracy.high,
+          activityType: geo.ActivityType.fitness,
           distanceFilter: 5,
-          pauseLocationUpdatesAutomatically:
-              false, // Prevent iOS from pausing updates
-          showBackgroundLocationIndicator:
-              true, // Show blue indicator bar on iOS
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
         );
       } else {
-        // Default settings for other platforms
-        locationSettings = const LocationSettings(
-          accuracy: LocationAccuracy.high,
+        locationSettings = const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.high,
           distanceFilter: 5,
         );
       }
-      // --- Platforma Özel LocationSettings Bitişi ---
 
-      // En az 5 metrede bir konum güncellemesi al
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        // Güncellenmiş locationSettings'i kullan
+      _positionStreamSubscriptionGeo = geo.Geolocator.getPositionStream(
         locationSettings: locationSettings,
-      ).listen((Position position) {
-        print('Konum güncellendi: ${position.latitude}, ${position.longitude}');
+      ).listen((geo.Position position) {
         if (mounted && _isRecording && !_isPaused) {
-          // Only update if recording and not paused
+          final newMapboxPoint = mb.Point(
+              coordinates: mb.Position(position.longitude, position.latitude));
+
           setState(() {
-            // Eski konum varsa, iki nokta arasındaki mesafeyi hesapla
-            if (_currentPosition != null) {
-              double newDistance = Geolocator.distanceBetween(
-                _currentPosition!.latitude,
-                _currentPosition!.longitude,
+            if (_currentGeoPosition != null) {
+              double newDistance = geo.Geolocator.distanceBetween(
+                _currentGeoPosition!.latitude,
+                _currentGeoPosition!.longitude,
                 position.latitude,
                 position.longitude,
               );
-
-              // Kilometre cinsine çevirip toplam mesafeye ekle
               _distance += newDistance / 1000;
             }
 
-            _currentPosition = position;
+            _currentGeoPosition = position;
+            _currentMapboxPoint = newMapboxPoint;
+            _mapboxRouteCoordinates.add(newMapboxPoint);
 
-            // Rota listesine yeni konum ekle
-            LatLng newPosition = LatLng(position.latitude, position.longitude);
-            _routeCoordinates.add(newPosition);
+            if (_pointAnnotationManager != null &&
+                _currentLocationMarker != null) {
+              debugPrint(
+                  'RecordScreen: _startLocationTracking - Mevcut işaretçi (${_currentLocationMarker?.id}) güncelleniyor. Yeni Point: ${newMapboxPoint.encode()}');
+              _pointAnnotationManager
+                  ?.update(_currentLocationMarker!..geometry = newMapboxPoint)
+                  .then((_) => debugPrint(
+                      'RecordScreen: _startLocationTracking - İşaretçi GÜNCELLENDİ.'))
+                  .catchError((e) => debugPrint(
+                      "RecordScreen: _startLocationTracking - İşaretçi güncellerken HATA: $e"));
+            } else if (_pointAnnotationManager != null &&
+                _currentLocationMarker == null) {
+              debugPrint(
+                  'RecordScreen: _startLocationTracking - Yeni özel işaretçi oluşturuluyor. Point: ${newMapboxPoint.encode()}');
+              final Uint8List? selectedMarkerIconBytes =
+                  _getCurrentMarkerIconBytes();
+              if (selectedMarkerIconBytes != null) {
+                _pointAnnotationManager
+                    ?.create(mb.PointAnnotationOptions(
+                  geometry: newMapboxPoint,
+                  image: selectedMarkerIconBytes,
+                  iconSize: selectedMarkerIconBytes == _femaleMarkerIcon
+                      ? 0.20
+                      : 0.15,
+                ))
+                    .then((annotation) {
+                  _currentLocationMarker = annotation;
+                  debugPrint(
+                      'RecordScreen: _startLocationTracking - Yeni işaretçi OLUŞTURULDU. ID: ${annotation.id}. Icon was: ${selectedMarkerIconBytes == _femaleMarkerIcon ? "FEMALE" : (selectedMarkerIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
+                }).catchError((e) => debugPrint(
+                        "RecordScreen: _startLocationTracking - Takip sırasında işaretçi oluşturulurken HATA: $e"));
+              }
+            }
 
-            // Marker pozisyonunu güncelle
-            _markers = {
-              Marker(
-                markerId: const MarkerId('currentLocation'),
-                position: newPosition,
-                infoWindow: const InfoWindow(title: 'Konumunuz'),
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen),
-              )
-            };
+            if (_polylineAnnotationManager != null &&
+                _mapboxRouteCoordinates.length > 1) {
+              _polylineAnnotationManager?.deleteAll().catchError(
+                  (e) => debugPrint("Error deleting polylines: $e"));
+              _polylineAnnotationManager
+                  ?.create(mb.PolylineAnnotationOptions(
+                    geometry: mb.LineString(
+                        coordinates: _mapboxRouteCoordinates
+                            .map((p) => p.coordinates)
+                            .toList()),
+                    lineColor: const Color(0xFFC4FF62).value,
+                    lineWidth: 5.0,
+                  ))
+                  .catchError((e) => debugPrint("Error creating polyline: $e"));
+            }
 
-            // Polyline'ı güncelle
-            _polylines = {
-              Polyline(
-                polylineId: const PolylineId('route'),
-                points: _routeCoordinates,
-                color: const Color(0xFFC4FF62),
-                width: 5,
-              )
-            };
-
-            // Harita varsa kamerayı kullanıcının konumuna getir
-            _mapController?.animateCamera(CameraUpdate.newLatLng(newPosition));
+            _mapboxMap?.flyTo(mb.CameraOptions(center: newMapboxPoint),
+                mb.MapAnimationOptions(duration: 500));
           });
         }
       }, onError: (e) {
-        print('Konum takibi hatası: $e');
+        debugPrint('Konum takibi hatası: $e');
       });
     } catch (e) {
-      print('Konum takibi başlatma hatası: $e');
+      debugPrint('Konum takibi başlatma hatası: $e');
     }
   }
 
-  // Konum takibini durdur
   void _stopLocationTracking() {
-    _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = null;
+    _positionStreamSubscriptionGeo?.cancel();
+    _positionStreamSubscriptionGeo = null;
   }
 
   void _toggleRecording() {
     if (_isRecording) {
-      // Finishing recording
       _finishRecording();
     } else {
-      // Starting recording
       _startRecording();
     }
   }
 
   void _startRecording() {
+    debugPrint('RecordScreen: _startRecording çağrıldı.');
     setState(() {
       _isRecording = true;
       _isPaused = false;
@@ -739,42 +523,37 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _seconds = 0;
       _calories = 0;
       _pace = 0.0;
-      _routeCoordinates = [];
-      _polylines = {};
+      _mapboxRouteCoordinates = [];
+      _polylineAnnotationManager?.deleteAll().catchError(
+          (e) => debugPrint("Error deleting polylines on start: $e"));
+      if (_currentLocationMarker != null) {
+        _pointAnnotationManager?.delete(_currentLocationMarker!).catchError(
+            (e) => debugPrint("Error deleting marker on start: $e"));
+        _currentLocationMarker = null;
+      }
       _lastCalorieCalculationTime = null;
-
       _pulseController.forward();
-
-      // Start timer
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (!_isPaused && _isRecording) {
           setState(() {
             _seconds++;
-            // Her 10 saniyede bir kalori hesapla
-            if (_seconds % 10 == 0) {
-              _calculateCalories();
-              // Calculate pace (km/h)
-              _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
-            }
+            _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
           });
         }
       });
-
-      // Start GPS tracking
+      _initializeCalorieCalculation();
       _startLocationTracking();
-      // Start pedometer if permission granted
       if (_hasPedometerPermission) {
         _initPedometer();
       }
     });
-    // Notify the state provider
     ref
         .read(recordStateProvider.notifier)
         .startRecording(_forceStopAndResetActivity);
   }
 
   void _finishRecording() {
-    // Save final values before resetting
+    debugPrint('RecordScreen: _finishRecording çağrıldı.');
     final int finalDuration = _seconds;
     final double finalDistance = _distance;
     final int finalCalories = _calories;
@@ -782,7 +561,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     final int averageSpeed = _pace.toInt();
     final DateTime recordStartTime = _startTime ?? DateTime.now();
 
-    // Create and submit the record request
     _submitRecordData(
       duration: finalDuration,
       distance: finalDistance,
@@ -794,48 +572,36 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
     setState(() {
       _isRecording = false;
+      _isPaused = false;
       _pulseController.stop();
       _pulseController.reset();
 
-      // Stop timer
       _timer?.cancel();
-
-      // Stop GPS tracking
+      _calorieCalculationTimer?.cancel();
       _stopLocationTracking();
 
-      // Reset activity data
       _seconds = 0;
       _distance = 0.0;
       _calories = 0;
       _pace = 0.0;
       _steps = 0;
+      _initialSteps = 0;
       _startTime = null;
+      _lastCalorieCalculationTime = null;
 
-      // Clear map route data
-      _routeCoordinates = [];
-      _polylines = {};
+      _mapboxRouteCoordinates = [];
+      _polylineAnnotationManager?.deleteAll().catchError(
+          (e) => debugPrint("Error deleting polylines on finish: $e"));
 
-      // Clear markers except current location
-      if (_currentPosition != null) {
-        _markers = {
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position:
-                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-            infoWindow: const InfoWindow(title: 'Konumunuz'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
-          )
-        };
-      } else {
-        _markers = {};
+      if (_currentLocationMarker != null) {
+        _pointAnnotationManager?.delete(_currentLocationMarker!).catchError(
+            (e) => debugPrint("Error deleting marker on finish: $e"));
+        _currentLocationMarker = null;
       }
 
-      // Get current location again and center map on it
       _getCurrentLocation();
     });
 
-    // Notify the state provider
     ref.read(recordStateProvider.notifier).stopRecording();
   }
 
@@ -857,7 +623,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     );
 
     try {
-      // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Aktiviteniz kaydediliyor...'),
@@ -865,20 +630,27 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         ),
       );
 
-      // Submit data to backend
       ref.read(recordSubmissionProvider(recordRequest).future).then(
-        (response) {
-          // Show success message
+        (response) async {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Aktivite başarıyla kaydedildi!'),
               backgroundColor: Colors.green,
             ),
           );
-          print("💰 Coins fetched after successful activity record.");
+
+          try {
+            final double earnedAmount =
+                await ref.read(recordEarnCoinProvider(distance).future);
+
+            if (earnedAmount > 0 && mounted) {
+              _showCoinPopup(context, earnedAmount);
+            }
+          } catch (coinError) {
+            debugPrint("🪙 Coin Kazanma İsteği Hatası: $coinError");
+          }
         },
         onError: (error) {
-          // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Aktivite kaydedilemedi: ${error.toString()}'),
@@ -888,7 +660,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         },
       );
     } catch (e) {
-      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: ${e.toString()}'),
@@ -898,30 +669,24 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }
   }
 
-  // Duraklatma/devam etme fonksiyonu
   void _togglePause() {
+    debugPrint(
+        'RecordScreen: _togglePause çağrıldı. _isPaused: $_isPaused -> ${!_isPaused}');
     setState(() {
       _isPaused = !_isPaused;
 
       if (_isPaused) {
-        // Pause recording
         _pulseController.stop();
-        // Timer'ı durdurmuyoruz, _startRecording içindeki if kontrolü yeterli.
-        // _timer?.cancel();
-        // Konum takibi için de benzer bir mantık, _positionStreamSubscription.pause() daha iyi olabilir.
-        // Şimdilik _stopLocationTracking() ve _startLocationTracking() kalsın.
+        _calorieCalculationTimer?.cancel();
         _stopLocationTracking();
-        _stepCountSubscription?.pause(); // Pause pedometer
+        _stepCountSubscription?.pause();
       } else {
-        // Resume recording
         _pulseController.forward();
-        // Timer zaten devam ediyor.
-        // Resume location tracking
+        _initializeCalorieCalculation();
         _startLocationTracking();
-        _stepCountSubscription?.resume(); // Resume pedometer
+        _stepCountSubscription?.resume();
       }
     });
-    // recordStateProvider'a dokunmuyoruz, kayıt hala aktif (sadece duraklatıldı).
   }
 
   void _selectActivityType(String type) {
@@ -930,7 +695,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _activityType = type;
       });
     } else {
-      // Maybe show a snackbar that activity can't be changed while recording
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Kayıt sırasında aktivite türü değiştirilemez'),
@@ -948,7 +712,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  // Helper method for building stat columns
   Widget _buildStatColumn(String value, String label) {
     return Column(
       children: [
@@ -970,19 +733,17 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     );
   }
 
-  // Helper method for building stat displays with icon
   Widget _buildStat({
-    required IconData icon,
+    required String iconAsset,
     required String value,
     required String unit,
-    required Color iconColor,
   }) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: iconColor,
-          size: 26,
+        Image.asset(
+          iconAsset,
+          width: 26,
+          height: 26,
         ),
         const SizedBox(width: 8),
         Column(
@@ -1011,383 +772,398 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // --- Map Area with Dark Style Handling ---
-          Stack(
-            children: [
-              // Black background to prevent white flash
-              Container(color: Colors.black),
-              _hasLocationPermission
-                  ? AnimatedOpacity(
-                      opacity: _isMapStyleSet ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 300),
-                      child: GoogleMap(
-                        mapType: MapType.normal,
-                        initialCameraPosition: _initialCameraPosition,
-                        myLocationEnabled: true,
-                        myLocationButtonEnabled: false,
-                        zoomControlsEnabled: false,
-                        compassEnabled: true,
-                        markers: _markers,
-                        polylines: _polylines,
-                        onMapCreated: (GoogleMapController controller) async {
-                          _mapController = controller;
-                          try {
-                            print("Applying dark map style...");
-                            await _mapController
-                                ?.setMapStyle(_darkMapStyleJson);
-                            print("Dark map style applied successfully.");
-                            if (mounted) {
-                              setState(() {
-                                _isMapStyleSet = true;
-                              });
-                            }
-                          } catch (e) {
-                            print("Error applying map style: $e");
-                            // If style fails, still show the map
-                            if (mounted) {
-                              setState(() {
-                                _isMapStyleSet = true;
-                              });
-                            }
-                          }
-                          // Get location AFTER style attempt
-                          if (_hasLocationPermission && mounted) {
-                            await _getCurrentLocation();
-                          }
-                        },
-                      ),
-                    )
-                  : Container(
-                      // Placeholder if no location permission
-                      color: Colors.grey[850], // Dark grey placeholder
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.location_off,
-                                size: 48, color: Colors.grey),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Konum izni gerekiyor',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey,
-                              ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: const Color(0xFF121212),
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        body: Stack(
+          children: [
+            if (!(_isRecording && _showStatsScreen))
+              Stack(
+                children: [
+                  Container(color: Colors.black),
+                  _hasLocationPermission
+                      ? mb.MapWidget(
+                          key: const ValueKey("mapbox_map_record"),
+                          styleUri: mb.MapboxStyles.STANDARD,
+                          cameraOptions: (_currentMapboxPoint != null)
+                              ? mb.CameraOptions(
+                                  center: _currentMapboxPoint!, zoom: 17.0)
+                              : _initialCameraOptions,
+                          onMapCreated: _onMapCreated,
+                          onScrollListener: null,
+                          onTapListener: null,
+                          onStyleLoadedListener: _onStyleLoadedListener,
+                        )
+                      : Container(
+                          color: Colors.grey[850],
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.location_off,
+                                    size: 48, color: Colors.grey),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Konum izni gerekiyor',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: _initPermissions,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFC4FF62),
+                                    foregroundColor: Colors.black,
+                                  ),
+                                  child: const Text('İzin Ver'),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            ElevatedButton(
-                              onPressed: _initPermissions,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFC4FF62),
-                                foregroundColor: Colors.black,
-                              ),
-                              child: const Text('İzin Ver'),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-            ],
-          ),
-
-          // UI Elementleri
-          SafeArea(
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 2.0),
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(149, 0, 0, 0),
-                    borderRadius: BorderRadius.circular(16.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                ],
+              ),
+            _showStatsScreen
+                ? Column(
                     children: [
-                      // Title row with optional pause button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Running time',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Color.fromARGB(248, 255, 255, 255),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Large time display
-                      Text(
-                        _formatTime(_seconds),
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromARGB(221, 255, 255, 255),
+                      Expanded(
+                        child: RecordStatsScreen(
+                          durationSeconds: _seconds,
+                          distanceKm: _distance,
+                          steps: _steps,
+                          calories: _calories,
+                          isPaused: _isPaused,
+                          onPauseToggle: _togglePause,
+                          onLocationViewToggle: () {
+                            setState(() {
+                              _showStatsScreen = false;
+                            });
+                          },
+                          onFinishRecording: _finishRecordingAndHideStats,
                         ),
                       ),
-
-                      const SizedBox(height: 16),
-
-                      // Statistics row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // Distance
-                          _buildStat(
-                            icon: Icons.directions_run,
-                            value: _distance.toStringAsFixed(2),
-                            unit: 'km',
-                            iconColor: Colors.orange,
-                          ),
-
-                          // Calories
-                          _buildStat(
-                            icon: Icons.local_fire_department,
-                            value: _calories.toString(),
-                            unit: 'kcal',
-                            iconColor: Colors.red,
-                          ),
-                          const SizedBox(width: 8),
-
-                          // Steps
-                          _buildStat(
-                            icon: Icons.do_not_step_outlined,
-                            value: _steps.toString(),
-                            unit: 'steps',
-                            iconColor: Colors.green,
-                          ),
-
-                          // Pace
-                          _buildStat(
-                            icon: Icons.bolt,
-                            value: _pace.toStringAsFixed(1),
-                            unit: 'km/hr',
-                            iconColor: Colors.blue,
-                          ),
-                        ],
-                      ),
                     ],
-                  ),
-                ),
-
-                // Boş alan
-                const Spacer(),
-
-                // Butonlar ve Aktivite Seçimi
-                Column(
-                  children: [
-                    // Record Button and Pause Button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  )
+                : SafeArea(
+                    child: Column(
                       children: [
-                        // Record Button
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 8.0, horizontal: 8.0),
-                          child: GestureDetector(
-                            onTap: _toggleRecording,
-                            child: AnimatedBuilder(
-                              animation: _pulseAnimation,
-                              builder: (context, child) {
-                                return Transform.scale(
-                                  scale: _isRecording && !_isPaused
-                                      ? _pulseAnimation.value
-                                      : 1.0,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 70,
-                                        height: 70,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: _isRecording
-                                              ? Colors.red
-                                              : const Color(0xFFC4FF62),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: (_isRecording
-                                                      ? Colors.red
-                                                      : const Color(0xFFC4FF62))
-                                                  .withOpacity(0.5),
-                                              blurRadius:
-                                                  _isRecording ? 20 : 10,
-                                              spreadRadius:
-                                                  _isRecording ? 5 : 0,
-                                            ),
-                                          ],
-                                        ),
-                                        child: Icon(
-                                          _isRecording
-                                              ? Icons.stop
-                                              : Icons.fiber_manual_record,
-                                          color: Colors.black,
-                                          size: 35,
+                        if (!_isRecording && !_showStatsScreen)
+                          Container(
+                            margin: const EdgeInsets.only(
+                                bottom: 8.0, left: 16.0, right: 16.0, top: 8.0),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 6.0, horizontal: 12.0),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 0, 0, 0)
+                                  .withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(16.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildActivityTypeButton(
+                                    'Running',
+                                    Icons.directions_run,
+                                    _activityType == 'Running',
+                                    () => _selectActivityType('Running')),
+                                _buildActivityTypeButton(
+                                    'Walking',
+                                    Icons.directions_walk,
+                                    _activityType == 'Walking',
+                                    () => _selectActivityType('Walking')),
+                                _buildActivityTypeButton(
+                                    'Cycling',
+                                    Icons.directions_bike,
+                                    _activityType == 'Cycling',
+                                    () => _selectActivityType('Cycling')),
+                              ],
+                            ),
+                          ),
+                        if (_isRecording && !_showStatsScreen)
+                          Container(
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 8.0, vertical: 2.0),
+                            padding: const EdgeInsets.all(16.0),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(149, 0, 0, 0),
+                              borderRadius: BorderRadius.circular(16.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Running time',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color:
+                                            Color.fromARGB(248, 255, 255, 255),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _formatTime(_seconds),
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color.fromARGB(221, 255, 255, 255),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    _buildStat(
+                                      iconAsset: 'assets/icons/location.png',
+                                      value: _distance.toStringAsFixed(2),
+                                      unit: 'km',
+                                    ),
+                                    _buildStat(
+                                      iconAsset: 'assets/icons/alev.png',
+                                      value: _calories.toString(),
+                                      unit: 'kcal',
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildStat(
+                                      iconAsset: 'assets/icons/steps.png',
+                                      value: _steps.toString(),
+                                      unit: 'steps',
+                                    ),
+                                    _buildStat(
+                                      iconAsset: 'assets/icons/speed.png',
+                                      value: _pace.toStringAsFixed(1),
+                                      unit: 'km/hr',
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        const Spacer(),
+                        if (!_showStatsScreen)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20.0),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8.0, horizontal: 8.0),
+                                      child: GestureDetector(
+                                        onTap: _toggleRecording,
+                                        child: AnimatedBuilder(
+                                          animation: _pulseAnimation,
+                                          builder: (context, child) {
+                                            return Transform.scale(
+                                              scale: _isRecording && !_isPaused
+                                                  ? _pulseAnimation.value
+                                                  : 1.0,
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Container(
+                                                    width: 70,
+                                                    height: 70,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: _isRecording
+                                                          ? Colors.red
+                                                          : const Color(
+                                                              0xFFC4FF62),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: (_isRecording
+                                                                  ? Colors.red
+                                                                  : const Color(
+                                                                      0xFFC4FF62))
+                                                              .withOpacity(0.5),
+                                                          blurRadius:
+                                                              _isRecording
+                                                                  ? 20
+                                                                  : 10,
+                                                          spreadRadius:
+                                                              _isRecording
+                                                                  ? 5
+                                                                  : 0,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Icon(
+                                                      _isRecording
+                                                          ? Icons.stop
+                                                          : Icons
+                                                              .fiber_manual_record,
+                                                      color: Colors.black,
+                                                      size: 35,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black
+                                                          .withOpacity(0.6),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                    ),
+                                                    child: Text(
+                                                      _isRecording
+                                                          ? 'Finish'
+                                                          : 'Record',
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Container(
+                                    ),
+                                    if (_isRecording)
+                                      Padding(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.6),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        child: Text(
-                                          _isRecording ? 'Finish' : 'Record',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
+                                            vertical: 8.0, horizontal: 8.0),
+                                        child: GestureDetector(
+                                          onTap: _togglePause,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                width: 70,
+                                                height: 70,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: _isPaused
+                                                      ? const Color(0xFF4CAF50)
+                                                      : Colors.amber,
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: (_isPaused
+                                                              ? const Color(
+                                                                  0xFF4CAF50)
+                                                              : Colors.amber)
+                                                          .withOpacity(0.5),
+                                                      blurRadius: 10,
+                                                      spreadRadius: 0,
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Icon(
+                                                  _isPaused
+                                                      ? Icons.play_arrow
+                                                      : Icons.pause,
+                                                  color: Colors.black,
+                                                  size: 35,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withOpacity(0.6),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                                child: Text(
+                                                  _isPaused
+                                                      ? 'Resume'
+                                                      : 'Pause',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-
-                        // Pause Button - only visible when recording
-                        if (_isRecording)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 8.0, horizontal: 8.0),
-                            child: GestureDetector(
-                              onTap: _togglePause,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 70,
-                                    height: 70,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: _isPaused
-                                          ? const Color(0xFF4CAF50)
-                                          : Colors.amber,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: (_isPaused
-                                                  ? const Color(0xFF4CAF50)
-                                                  : Colors.amber)
-                                              .withOpacity(0.5),
-                                          blurRadius: 10,
-                                          spreadRadius: 0,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      _isPaused
-                                          ? Icons.play_arrow
-                                          : Icons.pause,
-                                      color: Colors.black,
-                                      size: 35,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.6),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      _isPaused ? 'Resume' : 'Pause',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                       ],
                     ),
-
-                    // Activity Type Selection
-                    Container(
-                      margin: const EdgeInsets.only(
-                          bottom: 16.0, left: 16.0, right: 16.0, top: 8.0),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 6.0, horizontal: 12.0),
-                      decoration: BoxDecoration(
-                        color:
-                            const Color.fromARGB(255, 0, 0, 0).withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(16.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildActivityTypeButton(
-                              'Running',
-                              Icons.directions_run,
-                              _activityType == 'Running',
-                              () => _selectActivityType('Running')),
-                          _buildActivityTypeButton(
-                              'Walking',
-                              Icons.directions_walk,
-                              _activityType == 'Walking',
-                              () => _selectActivityType('Walking')),
-                          _buildActivityTypeButton(
-                              'Cycling',
-                              Icons.directions_bike,
-                              _activityType == 'Cycling',
-                              () => _selectActivityType('Cycling')),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
+            if (_hasLocationPermission && !(_isRecording && _showStatsScreen))
+              Positioned(
+                right: 16,
+                bottom: 140,
+                child: FloatingActionButton(
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  onPressed: _getCurrentLocation,
+                  child: const Icon(Icons.my_location),
                 ),
-              ],
-            ),
-          ),
-
-          // Konum butonu
-          if (_hasLocationPermission)
-            Positioned(
-              right: 16,
-              bottom: 140,
-              child: FloatingActionButton(
-                mini: true,
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                onPressed: _getCurrentLocation,
-                child: const Icon(Icons.my_location),
               ),
-            ),
-        ],
+            if (_isRecording && !_showStatsScreen)
+              Positioned(
+                left: 16,
+                bottom: 140,
+                child: FloatingActionButton(
+                  mini: true,
+                  backgroundColor:
+                      _showStatsScreen ? Colors.grey : const Color(0xFFC4FF62),
+                  foregroundColor: const Color.fromARGB(255, 0, 0, 0),
+                  onPressed: () {
+                    setState(() {
+                      _showStatsScreen = !_showStatsScreen;
+                    });
+                  },
+                  child: Icon(
+                      _showStatsScreen ? Icons.map_outlined : Icons.bar_chart),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1427,65 +1203,42 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     );
   }
 
-  // Adım sayar başlatma fonksiyonu
   void _initPedometer() {
-    _stepCountSubscription?.cancel(); // Cancel any existing subscription
-    
-    print('RecordScreen - Pedometer başlatılıyor...');
-    
-    try {
-      // Sensörleri uyandırmak için kısa bir bekleme ekle
-      Future.delayed(const Duration(milliseconds: 100), () {
-        _stepCountSubscription = Pedometer.stepCountStream.listen(
-          (StepCount event) {
-            print('RecordScreen - Adım olayı alındı: ${event.steps}');
-            
-            if (!mounted || !_isRecording || _isPaused) {
-              print('RecordScreen - Adım kaydedilmedi: kayıt aktif değil veya duraklatılmış');
-              return;
-            }
+    _stepCountSubscription?.cancel();
 
-            setState(() {
-              // İlk adım sayısını kaydetmek için _initialSteps'i kullan
-              if (_initialSteps == 0 && event.steps > 0) {
-                _initialSteps = event.steps;
-                _steps = 0; // Başlangıçta adımları sıfırla
-                print('RecordScreen - Başlangıç adımları: $_initialSteps');
-              } else if (_initialSteps > 0) {
-                // Sadece initialSteps ayarlandıktan sonra adımları hesapla
-                _steps = event.steps - _initialSteps;
-                if (_steps < 0) {
-                  _steps = 0; // Negatif adıma düşmesini engelle (cihaz reset vb.)
-                }
-                print('RecordScreen - Güncel adım: ${event.steps}, Başlangıç: $_initialSteps, Hesaplanan: $_steps');
-              }
-            });
-          },
-          onError: (error) {
-            print('RecordScreen - Adım sayar hatası: $error');
-            
-            // iOS için özel hata mesajı
-            if (Platform.isIOS) {
-              print('RecordScreen - iOS için Health Kit izni tekrar kontrol ediliyor');
-            }
-          },
-          onDone: () {
-            print('RecordScreen - Adım sayar stream kapandı');
+    try {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _stepCountSubscription =
+            Pedometer.stepCountStream.listen((StepCount event) {
+          if (!mounted || !_isRecording || _isPaused) {
+            return;
           }
-        );
-        
-        // Eğer stream başlatıldı, ancak 5 saniye içinde veri gelmezse tekrar başlat 
+
+          setState(() {
+            if (_initialSteps == 0 && event.steps > 0) {
+              _initialSteps = event.steps;
+              _steps = 0;
+            } else if (_initialSteps > 0) {
+              _steps = event.steps - _initialSteps;
+              if (_steps < 0) {
+                _steps = 0;
+              }
+            }
+          });
+        }, onError: (error) {
+          debugPrint('RecordScreen - Adım sayar hatası: $error');
+          if (Platform.isIOS) {}
+        }, onDone: () {});
+
         Future.delayed(const Duration(seconds: 5), () {
           if (mounted && _isRecording && _initialSteps == 0) {
-            print('RecordScreen - 5 saniye içinde adım verisi gelmedi, stream yeniden başlatılıyor');
             _stepCountSubscription?.cancel();
-            _initPedometer(); // Tekrar dene
+            _initPedometer();
           }
         });
       });
     } catch (e) {
-      print('RecordScreen - Pedometer başlatma hatası: $e');
-      // Hata durumunda kullanıcıya bilgi verme
+      debugPrint('RecordScreen - Pedometer başlatma hatası: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1497,11 +1250,40 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }
   }
 
-  // Yeni kalori hesaplama metodu
+  void _showCoinPopup(BuildContext context, double coins) {
+    if (ModalRoute.of(context)?.isCurrent ?? false) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          return EarnCoinPopup(
+            earnedCoin: coins,
+            onGoHomePressed: () {
+              Navigator.of(dialogContext).pop();
+              ref.read(selectedTabProvider.notifier).state = 0;
+            },
+          );
+        },
+      );
+    }
+  }
+
+  void _initializeCalorieCalculation() {
+    _calorieCalculationTimer?.cancel();
+    _calorieCalculationTimer =
+        Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_isRecording && !_isPaused) {
+        _calculateCalories();
+      } else {
+        timer.cancel();
+        _calorieCalculationTimer = null;
+      }
+    });
+  }
+
   void _calculateCalories() {
     final now = DateTime.now();
 
-    // İlk kalori hesaplaması ise, başlangıç değerlerini kaydet
     if (_lastCalorieCalculationTime == null) {
       _lastDistance = _distance;
       _lastSteps = _steps;
@@ -1512,158 +1294,104 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       return;
     }
 
-    // Son hesaplamadan bu yana geçen süre (saniye)
     final elapsedSeconds =
         now.difference(_lastCalorieCalculationTime!).inSeconds;
-    if (elapsedSeconds < 1) return; // Avoid rapid recalculation
+    if (elapsedSeconds < 4) return;
 
-    // Son hesaplamadan bu yana kat edilen mesafe ve adım farkı
     final distanceDifference = _distance - _lastDistance;
     final stepsDifference = _steps - _lastSteps;
-
-    // Hareket tespiti
     final bool isMoving = distanceDifference > 0.001 || stepsDifference > 0;
-
-    debugPrint(
-        '📊 Hareket kontrolü: Mesafe farkı=${distanceDifference.toStringAsFixed(4)} km, Adım farkı=$stepsDifference, Hareket=${isMoving ? "VAR" : "YOK"}');
-
-    // Son periyottaki anlık hızı hesapla (km/saat)
-    // distanceDifference km cinsinden, elapsedSeconds saniye cinsinden
     final double currentPaceKmH = distanceDifference > 0 && elapsedSeconds > 0
         ? (distanceDifference) / (elapsedSeconds / 3600.0)
         : 0;
-    debugPrint('⚡ Anlık Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
 
-    // UserDataProvider'dan kullanıcı verilerini al
-    final userDataAsync = ref.read(userDataProvider);
+    final userData = ref.read(userDataProvider).value;
+    double weightKg = 70.0;
+    double heightCm = 170.0;
+    int ageYears = 25;
+    String gender = 'male';
 
-    userDataAsync.whenOrNull(
-      data: (userData) {
-        if (userData != null) {
-          final weight = userData.weight ?? 70.0;
-          final height = userData.height ?? 170.0;
+    if (userData != null) {
+      weightKg = (userData.weight != null && userData.weight! > 0)
+          ? userData.weight!
+          : weightKg;
+      heightCm = (userData.height != null && userData.height! > 0)
+          ? userData.height!
+          : heightCm;
+      ageYears = (userData.age != null && userData.age! > 0)
+          ? userData.age!
+          : ageYears;
+      gender = userData.gender?.toLowerCase() == 'female' ? 'female' : 'male';
+    }
 
-          // Aktivite tipine ve ANLIK HIZA göre MET değeri belirle
-          // TODO: Bu MET değerlerini Compendium of Physical Activities (CPA) gibi güvenilir bir kaynaktan almak daha doğru olur.
-          double metValue;
+    double bmr;
+    if (gender == 'female') {
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) - 161;
+    } else {
+      bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) + 5;
+    }
+    if (bmr < 0) bmr = 0;
 
-          if (!isMoving) {
-            metValue = 1.0; // Resting MET
-          } else {
-            switch (_activityType) {
-              case 'Running':
-                // Anlık koşu hızına göre MET
-                if (currentPaceKmH < 6.5)
-                  metValue = 6.0; // ~10 min/mile or slower
-                else if (currentPaceKmH < 8.0)
-                  metValue = 8.3; // ~12 km/h - 7.5 min/mile
-                else if (currentPaceKmH < 10.0)
-                  metValue = 10.0; // ~10 km/h - 6 min/mile
-                else if (currentPaceKmH < 12.0)
-                  metValue = 11.5;
-                else
-                  metValue = 12.8; // Faster running
-                break;
-              case 'Walking':
-                // Anlık yürüyüş hızına göre MET
-                if (currentPaceKmH < 3.0)
-                  metValue = 2.0; // Slow walk
-                else if (currentPaceKmH < 5.0)
-                  metValue = 3.0; // Moderate walk
-                else if (currentPaceKmH < 6.5)
-                  metValue = 3.8; // Brisk walk
-                else
-                  metValue = 5.0; // Very brisk walk
-                break;
-              case 'Cycling':
-                // Anlık bisiklet hızına göre MET
-                if (currentPaceKmH < 16.0)
-                  metValue = 4.0; // Leisurely cycling
-                else if (currentPaceKmH < 20.0)
-                  metValue = 6.8; // Moderate cycling
-                else if (currentPaceKmH < 24.0)
-                  metValue = 8.0;
-                else
-                  metValue = 10.0; // Faster cycling
-                break;
-              default:
-                metValue = 5.0; // Default generic MET
-            }
-          }
-
-          // Kalori hesaplama formülü: Kalori = Ağırlık (kg) × MET değeri × Süre (saat)
-          double hours = elapsedSeconds / 3600.0;
-          int newCalories = (weight * metValue * hours).round();
-
-          // BMI faktörünü kaldırdık - daha basit ve MET odaklı
-          // double heightInMeters = height / 100.0;
-          // double bmi = weight / (heightInMeters * heightInMeters);
-          // if (bmi > 25) {
-          //   double bmiFactor = 1.0 + ((bmi - 25) * 0.01);
-          //   newCalories = (newCalories * bmiFactor).round();
-          // }
-
-          if (newCalories < 0) newCalories = 0;
-
-          setState(() {
-            _calories += newCalories;
-          });
-
-          debugPrint(
-              'Kalori hesaplandı: +$newCalories kal eklendi (Toplam: $_calories) - Hareket: ${isMoving ? "VAR" : "YOK"}, MET: $metValue, Süre: $hours saat, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+    double metValue;
+    if (!isMoving) {
+      metValue = 1.0;
+    } else {
+      if (_activityType == 'Running' || _activityType == 'Walking') {
+        if (currentPaceKmH < 3.2) {
+          metValue = 2.0;
+        } else if (currentPaceKmH < 4.8) {
+          metValue = 3.0;
+        } else if (currentPaceKmH < 6.4) {
+          metValue = 3.8;
+        } else if (currentPaceKmH < 8.0) {
+          metValue = 8.3;
+        } else if (currentPaceKmH < 9.7) {
+          metValue = 9.8;
+        } else if (currentPaceKmH < 11.3) {
+          metValue = 11.0;
+        } else if (currentPaceKmH < 12.9) {
+          metValue = 11.8;
+        } else if (currentPaceKmH < 14.5) {
+          metValue = 12.8;
+        } else if (currentPaceKmH < 16.0) {
+          metValue = 14.5;
+        } else if (currentPaceKmH < 17.5) {
+          metValue = 16.0;
         } else {
-          // Kullanıcı verisi yoksa veya hata varsa fallback mantığı
-          // Eski distanceDifference * 60 yerine daha tutarlı bir varsayılan MET kullanalım
-          double fallbackMet =
-              isMoving ? 3.5 : 1.0; // Ortalama yürüyüş veya dinlenme
-          double defaultWeight = 70.0;
-          double hours = elapsedSeconds / 3600.0;
-          int newCalories = (defaultWeight * fallbackMet * hours).round();
-          if (newCalories < 0) newCalories = 0;
-          setState(() {
-            _calories += newCalories;
-          });
-          debugPrint(
-              'Kullanıcı verisi yok/hatalı, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
+          metValue = 19.0;
         }
-      },
-      // loading ve error durumlarında da fallback mantığını kullanalım
-      loading: () {
-        double fallbackMet = isMoving ? 3.5 : 1.0;
-        double defaultWeight = 70.0;
-        double hours = elapsedSeconds / 3600.0;
-        int newCalories = (defaultWeight * fallbackMet * hours).round();
-        if (newCalories < 0) newCalories = 0;
-        setState(() {
-          _calories += newCalories;
-        });
-        debugPrint(
-            'Kullanıcı verisi yükleniyor, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
-      },
-      error: (_, __) {
-        double fallbackMet = isMoving ? 3.5 : 1.0;
-        double defaultWeight = 70.0;
-        double hours = elapsedSeconds / 3600.0;
-        int newCalories = (defaultWeight * fallbackMet * hours).round();
-        if (newCalories < 0) newCalories = 0;
-        setState(() {
-          _calories += newCalories;
-        });
-        debugPrint(
-            'Kullanıcı verisi hatası, fallback hesaplama: +$newCalories kal (Toplam: $_calories) - MET: $fallbackMet');
-      },
-    );
+      } else if (_activityType == 'Cycling') {
+        if (currentPaceKmH < 16.0)
+          metValue = 4.0;
+        else if (currentPaceKmH < 20.0)
+          metValue = 6.8;
+        else if (currentPaceKmH < 24.0)
+          metValue = 8.0;
+        else
+          metValue = 10.0;
+      } else {
+        metValue = 5.0;
+      }
+    }
 
-    // Son değerleri güncelle
+    double bmrPerSecond = bmr / (24 * 60 * 60);
+    int newCalories = (bmrPerSecond * elapsedSeconds * metValue).round();
+    if (newCalories < 0) newCalories = 0;
+
+    setState(() {
+      _calories += newCalories;
+    });
+
+    debugPrint(
+        'RecordScreen 🔥 Kalori hesaplandı: +$newCalories kal (Toplam: $_calories) - MET: $metValue, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h, Aktivite: $_activityType');
+
     _lastDistance = _distance;
     _lastSteps = _steps;
     _lastCalorieCalculationTime = now;
   }
 
-  // Aktiviteyi zorla durdur ve sıfırla
   void _forceStopAndResetActivity() {
     if (!mounted) return;
-
     debugPrint('RecordScreen: _forceStopAndResetActivity çağrıldı.');
     setState(() {
       _isRecording = false;
@@ -1674,11 +1402,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
       _timer?.cancel();
       _timer = null;
+      _calorieCalculationTimer?.cancel();
       _stopLocationTracking();
       _stepCountSubscription?.cancel();
       _stepCountSubscription = null;
 
-      // Aktivite verilerini sıfırla
       _seconds = 0;
       _distance = 0.0;
       _calories = 0;
@@ -1688,25 +1416,223 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _startTime = null;
       _lastCalorieCalculationTime = null;
 
-      // Harita rota verilerini temizle
-      _routeCoordinates = [];
-      _polylines = {};
-
-      // Markerları temizle (mevcut konum hariç)
-      if (_currentPosition != null) {
-        _markers = {
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position:
-                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-            infoWindow: const InfoWindow(title: 'Konumunuz'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
-          )
-        };
-      } else {
-        _markers = {};
+      _mapboxRouteCoordinates = [];
+      _polylineAnnotationManager?.deleteAll().catchError(
+          (e) => debugPrint("Error deleting polylines on force stop: $e"));
+      if (_currentLocationMarker != null) {
+        _pointAnnotationManager?.delete(_currentLocationMarker!).catchError(
+            (e) => debugPrint("Error deleting marker on force stop: $e"));
+        _currentLocationMarker = null;
       }
+      _currentMapboxPoint = null;
+      _currentGeoPosition = null;
+      _mapboxMap?.flyTo(
+          _initialCameraOptions, mb.MapAnimationOptions(duration: 1000));
     });
+  }
+
+  void _onMapCreated(mb.MapboxMap mapboxMap) async {
+    _mapboxMap = mapboxMap;
+  }
+
+  void _onStyleLoadedListener(dynamic data) async {
+    if (_mapboxMap == null || !mounted) {
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Map is null or widget not mounted, returning.');
+      return;
+    }
+
+    debugPrint(
+        'RecordScreen: _onStyleLoadedListener - Style loaded, (re)initializing annotation managers.');
+
+    try {
+      _pointAnnotationManager =
+          await _mapboxMap!.annotations.createPointAnnotationManager();
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - PointAnnotationManager created.');
+    } catch (e) {
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Error creating PointAnnotationManager: $e');
+    }
+
+    try {
+      _polylineAnnotationManager =
+          await _mapboxMap!.annotations.createPolylineAnnotationManager();
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - PolylineAnnotationManager created.');
+    } catch (e) {
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Error creating PolylineAnnotationManager: $e');
+    }
+
+    if (!mounted) {
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Widget unmounted after creating managers, returning.');
+      return;
+    }
+
+    if (_isRecording) {
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Recording is active. Restoring route and marker.');
+      // Restore polyline
+      if (_polylineAnnotationManager != null &&
+          _mapboxRouteCoordinates.length > 1) {
+        debugPrint(
+            'RecordScreen: _onStyleLoadedListener - Restoring polyline with ${_mapboxRouteCoordinates.length} points.');
+        _polylineAnnotationManager!.deleteAll().then((_) {
+          return _polylineAnnotationManager!
+              .create(mb.PolylineAnnotationOptions(
+            geometry: mb.LineString(
+                coordinates:
+                    _mapboxRouteCoordinates.map((p) => p.coordinates).toList()),
+            lineColor: const Color(0xFFC4FF62).value,
+            lineWidth: 5.0,
+          ));
+        }).then((_) {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Polyline restored.');
+        }).catchError((e) {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Error restoring polyline: $e');
+        });
+      } else {
+        debugPrint(
+            'RecordScreen: _onStyleLoadedListener - Polyline manager null or not enough points for polyline (${_mapboxRouteCoordinates.length}).');
+      }
+
+      // Restore current location marker
+      if (_currentMapboxPoint != null && _pointAnnotationManager != null) {
+        if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - İşaretçi resimleri null, yükleniyor.');
+          await _loadMarkerImage();
+          if (!mounted) return;
+        }
+
+        final Uint8List? selectedMarkerIconBytes = _getCurrentMarkerIconBytes();
+
+        if (selectedMarkerIconBytes != null) {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Mevcut konum işaretçisi geri yükleniyor/oluşturuluyor.');
+          _pointAnnotationManager!
+              .create(
+            mb.PointAnnotationOptions(
+              geometry: _currentMapboxPoint!,
+              image: selectedMarkerIconBytes,
+              iconSize:
+                  selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
+            ),
+          )
+              .then((newMarker) {
+            if (mounted) {
+              _currentLocationMarker = newMarker;
+              debugPrint(
+                  'RecordScreen: _onStyleLoadedListener - Current location marker restored/created. ID: ${newMarker.id}. Icon was: ${selectedMarkerIconBytes == _femaleMarkerIcon ? "FEMALE" : (selectedMarkerIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
+            }
+          }).catchError((e) {
+            debugPrint(
+                'RecordScreen: _onStyleLoadedListener - Error restoring current location marker: $e');
+          });
+        } else {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Marker image still null after attempting load, cannot create marker.');
+        }
+      } else {
+        debugPrint(
+            'RecordScreen: _onStyleLoadedListener - Current mapbox point or point manager is null, cannot restore marker.');
+      }
+    } else {
+      // Not recording
+      debugPrint(
+          'RecordScreen: _onStyleLoadedListener - Not recording. Calling _getCurrentLocation after delay.');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _getCurrentLocation();
+        } else {
+          debugPrint(
+              'RecordScreen: _onStyleLoadedListener - Widget unmounted before _getCurrentLocation callback.');
+        }
+      });
+    }
+  }
+
+  Uint8List? _getCurrentMarkerIconBytes() {
+    final userData = ref.read(userDataProvider).value;
+    final String? genderFromProvider = userData?.gender;
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - Gender from provider: $genderFromProvider');
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - _femaleMarkerIcon is null: ${_femaleMarkerIcon == null}');
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - _maleMarkerIcon is null: ${_maleMarkerIcon == null}');
+
+    // Default to 'male' if gender is null, not available, or not 'female'
+    final String effectiveGender =
+        (genderFromProvider?.toLowerCase() == 'female') ? 'female' : 'male';
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - Effective gender for icon choice: $effectiveGender');
+
+    if (effectiveGender == 'female' && _femaleMarkerIcon != null) {
+      debugPrint(
+          'RecordScreen: _getCurrentMarkerIconBytes - Returning FEMALE icon.');
+      return _femaleMarkerIcon;
+    }
+    debugPrint(
+        'RecordScreen: _getCurrentMarkerIconBytes - Returning MALE icon (or null if male icon not loaded).');
+    return _maleMarkerIcon;
+  }
+
+  // Function to update marker icon, typically called when gender changes or icons load late.
+  Future<void> _updateMarkerIconForGenderChange() async {
+    // Ensure point manager and a current point are available
+    if (_pointAnnotationManager == null || _currentMapboxPoint == null) {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - PointAnnotationManager or currentMapboxPoint is null. Cannot update icon yet.');
+      return;
+    }
+
+    // If a current marker exists, delete it first
+    if (_currentLocationMarker != null) {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - Deleting existing marker ID: ${_currentLocationMarker!.id} to update icon.');
+      try {
+        await _pointAnnotationManager!.delete(_currentLocationMarker!);
+        _currentLocationMarker = null; // Nullify after deletion
+      } catch (e) {
+        debugPrint(
+            'RecordScreen: _updateMarkerIconForGenderChange - Error deleting existing marker: $e');
+        // Continue, as we want to try creating a new one anyway
+      }
+    } else {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - No existing marker to delete.');
+    }
+
+    final Uint8List? newIconBytes =
+        _getCurrentMarkerIconBytes(); // Get the latest icon based on current gender and loaded icons
+
+    if (newIconBytes != null) {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - Attempting to create new marker with fresh icon.');
+      try {
+        _currentLocationMarker = await _pointAnnotationManager!.create(
+          mb.PointAnnotationOptions(
+            geometry: _currentMapboxPoint!, // Use the current map point
+            image: newIconBytes,
+            iconSize: newIconBytes == _femaleMarkerIcon
+                ? 0.20
+                : 0.15, // Dynamic icon size
+          ),
+        );
+        debugPrint(
+            'RecordScreen: _updateMarkerIconForGenderChange - Marker recreated/created. ID: ${_currentLocationMarker?.id}. Icon is: ${newIconBytes == _femaleMarkerIcon ? "FEMALE" : (newIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
+      } catch (e) {
+        debugPrint(
+            'RecordScreen: _updateMarkerIconForGenderChange - Error recreating marker: $e');
+      }
+    } else {
+      debugPrint(
+          'RecordScreen: _updateMarkerIconForGenderChange - Failed to get new icon bytes. Marker not created/updated.');
+    }
   }
 }

@@ -66,6 +66,18 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           return SafeArea(
             child: Column(
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.info_outline,
+                          color: Color(0xFFC4FF62)),
+                      onPressed: () => _showLeaderboardInfoDialog(context),
+                    ),
+                  ],
+                ),
+                // Title Section
+
                 // Title Section
                 Container(
                   margin: const EdgeInsets.all(16.0),
@@ -80,7 +92,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     children: [
                       const Icon(Icons.emoji_events, color: Colors.black),
                       const SizedBox(width: 8),
-                      Text(
+                      const Text(
                         'Ödül Reklamı',
                         style: TextStyle(
                           color: Colors.black,
@@ -172,7 +184,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 16),
 
                 // --- User Rank Card (handles its own loading/error state internally) ---
@@ -262,6 +273,110 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           );
         },
       ),
+    );
+  }
+
+  void _showLeaderboardInfoDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+          backgroundColor: const Color(0xFF333333),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFFC4FF62)),
+              SizedBox(width: 8),
+              Text(
+                '🏅 Liderlik Tablosu Hakkında',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.infinity,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Text(
+                    'Liderlik tablosu her ay sonunda sıfırlanır ve yalnızca canlı, genel yarışlardaki performansına göre şekillenir.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '📌 Solo Mod ve arkadaşlarla yapılan özel oda yarışları sıralamaya dahil değildir.',
+                    style: TextStyle(
+                        color: Colors.white70, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Canlı yarışlarda kat ettiğin toplam mesafe (km) baz alınarak sıralama oluşturulur.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Ayrıca iç mekân ve dış mekân yarışları ayrı kategorilerde değerlendirilir.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '🎁 Her Kategoride Ödül Var!',
+                    style: TextStyle(
+                        color: Color(0xFFC4FF62),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Ay sonunda iç mekân ve dış mekân kategorilerinde ayrı ayrı:',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '🥇 İlk 3\'e giren kullanıcılar sürpriz ödüller kazanır!',
+                    style: TextStyle(
+                        color: Color(0xFFC4FF62), fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Ne kadar çok yarışa katılır ve hareket edersen, zirveye o kadar yaklaşırsın.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 24),
+                  const Center(
+                    child: Text(
+                      '🏃‍♂️ Şimdi sıranı al, yarışlara katıl, ödülleri kap! 💥',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                'Anladım',
+                style: TextStyle(color: Color(0xFFC4FF62)),
+              ),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -700,13 +815,19 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           ),
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Text(
-          valueText, // Değer (km veya adım)
-          style: const TextStyle(
-            color: Colors.white, // Değer rengi
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+        trailing: Row(
+          // Modified trailing to include IconButton
+          mainAxisSize: MainAxisSize.min, // To keep Row compact
+          children: [
+            Text(
+              valueText, // Değer (km veya adım)
+              style: const TextStyle(
+                color: Colors.white, // Değer rengi
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         dense: true, // Daha kompakt görünüm
       ),
