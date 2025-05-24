@@ -24,6 +24,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       body: SafeArea(
+
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
@@ -122,14 +123,27 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
+
                         ),
                       ),
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 20),
+                  _buildOptionCard(
+                    titleLines: ["İç Mekan", "Koşusu"],
+                    description: "Spor salonu ve kapalı alanlarda koşu",
+                    imagePath: "assets/images/manOnRunningInside.png",
+                    value: "indoor",
+                    isSelected: _selectedPreference == "indoor",
+                    cardHeight: cardHeight,
+                    onTap: () => setState(() => _selectedPreference = "indoor"),
+                  ),
+
                 const SizedBox(height: 16),
               ],
             ),
           ),
+
         ),
       ),
     );

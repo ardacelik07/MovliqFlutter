@@ -6,9 +6,11 @@ class UserProfileAvatar extends ConsumerWidget {
   final String? imageUrl;
   final double radius;
 
+
   static const String _defaultManPhoto = 'assets/images/defaultmanphoto.png';
   static const String _defaultWomanPhoto =
       'assets/images/defaultwomenphoto.png';
+
 
   const UserProfileAvatar({
     super.key,

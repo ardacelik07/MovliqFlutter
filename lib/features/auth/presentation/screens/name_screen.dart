@@ -70,6 +70,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                   SizedBox(
                       height: MediaQuery.of(context).padding.top +
                           20), // Space from top, considering status bar
+
                   // Image
                   Image.asset(
                     'assets/images/registration.png', // Existing image
@@ -77,12 +78,22 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                         0.35, // Adjust height
                   ),
                   const SizedBox(height: 60),
+                  // Name Label
+                  const Text(
+                    'Adınız ne?',
+                    style: TextStyle(
+                      color: labelColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   // Name Field
                   TextFormField(
                     controller: _nameController,
                     style: const TextStyle(color: inputColor),
                     decoration: InputDecoration(
-                      hintText: 'What is your name?',
+                      hintText: 'Adınız ne?',
                       hintStyle:
                           const TextStyle(color: labelColor, fontSize: 14),
                       filled: true,
@@ -96,18 +107,28 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     ),
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Please enter your name';
+                        return 'Lütfen adınızı giriniz';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 20),
+                  // Username Label
+                  const Text(
+                    'Tercih ettiğiniz kullanıcı adı nedir?',
+                    style: TextStyle(
+                      color: labelColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   // Username Field
                   TextFormField(
                     controller: _usernameController,
                     style: const TextStyle(color: inputColor),
                     decoration: InputDecoration(
-                      hintText: 'What is your prefer username?',
+                      hintText: 'Tercih ettiğiniz kullanıcı adı nedir?',
                       hintStyle:
                           const TextStyle(color: labelColor, fontSize: 14),
                       filled: true,
@@ -123,11 +144,11 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     ),
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Please enter a username';
+                        return 'Lütfen bir kullanıcı adı girin';
                       }
                       // Basic username validation (no spaces, etc.) - enhance if needed
                       if (value!.contains(' ')) {
-                        return 'Username cannot contain spaces';
+                        return 'Kullanıcı adı boşluk içeremez';
                       }
                       return null;
                     },

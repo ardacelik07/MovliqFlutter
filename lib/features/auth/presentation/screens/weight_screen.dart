@@ -73,7 +73,7 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
 
                   // Title
                   const Text(
-                    "What's your weight?",
+                    "Kilonuz kaç?",
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

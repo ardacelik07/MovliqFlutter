@@ -26,11 +26,15 @@ import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
 import 'package:pedometer/pedometer.dart'; // Import pedometer
 import 'package:flutter/services.dart'; // Import flutter/services
+
+import '../screens/profile_screen.dart';
+
 import '../providers/race_coin_tracker_provider.dart';
 import '../widgets/earn_coin_widget.dart'; // Popup için
 import '../providers/race_provider.dart'; // For cheatKickedStateProvider
 import '../widgets/cheated_race.dart'; // For CheatedRaceDialogContent
 import 'help_screen.dart';
+
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -231,9 +235,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           'Yarışlara kesintisiz katılabilmek ve aktivite verilerinizi doğru bir şekilde kaydedebilmek için Movliq\'in konumunuza \'Her Zaman\' erişmesi gerekmektedir. Lütfen uygulama ayarlarından konum iznini \'Her zaman izin ver\' olarak güncelleyiniz.';
 
       if (!status.isGranted && !status.isLimited) {
+
         final requestedStatus = await Permission.location.request();
         print(
             'Ana Sayfa - Android izin istenen durum (Genel): $requestedStatus');
+
 
         if (requestedStatus.isPermanentlyDenied) {
           if (mounted) {
@@ -340,6 +346,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         if (!healthKitPermissionVerified && mounted) {
           print(
               'Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
+
+
         } else {
           print(
               'Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
@@ -351,7 +359,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
-  // Health Kit izni için özel dialog (iOS)
+
 
   // Dialog to show if permission is denied (Consolidated for Settings)
   void _showSettingsDialog(String title, String content) {
@@ -544,10 +552,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                       child: Row(
                         children: [
                           // Profile picture - Simpler error/loading handling
-                          UserProfileAvatar(
-                            imageUrl: userData?.profilePictureUrl,
-                            radius: 24,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => ProfileScreen()),
+                              );
+                            },
+                            child: UserProfileAvatar(
+                              imageUrl: userData?.profilePictureUrl,
+                              radius: 24,
+                            ),
                           ),
+
                           const SizedBox(width: 12),
                           // Welcome Text - Simpler error/loading handling
                           Column(

@@ -1496,8 +1496,10 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
             ? FileImage(_localImageFile!) // Show local file if selected
             : (profileUrl != null && profileUrl.isNotEmpty
                 ? NetworkImage(profileUrl) // Use NetworkImage directly
+
                 : AssetImage(
                     selectedDefaultImageAsset)); // Use gender-specific fallback asset
+
 
         const double imageSize = 100; // Increased size
         const double cameraIconSize = 30; // Size of the camera icon circle

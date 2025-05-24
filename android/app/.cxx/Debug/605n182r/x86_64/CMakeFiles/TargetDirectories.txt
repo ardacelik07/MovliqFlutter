@@ -1,0 +1,2 @@
+C:/Users/abdur/Dev/MovliqFlutter/android/app/.cxx/Debug/605n182r/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/abdur/Dev/MovliqFlutter/android/app/.cxx/Debug/605n182r/x86_64/CMakeFiles/rebuild_cache.dir
