@@ -52,25 +52,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           );
         },
         error: (error, _) {
-          setState(() {
-            final errorStr = error.toString();
-            final userMessage = errorStr.contains(':')
-                ? errorStr.split(':').last.trim()
-                : errorStr;
-            _errorText = 'Kayıt başarısız oldu: $userMessage';
-          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Hata: ${error.toString()}')),
+          );
         },
         data: (token) {
           if (token != null) {
-            setState(() {
-              _errorText = null; // Clear any error on success
-            });
+            print('Registration successful! Token: $token');
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (context) => const WelcomeScreen(),
               ),
             );
+          } else {
+            print("register failed");
           }
         },
       );
