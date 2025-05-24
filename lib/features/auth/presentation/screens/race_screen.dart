@@ -19,6 +19,7 @@ import '../providers/race_state.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
 import '../widgets/raceui.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/leave_widget.dart'; // LeaveWidget importu
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
@@ -562,35 +563,45 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     if (_leaveConfirmationShown) return false;
     _leaveConfirmationShown = true;
 
-    bool? result = await showDialog<bool>(
+    // bool? result = await showDialog<bool>(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (context) => AlertDialog(
+    //     backgroundColor: const Color(0xFF1E1E1E), // Koyu dialog arkaplanı
+    //     title:
+    //         const Text('Yarıştan Ayrıl', style: TextStyle(color: Colors.white)),
+    //     content: const Text(
+    //         'Yarış devam ediyor. Ayrılmak istediğinize emin misiniz?',
+    //         style: TextStyle(color: Colors.white70)),
+    //     actions: [
+    //       TextButton(
+    //         onPressed: () {
+    //           _leaveConfirmationShown = false;
+    //           Navigator.of(context).pop(false);
+    //         },
+    //         child:
+    //             const Text('Hayır', style: TextStyle(color: Color(0xFFC4FF62))),
+    //       ),
+    //       TextButton(
+    //         onPressed: () {
+    //           _leaveConfirmationShown = false;
+    //           Navigator.of(context).pop(true);
+    //         },
+    //         child: const Text('Evet, Ayrıl',
+    //             style: TextStyle(color: Colors.redAccent)),
+    //       ),
+    //     ],
+    //   ),
+    // );
+
+    // Yeni LeaveWidget'ı kullan
+    bool? result = await showLeaveConfirmationDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E), // Koyu dialog arkaplanı
-        title:
-            const Text('Yarıştan Ayrıl', style: TextStyle(color: Colors.white)),
-        content: const Text(
-            'Yarış devam ediyor. Ayrılmak istediğinize emin misiniz?',
-            style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              _leaveConfirmationShown = false;
-              Navigator.of(context).pop(false);
-            },
-            child:
-                const Text('Hayır', style: TextStyle(color: Color(0xFFC4FF62))),
-          ),
-          TextButton(
-            onPressed: () {
-              _leaveConfirmationShown = false;
-              Navigator.of(context).pop(true);
-            },
-            child: const Text('Evet, Ayrıl',
-                style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      ),
+      imagePath: 'assets/images/leaveimage.png', // Belirttiğiniz resim yolu
+      title: 'Yarıştan Ayrılmak İstiyor Musun?',
+      message:
+          'Canlı yarıştan ayrıldığında, yarış verilerin silinecek ve sıralamaya dahil edilmeyeceksin.',
+      // Buton metinleri varsayılan olacak
     );
 
     if (result == true) {

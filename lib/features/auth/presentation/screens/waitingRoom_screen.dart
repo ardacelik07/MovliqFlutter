@@ -23,6 +23,7 @@ import '../providers/race_coin_tracker_provider.dart';
 import '../providers/user_data_provider.dart'; // Eğer yoksa ekle
 import 'package:share_plus/share_plus.dart'; // SharePlus paketi eklendi
 import 'package:flutter/rendering.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/leave_widget.dart'; // LeaveWidget importu
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -403,23 +404,17 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen> {
 
   // Onay dialogu göster
   Future<bool> _showLeaveConfirmationDialog() async {
-    final result = await showDialog<bool>(
+    // Yeni LeaveWidget'ı kullan
+    final String leaveMessage = widget.roomCode.isNotEmpty
+        ? 'Yarışı tamamlamadan çıkarsan, yatırdığın mCoin iade edilmez ve yarış dışı kalırsın.'
+        : 'Odadan çıkmak istediğine emin misin?'; // Oda kodu yoksa daha genel bir mesaj
+
+    final result = await showLeaveConfirmationDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Odadan Çıkış'),
-        content:
-            const Text('Yarış odasından çıkmak istediğinize emin misiniz?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Çıkış Yap'),
-          ),
-        ],
-      ),
+      imagePath: 'assets/images/leaveimage.png', // Belirttiğiniz resim yolu
+      title: 'Odadan Ayrılmak İstiyor Musun?',
+      message: leaveMessage, // Dinamik mesaj
+      // confirmButtonText ve cancelButtonText varsayılan değerleri kullanacak ('Çıkış Yap', 'Devam Et')
     );
     return result ?? false;
   }
