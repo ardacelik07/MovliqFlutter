@@ -568,44 +568,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                           // Icons Row
                           Row(
                             children: [
-                              // Notification Icon (Placeholder)
-                              Stack(
-                                alignment: Alignment.topRight,
-                                children: [
-                                  IconButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  HelpScreen()));
-                                    },
-                                    icon: Icon(Icons.info_outline,
-                                        color: Colors.white, size: 26),
-                                  ),
-                                  // Add badge if needed
-                                ],
-                              ),
-                              const SizedBox(width: 12),
-                              // Coin Icon & Count
-                              Image.asset(
-                                'assets/images/mCoin.png',
-                                width: 25,
-                                height: 25,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                userCoins?.toStringAsFixed(2) ??
-                                    '0.00', // Format to 2 decimal places
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14),
-                              ),
-                              const SizedBox(width: 12),
-                              // Streak Icon & Count - Simpler error/loading
-                              //const Icon(Icons.local_fire_department,
-                              //color: Colors.deepOrangeAccent, size: 22),
                               Image.asset(
                                 'assets/icons/alev.png',
                                 width: 20,
@@ -629,6 +591,42 @@ class _HomePageState extends ConsumerState<HomePage> {
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14),
                                 ),
+                              ),
+
+                              const SizedBox(width: 4),
+
+                              // Coin Icon & Count
+                              Image.asset(
+                                'assets/images/mCoin.png',
+                                width: 25,
+                                height: 25,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                userCoins?.toStringAsFixed(2) ??
+                                    '0.00', // Format to 2 decimal places
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14),
+                              ),
+
+                              Stack(
+                                alignment: Alignment.topRight,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  HelpScreen()));
+                                    },
+                                    icon: Icon(Icons.info_outline,
+                                        color: Colors.white, size: 20),
+                                  ),
+                                  // Add badge if needed
+                                ],
                               ),
                             ],
                           ),
