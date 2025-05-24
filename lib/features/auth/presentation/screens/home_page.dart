@@ -16,8 +16,10 @@ import '../widgets/user_profile_avatar.dart';
 import 'package:permission_handler/permission_handler.dart'; // Import permission_handler
 import 'dart:io'; // Import Platform
 import '../widgets/network_error_widget.dart';
-import 'package:http/http.dart' show ClientException; // Specific import
-import 'dart:io' show SocketException; // Specific import
+import 'package:http/http.dart'
+    show ClientException; // Specific import
+import 'dart:io'
+    show SocketException; // Specific import
 import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Import the new screen
 import 'package:share_plus/share_plus.dart'; // Import share_plus
 import 'package:my_flutter_project/core/config/api_config.dart'; // Import ApiConfig
@@ -39,22 +41,25 @@ class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  ConsumerState<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() =>
+      _HomePageState();
 }
 
 // Create State class
-class _HomePageState extends ConsumerState<HomePage> {
+class _HomePageState
+    extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
     _checkAndRequestPermissionsSequentially();
 
     // Check for cheat kicked status when HomePage initializes and listen for changes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) {
       if (mounted) {
         // Ensure the widget is still in the tree
-        final isKicked =
-            ref.read(cheatKickedStateProvider); // Read current state
+        final isKicked = ref.read(
+            cheatKickedStateProvider); // Read current state
         if (isKicked) {
           _showCheatKickedDialog();
         }
@@ -62,7 +67,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
 
     // Listen for subsequent changes to the cheatKickedStateProvider
-    ref.listenManual(cheatKickedStateProvider, (previous, next) {
+    ref.listenManual(cheatKickedStateProvider,
+        (previous, next) {
       if (next == true && mounted) {
         _showCheatKickedDialog();
       }
@@ -71,11 +77,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   void _showCheatKickedDialog() {
     // Avoid showing dialog if one is already active or not mounted
-    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    if (!mounted ||
+        ModalRoute.of(context)?.isCurrent != true)
+      return;
 
     showDialog(
       context: context,
-      barrierDismissible: false, // User must interact with the dialog
+      barrierDismissible:
+          false, // User must interact with the dialog
       builder: (BuildContext dialogContext) {
         return const CheatedRaceDialogContent();
       },
@@ -84,7 +93,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // Request permissions sequentially
-  Future<void> _checkAndRequestPermissionsSequentially() async {
+  Future<void>
+      _checkAndRequestPermissionsSequentially() async {
     // Önce bildirim iznini iste (en kritik olmayan)
     await _checkAndRequestNotificationPermission();
 
@@ -98,40 +108,51 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // Bildirim izni kontrolü ve istek işlemi
-  Future<void> _checkAndRequestNotificationPermission() async {
-    print('Ana Sayfa - Bildirim izni kontrolü başlatılıyor...');
+  Future<void>
+      _checkAndRequestNotificationPermission() async {
+    print(
+        'Ana Sayfa - Bildirim izni kontrolü başlatılıyor...');
 
     // iOS ve Android için farklı stratejiler
     if (Platform.isIOS) {
       // iOS için native Swift üzerinden bildirim izni alma
-      final bool hasPermission = await _requestIOSNotificationPermission();
-      print('Ana Sayfa - iOS bildirim izni: $hasPermission');
+      final bool hasPermission =
+          await _requestIOSNotificationPermission();
+      print(
+          'Ana Sayfa - iOS bildirim izni: $hasPermission');
 
       // İzin almak için yeterli, kullanıcı iOS sisteminin kendi dialog kutusunu görecek
     } else {
       // Android için permission_handler kullanımı
-      final notificationStatus = await Permission.notification.status;
+      final notificationStatus =
+          await Permission.notification.status;
 
       if (notificationStatus.isDenied ||
-          notificationStatus.isPermanentlyDenied) {
+          notificationStatus
+              .isPermanentlyDenied) {
         print(
             'Ana Sayfa - Android bildirim izni reddedilmiş, istek yapılıyor...');
         // Android için izin iste
-        final notificationRequest = await Permission.notification.request();
+        final notificationRequest =
+            await Permission.notification
+                .request();
 
         // Kullanıcıya bilgi ver (opsiyonel)
-        if (notificationRequest.isPermanentlyDenied) {
+        if (notificationRequest
+            .isPermanentlyDenied) {
           if (mounted) {
             // Eğer kullanıcı kalıcı olarak reddettiyse
             showDialog(
               context: context,
               builder: (ctx) => AlertDialog(
-                title: const Text('Bildirim İzni Gerekli'),
+                title: const Text(
+                    'Bildirim İzni Gerekli'),
                 content: const Text(
                     'Bildirim izni olmadan size etkinlikleriniz hakkında haber veremeyiz. Lütfen ayarlardan izin verin.'),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
+                    onPressed: () =>
+                        Navigator.of(ctx).pop(),
                     child: const Text('Kapat'),
                   ),
                   TextButton(
@@ -139,7 +160,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       openAppSettings();
                       Navigator.of(ctx).pop();
                     },
-                    child: const Text('Ayarlara Git'),
+                    child: const Text(
+                        'Ayarlara Git'),
                   ),
                 ],
               ),
@@ -147,52 +169,66 @@ class _HomePageState extends ConsumerState<HomePage> {
           }
         }
       } else {
-        print('Ana Sayfa - Android bildirim izni zaten var');
+        print(
+            'Ana Sayfa - Android bildirim izni zaten var');
       }
     }
   }
 
   // iOS için native bildirim izni alma
-  Future<bool> _requestIOSNotificationPermission() async {
+  Future<bool>
+      _requestIOSNotificationPermission() async {
     // Platform mesaj kanalı oluştur - AppDelegate.swift'de tanımlanan kanal ile aynı adı kullan
-    const platform = MethodChannel('com.movliq/notifications');
+    const platform =
+        MethodChannel('com.movliq/notifications');
 
     try {
       // iOS tarafında uygulanan methodu çağır
       final bool result =
-          await platform.invokeMethod('requestNotificationPermission');
+          await platform.invokeMethod(
+              'requestNotificationPermission');
       return result;
     } catch (e) {
-      print('Ana Sayfa - iOS bildirim izni alma hatası: $e');
+      print(
+          'Ana Sayfa - iOS bildirim izni alma hatası: $e');
       return false;
     }
   }
 
   // iOS için bildirim izin durumu kontrolü (isteğe bağlı kullanılabilir)
-  Future<String> _checkIOSNotificationPermission() async {
-    const platform = MethodChannel('com.movliq/notifications');
+  Future<String>
+      _checkIOSNotificationPermission() async {
+    const platform =
+        MethodChannel('com.movliq/notifications');
 
     try {
       final String status =
-          await platform.invokeMethod('checkNotificationPermission');
+          await platform.invokeMethod(
+              'checkNotificationPermission');
       return status;
     } catch (e) {
-      print('Ana Sayfa - iOS bildirim izni kontrolü hatası: $e');
+      print(
+          'Ana Sayfa - iOS bildirim izni kontrolü hatası: $e');
       return 'error';
     }
   }
 
   // Function to check and request location permission (directly requesting Always)
-  Future<void> _checkAndRequestLocationPermission() async {
-    print('Ana Sayfa - Konum izni kontrolü başlatılıyor...');
+  Future<void>
+      _checkAndRequestLocationPermission() async {
+    print(
+        'Ana Sayfa - Konum izni kontrolü başlatılıyor...');
 
     // First check if location services are enabled
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    bool serviceEnabled = await Geolocator
+        .isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
           const SnackBar(
-            content: Text('Lütfen konum servislerini açın'),
+            content: Text(
+                'Lütfen konum servislerini açın'),
             duration: Duration(seconds: 3),
           ),
         );
@@ -206,44 +242,61 @@ class _HomePageState extends ConsumerState<HomePage> {
     // Use different approaches based on platform
     if (Platform.isIOS) {
       // For iOS: Use Geolocator directly which works better
-      LocationPermission permission = await Geolocator.checkPermission();
-      print('Ana Sayfa - iOS konum izni durumu: $permission');
+      LocationPermission permission =
+          await Geolocator.checkPermission();
+      print(
+          'Ana Sayfa - iOS konum izni durumu: $permission');
 
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        print('Ana Sayfa - iOS konum izni istendikten sonra: $permission');
+      if (permission ==
+          LocationPermission.denied) {
+        permission =
+            await Geolocator.requestPermission();
+        print(
+            'Ana Sayfa - iOS konum izni istendikten sonra: $permission');
       }
 
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      if (permission ==
+              LocationPermission.denied ||
+          permission ==
+              LocationPermission.deniedForever) {
         if (mounted) {}
       } else {
-        print('Ana Sayfa - iOS konum izni alındı: $permission');
+        print(
+            'Ana Sayfa - iOS konum izni alındı: $permission');
       }
     } else {
       // For Android: Request Permission.location first to show the standard system dialog.
-      final status = await Permission.location.status;
-      print('Ana Sayfa - Android konum izin durumu (Genel): $status');
+      final status =
+          await Permission.location.status;
+      print(
+          'Ana Sayfa - Android konum izin durumu (Genel): $status');
 
       // Define the critical permission dialog details for races
-      const String criticalDialogTitle = 'Her Zaman Konum İzni Gerekli';
+      const String criticalDialogTitle =
+          'Her Zaman Konum İzni Gerekli';
       const String criticalDialogContent =
           'Yarışlara kesintisiz katılabilmek ve aktivite verilerinizi doğru bir şekilde kaydedebilmek için Movliq\'in konumunuza \'Her Zaman\' erişmesi gerekmektedir. Lütfen uygulama ayarlarından konum iznini \'Her zaman izin ver\' olarak güncelleyiniz.';
 
-      if (!status.isGranted && !status.isLimited) {
-        final requestedStatus = await Permission.location.request();
+      if (!status.isGranted &&
+          !status.isLimited) {
+        final requestedStatus =
+            await Permission.location.request();
         print(
             'Ana Sayfa - Android izin istenen durum (Genel): $requestedStatus');
 
         if (requestedStatus.isPermanentlyDenied) {
           if (mounted) {
-            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
+            _showSettingsDialog(
+                criticalDialogTitle,
+                criticalDialogContent);
           }
         } else if (requestedStatus.isDenied) {
           print(
               'Ana Sayfa - Android konum izni (Genel) reddedildi ancak kalıcı değil.');
           if (mounted) {
-            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
+            _showSettingsDialog(
+                criticalDialogTitle,
+                criticalDialogContent);
           }
         }
         // If permission granted here, proceed to check for 'Always'
@@ -251,13 +304,17 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       // After the initial request (or if already granted), check current general status again
       // to decide if we should proceed to request 'Always'.
-      final currentGeneralLocationStatus = await Permission.location.status;
-      if (currentGeneralLocationStatus.isGranted ||
-          currentGeneralLocationStatus.isLimited) {
+      final currentGeneralLocationStatus =
+          await Permission.location.status;
+      if (currentGeneralLocationStatus
+              .isGranted ||
+          currentGeneralLocationStatus
+              .isLimited) {
         print(
             'Ana Sayfa - Android konum izni (Genel) verilmiş veya kısıtlı. Şimdi "Always" kontrol ediliyor.');
 
-        final alwaysStatus = await Permission.locationAlways.status;
+        final alwaysStatus = await Permission
+            .locationAlways.status;
         print(
             'Ana Sayfa - Android "Always" konum izin durumu kontrol ediliyor: $alwaysStatus');
 
@@ -266,22 +323,29 @@ class _HomePageState extends ConsumerState<HomePage> {
               'Ana Sayfa - "Genel/Kullanımda" izni var, ancak "Always" izni yok. "Always" izni isteniyor.');
           // Requesting locationAlways typically opens settings directly on modern Android.
           final requestedAlwaysStatus =
-              await Permission.locationAlways.request();
+              await Permission.locationAlways
+                  .request();
           print(
               'Ana Sayfa - Android "Always" izin talep sonucu: $requestedAlwaysStatus');
 
           // After the request, check the status again.
           // If still not granted (denied or permanently denied), show the dialog.
-          final finalAlwaysStatus = await Permission.locationAlways.status;
+          final finalAlwaysStatus =
+              await Permission
+                  .locationAlways.status;
           if (!finalAlwaysStatus.isGranted) {
             if (mounted) {
-              _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
+              _showSettingsDialog(
+                  criticalDialogTitle,
+                  criticalDialogContent);
             }
           } else {
-            print('Ana Sayfa - Android "Always" konum izni şimdi verildi.');
+            print(
+                'Ana Sayfa - Android "Always" konum izni şimdi verildi.');
           }
         } else {
-          print('Ana Sayfa - Android "Always" konum izni zaten verilmiş.');
+          print(
+              'Ana Sayfa - Android "Always" konum izni zaten verilmiş.');
         }
       } else {
         // This means general location was not granted even after an attempt (if made).
@@ -293,51 +357,66 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // Function to check and request Activity Recognition/Motion permission
-  Future<void> _checkAndRequestActivityPermission() async {
+  Future<void>
+      _checkAndRequestActivityPermission() async {
     if (Platform.isAndroid) {
       // Android işlemi aynı kalıyor
-      final status = await Permission.activityRecognition.status;
-      print('Ana Sayfa - Android aktivite izin durumu: $status');
+      final status = await Permission
+          .activityRecognition.status;
+      print(
+          'Ana Sayfa - Android aktivite izin durumu: $status');
 
       if (!status.isGranted) {
-        final requestedStatus = await Permission.activityRecognition.request();
+        final requestedStatus = await Permission
+            .activityRecognition
+            .request();
         print(
             'Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
 
-        if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
+        if (requestedStatus.isDenied ||
+            requestedStatus.isPermanentlyDenied) {
           if (mounted) {
-            _showSettingsDialog('Aktivite İzni Gerekli',
+            _showSettingsDialog(
+                'Aktivite İzni Gerekli',
                 'Adımlarınızı sayabilmek için aktivite izni gereklidir.');
           }
         }
       } else {
-        print('Ana Sayfa - Android aktivite izni zaten verilmiş.');
+        print(
+            'Ana Sayfa - Android aktivite izni zaten verilmiş.');
       }
     } else if (Platform.isIOS) {
       // iOS için: Health Kit izinlerini kontrol et
       // Önce normal sensör iznini iste
-      final sensorStatus = await Permission.sensors.request();
-      print('Ana Sayfa - iOS sensör izin durumu: $sensorStatus');
+      final sensorStatus =
+          await Permission.sensors.request();
+      print(
+          'Ana Sayfa - iOS sensör izin durumu: $sensorStatus');
 
       // Health Kit izinlerinin verilip verilmediğini kontrol etmek için
       try {
         // Pedometer stream'ini 3 saniyeliğine dinle, veri gelirse izin verilmiş demektir
         bool healthKitPermissionVerified = false;
 
-        final subscription = Pedometer.stepCountStream.listen((step) {
+        final subscription = Pedometer
+            .stepCountStream
+            .listen((step) {
           print(
               'HomePage - Adım algılandı: ${step.steps}, Health Kit izinleri verilmiş');
           healthKitPermissionVerified = true;
         }, onError: (error) {
-          print('HomePage - Adım algılama hatası: $error');
+          print(
+              'HomePage - Adım algılama hatası: $error');
         });
 
         // Kısa bir süre bekle
-        await Future.delayed(const Duration(seconds: 3));
+        await Future.delayed(
+            const Duration(seconds: 3));
         subscription.cancel();
 
         // Eğer Health Kit verisi alınamadıysa dialog göster
-        if (!healthKitPermissionVerified && mounted) {
+        if (!healthKitPermissionVerified &&
+            mounted) {
           print(
               'Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
         } else {
@@ -345,7 +424,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               'Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
         }
       } catch (e) {
-        print('Ana Sayfa - Health Kit izin kontrolü sırasında hata: $e');
+        print(
+            'Ana Sayfa - Health Kit izin kontrolü sırasında hata: $e');
         if (mounted) {}
       }
     }
@@ -354,13 +434,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   // Health Kit izni için özel dialog (iOS)
 
   // Dialog to show if permission is denied (Consolidated for Settings)
-  void _showSettingsDialog(String title, String content) {
-    if (!mounted) return; // Check again before showing dialog
+  void _showSettingsDialog(
+      String title, String content) {
+    if (!mounted)
+      return; // Check again before showing dialog
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
-        content: Text('$content Lütfen uygulama ayarlarından bu izni verin.'),
+        content: Text(
+            '$content Lütfen uygulama ayarlarından bu izni verin.'),
         actions: [
           TextButton(
             child: const Text('Ayarları Aç'),
@@ -371,7 +454,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           TextButton(
             child: const Text('İptal'),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () =>
+                Navigator.of(context).pop(),
           ),
         ],
       ),
@@ -383,49 +467,64 @@ class _HomePageState extends ConsumerState<HomePage> {
         "https://play.google.com/store/apps/details?id=com.example.my_flutter_project"; // TODO: Kendi Play Store ID'nizi girin
     const String appStoreLink =
         "https://apps.apple.com/app/idYOUR_APP_ID"; // TODO: Kendi App Store ID'nizi girin
-    const String fallbackLink = "https://movliq.com/indir";
+    const String fallbackLink =
+        "https://movliq.com/indir";
 
     String shareMessage;
     if (Platform.isAndroid) {
-      shareMessage = "Hey! Movliq uygulamasını denemelisin: $playStoreLink";
+      shareMessage =
+          "Hey! Movliq uygulamasını denemelisin: $playStoreLink";
     } else if (Platform.isIOS) {
-      shareMessage = "Hey! Movliq uygulamasını denemelisin: $appStoreLink";
+      shareMessage =
+          "Hey! Movliq uygulamasını denemelisin: $appStoreLink";
     } else {
-      shareMessage = "Hey! Movliq uygulamasını denemelisin: $fallbackLink";
+      shareMessage =
+          "Hey! Movliq uygulamasını denemelisin: $fallbackLink";
     }
 
     try {
-      await Share.share(shareMessage, subject: 'Movliq Uygulamasını Deneyin!');
+      await Share.share(shareMessage,
+          subject:
+              'Movliq Uygulamasını Deneyin!');
 
-      bool apiCallSuccessful = await _callYourOneTimeShareRewardApi();
+      bool apiCallSuccessful =
+          await _callYourOneTimeShareRewardApi();
 
       if (apiCallSuccessful) {
         print(
             'Tek kullanımlık paylaşım ödülü APIsi başarıyla çağrıldı ve coin verildi.');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context)
+              .showSnackBar(
             const SnackBar(
                 content: Text(
                     'Paylaşımın için teşekkürler! Coinlerin hesabına eklendi!')),
           );
           ref.invalidate(
               userDataProvider); // Coin miktarını UI'da yenilemek için
-          ref.read(userDataProvider.notifier).fetchCoins();
+          ref
+              .read(userDataProvider.notifier)
+              .fetchCoins();
         }
       } else {
         return;
       }
     } catch (e) {
-      print('Paylaşım diyalogu sırasında hata oluştu: $e');
+      print(
+          'Paylaşım diyalogu sırasında hata oluştu: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Paylaşım başlatılamadı.')),
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Paylaşım başlatılamadı.')),
         );
       }
     }
   }
 
-  Future<bool> _callYourOneTimeShareRewardApi() async {
+  Future<bool>
+      _callYourOneTimeShareRewardApi() async {
     try {
       // HttpInterceptor, Authorization başlığını otomatik olarak ekleyecektir.
       final response = await HttpInterceptor.post(
@@ -436,7 +535,8 @@ class _HomePageState extends ConsumerState<HomePage> {
       );
 
       if (response.statusCode == 200) {
-        print('Claim initial bonus API call successful: ${response.body}');
+        print(
+            'Claim initial bonus API call successful: ${response.body}');
         // API'den dönen yanıta göre ek kontroller yapabilirsiniz (örn: response.body parse edilebilir)
         return true; // Başarılı
       } else {
@@ -450,44 +550,60 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     // Fetch initial data providers
-    final userDataAsync = ref.watch(userDataProvider);
-    final userStreakAsync =
-        ref.watch(userStreakProvider); // Watch streak provider
-    final latestProductsAsync =
-        ref.watch(latestProductProvider); // Watch latest products
+    final userDataAsync =
+        ref.watch(userDataProvider);
+    final userStreakAsync = ref.watch(
+        userStreakProvider); // Watch streak provider
+    final latestProductsAsync = ref.watch(
+        latestProductProvider); // Watch latest products
 
     // --- YENİ: Yarış sonrası Coin Popup Logic ---
-    final trackingState = ref.watch(raceCoinTrackingProvider);
+    final trackingState =
+        ref.watch(raceCoinTrackingProvider);
 
-    if (trackingState != null && trackingState.justFinishedRace) {
-      print("🏁 HomePage Build: Race finished flag detected.");
+    if (trackingState != null &&
+        trackingState.justFinishedRace) {
+      print(
+          "🏁 HomePage Build: Race finished flag detected.");
       // Durumu kontrol ettikten hemen sonra temizle
       // Bu, build sırasında state değişikliği hatasını önler
       // ve popup'ın tekrar tekrar tetiklenmesini engeller.
       // Kullanıcı coin verisi gelene kadar beklemeyecek,
       // build sırasında flag'i kontrol edip temizleyeceğiz.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) {
         if (mounted) {
-          ref.read(raceCoinTrackingProvider.notifier).clearState();
-          print("🏁 HomePage Build: Race finished flag cleared after check.");
+          ref
+              .read(raceCoinTrackingProvider
+                  .notifier)
+              .clearState();
+          print(
+              "🏁 HomePage Build: Race finished flag cleared after check.");
         }
       });
 
       // Şimdi userData'nın durumuna bak
-      if (userDataAsync is AsyncData<UserDataModel?>) {
-        final currentUserData = userDataAsync.value;
+      if (userDataAsync
+          is AsyncData<UserDataModel?>) {
+        final currentUserData =
+            userDataAsync.value;
         if (currentUserData != null &&
             currentUserData.coins != null &&
-            trackingState.beforeRaceCoin != null) {
+            trackingState.beforeRaceCoin !=
+                null) {
           final double earnedCoin =
-              currentUserData.coins! - trackingState.beforeRaceCoin!;
-          print("🏁 HomePage Build: UserData loaded. Earned Coin: $earnedCoin");
+              currentUserData.coins! -
+                  trackingState.beforeRaceCoin!;
+          print(
+              "🏁 HomePage Build: UserData loaded. Earned Coin: $earnedCoin");
 
           if (earnedCoin > 0.001) {
             // Build bittikten sonra popup'ı göster
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) {
               if (mounted) {
-                _showCoinPopup(context, earnedCoin);
+                _showCoinPopup(
+                    context, earnedCoin);
               }
             });
           } else {
@@ -511,12 +627,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     // Display loading indicator while user data is loading
     if (userDataAsync is AsyncLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFC4FF62)),
+        child: CircularProgressIndicator(
+            color: Color(0xFFC4FF62)),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.black, // Set background to black
+      backgroundColor:
+          Colors.black, // Set background to black
       body: userDataAsync.when(
         data: (userData) {
           // userData might still be null initially while fetching after login
@@ -530,7 +648,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           return Container(
             // Keep the gradient if needed, or just use black
             decoration: const BoxDecoration(
-              color: Colors.black, // Use black background
+              color: Colors
+                  .black, // Use black background
             ),
             child: SafeArea(
               child: SingleChildScrollView(
@@ -539,27 +658,37 @@ class _HomePageState extends ConsumerState<HomePage> {
                   children: [
                     // --- New Top Bar ---
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 12.0),
+                      padding: const EdgeInsets
+                          .symmetric(
+                          horizontal: 16.0,
+                          vertical: 12.0),
                       child: Row(
                         children: [
                           // Profile picture - Simpler error/loading handling
                           UserProfileAvatar(
-                            imageUrl: userData?.profilePictureUrl,
+                            imageUrl: userData
+                                ?.profilePictureUrl,
                             radius: 24,
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(
+                              width: 12),
                           // Welcome Text - Simpler error/loading handling
                           Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .start,
                             children: [
                               Text(
                                 userData?.userName ??
                                     'Kullanıcı', // Display name or default
-                                style: const TextStyle(
+                                style:
+                                    const TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  fontWeight:
+                                      FontWeight
+                                          .bold,
+                                  color: Colors
+                                      .white,
                                 ),
                               ),
                             ],
@@ -570,58 +699,92 @@ class _HomePageState extends ConsumerState<HomePage> {
                             children: [
                               // Notification Icon (Placeholder)
                               Stack(
-                                alignment: Alignment.topRight,
+                                alignment:
+                                    Alignment
+                                        .topRight,
                                 children: [
                                   IconButton(
-                                    onPressed: () {
+                                    onPressed:
+                                        () {
                                       Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                               builder: (context) =>
                                                   HelpScreen()));
                                     },
-                                    icon: Icon(Icons.info_outline,
-                                        color: Colors.white, size: 26),
+                                    icon: Icon(
+                                        Icons
+                                            .info_outline,
+                                        color: Colors
+                                            .white,
+                                        size: 26),
                                   ),
                                   // Add badge if needed
                                 ],
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(
+                                  width: 12),
                               // Coin Icon & Count
                               Image.asset(
                                 'assets/images/mCoin.png',
                                 width: 25,
                                 height: 25,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(
+                                  width: 4),
                               Text(
-                                userCoins?.toStringAsFixed(2) ??
+                                userCoins
+                                        ?.toStringAsFixed(
+                                            2) ??
                                     '0.00', // Format to 2 decimal places
                                 style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                                    color: Colors
+                                        .white,
+                                    fontWeight:
+                                        FontWeight
+                                            .bold,
                                     fontSize: 14),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(
+                                  width: 12),
                               // Streak Icon & Count - Simpler error/loading
-                              const Icon(Icons.local_fire_department,
-                                  color: Colors.deepOrangeAccent, size: 22),
-                              const SizedBox(width: 4),
-                              userStreakAsync.maybeWhen(
-                                data: (streak) => Text(
-                                  streak.toString(),
+                              //const Icon(Icons.local_fire_department,
+                              //color: Colors.deepOrangeAccent, size: 22),
+                              Image.asset(
+                                'assets/icons/alev.png',
+                                width: 20,
+                                height: 20,
+                              ),
+
+                              const SizedBox(
+                                  width: 4),
+                              userStreakAsync
+                                  .maybeWhen(
+                                data: (streak) =>
+                                    Text(
+                                  streak
+                                      .toString(),
                                   style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14),
+                                      color: Colors
+                                          .white,
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+                                      fontSize:
+                                          14),
                                 ),
                                 // Show '-' or loading indicator for non-data states
-                                orElse: () => const Text(
+                                orElse: () =>
+                                    const Text(
                                   '-',
                                   style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14),
+                                      color: Colors
+                                          .white,
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+                                      fontSize:
+                                          14),
                                 ),
                               ),
                             ],
@@ -632,14 +795,18 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                     // --- Level Card (Now a PageView Slider) ---
                     SizedBox(
-                      height: 170, // Adjust height for the slider area
+                      height:
+                          170, // Adjust height for the slider area
                       child: PageView.builder(
                         controller: PageController(
                             viewportFraction:
                                 0.9), // Shows parts of adjacent pages
-                        padEnds: false, // Don't add padding at the ends
-                        itemCount: 3, // Placeholder count for demonstration
-                        itemBuilder: (context, index) {
+                        padEnds:
+                            false, // Don't add padding at the ends
+                        itemCount:
+                            3, // Placeholder count for demonstration
+                        itemBuilder:
+                            (context, index) {
                           // Define the image path based on the index
                           final imagePaths = [
                             'assets/images/slidebar1.jpeg',
@@ -648,26 +815,42 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ];
                           // Use modulo in case itemCount changes later, although currently it's 3
                           final imagePath =
-                              imagePaths[index % imagePaths.length];
+                              imagePaths[index %
+                                  imagePaths
+                                      .length];
 
                           return Container(
-                            margin: const EdgeInsets.symmetric(
+                            margin: const EdgeInsets
+                                .symmetric(
                                 horizontal: 8.0,
                                 vertical:
                                     8.0), // Add horizontal margin between cards
-                            padding: const EdgeInsets.all(20.0),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20.0),
-                              image: DecorationImage(
-                                image: AssetImage(imagePath),
+                            padding:
+                                const EdgeInsets
+                                    .all(20.0),
+                            decoration:
+                                BoxDecoration(
+                              borderRadius:
+                                  BorderRadius
+                                      .circular(
+                                          20.0),
+                              image:
+                                  DecorationImage(
+                                image: AssetImage(
+                                    imagePath),
                                 fit: BoxFit
                                     .cover, // Make image cover the container
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
+                                  color: Colors
+                                      .black
+                                      .withOpacity(
+                                          0.2),
                                   blurRadius: 10,
-                                  offset: const Offset(0, 4),
+                                  offset:
+                                      const Offset(
+                                          0, 4),
                                 ),
                               ],
                             ),
@@ -678,19 +861,35 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   Positioned(
                                     top: 0,
                                     left: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(10),
+                                    child:
+                                        Container(
+                                      padding: const EdgeInsets
+                                          .symmetric(
+                                          horizontal:
+                                              8,
+                                          vertical:
+                                              4),
+                                      decoration:
+                                          BoxDecoration(
+                                        color: Colors
+                                            .black
+                                            .withOpacity(
+                                                0.2),
+                                        borderRadius:
+                                            BorderRadius.circular(
+                                                10),
                                       ),
-                                      child: const Text(
+                                      child:
+                                          const Text(
                                         'NEW',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 10,
+                                        style:
+                                            TextStyle(
+                                          color: Colors
+                                              .white,
+                                          fontWeight:
+                                              FontWeight.bold,
+                                          fontSize:
+                                              10,
                                         ),
                                       ),
                                     ),
@@ -704,12 +903,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   child: Text(
                                     index == 0
                                         ? '1/5'
-                                        : (index == 1
+                                        : (index ==
+                                                1
                                             ? 'Daily'
                                             : 'Weekly'), // Example content variation
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
+                                    style:
+                                        TextStyle(
+                                      color: Colors
+                                          .white70,
+                                      fontSize:
+                                          14,
                                     ),
                                   ),
                                 ),
@@ -723,47 +926,78 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                     // --- Invite Friend Card ---
                     Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                      padding: const EdgeInsets.all(16.0),
+                      margin: const EdgeInsets
+                          .symmetric(
+                          horizontal: 16.0),
+                      padding:
+                          const EdgeInsets.all(
+                              16.0),
                       decoration: BoxDecoration(
                         color: Colors.grey[900],
-                        borderRadius: BorderRadius.circular(16.0),
+                        borderRadius:
+                            BorderRadius.circular(
+                                16.0),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.group_add_outlined,
-                              color: Color(0xFFC4FF62), size: 30),
-                          const SizedBox(width: 16),
+                          Icon(
+                              Icons
+                                  .group_add_outlined,
+                              color: Color(
+                                  0xFFC4FF62),
+                              size: 30),
+                          const SizedBox(
+                              width: 16),
                           const Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
                               children: [
                                 Text(
                                   'Arkadaşını Davet Et',
                                   style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16),
+                                      color: Colors
+                                          .white,
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+                                      fontSize:
+                                          16),
                                 ),
-                                SizedBox(height: 4),
+                                SizedBox(
+                                    height: 4),
                                 Text(
                                   'Her arkadaşın için 500 mPara',
                                   style: TextStyle(
-                                      color: Colors.grey, fontSize: 12),
+                                      color: Colors
+                                          .grey,
+                                      fontSize:
+                                          12),
                                 ),
                               ],
                             ),
                           ),
                           ElevatedButton(
-                            onPressed: _shareAppLink,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFFC4FF62),
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.0),
+                            onPressed:
+                                _shareAppLink,
+                            style: ElevatedButton
+                                .styleFrom(
+                              backgroundColor:
+                                  Color(
+                                      0xFFC4FF62),
+                              foregroundColor:
+                                  Colors.black,
+                              shape:
+                                  RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius
+                                        .circular(
+                                            10.0),
                               ),
                             ),
-                            child: const Text('Davet Et'),
+                            child: const Text(
+                                'Davet Et'),
                           ),
                         ],
                       ),
@@ -772,76 +1006,110 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                     // --- Ready to Race Text ---
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 8.0), // Keep padding
+                      padding: const EdgeInsets
+                          .symmetric(
+                          horizontal: 16.0,
+                          vertical:
+                              8.0), // Keep padding
                       child: Column(
                         children: [
                           const Text(
                             'Yarışa hazır mısın?',
-                            textAlign: TextAlign.center,
+                            textAlign:
+                                TextAlign.center,
                             style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                                color:
+                                    Colors.white,
+                                fontWeight:
+                                    FontWeight
+                                        .bold,
                                 fontSize: 18),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(
+                              height: 8),
                           Text(
                             'Kardiyoyu eğlenceli hale getirin! Canlı bir yarışa katılmak ve benzersiz ödüller kazanmak için hemen tıklayın!',
-                            textAlign: TextAlign.center,
+                            textAlign:
+                                TextAlign.center,
                             style: TextStyle(
-                                color: Colors.grey[400], fontSize: 14),
+                                color: Colors
+                                    .grey[400],
+                                fontSize: 14),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(
+                              height: 4),
                         ],
                       ),
                     ),
 
                     // --- Central Action Button ---
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10.0),
-                      child: AnimatedCentralButton(),
+                      padding: const EdgeInsets
+                          .symmetric(
+                          vertical: 10.0),
+                      child:
+                          AnimatedCentralButton(),
                     ),
 
                     // --- Available Products Section ---
                     Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding:
+                          const EdgeInsets.all(
+                              16.0),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                MainAxisAlignment
+                                    .spaceBetween,
                             children: [
                               const Text(
                                 'Alınabilir Ürünler',
                                 style: TextStyle(
-                                    color: Colors.white,
+                                    color: Colors
+                                        .white,
                                     fontSize: 18,
-                                    fontWeight: FontWeight.bold),
+                                    fontWeight:
+                                        FontWeight
+                                            .bold),
                               ),
                               TextButton(
                                 onPressed: () {
                                   // Update the provider to switch to the Store tab (index 1)
-                                  ref.read(selectedTabProvider.notifier).state =
-                                      1;
+                                  ref
+                                      .read(selectedTabProvider
+                                          .notifier)
+                                      .state = 1;
                                 },
                                 child: const Text(
                                   'Mağaza >',
-                                  style: TextStyle(color: Color(0xFFC4FF62)),
+                                  style: TextStyle(
+                                      color: Color(
+                                          0xFFC4FF62)),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(
+                              height: 12),
                           SizedBox(
                             // height: 200, // REMOVE fixed height constraint
                             // Keep the specific error handling for products here
-                            child: latestProductsAsync.when(
+                            child:
+                                latestProductsAsync
+                                    .when(
                               data: (products) {
-                                if (products.isEmpty) {
+                                if (products
+                                    .isEmpty) {
                                   return const Center(
                                     child: Text(
                                       'Gösterilecek ürün bulunamadı.',
-                                      style: TextStyle(color: Colors.white70),
+                                      style: TextStyle(
+                                          color: Colors
+                                              .white70),
                                     ),
                                   );
                                 }
@@ -849,16 +1117,28 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 return SizedBox(
                                   height:
                                       200, // Restore height constraint for the list
-                                  child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: products.length,
-                                    itemBuilder: (context, index) {
-                                      final LatestProductModel product =
-                                          products[index];
+                                  child: ListView
+                                      .builder(
+                                    scrollDirection:
+                                        Axis.horizontal,
+                                    itemCount:
+                                        products
+                                            .length,
+                                    itemBuilder:
+                                        (context,
+                                            index) {
+                                      final LatestProductModel
+                                          product =
+                                          products[
+                                              index];
                                       return Padding(
-                                        padding:
-                                            const EdgeInsets.only(right: 12.0),
-                                        child: _ProductCard(product: product),
+                                        padding: const EdgeInsets
+                                            .only(
+                                            right:
+                                                12.0),
+                                        child: _ProductCard(
+                                            product:
+                                                product),
                                       );
                                     },
                                   ),
@@ -866,14 +1146,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                               },
                               loading: () => const Center(
                                   child: CircularProgressIndicator(
-                                      color: Colors.white)),
-                              error: (error, stackTrace) {
+                                      color: Colors
+                                          .white)),
+                              error: (error,
+                                  stackTrace) {
                                 // Check for network errors IN THIS SECTION
-                                if (error is SocketException ||
-                                    error is ClientException) {
+                                if (error
+                                        is SocketException ||
+                                    error
+                                        is ClientException) {
                                   return Center(
-                                    child: NetworkErrorWidget(
-                                      onRetry: () {
+                                    child:
+                                        NetworkErrorWidget(
+                                      onRetry:
+                                          () {
                                         ref.invalidate(
                                             latestProductProvider); // Retry fetch
                                       },
@@ -882,13 +1168,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 } else {
                                   // Display other errors for products
                                   return Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: SelectableText(
+                                    child:
+                                        Padding(
+                                      padding:
+                                          const EdgeInsets
+                                              .all(
+                                              8.0),
+                                      child:
+                                          SelectableText(
                                         'Ürünler yüklenemedi: $error',
                                         style: const TextStyle(
-                                            color: Colors.redAccent),
-                                        textAlign: TextAlign.center,
+                                            color:
+                                                Colors.redAccent),
+                                        textAlign:
+                                            TextAlign
+                                                .center,
                                       ),
                                     ),
                                   );
@@ -1056,7 +1350,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ],
                       ),
                     ),*/
-                    const SizedBox(height: 20), // Add some bottom padding
+                    const SizedBox(
+                        height:
+                            20), // Add some bottom padding
                   ],
                 ),
               ),
@@ -1064,19 +1360,23 @@ class _HomePageState extends ConsumerState<HomePage> {
           );
         },
         loading: () => const Center(
-            child: CircularProgressIndicator(color: Color(0xFFC4FF62))),
+            child: CircularProgressIndicator(
+                color: Color(0xFFC4FF62))),
         error: (error, stackTrace) {
           // ALWAYS show NetworkErrorWidget for any full-screen error
           return Center(
             child: NetworkErrorWidget(
               // Provide generic title/message for all errors
               title: 'Ana Sayfa Yüklenemedi',
-              message: 'Bir sorun oluştu, lütfen tekrar deneyin.',
+              message:
+                  'Bir sorun oluştu, lütfen tekrar deneyin.',
               onRetry: () {
                 // Invalidate all relevant providers on retry
                 ref.invalidate(userDataProvider);
-                ref.invalidate(userStreakProvider);
-                ref.invalidate(latestProductProvider);
+                ref.invalidate(
+                    userStreakProvider);
+                ref.invalidate(
+                    latestProductProvider);
               },
             ),
           );
@@ -1086,17 +1386,21 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // --- YENİ: Popup gösterme fonksiyonu ---
-  void _showCoinPopup(BuildContext context, double coins) {
+  void _showCoinPopup(
+      BuildContext context, double coins) {
     // Zaten bir dialog açık mı kontrol et (isteğe bağlı, çift popup engelleme)
-    if (ModalRoute.of(context)?.isCurrent ?? false) {
+    if (ModalRoute.of(context)?.isCurrent ??
+        false) {
       showDialog(
         context: context,
-        barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
+        barrierDismissible:
+            false, // Dışarı tıklayarak kapatmayı engelle
         builder: (BuildContext dialogContext) {
           return EarnCoinPopup(
             earnedCoin: coins,
             onGoHomePressed: () {
-              Navigator.of(dialogContext).pop(); // Sadece popup'ı kapat
+              Navigator.of(dialogContext)
+                  .pop(); // Sadece popup'ı kapat
             },
           );
         },
@@ -1106,35 +1410,42 @@ class _HomePageState extends ConsumerState<HomePage> {
 }
 
 // Extracted Animated Central Button Widget BUTON ANIMASYONU
-class AnimatedCentralButton extends ConsumerStatefulWidget {
+class AnimatedCentralButton
+    extends ConsumerStatefulWidget {
   const AnimatedCentralButton({super.key});
 
   @override
-  ConsumerState<AnimatedCentralButton> createState() =>
-      _AnimatedCentralButtonState();
+  ConsumerState<AnimatedCentralButton>
+      createState() =>
+          _AnimatedCentralButtonState();
 }
 
-class _AnimatedCentralButtonState extends ConsumerState<AnimatedCentralButton> {
+class _AnimatedCentralButtonState
+    extends ConsumerState<AnimatedCentralButton> {
   bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapDown: (_) =>
+          setState(() => _isPressed = true),
       onTapUp: (_) {
         setState(() => _isPressed = false);
         // Navigate on tap up
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const FilterScreen(),
+            builder: (context) =>
+                const FilterScreen(),
           ),
         );
       },
-      onTapCancel: () => setState(() => _isPressed = false),
+      onTapCancel: () =>
+          setState(() => _isPressed = false),
       child: AnimatedScale(
         scale: _isPressed ? 0.95 : 1.0,
-        duration: const Duration(milliseconds: 150),
+        duration:
+            const Duration(milliseconds: 150),
         child: AvatarGlow(
           glowColor: Color(0xFFC4FF62),
           glowRadiusFactor: 0.3,
@@ -1149,7 +1460,8 @@ class _AnimatedCentralButtonState extends ConsumerState<AnimatedCentralButton> {
               height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFFC4FF62), // Movliq green
+                color: Color(
+                    0xFFC4FF62), // Movliq green
               ),
               child: Center(
                 child: Image.asset(
@@ -1178,44 +1490,61 @@ class _ProductCard extends StatelessWidget {
     // Wrap the card with InkWell for tap feedback and navigation
     return InkWell(
       onTap: () {
-        print("📦 Tapped product: ${product.name} (ID: ${product.id})");
+        print(
+            "📦 Tapped product: ${product.name} (ID: ${product.id})");
         // Navigate to ProductViewScreen, passing only the product ID
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProductViewScreen(productId: product.id),
+            builder: (context) =>
+                ProductViewScreen(
+                    productId: product.id),
           ),
         );
       },
-      borderRadius: BorderRadius.circular(16.0), // Match card border radius
+      borderRadius: BorderRadius.circular(
+          16.0), // Match card border radius
       child: Container(
         width: 150, // Adjust width
         // Removed margin from Container, InkWell handles interaction area
         decoration: BoxDecoration(
           color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius:
+              BorderRadius.circular(16.0),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16.0)),
+                borderRadius: const BorderRadius
+                    .vertical(
+                    top: Radius.circular(16.0)),
                 child: Image.network(
                   product.mainImageUrl,
                   fit: BoxFit.cover,
                   width: double.infinity,
-                  loadingBuilder: (BuildContext context, Widget child,
-                      ImageChunkEvent? loadingProgress) {
-                    if (loadingProgress == null) return child; // Image loaded
+                  loadingBuilder:
+                      (BuildContext context,
+                          Widget child,
+                          ImageChunkEvent?
+                              loadingProgress) {
+                    if (loadingProgress == null)
+                      return child; // Image loaded
                     return Container(
-                      color: Colors.grey[800], // Placeholder background
+                      color: Colors.grey[
+                          800], // Placeholder background
                       child: Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
+                        child:
+                            CircularProgressIndicator(
+                          value: loadingProgress
+                                      .expectedTotalBytes !=
+                                  null
+                              ? loadingProgress
+                                      .cumulativeBytesLoaded /
+                                  loadingProgress
+                                      .expectedTotalBytes!
                               : null,
                           color: Colors.white54,
                           strokeWidth: 2,
@@ -1223,15 +1552,20 @@ class _ProductCard extends StatelessWidget {
                       ),
                     );
                   },
-                  errorBuilder: (BuildContext context, Object exception,
+                  errorBuilder: (BuildContext
+                          context,
+                      Object exception,
                       StackTrace? stackTrace) {
                     print(
                         "❌ Error loading image: ${product.mainImageUrl}, Error: $exception");
                     return Container(
                       color: Colors.grey[800],
                       child: const Center(
-                          child: Icon(Icons.broken_image_outlined,
-                              color: Colors.redAccent)),
+                          child: Icon(
+                              Icons
+                                  .broken_image_outlined,
+                              color: Colors
+                                  .redAccent)),
                     );
                   },
                 ),
@@ -1240,16 +1574,20 @@ class _ProductCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product.name, // Use product name
+                    product
+                        .name, // Use product name
                     style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        fontWeight:
+                            FontWeight.bold,
                         fontSize: 14),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    overflow:
+                        TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -1261,10 +1599,12 @@ class _ProductCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        product.price.toString(), // Use product price
+                        product.price
+                            .toString(), // Use product price
                         style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                            fontWeight:
+                                FontWeight.bold,
                             fontSize: 14),
                       ),
                     ],
