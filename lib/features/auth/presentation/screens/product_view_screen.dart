@@ -23,28 +23,21 @@ const Color lightTextColor = Colors.white;
 const Color darkTextColor = Colors.black;
 const Color greyTextColor = Color(0xFF8A8A8E);
 
-class ProductViewScreen
-    extends ConsumerStatefulWidget {
+class ProductViewScreen extends ConsumerStatefulWidget {
   // Product yerine productId al
   final int productId;
 
-  const ProductViewScreen(
-      {super.key, required this.productId});
+  const ProductViewScreen({super.key, required this.productId});
 
   @override
-  ConsumerState<ProductViewScreen>
-      createState() => _ProductViewScreenState();
+  ConsumerState<ProductViewScreen> createState() => _ProductViewScreenState();
 }
 
-class _ProductViewScreenState
-    extends ConsumerState<ProductViewScreen> {
-  final PageController _imagePageController =
-      PageController();
+class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
+  final PageController _imagePageController = PageController();
   // int _selectedSizeIndex = 2; // Beden seçimi kaldırıldı
-  bool _isFavorited =
-      false; // Başlangıçta favori değil
-  bool _isPurchasing =
-      false; // Satın alma işlemi durumu
+  bool _isFavorited = false; // Başlangıçta favori değil
+  bool _isPurchasing = false; // Satın alma işlemi durumu
 
   // Beden listesi kaldırıldı
   // final List<String> _sizes = ['36', '37', '38', '39', '40', '41', '42'];
@@ -54,8 +47,7 @@ class _ProductViewScreenState
     super.initState();
     // Widget ilk oluşturulduğunda ürün detaylarını çek
     // Use addPostFrameCallback to ensure ref is available
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(productDetailProvider.notifier)
           .fetchProductDetails(widget.productId);
@@ -63,14 +55,12 @@ class _ProductViewScreenState
   }
 
   // Kalan süreyi formatlayan yardımcı fonksiyon (product null olabilir)
-  String _formatRemainingTime(
-      DateTime? expirationDate) {
+  String _formatRemainingTime(DateTime? expirationDate) {
     if (expirationDate == null) {
       return 'Süresiz';
     }
     final now = DateTime.now();
-    final difference =
-        expirationDate.difference(now);
+    final difference = expirationDate.difference(now);
     if (difference.isNegative) {
       return 'Süre Doldu';
     }
@@ -78,24 +68,18 @@ class _ProductViewScreenState
     final hours = difference.inHours % 24;
     final minutes = difference.inMinutes % 60;
     final formattedString = StringBuffer();
-    if (days > 0)
-      formattedString.write('$days gün ');
-    if (hours > 0)
-      formattedString.write('$hours saat ');
+    if (days > 0) formattedString.write('$days gün ');
+    if (hours > 0) formattedString.write('$hours saat ');
     if (minutes > 0 || (days == 0 && hours == 0))
       formattedString.write('$minutes dakika');
-    return formattedString
-            .toString()
-            .trim()
-            .isEmpty
+    return formattedString.toString().trim().isEmpty
         ? 'Bir dakikadan az'
         : formattedString.toString().trim();
   }
 
   // Yeni Bottom Sheet (Promosyon Kodu Alındı)
   void _showAcquiredCouponBottomSheet(
-      BuildContext context,
-      AcquiredCouponResponse response) {
+      BuildContext context, AcquiredCouponResponse response) {
     // ... (Bu fonksiyon içeriği aynı kalabilir) ...
     showModalBottomSheet(
       context: context,
@@ -104,11 +88,9 @@ class _ProductViewScreenState
       builder: (context) {
         // Bu kısım detaylı olarak doldurulacak
         return Container(
-          padding: const EdgeInsets.all(
-              20), // Örnek padding
+          padding: const EdgeInsets.all(20), // Örnek padding
           decoration: const BoxDecoration(
-            color: Color(
-                0xFF1C1C1E), // Koyu gri/siyah arka plan
+            color: Color(0xFF1C1C1E), // Koyu gri/siyah arka plan
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(24.0),
               topRight: Radius.circular(24.0),
@@ -116,95 +98,60 @@ class _ProductViewScreenState
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Row(
                 // Başarı mesajı
                 children: [
-                  Icon(Icons.check_circle,
-                      color: Colors.green,
-                      size: 20),
+                  Icon(Icons.check_circle, color: Colors.green, size: 20),
                   SizedBox(width: 8),
                   Text('Promosyon kodu alındı.',
                       style: TextStyle(
-                          color: Colors.green,
-                          fontWeight:
-                              FontWeight.bold)),
+                          color: Colors.green, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 16),
-              Text(
-                  response.productName ??
-                      'Ürün Adı Yok', // Null check
+              Text(response.productName ?? 'Ürün Adı Yok', // Null check
                   style: const TextStyle(
                       color: lightTextColor,
                       fontSize: 18,
-                      fontWeight:
-                          FontWeight.bold)),
+                      fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               // Kod alanı (kopyalama butonu ile)
               Container(
                 padding:
-                    const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                    color: const Color.fromARGB(
-                            255,
-                            196,
-                            255,
-                            98) // Lime green
+                    color: const Color.fromARGB(255, 196, 255, 98) // Lime green
                         .withOpacity(0.1),
-                    borderRadius:
-                        BorderRadius.circular(10),
-                    border: Border.all(
-                        color: limeGreen)),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: limeGreen)),
                 child: Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment
-                          .spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                        response.acquiredCoupon
-                                ?.code ??
+                        response.acquiredCoupon?.code ??
                             'KOD YOK', // Null check
                         style: const TextStyle(
                             color: limeGreen,
                             fontSize: 18,
-                            fontWeight:
-                                FontWeight.bold)),
+                            fontWeight: FontWeight.bold)),
                     IconButton(
-                      icon: const Icon(Icons.copy,
-                          color: limeGreen,
-                          size: 20),
+                      icon: const Icon(Icons.copy, color: limeGreen, size: 20),
                       onPressed: () async {
-                        if (response
-                                .acquiredCoupon
-                                ?.code !=
-                            null) {
-                          await Clipboard.setData(
-                              ClipboardData(
-                                  text: response
-                                      .acquiredCoupon!
-                                      .code!));
-                          ScaffoldMessenger.of(
-                                  context)
-                              .showSnackBar(
+                        if (response.acquiredCoupon?.code != null) {
+                          await Clipboard.setData(ClipboardData(
+                              text: response.acquiredCoupon!.code!));
+                          ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content: Text(
-                                    'Kod kopyalandı!',
-                                    style: TextStyle(
-                                        color:
-                                            lightTextColor)),
-                                backgroundColor:
-                                    cardBackground),
+                                content: Text('Kod kopyalandı!',
+                                    style: TextStyle(color: lightTextColor)),
+                                backgroundColor: cardBackground),
                           );
                         }
                       },
                       padding: EdgeInsets.zero,
-                      constraints:
-                          BoxConstraints(),
+                      constraints: BoxConstraints(),
                     )
                   ],
                 ),
@@ -212,50 +159,37 @@ class _ProductViewScreenState
               const SizedBox(height: 20),
               const Text("Nasıl kullanılır?",
                   style: TextStyle(
-                      color: greyTextColor,
-                      fontWeight:
-                          FontWeight.bold)),
+                      color: greyTextColor, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              const Text(
-                  "• Promosyon kodunu kopyalayın",
-                  style: TextStyle(
-                      color: lightTextColor)),
+              const Text("• Promosyon kodunu kopyalayın",
+                  style: TextStyle(color: lightTextColor)),
               const SizedBox(height: 4),
-              const Text(
-                  "• Web sitesinde ilgili alana ekleyin",
-                  style: TextStyle(
-                      color: lightTextColor)),
+              const Text("• Web sitesinde ilgili alana ekleyin",
+                  style: TextStyle(color: lightTextColor)),
               const SizedBox(height: 24),
               // Kodu Kopyala ve Siteye Git Butonu
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
-                    final String? code = response
-                        .acquiredCoupon?.code;
-                    final String? urlString =
-                        response.productUrl;
+                    final String? code = response.acquiredCoupon?.code;
+                    final String? urlString = response.productUrl;
 
                     // Increment product traffic (fire and forget)
                     try {
                       // Assuming widget.productId holds the current product's ID
-                      final int currentProductId =
-                          widget.productId;
+                      final int currentProductId = widget.productId;
 
                       final String trafficUrl =
-                          ApiConfig
-                              .incrementProductTrafficEndpoint(
-                                  currentProductId);
+                          ApiConfig.incrementProductTrafficEndpoint(
+                              currentProductId);
                       // Use standard http.post for tokenless request
-                      final trafficIncrementResponse =
-                          await http.post(
+                      final trafficIncrementResponse = await http.post(
                         Uri.parse(trafficUrl),
                         // No token, no custom headers, no body for this specific POST request
                       );
 
-                      if (trafficIncrementResponse
-                              .statusCode ==
-                          200) {
+                      if (trafficIncrementResponse.statusCode == 200) {
                         print(
                             'Successfully incremented traffic for product $currentProductId');
                       } else {
@@ -263,44 +197,28 @@ class _ProductViewScreenState
                             'Failed to increment traffic for product $currentProductId: ${trafficIncrementResponse.statusCode} ${trafficIncrementResponse.body}');
                       }
                     } catch (e) {
-                      print(
-                          'Error calling increment traffic API: $e');
+                      print('Error calling increment traffic API: $e');
                     }
 
                     if (code != null) {
-                      await Clipboard.setData(
-                          ClipboardData(
-                              text: code));
-                      ScaffoldMessenger.of(
-                              context)
-                          .showSnackBar(
+                      await Clipboard.setData(ClipboardData(text: code));
+                      ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text(
-                                'Kod kopyalandı!',
-                                style: TextStyle(
-                                    color:
-                                        lightTextColor)),
-                            backgroundColor:
-                                cardBackground),
+                            content: Text('Kod kopyalandı!',
+                                style: TextStyle(color: lightTextColor)),
+                            backgroundColor: cardBackground),
                       );
                     }
 
                     // --- URL Açma Mantığı ---
-                    if (urlString == null ||
-                        urlString.isEmpty) {
-                      print(
-                          'Error: Product URL is null or empty.');
-                      ScaffoldMessenger.of(
-                              context)
-                          .showSnackBar(
+                    if (urlString == null || urlString.isEmpty) {
+                      print('Error: Product URL is null or empty.');
+                      ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             content: Text(
                                 'Geçerli bir ürün URL\'si bulunamadı.',
-                                style: TextStyle(
-                                    color: Colors
-                                        .red)),
-                            backgroundColor:
-                                cardBackground),
+                                style: TextStyle(color: Colors.red)),
+                            backgroundColor: cardBackground),
                       );
                       return;
                     }
@@ -311,96 +229,64 @@ class _ProductViewScreenState
                       print(
                           'Parsed URI: ${uri.toString()}'); // Parsed URI'yi yazdır
                     } catch (e) {
-                      print(
-                          'Error parsing URI: $e');
-                      ScaffoldMessenger.of(
-                              context)
-                          .showSnackBar(
+                      print('Error parsing URI: $e');
+                      ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text(
-                                'URL formatı geçersiz: $e',
-                                style: TextStyle(
-                                    color: Colors
-                                        .red)),
-                            backgroundColor:
-                                cardBackground),
+                            content: Text('URL formatı geçersiz: $e',
+                                style: TextStyle(color: Colors.red)),
+                            backgroundColor: cardBackground),
                       );
                       return; // Parse edilemiyorsa devam etme
                     }
 
                     try {
-                      print(
-                          'Checking if URL can be launched...');
-                      bool canLaunch =
-                          await canLaunchUrl(uri);
+                      print('Checking if URL can be launched...');
+                      bool canLaunch = await canLaunchUrl(uri);
                       print(
                           'canLaunchUrl result: $canLaunch'); // canLaunchUrl sonucunu yazdır
 
                       if (canLaunch) {
-                        print(
-                            'Attempting to launch URL...');
+                        print('Attempting to launch URL...');
                         await launchUrl(uri,
-                            mode: LaunchMode
-                                .externalApplication);
+                            mode: LaunchMode.externalApplication);
                         print(
                             'launchUrl call completed.'); // Bu satır yazdırılıyor mu kontrol et
                       } else {
-                        print(
-                            'URL cannot be launched.');
-                        ScaffoldMessenger.of(
-                                context)
-                            .showSnackBar(
+                        print('URL cannot be launched.');
+                        ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                               content: Text(
                                   'URL açılamadı: ${uri.toString()}', // Kullanılan URL'yi gösteriyor
-                                  style: TextStyle(
-                                      color: Colors
-                                          .red)),
-                              backgroundColor:
-                                  cardBackground),
+                                  style: TextStyle(color: Colors.red)),
+                              backgroundColor: cardBackground),
                         );
                       }
                     } catch (e) {
                       print(
                           'Error during launchUrl: $e'); // launchUrl hatasını yazdır
-                      ScaffoldMessenger.of(
-                              context)
-                          .showSnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text(
-                                'URL açılırken hata: $e',
-                                style: TextStyle(
-                                    color: Colors
-                                        .red)),
-                            backgroundColor:
-                                cardBackground),
+                            content: Text('URL açılırken hata: $e',
+                                style: TextStyle(color: Colors.red)),
+                            backgroundColor: cardBackground),
                       );
                     }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: limeGreen,
-                    foregroundColor:
-                        darkTextColor,
-                    padding: const EdgeInsets
-                        .symmetric(vertical: 16),
+                    foregroundColor: darkTextColor,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(
-                                12)),
+                        borderRadius: BorderRadius.circular(12)),
                     textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight:
-                            FontWeight.bold),
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   child: const Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                          'Kodu kopyala ve Siteye Git'),
+                      Text('Kodu kopyala ve Siteye Git'),
                       SizedBox(width: 8),
-                      Icon(Icons.arrow_forward,
-                          size: 18),
+                      Icon(Icons.arrow_forward, size: 18),
                     ],
                   ),
                 ),
@@ -409,14 +295,10 @@ class _ProductViewScreenState
               // Geçerlilik süresi (Formatlama gerekebilir)
               Center(
                   child: Text(
-                      response.acquiredCoupon
-                                  ?.expirationDate !=
-                              null
+                      response.acquiredCoupon?.expirationDate != null
                           ? "Promosyon kodu ${_formatRemainingTime(DateTime.tryParse(response.acquiredCoupon!.expirationDate!))} geçerli olacak"
                           : "Promosyon kodu süresi belirtilmemiş.",
-                      style: TextStyle(
-                          color: greyTextColor,
-                          fontSize: 12))),
+                      style: TextStyle(color: greyTextColor, fontSize: 12))),
               const SizedBox(height: 10),
             ],
           ),
@@ -426,8 +308,7 @@ class _ProductViewScreenState
   }
 
   // Bottom sheet'i gösteren metot (Product alacak şekilde güncellendi)
-  void _showPremiumBottomSheet(
-      BuildContext context, Product product) {
+  void _showPremiumBottomSheet(BuildContext context, Product product) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -436,8 +317,8 @@ class _ProductViewScreenState
         return FractionallySizedBox(
           heightFactor: 0.5,
           child: Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 20.0, vertical: 24.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
             decoration: const BoxDecoration(
               color: Color(0xFF1C1C1E),
               borderRadius: BorderRadius.only(
@@ -446,51 +327,36 @@ class _ProductViewScreenState
               ),
             ),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Align(
                   alignment: Alignment.topRight,
                   child: TextButton(
-                    onPressed: () =>
-                        Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                        foregroundColor:
-                            greyTextColor),
-                    child: const Text('İptal et',
-                        style: TextStyle(
-                            fontSize: 14)),
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(foregroundColor: greyTextColor),
+                    child:
+                        const Text('İptal et', style: TextStyle(fontSize: 14)),
                   ),
                 ),
                 Row(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      padding:
-                          const EdgeInsets.all(
-                              10),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: limeGreen
-                            .withOpacity(0.2),
-                        borderRadius:
-                            BorderRadius.circular(
-                                10),
+                        color: limeGreen.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
-                          Icons.directions_run,
-                          color: limeGreen,
-                          size: 28),
+                      child: const Icon(Icons.directions_run,
+                          color: limeGreen, size: 28),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        product
-                            .name, // Gelen product'ı kullan
+                        product.name, // Gelen product'ı kullan
                         style: TextStyle(
                           color: limeGreen,
-                          fontWeight:
-                              FontWeight.bold,
+                          fontWeight: FontWeight.bold,
                           fontSize: 20,
                         ),
                       ),
@@ -511,8 +377,7 @@ class _ProductViewScreenState
                 Expanded(
                   child: SingleChildScrollView(
                     child: Text(
-                      product.aboutProduct ??
-                          '', // Gelen product'ı kullan
+                      product.aboutProduct ?? '', // Gelen product'ı kullan
                       style: TextStyle(
                         color: lightTextColor,
                         fontSize: 15,
@@ -529,75 +394,49 @@ class _ProductViewScreenState
                         ? null
                         : () async {
                             setState(() {
-                              _isPurchasing =
-                                  true;
+                              _isPurchasing = true;
                             });
                             try {
                               final response = await ref
-                                  .read(productNotifierProvider
-                                      .notifier)
-                                  .purchaseProduct(
-                                      product
-                                          .id!); // Gelen product ID'sini kullan
-                              Navigator.pop(
-                                  context);
-                              _showAcquiredCouponBottomSheet(
-                                  context,
-                                  response);
+                                  .read(productNotifierProvider.notifier)
+                                  .purchaseProduct(product
+                                      .id!); // Gelen product ID'sini kullan
+                              Navigator.pop(context);
+                              _showAcquiredCouponBottomSheet(context, response);
                             } catch (e) {
-                              Navigator.pop(
-                                  context);
-                              ScaffoldMessenger
-                                      .of(context)
-                                  .showSnackBar(
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                     content: Text(
                                         'Promosyon kodu alınamadı: ${e.toString()}',
-                                        style: TextStyle(
-                                            color: Colors
-                                                .red)),
-                                    backgroundColor:
-                                        cardBackground),
+                                        style: TextStyle(color: Colors.red)),
+                                    backgroundColor: cardBackground),
                               );
                             } finally {
                               if (mounted) {
                                 setState(() {
-                                  _isPurchasing =
-                                      false;
+                                  _isPurchasing = false;
                                 });
                               }
                             }
                           },
-                    style:
-                        ElevatedButton.styleFrom(
+                    style: ElevatedButton.styleFrom(
                       backgroundColor: limeGreen,
-                      foregroundColor:
-                          darkTextColor,
-                      padding: const EdgeInsets
-                          .symmetric(
-                          horizontal: 40,
-                          vertical: 15),
-                      shape:
-                          RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                          12)),
+                      foregroundColor: darkTextColor,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       textStyle: const TextStyle(
-                          fontSize: 16,
-                          fontWeight:
-                              FontWeight.bold),
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     child: _isPurchasing
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                                color:
-                                    darkTextColor,
-                                strokeWidth: 3))
-                        : const Text(
-                            'Promosyon Kodu Al'),
+                                color: darkTextColor, strokeWidth: 3))
+                        : const Text('Promosyon Kodu Al'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -612,8 +451,7 @@ class _ProductViewScreenState
   @override
   Widget build(BuildContext context) {
     // productDetailProvider'ı izle
-    final productAsyncValue =
-        ref.watch(productDetailProvider);
+    final productAsyncValue = ref.watch(productDetailProvider);
 
     return Scaffold(
       backgroundColor: darkBackground,
@@ -621,16 +459,12 @@ class _ProductViewScreenState
         backgroundColor: cardBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: lightTextColor),
-          onPressed: () =>
-              Navigator.of(context).pop(),
+          icon: const Icon(Icons.arrow_back, color: lightTextColor),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           'Ürün Detayı',
-          style: TextStyle(
-              color: lightTextColor,
-              fontWeight: FontWeight.bold),
+          style: TextStyle(color: lightTextColor, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
 
@@ -661,104 +495,61 @@ class _ProductViewScreenState
       body: productAsyncValue.when(
         data: (product) {
           // Product verisi geldiğinde UI'ı oluştur
-          final List<String> imageUrls = product
-                  .photos
-                  ?.map((photo) => photo.url)
-                  .toList() ??
-              [];
-          final List<String> features = product
-                  .description
+          final List<String> imageUrls =
+              product.photos?.map((photo) => photo.url).toList() ?? [];
+          final List<String> features = product.description
                   ?.split('\n')
                   .map((e) => e.trim())
                   .where((e) => e.isNotEmpty)
                   .toList() ??
               [];
           final formattedPrice =
-              NumberFormat("#,##0", "tr_TR")
-                  .format(product.price);
+              NumberFormat("#,##0", "tr_TR").format(product.price);
 
           return SingleChildScrollView(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // --- Resim Alanı ---
                 if (imageUrls.isNotEmpty)
                   Stack(
-                    alignment:
-                        Alignment.bottomLeft,
+                    alignment: Alignment.bottomLeft,
                     children: [
                       SizedBox(
-                        height:
-                            MediaQuery.of(context)
-                                    .size
-                                    .height *
-                                0.4,
+                        height: MediaQuery.of(context).size.height * 0.4,
                         child: Stack(
-                          alignment: Alignment
-                              .bottomCenter,
+                          alignment: Alignment.bottomCenter,
                           children: [
                             PageView.builder(
-                              controller:
-                                  _imagePageController,
-                              itemCount: imageUrls
-                                  .length,
-                              itemBuilder:
-                                  (context,
-                                      index) {
-                                return Image
-                                    .network(
-                                  imageUrls[
-                                      index],
-                                  fit: BoxFit
-                                      .cover,
+                              controller: _imagePageController,
+                              itemCount: imageUrls.length,
+                              itemBuilder: (context, index) {
+                                return Image.network(
+                                  imageUrls[index],
+                                  fit: BoxFit.cover,
                                   loadingBuilder:
-                                      (context,
-                                          child,
-                                          loadingProgress) {
-                                    if (loadingProgress ==
-                                        null)
-                                      return child;
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
                                     return const Center(
                                         child: CircularProgressIndicator(
-                                            color:
-                                                limeGreen));
+                                            color: limeGreen));
                                   },
-                                  errorBuilder: (context,
-                                          error,
-                                          stackTrace) =>
+                                  errorBuilder: (context, error, stackTrace) =>
                                       const Center(
-                                          child: Icon(
-                                              Icons
-                                                  .error_outline,
-                                              color:
-                                                  greyTextColor,
-                                              size:
-                                                  50)),
+                                          child: Icon(Icons.error_outline,
+                                              color: greyTextColor, size: 50)),
                                 );
                               },
                             ),
-                            if (imageUrls.length >
-                                1)
+                            if (imageUrls.length > 1)
                               Padding(
-                                padding:
-                                    const EdgeInsets
-                                        .only(
-                                        bottom:
-                                            16.0),
-                                child:
-                                    SmoothPageIndicator(
-                                  controller:
-                                      _imagePageController,
-                                  count: imageUrls
-                                      .length,
-                                  effect:
-                                      ExpandingDotsEffect(
-                                    activeDotColor:
-                                        limeGreen,
-                                    dotColor: greyTextColor
-                                        .withOpacity(
-                                            0.5),
+                                padding: const EdgeInsets.only(bottom: 16.0),
+                                child: SmoothPageIndicator(
+                                  controller: _imagePageController,
+                                  count: imageUrls.length,
+                                  effect: ExpandingDotsEffect(
+                                    activeDotColor: limeGreen,
+                                    dotColor: greyTextColor.withOpacity(0.5),
                                     dotHeight: 8,
                                     dotWidth: 8,
                                     spacing: 6,
@@ -772,98 +563,63 @@ class _ProductViewScreenState
                   )
                 else // Resim yoksa placeholder göster
                   Container(
-                    height: MediaQuery.of(context)
-                            .size
-                            .height *
-                        0.4,
+                    height: MediaQuery.of(context).size.height * 0.4,
                     color: cardBackground,
                     child: const Center(
-                        child: Icon(
-                            Icons
-                                .image_not_supported,
-                            color: greyTextColor,
-                            size: 60)),
+                        child: Icon(Icons.image_not_supported,
+                            color: greyTextColor, size: 60)),
                   ),
                 const SizedBox(height: 16),
 
                 // --- Ürün Bilgileri ve Diğer Bölümler ---
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(
-                          horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(product.name,
                           style: const TextStyle(
                               fontSize: 24,
-                              fontWeight:
-                                  FontWeight.bold,
-                              color:
-                                  lightTextColor)),
+                              fontWeight: FontWeight.bold,
+                              color: lightTextColor)),
                       const SizedBox(height: 8),
                       Text(
                           'Kalan kupon adeti: ${product.stock?.toString() ?? 'Bilgi Yok'}',
                           style: const TextStyle(
                               fontSize: 16,
-                              fontWeight:
-                                  FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                               color: limeGreen)),
                       const SizedBox(height: 24),
 
                       // Kullanma Süresi Kartı
                       Container(
-                        padding:
-                            const EdgeInsets.all(
-                                16),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                             color: limeGreen,
-                            borderRadius:
-                                BorderRadius
-                                    .circular(
-                                        12)),
+                            borderRadius: BorderRadius.circular(12)),
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                                'KULLANMA SÜRESİ',
+                            Text('KULLANMA SÜRESİ',
                                 style: TextStyle(
-                                    color: darkTextColor
-                                        .withOpacity(
-                                            0.7),
-                                    fontWeight:
-                                        FontWeight
-                                            .bold,
+                                    color: darkTextColor.withOpacity(0.7),
+                                    fontWeight: FontWeight.bold,
                                     fontSize: 12,
-                                    letterSpacing:
-                                        0.5)),
-                            const SizedBox(
-                                height: 8),
+                                    letterSpacing: 0.5)),
+                            const SizedBox(height: 8),
                             Row(
                               children: [
-                                const Icon(
-                                    Icons
-                                        .access_time_filled,
-                                    color:
-                                        darkTextColor,
-                                    size: 20),
-                                const SizedBox(
-                                    width: 8),
+                                const Icon(Icons.access_time_filled,
+                                    color: darkTextColor, size: 20),
+                                const SizedBox(width: 8),
                                 Expanded(
                                     child: Text(
                                         _formatRemainingTime(
-                                            product
-                                                .expirationDate),
+                                            product.expirationDate),
                                         style: const TextStyle(
-                                            color:
-                                                darkTextColor,
-                                            fontSize:
-                                                16,
-                                            fontWeight:
-                                                FontWeight.bold))),
+                                            color: darkTextColor,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold))),
                               ],
                             ),
                           ],
@@ -873,63 +629,45 @@ class _ProductViewScreenState
 
                       // Öne Çıkanlar Kartı
                       Container(
-                        padding:
-                            const EdgeInsets.all(
-                                16),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                             color: limeGreen,
-                            borderRadius:
-                                BorderRadius
-                                    .circular(
-                                        12)),
+                            borderRadius: BorderRadius.circular(12)),
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Özellikler',
                                 style: TextStyle(
-                                    color: darkTextColor
-                                        .withOpacity(
-                                            0.7),
-                                    fontWeight:
-                                        FontWeight
-                                            .bold,
+                                    color: darkTextColor.withOpacity(0.7),
+                                    fontWeight: FontWeight.bold,
                                     fontSize: 12,
-                                    letterSpacing:
-                                        0.5)),
-                            const SizedBox(
-                                height: 12),
-                            if (features
-                                .isNotEmpty)
+                                    letterSpacing: 0.5)),
+                            const SizedBox(height: 12),
+                            if (features.isNotEmpty)
                               Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: features
-                                    .map((feature) =>
-                                        Padding(
-                                            padding: const EdgeInsets
-                                                .only(
-                                                bottom:
-                                                    8.0),
-                                            child:
-                                                Row(children: [
-                                              const Icon(Icons.check_circle,
-                                                  color: darkTextColor,
-                                                  size: 18),
-                                              const SizedBox(width: 8),
-                                              Expanded(child: Text(feature, style: const TextStyle(color: darkTextColor, fontSize: 15, fontWeight: FontWeight.w500)))
-                                            ])))
+                                    .map((feature) => Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 8.0),
+                                        child: Row(children: [
+                                          const Icon(Icons.check_circle,
+                                              color: darkTextColor, size: 18),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                              child: Text(feature,
+                                                  style: const TextStyle(
+                                                      color: darkTextColor,
+                                                      fontSize: 15,
+                                                      fontWeight:
+                                                          FontWeight.w500)))
+                                        ])))
                                     .toList(),
                               )
                             else
-                              Text(
-                                  'Öne çıkan özellik bulunamadı.',
+                              Text('Öne çıkan özellik bulunamadı.',
                                   style: TextStyle(
-                                      color: darkTextColor
-                                          .withOpacity(
-                                              0.8))),
+                                      color: darkTextColor.withOpacity(0.8))),
                           ],
                         ),
                       ),
@@ -939,41 +677,31 @@ class _ProductViewScreenState
                       const Text('Hakkında',
                           style: TextStyle(
                               fontSize: 20,
-                              fontWeight:
-                                  FontWeight.bold,
-                              color:
-                                  lightTextColor)),
+                              fontWeight: FontWeight.bold,
+                              color: lightTextColor)),
                       const SizedBox(height: 12),
                       Text(
                           product.aboutProduct ??
                               'Ürün hakkında bilgi bulunamadı.',
                           style: const TextStyle(
-                              fontSize: 15,
-                              color:
-                                  greyTextColor,
-                              height: 1.5)),
+                              fontSize: 15, color: greyTextColor, height: 1.5)),
                       // Beden Seçimi kaldırıldı
                     ],
                   ),
                 ),
-                const SizedBox(
-                    height:
-                        100), // Buton için boşluk
+                const SizedBox(height: 100), // Buton için boşluk
               ],
             ),
           );
         },
-        loading: () => const Center(
-            child: CircularProgressIndicator(
-                color: limeGreen)),
+        loading: () =>
+            const Center(child: CircularProgressIndicator(color: limeGreen)),
         error: (error, stack) => Center(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              'Ürün detayları yüklenemedi.\nHata: ${error.toString()}',
-              style: const TextStyle(
-                  color: Colors.redAccent,
-                  fontSize: 16),
+              'Ürün detayları yüklenemedi.',
+              style: const TextStyle(color: Colors.redAccent, fontSize: 16),
               textAlign: TextAlign.center,
             ),
           ),
@@ -984,39 +712,27 @@ class _ProductViewScreenState
       bottomSheet: productAsyncValue.maybeWhen(
         data: (product) => Container(
           height: 80,
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16.0, vertical: 10.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
           decoration: const BoxDecoration(
             color: cardBackground,
-            border: Border(
-                top: BorderSide(
-                    color: greyTextColor,
-                    width: 0.2)),
+            border: Border(top: BorderSide(color: greyTextColor, width: 0.2)),
           ),
           child: Row(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
                 onPressed: () {
-                  _showPremiumBottomSheet(
-                      context, product);
+                  _showPremiumBottomSheet(context, product);
                 }, // product'ı gönder
                 style: ElevatedButton.styleFrom(
                   backgroundColor: limeGreen,
                   foregroundColor: darkTextColor,
                   padding:
-                      const EdgeInsets.symmetric(
-                          horizontal: 64,
-                          vertical: 15),
+                      const EdgeInsets.symmetric(horizontal: 64, vertical: 15),
                   shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(
-                              12)),
+                      borderRadius: BorderRadius.circular(12)),
                   textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight:
-                          FontWeight.bold),
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1035,8 +751,8 @@ class _ProductViewScreenState
             ],
           ),
         ),
-        orElse: () => const SizedBox
-            .shrink(), // Yüklenirken veya hata durumunda gösterme
+        orElse: () =>
+            const SizedBox.shrink(), // Yüklenirken veya hata durumunda gösterme
       ),
     );
   }
