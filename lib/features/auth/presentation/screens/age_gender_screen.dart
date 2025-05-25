@@ -15,7 +15,13 @@ class AgeGenderScreen extends ConsumerStatefulWidget {
 class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
   DateTime? selectedDate;
   String? selectedGender;
-  // Removed unused _formKey
+
+  // Map for gender display and backend values
+  final Map<String, String> genderOptions = {
+    'Male': 'Erkek',
+    'Female': 'Kadın',
+    'Other': 'Diğer',
+  };
 
   // Helper function to format date as dd/MM/yyyy without intl
   String _formatDate(DateTime date) {
@@ -157,50 +163,95 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                   style: TextStyle(color: labelColor, fontSize: 14),
                   textAlign: TextAlign.left,
                 ),
-                const SizedBox(height: 8),
-                // Gender Input (Dropdown)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: textFieldBgColor, // Use dark background
-                    borderRadius: BorderRadius.circular(12), // Rounded corners
-                    // border: Border.all(color: Colors.black), // Removed border
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    // Hide default underline
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: selectedGender,
-                      hint: const Text(
-                        'Dropdown', // Placeholder text
-                        style: TextStyle(color: inputHintColor, fontSize: 16),
+                const SizedBox(height: 12), // Added some space
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: genderOptions.entries.map((entry) {
+                    final String backendValue = entry.key;
+                    final String displayValue = entry.value;
+                    final bool isSelected = selectedGender == backendValue;
+                    String emoji;
+
+                    switch (backendValue) {
+                      case "Male":
+                        emoji = "👨";
+                        break;
+                      case "Female":
+                        emoji = "👩";
+                        break;
+                      case "Other":
+                      default:
+                        emoji = "👤";
+                    }
+
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedGender = backendValue;
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 4), // Adjusted margin
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 8), // Adjusted padding
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(
+                                    0xFFC4FF62) // Brighter green for selection
+                                : Colors.black.withOpacity(
+                                    0.5), // Darker, slightly more transparent
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFFC4FF62)
+                                  : Colors.white.withOpacity(
+                                      0.2), // Softer border for unselected
+                              width: 1.5, // Slightly thicker border
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFFC4FF62)
+                                          .withOpacity(0.3),
+                                      spreadRadius: 2,
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ]
+                                : [],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                emoji,
+                                style: TextStyle(
+                                  fontSize: 28, // Slightly larger emoji
+                                  color:
+                                      isSelected ? Colors.black : Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 8), // Adjusted spacing
+                              Text(
+                                displayValue, // Use display value from map
+                                style: TextStyle(
+                                  color:
+                                      isSelected ? Colors.black : Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      icon: const Icon(Icons.arrow_drop_down,
-                          color: Color.fromARGB(255, 255, 255, 255)),
-                      items: ["Male", "Female", "Other"]
-                          .map((String value) => DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value,
-                                    style: const TextStyle(
-                                        color:
-                                            Color.fromARGB(255, 255, 255, 255),
-                                        fontSize: 16)),
-                              ))
-                          .toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedGender = newValue;
-                        });
-                      },
-                      dropdownColor:
-                          Colors.grey[800], // Dark dropdown background
-                      style: const TextStyle(
-                          color: inputTextColor,
-                          fontSize: 16), // Style for selected item
-                    ),
-                  ),
+                    );
+                  }).toList(),
                 ),
-                const Spacer(flex: 3), // Push button to bottom
+                const SizedBox(height: 40),
 
                 // Continue Button
                 ElevatedButton(
@@ -225,7 +276,7 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                             gender: selectedGender,
                           );
 
-                      Navigator.pushReplacement(
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (context) => const HeightScreen()),

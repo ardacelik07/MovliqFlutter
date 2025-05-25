@@ -101,7 +101,7 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                                 activityLevel: _selectedLevel,
                               );
 
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => const FinishScreen()),

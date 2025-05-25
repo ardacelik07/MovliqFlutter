@@ -176,7 +176,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                                     .saveProfile();
 
                                 if (mounted) {
-                                  Navigator.pushReplacement(
+                                  Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) =>

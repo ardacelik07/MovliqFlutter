@@ -171,7 +171,7 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                               weight: weightInKg,
                             );
 
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (context) => const ActiveScreen()),

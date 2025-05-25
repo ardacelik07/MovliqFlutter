@@ -39,17 +39,17 @@ class LoginScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 60),
                   const Text(
-                    'Move more, Earn more',
+                    'Daha Çok Hareket,Daha Çok Kazanç',
                     style: TextStyle(
                       color: textColor,
-                      fontSize: 26,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
-                    textAlign: TextAlign.center,
+                    textAlign: TextAlign.start,
                   ),
                   const SizedBox(height: 48),
                   const Text(
-                    'Join a global running community and\nchallenge yourself every day.',
+                    'Movliq’te ödüller, fırsatlar ve eğlence; hepsi seni bir adım uzaklıkta bekliyor!',
                     style: TextStyle(
                       color: secondaryTextColor,
                       fontSize: 18,
@@ -57,7 +57,7 @@ class LoginScreen extends ConsumerWidget {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  /* const SizedBox(height: 32),
                   _buildSocialButton(
                     icon: FontAwesomeIcons.google,
                     text: 'Google ile Giriş   ',
@@ -86,8 +86,8 @@ class LoginScreen extends ConsumerWidget {
                     },
                     bgColor: const Color.fromARGB(80, 255, 255, 255),
                     fgColor: const Color.fromARGB(255, 255, 255, 255),
-                  ),
-                  const SizedBox(height: 24),
+                  ),*/
+                  const SizedBox(height: 256),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

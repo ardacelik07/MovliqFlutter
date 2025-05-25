@@ -198,7 +198,7 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                               height: heightInCm,
                             );
 
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (context) => const WeightScreen()),
