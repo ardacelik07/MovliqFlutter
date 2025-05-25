@@ -53,10 +53,10 @@ class CouponScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.local_activity_outlined,
-                            color: Colors.white54,
-                            size: 64,
+                          Image.asset(
+                            'assets/images/couponicon.png',
+                            height: 64,
+                            width: 64,
                           ),
                           const SizedBox(height: 16),
                           const Text(
