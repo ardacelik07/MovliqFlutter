@@ -1186,18 +1186,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildStatIcon(
-              icon: Icons.home_outlined, // Use outlined icon
+              iconWidget: Image.asset(
+                'assets/icons/indoor.png',
+                width: 24,
+                height: 24,
+              ),
               value: userRanks?.indoorRank.toString() ?? "-",
-              label: 'İç', // Label from image
+              label: 'İç Mekan', // Label from image
               iconColor: const Color(0xFF93C53E), // Green icon
               backgroundColor:
                   const Color(0xFF93C53E).withOpacity(0.15), // Green background
             ),
             _buildStatIcon(
-              icon: Icons
-                  .terrain_outlined, // Use outlined icon (closer to mountain)
+              iconWidget: Image.asset(
+                'assets/icons/outdoor.png',
+                width: 24,
+                height: 24,
+              ),
               value: userRanks?.outdoorRank.toString() ?? "-",
-              label: 'Dış', // Label from image
+              label: 'Dış Mekan', // Label from image
               iconColor: const Color(0xFF93C53E), // Green icon
               backgroundColor:
                   const Color(0xFF93C53E).withOpacity(0.15), // Green background
@@ -1233,17 +1240,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // Determine the value and label for the middle stat based on activeType
     final String middleValue;
     final String middleLabel;
-    final IconData middleIcon;
+    final IconData? middleIcon;
+    Widget? middleIconImage;
 
     if (_activeType == 'indoor') {
       middleValue = '${estimatedKm.toStringAsFixed(2)} km';
       middleLabel = 'Tahmini Mesafe';
-      middleIcon = Icons.timeline; // Or Icons.straighten
+      middleIconImage = Image.asset(
+        'assets/icons/location.png',
+        width: 24,
+        height: 24,
+      ); // Or Icons.straighten
     } else {
       // Outdoor or Record
       middleValue = '${totalDistanceKm.toStringAsFixed(2)} km';
       middleLabel = 'Toplam Mesafe';
-      middleIcon = Icons.route_outlined; // Route icon for outdoor distance
+      middleIconImage = Image.asset(
+        'assets/icons/location.png',
+        width: 24,
+        height: 24,
+      ); // Or Icons.straighten
     }
 
     return Padding(
@@ -1254,13 +1270,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             MainAxisAlignment.spaceBetween, // Distribute space equally
         children: [
           _buildStatIcon(
-            icon: Icons.directions_run,
+            iconWidget: Image.asset(
+              'assets/icons/steps.png',
+              width: 24,
+              height: 24,
+            ),
             value: totalSteps.toString(),
             label: 'Toplam Adım',
             iconColor: const Color(0xFF93C53E),
           ),
           _buildStatIcon(
-            icon: middleIcon, // Use dynamic icon
+            iconWidget: middleIconImage, // Use dynamic icon
             value: middleValue, // Use dynamic value
             label: middleLabel, // Use dynamic label
             iconColor: const Color(0xFF93C53E),
