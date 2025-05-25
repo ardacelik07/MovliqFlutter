@@ -158,6 +158,7 @@ flutter:
     - assets/icons/locaitonwomen.webp
     - assets/images/leaveimage.png
     - assets/images/logosplash.png
+    - assets/images/locationpermission.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

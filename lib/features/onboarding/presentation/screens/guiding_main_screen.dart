@@ -6,6 +6,7 @@ import 'guide_page_three.dart';
 import 'guide_page_four.dart'; // Yeni eklenen dördüncü sayfa
 import 'guide_page_five.dart';
 import 'guide_page_six.dart';
+import 'guide_page_location.dart';
 
 // Diğer yönlendirme sayfalarını buraya import edin
 // import 'guide_page_three.dart';
@@ -27,8 +28,9 @@ class _GuidingMainScreenState extends State<GuidingMainScreen> {
     const GuidePageOne(),
     const GuidePageTwo(), // İkinci sayfayı ekledik
     const GuidePageThree(),
-    const GuidePageFour(), 
+    const GuidePageFour(),
     const GuidePageFive(),
+    const GuidePageLocation(),
     const GuidePageSix() // Altıncı sayfayı ekledik
     // Dördüncü sayfayı ekledik
   ];
@@ -76,7 +78,9 @@ class _GuidingMainScreenState extends State<GuidingMainScreen> {
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   height: 10,
-                  width: (index == _currentPage) ? 24 : 10, // Aktif nokta biraz daha geniş
+                  width: (index == _currentPage)
+                      ? 24
+                      : 10, // Aktif nokta biraz daha geniş
                   margin: const EdgeInsets.symmetric(horizontal: 5),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(5),
@@ -89,9 +93,11 @@ class _GuidingMainScreenState extends State<GuidingMainScreen> {
             ),
           ),
           // X butonu (isteğe bağlı, yönlendirmeyi atlamak için)
-          if (_currentPage != _guidePages.length - 1) // Sadece son sayfada değilse göster
+          if (_currentPage !=
+              _guidePages.length - 1) // Sadece son sayfada değilse göster
             Positioned(
-              top: paddingTop + 10, // Status bar + biraz boşluk (noktaların hemen üstünde olabilir)
+              top: paddingTop +
+                  10, // Status bar + biraz boşluk (noktaların hemen üstünde olabilir)
               right: 10.0,
               child: IconButton(
                 icon: const Icon(Icons.close, color: Colors.black, size: 30),
@@ -106,9 +112,11 @@ class _GuidingMainScreenState extends State<GuidingMainScreen> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 18), // Buton yüksekliğini biraz artırdım
+                padding: const EdgeInsets.symmetric(
+                    vertical: 18), // Buton yüksekliğini biraz artırdım
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30), // Daha yuvarlak kenarlar
+                  borderRadius:
+                      BorderRadius.circular(30), // Daha yuvarlak kenarlar
                 ),
                 elevation: 5,
               ),
@@ -123,8 +131,13 @@ class _GuidingMainScreenState extends State<GuidingMainScreen> {
                 }
               },
               child: Text(
-                _currentPage == _guidePages.length - 1 ? 'Hadi Başlayalım!' : 'Sonraki', // Buton metni güncellendi
-                style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                _currentPage == _guidePages.length - 1
+                    ? 'Hadi Başlayalım!'
+                    : 'Sonraki', // Buton metni güncellendi
+                style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -132,4 +145,4 @@ class _GuidingMainScreenState extends State<GuidingMainScreen> {
       ),
     );
   }
-} 
+}
