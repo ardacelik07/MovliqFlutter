@@ -900,17 +900,17 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
                                 _buildActivityTypeButton(
-                                    'Running',
+                                    'Koşu',
                                     Icons.directions_run,
                                     _activityType == 'Running',
                                     () => _selectActivityType('Running')),
                                 _buildActivityTypeButton(
-                                    'Walking',
+                                    'Yürüyüş',
                                     Icons.directions_walk,
                                     _activityType == 'Walking',
                                     () => _selectActivityType('Walking')),
                                 _buildActivityTypeButton(
-                                    'Cycling',
+                                    'Bisiklet',
                                     Icons.directions_bike,
                                     _activityType == 'Cycling',
                                     () => _selectActivityType('Cycling')),
@@ -939,17 +939,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'Running time',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color:
-                                            Color.fromARGB(248, 255, 255, 255),
-                                      ),
-                                    ),
-                                  ],
+                                  children: [],
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
@@ -1066,8 +1056,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                                     ),
                                                     child: Text(
                                                       _isRecording
-                                                          ? 'Finish'
-                                                          : 'Record',
+                                                          ? 'Bitir'
+                                                          : 'Başla',
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                         fontSize: 14,
@@ -1134,8 +1124,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                                 ),
                                                 child: Text(
                                                   _isPaused
-                                                      ? 'Resume'
-                                                      : 'Pause',
+                                                      ? 'Devam Et'
+                                                      : 'Durdur',
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 14,

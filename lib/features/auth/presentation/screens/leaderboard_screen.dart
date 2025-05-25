@@ -289,7 +289,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           ),
           title: const Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFFC4FF62)),
               SizedBox(width: 8),
               Text(
                 '🏅 Liderlik Tablosu Hakkında',

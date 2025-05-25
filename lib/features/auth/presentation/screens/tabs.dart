@@ -13,6 +13,7 @@ import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/http_interceptor.dart';
 import '../screens/login_screen.dart';
 import '../providers/recording_state_provider.dart';
+import '../widgets/leave_widget.dart';
 
 // Provider for managing the selected tab index
 final selectedTabProvider = StateProvider<int>((ref) => 0);
@@ -85,110 +86,18 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
   // Confirmation Dialog
   Future<bool> _showConfirmationDialog() async {
-    return await showDialog<bool>(
-          context: context,
-          barrierDismissible:
-              false, // Kullanıcının dışarı tıklayarak kapatmasını engelle
-          builder: (BuildContext context) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF1C1C1E), // Koyu arkaplan
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.0),
-              ),
-              contentPadding: const EdgeInsets.all(24.0),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFAEF45F), // Yeşil ikon arkaplanı
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.black,
-                      size: 28.0,
-                    ),
-                  ),
-                  const SizedBox(height: 20.0),
-                  const Text(
-                    'Emin misiniz?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12.0),
-                  const Text(
-                    'Kayıt modunu sonlandırmadan çıktığında kaydedilmeyen veriler kaybolacaktır.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white70, // Daha açık gri tonu
-                      fontSize: 14.0,
-                    ),
-                  ),
-                  const SizedBox(height: 28.0),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color(0xFFAEF45F), // Vazgeç buton rengi
-                            padding: const EdgeInsets.symmetric(vertical: 14.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                          ),
-                          child: const Text(
-                            'Vazgeç',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pop(false); // Onaylamadı
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12.0),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color(0xFF3A3A3C), // Çık buton rengi
-                            padding: const EdgeInsets.symmetric(vertical: 14.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                          ),
-                          child: const Text(
-                            'Çık',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pop(true); // Onayladı
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              // actions: artık Row içinde content'e dahil edildi.
-            );
-          },
-        ) ??
-        false;
+    // Use LeaveWidget for confirmation
+    final bool? result = await showLeaveConfirmationDialog(
+      context: context,
+      imagePath: 'assets/images/recordout.png',
+      title: 'Emin misiniz?',
+      message:
+          'Kayıt modunu sonlandırmadan çıktığında kaydedilmeyen veriler kaybolacaktır.',
+      confirmButtonText: 'Çıkış yap', // User confirms to EXIT
+      cancelButtonText:
+          'Devam Et', // User cancels exit, i.e., CONTINUE recording
+    );
+    return result ?? false; // if dialog is dismissed, treat as cancel (false)
   }
 
   void _onItemTapped(int index) async {
@@ -317,10 +226,9 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: () => _onItemTapped(2), // Index 2 for RecordScreen
-              child: const Icon(
-                Icons.hourglass_bottom,
+              child: Image.asset(
+                'assets/images/solobuton.png',
                 color: Colors.black, // Black color for contrast
-                size: 28, // Adjust size as needed
               ),
             ),
           ),
