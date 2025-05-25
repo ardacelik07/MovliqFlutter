@@ -48,7 +48,7 @@ class _GuidingMainScreenState extends State<GuidingMainScreen> {
   }
 
   void _navigateToHome() {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const TabsScreen()),
     );

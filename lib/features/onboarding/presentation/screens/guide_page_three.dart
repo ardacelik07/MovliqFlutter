@@ -20,7 +20,7 @@ class GuidePageThree extends StatelessWidget {
         children: [
           const SizedBox(
               height:
-                  20), // Üstteki noktalar ve X butonu için boşluk (GuidingMainScreen'de X son sayfada gizli)
+                  40), // Üstteki noktalar ve X butonu için boşluk (GuidingMainScreen'de X son sayfada gizli)
           Column(
             children: [
               Text(

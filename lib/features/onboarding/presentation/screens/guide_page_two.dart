@@ -19,7 +19,7 @@ class GuidePageTwo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(
-              height: 20), // Üstteki noktalar ve X butonu için boşluk bırakır
+              height: 40), // Üstteki noktalar ve X butonu için boşluk bırakır
           Column(
             children: [
               Text(
