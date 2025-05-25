@@ -221,73 +221,35 @@ class _HomePageState extends ConsumerState<HomePage> {
         print('Ana Sayfa - iOS konum izni alındı: $permission');
       }
     } else {
-      // For Android: Request Permission.location first to show the standard system dialog.
+      // For Android: Request Permission.location which handles "While using the app"
       final status = await Permission.location.status;
-      print('Ana Sayfa - Android konum izin durumu (Genel): $status');
+      print('Ana Sayfa - Android konum izin durumu: $status');
 
       // Define the critical permission dialog details for races
-      const String criticalDialogTitle = 'Her Zaman Konum İzni Gerekli';
-      const String criticalDialogContent =
-          'Yarışlara kesintisiz katılabilmek ve aktivite verilerinizi doğru bir şekilde kaydedebilmek için Movliq\'in konumunuza \'Her Zaman\' erişmesi gerekmektedir. Lütfen uygulama ayarlarından konum iznini \'Her zaman izin ver\' olarak güncelleyiniz.';
+      const String dialogTitle = 'Konum İzni Gerekli';
+      const String dialogContent =
+          'Yarışlara katılabilmek ve aktivite verilerinizi doğru bir şekilde kaydedebilmek için Movliq\'in konumunuza erişmesi gerekmektedir. Lütfen uygulama ayarlarından konum iznini \'Uygulamayı kullanırken\' veya \'Her zaman\' olarak güncelleyiniz.';
 
       if (!status.isGranted && !status.isLimited) {
         final requestedStatus = await Permission.location.request();
         print(
-            'Ana Sayfa - Android izin istenen durum (Genel): $requestedStatus');
+            'Ana Sayfa - Android izin istenen durum (Uygulamayı Kullanırken): $requestedStatus');
 
         if (requestedStatus.isPermanentlyDenied) {
           if (mounted) {
-            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
+            _showSettingsDialog(dialogTitle, dialogContent);
           }
         } else if (requestedStatus.isDenied) {
           print(
-              'Ana Sayfa - Android konum izni (Genel) reddedildi ancak kalıcı değil.');
+              'Ana Sayfa - Android konum izni (Uygulamayı Kullanırken) reddedildi ancak kalıcı değil.');
           if (mounted) {
-            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
+            _showSettingsDialog(dialogTitle, dialogContent);
           }
         }
-        // If permission granted here, proceed to check for 'Always'
-      }
-
-      // After the initial request (or if already granted), check current general status again
-      // to decide if we should proceed to request 'Always'.
-      final currentGeneralLocationStatus = await Permission.location.status;
-      if (currentGeneralLocationStatus.isGranted ||
-          currentGeneralLocationStatus.isLimited) {
-        print(
-            'Ana Sayfa - Android konum izni (Genel) verilmiş veya kısıtlı. Şimdi "Always" kontrol ediliyor.');
-
-        final alwaysStatus = await Permission.locationAlways.status;
-        print(
-            'Ana Sayfa - Android "Always" konum izin durumu kontrol ediliyor: $alwaysStatus');
-
-        if (!alwaysStatus.isGranted) {
-          print(
-              'Ana Sayfa - "Genel/Kullanımda" izni var, ancak "Always" izni yok. "Always" izni isteniyor.');
-          // Requesting locationAlways typically opens settings directly on modern Android.
-          final requestedAlwaysStatus =
-              await Permission.locationAlways.request();
-          print(
-              'Ana Sayfa - Android "Always" izin talep sonucu: $requestedAlwaysStatus');
-
-          // After the request, check the status again.
-          // If still not granted (denied or permanently denied), show the dialog.
-          final finalAlwaysStatus = await Permission.locationAlways.status;
-          if (!finalAlwaysStatus.isGranted) {
-            if (mounted) {
-              _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
-            }
-          } else {
-            print('Ana Sayfa - Android "Always" konum izni şimdi verildi.');
-          }
-        } else {
-          print('Ana Sayfa - Android "Always" konum izni zaten verilmiş.');
-        }
+        // If permission granted here, it's "While using the app" or "Always"
       } else {
-        // This means general location was not granted even after an attempt (if made).
-        // The dialogs for denied/permanentlyDenied for the initial request should have been shown.
         print(
-            'Ana Sayfa - Genel konum izni hala verilmemiş, bu nedenle "Always" istenemiyor/kontrol edilemiyor.');
+            'Ana Sayfa - Android konum izni (Uygulamayı Kullanırken veya Her Zaman) zaten verilmiş.');
       }
     }
   }

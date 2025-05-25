@@ -168,11 +168,14 @@ class RaceNotifier extends _$RaceNotifier {
       }
     } else {
       // Android için: Normal izin kontrolü değişmedi
-      hasLocation = await _checkPermission(Permission.locationAlways);
+      hasLocation = await _checkPermission(
+          Permission.location); // Updated from locationAlways
       hasActivity = await _checkPermission(Permission.activityRecognition);
       debugPrint(
           '--- RaceNotifier: Android İzinler - Location: $hasLocation, Activity: $hasActivity ---');
     }
+    debugPrint(
+        '--- RaceNotifier: startRace - İzin kontrol sonrası: hasLocationPermission=$hasLocation, hasPedometerPermission=$hasActivity ---');
 
     // State'i ilk değerlerle güncelle
     state = RaceState(
@@ -194,7 +197,7 @@ class RaceNotifier extends _$RaceNotifier {
     _lastCalorieCalculationTime = null;
 
     debugPrint(
-        '--- RaceNotifier: Initial state SET --- State: $state'); // <-- YENİ LOG
+        '--- RaceNotifier: Initial state SET --- State: $state. Current state.hasLocationPermission: ${state.hasLocationPermission}');
 
     // Geri sayımı başlat
     _startPreRaceCountdown(
@@ -248,7 +251,7 @@ class RaceNotifier extends _$RaceNotifier {
   // İzin kontrolü (UI göstermeden)
   Future<bool> _checkPermission(Permission permission) async {
     // iOS için Geolocator kullan, Android için Permission kalacak
-    if (Platform.isIOS && permission == Permission.locationAlways) {
+    if (Platform.isIOS && permission == Permission.location) {
       // iOS için Geolocator ile konum izinlerini kontrol et
       final locationPermission = await Geolocator.checkPermission();
       debugPrint('RaceNotifier: iOS konum izni durumu: $locationPermission');
@@ -265,7 +268,7 @@ class RaceNotifier extends _$RaceNotifier {
 
   void _startPreRaceCountdown({double? initialRemainingTimeSecondsForTimer}) {
     debugPrint(
-        '--- RaceNotifier: _startPreRaceCountdown CALLED --- Initial Countdown: ${state.preRaceCountdownValue}, InitialRemainingTimeForTimer: $initialRemainingTimeSecondsForTimer'); // <-- YENİ LOG
+        '--- RaceNotifier: _startPreRaceCountdown CALLED --- Initial Countdown: ${state.preRaceCountdownValue}, InitialRemainingTimeForTimer: $initialRemainingTimeSecondsForTimer');
     _preRaceCountdownTimer?.cancel();
     // State'in zaten doğru ayarlandığını varsayıyoruz startRace içinde
     // state = state.copyWith(isPreRaceCountdownActive: true, preRaceCountdownValue: state.preRaceCountdownValue);
@@ -312,7 +315,7 @@ class RaceNotifier extends _$RaceNotifier {
 
   void _startActualRaceTracking({double? initialRemainingTimeSeconds}) async {
     debugPrint(
-        '--- RaceNotifier: _startActualRaceTracking CALLED --- InitialRemainingTime: $initialRemainingTimeSeconds, State: $state'); // <-- YENİ LOG
+        '--- RaceNotifier: _startActualRaceTracking CALLED --- InitialRemainingTime: $initialRemainingTimeSeconds, state.hasLocationPermission: ${state.hasLocationPermission}');
     state = state.copyWith(raceStartTime: DateTime.now());
 
     _listenToSignalREvents();
@@ -351,6 +354,8 @@ class RaceNotifier extends _$RaceNotifier {
 
       // Konum izinleri varsa ve iç mekan yarışı değilse konum takibini başlat
       if (state.hasLocationPermission && !state.isIndoorRace) {
+        debugPrint(
+            '--- RaceNotifier: _startActualRaceTracking - Konum izni var ve dış mekan yarışı, _startLocationUpdates ÇAĞRILIYOR.');
         // Konum için daha uzun bir gecikme kullanalım - iOS'ta kilit ekranı için önemli
         Future.delayed(const Duration(milliseconds: 500), () {
           _startLocationUpdates();
@@ -359,6 +364,9 @@ class RaceNotifier extends _$RaceNotifier {
           // Bu, bazı iOS cihazlarında konum takibinin kilitleme/uygulama değişiminden sonra düzgün çalışmasını sağlar
           _schedulePeriodicLocationCheck();
         });
+      } else {
+        debugPrint(
+            '--- RaceNotifier: _startActualRaceTracking - Konum izni YOK veya İÇ MEKAN yarışı, _startLocationUpdates ÇAĞRILMAYACAK. isIndoorRace: ${state.isIndoorRace}, hasLocationPermission: ${state.hasLocationPermission}');
       }
     } else {
       // Android için standart başlatma stratejisi - değişiklik yok
@@ -366,7 +374,12 @@ class RaceNotifier extends _$RaceNotifier {
         _initPedometer();
       }
       if (state.hasLocationPermission && !state.isIndoorRace) {
+        debugPrint(
+            '--- RaceNotifier: _startActualRaceTracking - Android - Konum izni var ve dış mekan yarışı, _startLocationUpdates ÇAĞRILIYOR.');
         _startLocationUpdates();
+      } else {
+        debugPrint(
+            '--- RaceNotifier: _startActualRaceTracking - Android - Konum izni YOK veya İÇ MEKAN yarışı, _startLocationUpdates ÇAĞRILMAYACAK. isIndoorRace: ${state.isIndoorRace}, hasLocationPermission: ${state.hasLocationPermission}');
       }
     }
   }
@@ -1038,14 +1051,16 @@ class RaceNotifier extends _$RaceNotifier {
 
   void _startLocationUpdates() {
     debugPrint(
-        '--- RaceNotifier: _startLocationUpdates CALLED ---'); // Log start of function
+        '--- RaceNotifier: _startLocationUpdates BAŞLADI --- isIndoorRace: ${state.isIndoorRace}, hasLocationPermission: ${state.hasLocationPermission}, isRaceActive: ${state.isRaceActive}');
     if (state.isIndoorRace ||
         !state.hasLocationPermission ||
         !state.isRaceActive) {
       debugPrint(
-          '--- RaceNotifier: _startLocationUpdates - Conditions check failed (indoor/perm/active). Returning. ---');
+          '--- RaceNotifier: _startLocationUpdates - KOŞULLAR SAĞLANMADI, erken çıkılıyor. ---');
       return;
     }
+    debugPrint(
+        '--- RaceNotifier: _startLocationUpdates - Koşullar sağlandı, devam ediliyor.');
     _positionStreamSubscription?.cancel();
 
     // iOS için ekstra kontrol - konum servislerinin açık olduğundan emin ol
@@ -1086,8 +1101,11 @@ class RaceNotifier extends _$RaceNotifier {
 
   // Konum takibi stream'ini başlatan yardımcı metot (platformdan bağımsız)
   void _initializeLocationStream() {
+    debugPrint('--- RaceNotifier: _initializeLocationStream BAŞLADI ---');
     LocationSettings locationSettings;
     if (Platform.isAndroid) {
+      debugPrint(
+          '--- RaceNotifier: _initializeLocationStream - Android platformu, ForegroundNotificationConfig oluşturuluyor.');
       locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 5,
@@ -1124,12 +1142,12 @@ class RaceNotifier extends _$RaceNotifier {
 
     Position? lastPosition;
     debugPrint(
-        '--- RaceNotifier: About to call Geolocator.getPositionStream... ---'); // Log before stream
+        '--- RaceNotifier: Geolocator.getPositionStream çağrılmak üzere... ---');
     _positionStreamSubscription = Geolocator.getPositionStream(
       locationSettings: locationSettings,
     ).listen((Position position) {
       debugPrint(
-          '--- RaceNotifier: Received position update from stream. Latitude: ${position.latitude} ---'); // Log inside stream listen
+          '--- RaceNotifier: Konum güncellemesi alındı: ${position.latitude}, ${position.longitude} ---');
       if (!state.isRaceActive) return;
 
       double newDistancePortion = 0.0;
@@ -1148,8 +1166,10 @@ class RaceNotifier extends _$RaceNotifier {
           currentDistance: state.currentDistance + newDistancePortion);
       _updateLocation(); // Konum değiştiğinde sunucuya bildir
     }, onError: (error) {
-      debugPrint('RaceNotifier Konum Takibi Hatası: $error');
+      debugPrint('--- RaceNotifier: Konum Takibi HATASI: $error ---');
     });
+    debugPrint(
+        '--- RaceNotifier: Geolocator.getPositionStream dinleyicisi BAŞLATILDI.');
   }
 
   // iOS arka plan konum modunu etkinleştir

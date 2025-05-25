@@ -206,7 +206,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         await _checkLocationPermission();
       }
     } else {
-      final status = await Permission.locationAlways.status;
+      final status = await Permission.location.status;
       if (status.isGranted) {
         setState(() {
           _hasLocationPermission = true;
@@ -278,10 +278,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       } else if (permission == geo.LocationPermission.denied ||
           permission == geo.LocationPermission.deniedForever) {}
     } else {
-      final status = await Permission.locationAlways.status;
+      final status = await Permission.location.status;
 
       if (!status.isGranted && !status.isLimited) {
-        final requestedStatus = await Permission.locationAlways.request();
+        final requestedStatus = await Permission.location.request();
 
         setState(() {
           _hasLocationPermission =
@@ -289,8 +289,31 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         });
 
         if (!_hasLocationPermission &&
-            (requestedStatus.isDenied ||
-                requestedStatus.isPermanentlyDenied)) {}
+            (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied)) {
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Konum İzni Gerekli'),
+                content: const Text(
+                    'Konum tabanlı özellikleri kullanabilmek için lütfen uygulama ayarlarından konum iznini etkinleştirin.'),
+                actions: [
+                  TextButton(
+                    child: const Text('Ayarları Aç'),
+                    onPressed: () {
+                      openAppSettings();
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('İptal'),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
       } else {
         setState(() {
           _hasLocationPermission = true;
