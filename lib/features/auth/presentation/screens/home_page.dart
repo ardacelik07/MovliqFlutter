@@ -31,6 +31,7 @@ import '../widgets/earn_coin_widget.dart'; // Popup için
 import '../providers/race_provider.dart'; // For cheatKickedStateProvider
 import '../widgets/cheated_race.dart'; // For CheatedRaceDialogContent
 import 'help_screen.dart';
+import 'profile_screen.dart';
 
 import 'dart:convert'; // Import jsonEncode
 
@@ -505,10 +506,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                           horizontal: 16.0, vertical: 12.0),
                       child: Row(
                         children: [
-                          // Profile picture - Simpler error/loading handling
-                          UserProfileAvatar(
-                            imageUrl: userData?.profilePictureUrl,
-                            radius: 24,
+                          GestureDetector(
+                            onTap: () {
+                              // Set the selectedTabProvider to the index of ProfileScreen (4)
+                              ref.read(selectedTabProvider.notifier).state = 4;
+                              // No need to push TabsScreen again, as HomePage is already within it.
+                            },
+                            child: UserProfileAvatar(
+                              imageUrl: userData?.profilePictureUrl,
+                              radius: 24,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           // Welcome Text - Simpler error/loading handling
