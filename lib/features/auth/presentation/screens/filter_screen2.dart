@@ -242,18 +242,13 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                     ),
                   ),
                   // Right side - Running icon
-                  const Icon(
-                    Icons.directions_run,
-                    color: Color(0xFFC4FF62),
-                    size: 24,
-                  ),
                 ],
               ),
             ),
             if (isPopular)
               Positioned(
                 right: 12,
-                bottom: 12,
+                bottom: 36,
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
