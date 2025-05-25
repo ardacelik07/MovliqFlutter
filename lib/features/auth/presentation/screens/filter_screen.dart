@@ -144,7 +144,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
     required double cardHeight,
     required VoidCallback onTap,
   }) {
-    const Color cardBackgroundColor = const Color(0xFF1F2922);
+    const Color cardBackgroundColor = Color(0xFF2A2A2A);
     const Color highlightColor = Color(0xFFC4FF62);
 
     return GestureDetector(

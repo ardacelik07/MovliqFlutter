@@ -194,7 +194,7 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
         height: 100,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF1F2922),
+          color: const Color(0xFF2A2A2A),
           borderRadius: BorderRadius.circular(12),
           border: isSelected
               ? Border.all(color: const Color(0xFFC4FF62), width: 2.5)

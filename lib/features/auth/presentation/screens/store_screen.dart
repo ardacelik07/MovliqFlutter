@@ -174,13 +174,6 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            'Arda\'nın direttiği yazı burada yer alacak.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: greyTextColor,
-                            ),
-                          ),
                         ],
                       ),
                     ),
