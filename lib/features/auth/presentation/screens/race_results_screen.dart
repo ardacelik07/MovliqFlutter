@@ -244,17 +244,6 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
               const SizedBox(
                   height: 20), // Periyot filtreleri ile liste arasına boşluk
 
-              // Sonuçlar başlığı (Opsiyonel)
-              // const Text(
-              //   'Aktiviteler',
-              //   style: TextStyle(
-              //     color: Colors.white,
-              //     fontSize: 18,
-              //     fontWeight: FontWeight.w600,
-              //   ),
-              // ),
-              // const SizedBox(height: 10),
-
               // Sonuçlar listesi
               Expanded(
                 child: activitiesAsync.when(
@@ -777,7 +766,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Image.asset(
-            'assets/images/movliqonlylogo.png', // Logo yolu doğru mu?
+            'assets/images/logo.png', // Logo yolu doğru mu?
             width: 80,
             height: 80,
             color: _secondaryTextColor.withOpacity(0.5), // Rengi soluklaştır
