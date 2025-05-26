@@ -11,76 +11,83 @@ class GuidePageFive extends StatelessWidget {
         Color(0xFFC9FB4B); // Diğer sayfalarla aynı canlı yeşil tonu
     const Color textColor = Colors.black;
 
-    return Container(
-      color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(
-              height:
-                  60), // Üstteki noktalar ve X butonu için daha fazla boşluk (noktalar artık yukarıda)
-          Column(
-            children: [
-              Text(
-                'SOLO MOD',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.bangers(
-                  // Cheddar alternatifi
-                  fontSize: 34, // Font boyutunu biraz ayarladım
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  height: 1.1,
-                  // fontFamily: 'Cheddar', // Fontu ekledikten sonra bu satırı aktif edin
-                ),
-              ),
-              Text(
-                'KENDİ YOLUNUN',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.bangers(
-                  // Cheddar alternatifi
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  height: 1.1,
-                  // fontFamily: 'Cheddar', // Fontu ekledikten sonra bu satırı aktif edin
-                ),
-              ),
-              Text(
-                'ŞAMPİYONU OL!',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.bangers(
-                  // Cheddar alternatifi
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  height: 1.1,
-                  // fontFamily: 'Cheddar', // Fontu ekledikten sonra bu satırı aktif edin
-                ),
-              ),
-            ],
-          ),
-          Image.asset(
-            'assets/images/userguide5.png', // Yeni resim yolu
-            height: screenSize.height * 0.35, // Resim boyutunu biraz ayarladım
-            fit: BoxFit.contain,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              'Solo mod ile istediğin hızda hareket et koş ya da yürü kurallar senin! daha fazla hareket daha fazla kazanım',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                // Coco Gothic alternatifi
-                fontSize: 17, // Font boyutunu biraz ayarladım
-                color: textColor,
-                height: 1.4,
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: screenSize.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+            ),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
+                  Column(
+                    children: [
+                      Text(
+                        'SOLO MOD',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.bangers(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          height: 1.1,
+                        ),
+                      ),
+                      Text(
+                        'KENDİ YOLUNUN',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.bangers(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          height: 1.1,
+                        ),
+                      ),
+                      Text(
+                        'ŞAMPİYONU OL!',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.bangers(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Image.asset(
+                    'assets/images/userguide5.png',
+                    height: screenSize.height * 0.35,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Solo mod ile istediğin hızda hareket et koş ya da yürü kurallar senin! daha fazla hareket daha fazla kazanım',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 17,
+                        color: textColor,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 60),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 100), // Alttaki buton için boşluk
-        ],
+        ),
       ),
     );
   }

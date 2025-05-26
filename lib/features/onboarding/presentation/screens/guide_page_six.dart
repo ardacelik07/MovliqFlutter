@@ -10,67 +10,77 @@ class GuidePageSix extends StatelessWidget {
     const Color backgroundColor =
         Color(0xFFC9FB4B); // Same vibrant green as other pages
     const Color textColor = Colors.black;
-    const Color buttonTextColor = Colors.white;
-    const Color buttonColor = Colors.black;
+    // const Color buttonTextColor = Colors.white; // Not used in this refactor
+    // const Color buttonColor = Colors.black; // Not used in this refactor
 
-    return Container(
-      color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(
-              height: 20), // Adjusted spacing for elements at the top
-          Column(
-            children: [
-              Text(
-                'HAZIRSAN!',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.bangers(
-                  // Cheddar alternatifi
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  height: 1.1,
-                  // fontFamily: 'Cheddar', // Uncomment after adding the font
-                ),
-              ),
-              Text(
-                'ŞİMDİ SAHNE SENİN',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.bangers(
-                  // Cheddar alternatifi
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  height: 1.1,
-                  // fontFamily: 'Cheddar', // Uncomment after adding the font
-                ),
-              ),
-            ],
-          ),
-          Image.asset(
-            'assets/images/userguide6.png', // Path to the new image
-            height: screenSize.height * 0.35, // Adjust image size as needed
-            fit: BoxFit.contain,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              'Artık nasıl oynanacağını biliyorsun. Şimdi harekete geç, yarışlara katıl, ödülleri topla!',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                // Coco Gothic alternatifi
-                fontSize: 17,
-                color: textColor,
-                height: 1.4,
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: screenSize.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+            ),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+              child: Column(
+                mainAxisAlignment:
+                    MainAxisAlignment.start, // Changed from spaceBetween
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20), // Consistent spacing
+                  Column(
+                    children: [
+                      Text(
+                        'HAZIRSAN!',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.bangers(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          height: 1.1,
+                        ),
+                      ),
+                      Text(
+                        'ŞİMDİ SAHNE SENİN',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.bangers(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24), // Consistent spacing
+                  Image.asset(
+                    'assets/images/userguide6.png',
+                    height: screenSize.height * 0.35,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 24), // Consistent spacing
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Artık nasıl oynanacağını biliyorsun. Şimdi harekete geç, yarışlara katıl, ödülleri topla!',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 17,
+                        color: textColor,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 60), // Adjusted bottom spacing
+                ],
               ),
             ),
           ),
-
-          const SizedBox(height: 20), // Spacing at the bottom
-        ],
+        ),
       ),
     );
   }
