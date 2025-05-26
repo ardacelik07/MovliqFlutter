@@ -249,8 +249,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                     color: Colors.white),
               ),
               const SizedBox(width: 8),
-              if (raceState.isRaceActive) // Sadece yarış aktifken göster
-                IconButton(
+              /* if (raceState.isRaceActive) // Sadece yarış aktifken göster
+                 IconButton(
                   padding: EdgeInsets.zero, // Olası iç padding'i kaldır
                   constraints:
                       const BoxConstraints(), // Olası boyut kısıtlamalarını kaldır
@@ -266,7 +266,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                     debugPrint(
                         'Road icon tapped, _showNewRaceUI is now: $_showNewRaceUI');
                   },
-                ),
+                ),*/
             ],
           ),
         ),
