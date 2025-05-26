@@ -343,8 +343,8 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
             _buildToggleChipGroup<LocationPreferenceChoice>(
               selectedValue: _selectedLocationPreference,
               options: {
-                LocationPreferenceChoice.indoor: '       Indoor       ',
-                LocationPreferenceChoice.outdoor: '       Outdoor       ',
+                LocationPreferenceChoice.indoor: 'Indoor',
+                LocationPreferenceChoice.outdoor: 'Outdoor',
               },
               icons: {
                 LocationPreferenceChoice.indoor: Icons.fitness_center,

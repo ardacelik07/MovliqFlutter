@@ -170,8 +170,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       if (value?.isEmpty ?? true) {
                         return 'Lütfen bir parola oluşturun';
                       }
-                      if (value!.length < 6) {
-                        return 'Parola en az 6 karakter olmalı';
+                      if (value!.length < 8) {
+                        return 'Parola en az 8 karakter olmalı';
+                      }
+                      if (!RegExp(r'(?=.*[A-Z])').hasMatch(value)) {
+                        return 'Parola en az bir büyük harf içermeli';
+                      }
+                      if (!RegExp(r'(?=.*[a-z])').hasMatch(value)) {
+                        return 'Parola en az bir küçük harf içermeli';
+                      }
+                      if (!RegExp(r'(?=.*[0-9])').hasMatch(value)) {
+                        return 'Parola en az bir rakam içermeli';
                       }
                       return null;
                     },

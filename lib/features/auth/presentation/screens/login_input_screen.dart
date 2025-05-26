@@ -201,6 +201,18 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                       if (value?.isEmpty ?? true) {
                         return 'Lütfen parolanızı girin';
                       }
+                      if (value!.length < 6) {
+                        return 'Parola en az 6 karakter olmalı';
+                      }
+                      /*if (!RegExp(r'(?=.*[A-Z])').hasMatch(value)) {
+                        return 'Parola en az bir büyük harf içermeli';
+                      }
+                      if (!RegExp(r'(?=.*[a-z])').hasMatch(value)) {
+                        return 'Parola en az bir küçük harf içermeli';
+                      }
+                      if (!RegExp(r'(?=.*[0-9])').hasMatch(value)) {
+                        return 'Parola en az bir rakam içermeli';
+                      }*/
                       return null;
                     },
                   ),

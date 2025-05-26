@@ -287,13 +287,17 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          title: const Row(
+          title: Row(
             children: [
-              SizedBox(width: 8),
-              Text(
-                '🏅 Liderlik Tablosu Hakkında',
-                style:
-                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  '🏅 Liderlik Tablosu Hakkında',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
