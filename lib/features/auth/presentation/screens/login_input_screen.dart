@@ -98,7 +98,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
 
     return Scaffold(
       backgroundColor: primaryColor,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
