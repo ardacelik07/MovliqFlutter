@@ -317,7 +317,6 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
               ],
             ),
             const SizedBox(height: 20),
-
             _buildLabel('Aktiflik Seviyesi'),
             _buildToggleChipGroup<ActivityLevelChoice>(
               selectedValue: _selectedActivityLevel,
@@ -337,6 +336,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
               },
               expandToFill: false,
             ),
+
             const SizedBox(height: 20),
 
             _buildLabel('Mekan Tercihi'),
