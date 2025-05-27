@@ -32,23 +32,6 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
   }
 
   // iOS izinlerini isteyecek metod
-  void _requestIOSPermissions() {
-    if (!Platform.isIOS) return;
-
-    try {
-      // Bildirim izni iste
-      const notificationChannel = MethodChannel('com.movliq/notifications');
-      notificationChannel.invokeMethod('requestNotificationPermission');
-      print('Login sonrası iOS bildirim izni istendi');
-
-      // Konum izni iste
-      const locationChannel = MethodChannel('com.movliq/location');
-      locationChannel.invokeMethod('enableBackgroundLocationTracking');
-      print('Login sonrası iOS konum izni istendi');
-    } catch (e) {
-      print('iOS izin isteme hatası: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,16 +50,16 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
         loading: () {},
         error: (error, _) {},
         data: (token) {
-          if (token != null) {
+          // Check if the screen is still mounted AND is the current route
+          if (mounted &&
+              ModalRoute.of(context)?.isCurrent == true &&
+              token != null) {
             print('Login successful! Token: $token');
 
             // Kullanıcı verilerini getir
             ref.read(userDataProvider.notifier).fetchUserData();
             ref.read(userDataProvider.notifier).fetchCoins();
             ref.read(selectedTabProvider.notifier).state = 0;
-
-            // İOS izinlerini iste - login sonrası
-            _requestIOSPermissions();
 
             // TabsScreen'e yönlendir
             Navigator.pushReplacement(
@@ -85,6 +68,11 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                 builder: (context) => const TabsScreen(),
               ),
             );
+          } else if (token != null &&
+              (ModalRoute.of(context)?.isCurrent == false)) {
+            // Optional: Log that the listener fired but didn't act because screen wasn't current
+            print(
+                'LoginInputScreen: authProvider updated but screen is not current (e.g., during registration flow). Token: $token');
           }
         },
       );

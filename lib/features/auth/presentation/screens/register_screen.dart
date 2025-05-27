@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../widgets/auth_text_field.dart';
 import '../../presentation/providers/auth_provider.dart';
 import 'welcome_screen.dart';
 import 'package:flutter/services.dart';
