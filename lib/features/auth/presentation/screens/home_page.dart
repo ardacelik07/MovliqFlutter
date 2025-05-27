@@ -650,7 +650,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  'Her arkadaşın için 500 mPara',
+                                  'Her arkadaşın için 15 mPara',
                                   style: TextStyle(
                                       color: Colors.grey, fontSize: 12),
                                 ),
@@ -688,12 +688,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 fontSize: 18),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'Kardiyoyu eğlenceli hale getirin! Canlı bir yarışa katılmak ve benzersiz ödüller kazanmak için hemen tıklayın!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: Colors.grey[400], fontSize: 14),
-                          ),
                           const SizedBox(height: 4),
                         ],
                       ),
