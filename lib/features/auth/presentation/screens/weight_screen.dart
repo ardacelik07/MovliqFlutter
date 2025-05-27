@@ -30,13 +30,6 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Enable edge-to-edge
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-    ));
-
     return Scaffold(
       backgroundColor: primaryColor,
       body: Container(

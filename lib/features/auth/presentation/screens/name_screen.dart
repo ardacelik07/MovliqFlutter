@@ -28,13 +28,6 @@ class _NameScreenState extends ConsumerState<NameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Enable edge-to-edge
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-    ));
-
     // Define colors based on the image
     const Color primaryColor = Color(0xFF7BB027); // Green color from the image
     const Color darkGreenColor =

@@ -220,7 +220,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // Mevcut Şifre Alanı (UI'da kalabilir, doğrulaması kaldırılabilir)
               _buildPasswordField(
                 controller: _currentPasswordController,
-                hintText: 'Mevcut şifrenizi girin', // Kullanıcıya bilgi amaçlı
+                hintText: 'Mevcut şifrenizi girin.', // Kullanıcıya bilgi amaçlı
                 obscureText: _obscureCurrentPassword,
                 onToggleVisibility: () {
                   setState(
@@ -231,8 +231,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // Yeni Şifre Alanı
               _buildPasswordField(
                 controller: _newPasswordController,
-                hintText:
-                    'Yeni şifrenizi girin En az 8 karakter, büyük harf, küçük harf, rakam',
+                hintText: 'Yeni şifrenizi girin.',
                 obscureText: _obscureNewPassword,
                 onToggleVisibility: () {
                   setState(() => _obscureNewPassword = !_obscureNewPassword);
@@ -242,7 +241,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // Yeni Şifre Tekrar Alanı
               _buildPasswordField(
                 controller: _confirmPasswordController,
-                hintText: 'Yeni şifrenizi tekrar girin',
+                hintText: 'Yeni şifrenizi tekrar girin.',
                 obscureText: _obscureConfirmPassword,
                 onToggleVisibility: () {
                   setState(
@@ -251,8 +250,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               ),
               const SizedBox(height: 24),
               // Şifre Gerekliliği
-              _buildPasswordRequirement(
-                  'Şifreniz en az:', ['8 karakter uzunluğunda']),
+              _buildPasswordRequirement('Şifreniz şunları içermelidir:',
+                  ['8 karakter uzunluğunda, büyük harf, küçük harf, rakam.']),
               const SizedBox(height: 24),
               // Hata Mesajı
               if (_errorMessage.isNotEmpty)
