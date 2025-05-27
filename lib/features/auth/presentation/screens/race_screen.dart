@@ -388,7 +388,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                                             'assets/icons/location.png', // Tahmini KM için de aynı ikon
                                         value: raceState.estimatedIndoorDistance
                                             .toStringAsFixed(2),
-                                        label: 'km',
+                                        label: 'Tahmini km',
                                       ),
                                     _buildStatItem(
                                       iconAsset:
@@ -730,20 +730,28 @@ class ParticipantTile extends ConsumerWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '${(isIndoorRace ? participant.distance : participant.distance).toStringAsFixed(2)} km', // İç mekan/dış mekan ayrımı kaldırıldı, SignalR'dan gelen distance kullanılacak
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
+              if (!isIndoorRace) // Only show distance for outdoor races
+                Text(
+                  '${participant.distance.toStringAsFixed(2)} km',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
+              if (!isIndoorRace)
+                const SizedBox(
+                    height: 4), // Add spacing only if distance is shown
               Text(
                 '${participant.steps} adım',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
+                style: TextStyle(
+                  fontSize: isIndoorRace
+                      ? 16
+                      : 12, // Larger font for steps if it's the only metric
+                  color: Colors
+                      .white, // White color for steps when it's the primary metric
+                  fontWeight:
+                      isIndoorRace ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ],

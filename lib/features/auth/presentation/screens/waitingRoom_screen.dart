@@ -682,9 +682,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
     final String displayActivityType;
 
     if (rawActivityType == 'outdoor') {
-      displayActivityType = 'İç Mekan';
-    } else if (rawActivityType == 'indoor' || rawActivityType == 'iç mekan') {
       displayActivityType = 'Dış Mekan';
+    } else if (rawActivityType == 'indoor' || rawActivityType == 'iç mekan') {
+      displayActivityType = 'İç Mekan';
     } else {
       displayActivityType = widget.activityType ??
           'Bilinmiyor'; // Fallback to original or default
