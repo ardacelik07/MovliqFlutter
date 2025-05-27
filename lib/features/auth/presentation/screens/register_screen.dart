@@ -30,14 +30,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarDividerColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
-      statusBarIconBrightness: Brightness.light,
-    ));
+    const Color primaryColor = Color(0xFF7BB027);
+    const Color textFieldBackgroundColor = Color(0xFF333333);
+    const Color hintTextColor = Color(0xFFBDBDBD);
+    const Color textColor = Colors.white;
+    const Color buttonColor = Color(0xFFC4FF62);
 
     ref.listen(authProvider, (previous, next) {
       next.whenOrNull(
@@ -67,12 +64,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         },
       );
     });
-
-    const Color primaryColor = Color(0xFF7BB027);
-    const Color textFieldBackgroundColor = Color(0xFF333333);
-    const Color hintTextColor = Color(0xFFBDBDBD);
-    const Color textColor = Colors.white;
-    const Color buttonColor = Color(0xFFC4FF62);
 
     return Scaffold(
       backgroundColor: primaryColor,

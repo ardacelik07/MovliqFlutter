@@ -31,16 +31,6 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Set edge-to-edge display and transparent system bars
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarDividerColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
-      statusBarIconBrightness: Brightness.light,
-    ));
-
     ref.listen(authProvider, (previous, next) {
       next.whenOrNull(
         loading: () {},
