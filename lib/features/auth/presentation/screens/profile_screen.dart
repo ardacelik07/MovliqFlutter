@@ -811,6 +811,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                                     final isIndoor =
                                         raceData['roomType'] == 'indoor';
+                                    String distanceTextForCard;
+                                    if (isIndoor &&
+                                        userHeightCm != null &&
+                                        userHeightCm > 0 &&
+                                        steps != null) {
+                                      final double stepLengthMeters =
+                                          userHeightCm * 0.00414;
+                                      final double estimatedDistanceKm =
+                                          (steps * stepLengthMeters) / 1000.0;
+                                      distanceTextForCard =
+                                          ' ~${estimatedDistanceKm.toStringAsFixed(2)} km';
+                                    } else {
+                                      distanceTextForCard = '$distanceStr km';
+                                    }
+
                                     final rank = raceData['rank'] as int?;
                                     String rankText = '-';
                                     if (rank != null && rank > 0) {
@@ -914,7 +929,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                     _buildNewRaceMetricItem(
                                                       assetPath: _locationIcon,
                                                       valueText:
-                                                          '$distanceStr km',
+                                                          distanceTextForCard,
                                                     ),
                                                     const SizedBox(width: 20),
                                                     _buildNewRaceMetricItem(

@@ -143,7 +143,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
-                      hintText: 'Parola Oluştur',
+                      hintText:
+                          'Parola Oluştur En az 8 karakter, büyük harf, küçük harf, rakam',
                       hintStyle: const TextStyle(color: hintTextColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
