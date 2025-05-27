@@ -287,33 +287,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           _hasLocationPermission =
               requestedStatus.isGranted || requestedStatus.isLimited;
         });
-
-        if (!_hasLocationPermission &&
-            (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied)) {
-          if (mounted) {
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Konum İzni Gerekli'),
-                content: const Text(
-                    'Konum tabanlı özellikleri kullanabilmek için lütfen uygulama ayarlarından konum iznini etkinleştirin.'),
-                actions: [
-                  TextButton(
-                    child: const Text('Ayarları Aç'),
-                    onPressed: () {
-                      openAppSettings();
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  TextButton(
-                    child: const Text('İptal'),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            );
-          }
-        }
       } else {
         setState(() {
           _hasLocationPermission = true;

@@ -121,32 +121,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         final notificationRequest = await Permission.notification.request();
 
         // Kullanıcıya bilgi ver (opsiyonel)
-        if (notificationRequest.isPermanentlyDenied) {
-          if (mounted) {
-            // Eğer kullanıcı kalıcı olarak reddettiyse
-            showDialog(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Bildirim İzni Gerekli'),
-                content: const Text(
-                    'Bildirim izni olmadan size etkinlikleriniz hakkında haber veremeyiz. Lütfen ayarlardan izin verin.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('Kapat'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      openAppSettings();
-                      Navigator.of(ctx).pop();
-                    },
-                    child: const Text('Ayarlara Git'),
-                  ),
-                ],
-              ),
-            );
-          }
-        }
       } else {
         print('Ana Sayfa - Android bildirim izni zaten var');
       }
@@ -227,26 +201,12 @@ class _HomePageState extends ConsumerState<HomePage> {
       print('Ana Sayfa - Android konum izin durumu: $status');
 
       // Define the critical permission dialog details for races
-      const String dialogTitle = 'Konum İzni Gerekli';
-      const String dialogContent =
-          'Yarışlara katılabilmek ve aktivite verilerinizi doğru bir şekilde kaydedebilmek için Movliq\'in konumunuza erişmesi gerekmektedir. Lütfen uygulama ayarlarından konum iznini \'Uygulamayı kullanırken\' veya \'Her zaman\' olarak güncelleyiniz.';
 
       if (!status.isGranted && !status.isLimited) {
         final requestedStatus = await Permission.location.request();
         print(
             'Ana Sayfa - Android izin istenen durum (Uygulamayı Kullanırken): $requestedStatus');
 
-        if (requestedStatus.isPermanentlyDenied) {
-          if (mounted) {
-            _showSettingsDialog(dialogTitle, dialogContent);
-          }
-        } else if (requestedStatus.isDenied) {
-          print(
-              'Ana Sayfa - Android konum izni (Uygulamayı Kullanırken) reddedildi ancak kalıcı değil.');
-          if (mounted) {
-            _showSettingsDialog(dialogTitle, dialogContent);
-          }
-        }
         // If permission granted here, it's "While using the app" or "Always"
       } else {
         print(
@@ -266,13 +226,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         final requestedStatus = await Permission.activityRecognition.request();
         print(
             'Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
-
-        if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
-          if (mounted) {
-            _showSettingsDialog('Aktivite İzni Gerekli',
-                'Adımlarınızı sayabilmek için aktivite izni gereklidir.');
-          }
-        }
       } else {
         print('Ana Sayfa - Android aktivite izni zaten verilmiş.');
       }
@@ -317,29 +270,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   // Health Kit izni için özel dialog (iOS)
 
   // Dialog to show if permission is denied (Consolidated for Settings)
-  void _showSettingsDialog(String title, String content) {
-    if (!mounted) return; // Check again before showing dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text('$content Lütfen uygulama ayarlarından bu izni verin.'),
-        actions: [
-          TextButton(
-            child: const Text('Ayarları Aç'),
-            onPressed: () {
-              openAppSettings(); // Open app settings
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: const Text('İptal'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _shareAppLink() async {
     const String playStoreLink =
