@@ -5,12 +5,6 @@ import '../providers/race_settings_provider.dart';
 import 'verification_screen.dart';
 // import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Commented out or remove
 import 'package:my_flutter_project/features/auth/presentation/screens/create_or_join_room_screen.dart'; // Added import
-import 'package:permission_handler/permission_handler.dart'; // Import permission_handler
-import 'dart:io'; // Import Platform
-import 'package:geolocator/geolocator.dart'; // Import Geolocator
-import 'package:pedometer/pedometer.dart'; // Import pedometer
-import 'package:flutter/services.dart'; // Import flutter/services
-import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -25,155 +19,17 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
   @override
   void initState() {
     super.initState();
-    //heckAndRequestPermissionsSequentially();
+    // İzin isteme çağrısı kaldırıldı
+    // _checkAndRequestPermissionsSequentially();
   }
 
-  // Permission handling logic copied from home_page.dart
-  Future<void> _checkAndRequestPermissionsSequentially() async {
-    // Önce bildirim iznini iste (en kritik olmayan)
-    await _checkAndRequestNotificationPermission();
-
-    // Sonra konum iznini iste
-    await _checkAndRequestLocationPermission();
-
-    // En son aktivite iznini iste
-    if (mounted) {
-      await _checkAndRequestActivityPermission();
-    }
-  }
-
-  Future<void> _checkAndRequestNotificationPermission() async {
-    print('FilterScreen - Bildirim izni kontrolü başlatılıyor...');
-
-    if (Platform.isIOS) {
-      final bool hasPermission = await _requestIOSNotificationPermission();
-      print('FilterScreen - iOS bildirim izni: $hasPermission');
-    } else {
-      final notificationStatus = await Permission.notification.status;
-      if (notificationStatus.isDenied) {
-        print(
-            'FilterScreen - Android bildirim izni reddedilmiş, istek yapılıyor...');
-        await Permission.notification.request();
-      } else if (notificationStatus.isPermanentlyDenied) {
-        print(
-            'FilterScreen - Android bildirim izni kalıcı olarak reddedilmiş.');
-      } else {
-        print('FilterScreen - Android bildirim izni zaten var');
-      }
-    }
-  }
-
-  Future<bool> _requestIOSNotificationPermission() async {
-    const platform = MethodChannel('com.movliq/notifications');
-    try {
-      final bool result =
-          await platform.invokeMethod('requestNotificationPermission');
-      return result;
-    } catch (e) {
-      print('FilterScreen - iOS bildirim izni alma hatası: $e');
-      return false;
-    }
-  }
-
-  Future<String> _checkIOSNotificationPermission() async {
-    const platform = MethodChannel('com.movliq/notifications');
-    try {
-      final String status =
-          await platform.invokeMethod('checkNotificationPermission');
-      return status;
-    } catch (e) {
-      print('FilterScreen - iOS bildirim izni kontrolü hatası: $e');
-      return 'error';
-    }
-  }
-
-  Future<void> _checkAndRequestLocationPermission() async {
-    print('FilterScreen - Konum izni kontrolü başlatılıyor...');
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lütfen konum servislerini açın'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-      await Geolocator.openLocationSettings();
-      return;
-    }
-
-    if (Platform.isIOS) {
-      LocationPermission permission = await Geolocator.checkPermission();
-      print('FilterScreen - iOS konum izni durumu: $permission');
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        print('FilterScreen - iOS konum izni istendikten sonra: $permission');
-      }
-      if (permission == LocationPermission.deniedForever) {
-        print('FilterScreen - iOS konum izni kalıcı olarak reddedilmiş.');
-      }
-    } else {
-      final status = await Permission.location.status;
-      print('FilterScreen - Android konum izin durumu: $status');
-      if (!status.isGranted && !status.isLimited) {
-        final requestedStatus = await Permission.location.request();
-        print(
-            'FilterScreen - Android izin istenen durum (Uygulamayı Kullanırken): $requestedStatus');
-        if (requestedStatus.isPermanentlyDenied) {
-          print('FilterScreen - Android konum izni kalıcı olarak reddedilmiş.');
-        }
-      } else {
-        print(
-            'FilterScreen - Android konum izni (Uygulamayı Kullanırken veya Her Zaman) zaten verilmiş.');
-      }
-    }
-  }
-
-  Future<void> _checkAndRequestActivityPermission() async {
-    if (Platform.isAndroid) {
-      final status = await Permission.activityRecognition.status;
-      print('FilterScreen - Android aktivite izin durumu: $status');
-      if (!status.isGranted) {
-        final requestedStatus = await Permission.activityRecognition.request();
-        print(
-            'FilterScreen - Android aktivite izin istenen durum: $requestedStatus');
-        if (requestedStatus.isPermanentlyDenied) {
-          print(
-              'FilterScreen - Android aktivite izni kalıcı olarak reddedilmiş.');
-        }
-      } else {
-        print('FilterScreen - Android aktivite izni zaten verilmiş.');
-      }
-    } else if (Platform.isIOS) {
-      final sensorStatus = await Permission.sensors.request();
-      print('FilterScreen - iOS sensör izin durumu: $sensorStatus');
-
-      bool healthKitPermissionVerified = false;
-      try {
-        final subscription = Pedometer.stepCountStream.listen((step) {
-          healthKitPermissionVerified = true;
-        }, onError: (error) {
-          print('FilterScreen - Adım algılama hatası: $error');
-        });
-        await Future.delayed(
-            const Duration(seconds: 1)); // Short delay to check
-        subscription.cancel();
-
-        if (!healthKitPermissionVerified &&
-            mounted &&
-            (sensorStatus.isDenied || sensorStatus.isPermanentlyDenied)) {
-          print(
-              'FilterScreen - Health Kit izinleri verilmemiş veya sensör izni reddedilmiş.');
-        } else {
-          print(
-              'FilterScreen - Health Kit izinleri verilmiş veya başarıyla algılandı/sensör izni var.');
-        }
-      } catch (e) {
-        print('FilterScreen - Health Kit izin kontrolü sırasında hata: $e');
-      }
-    }
-  }
+  // Tüm izin isteme metotları kaldırıldı
+  // Future<void> _checkAndRequestPermissionsSequentially() async { ... }
+  // Future<void> _checkAndRequestNotificationPermission() async { ... }
+  // Future<bool> _requestIOSNotificationPermission() async { ... }
+  // Future<String> _checkIOSNotificationPermission() async { ... }
+  // Future<void> _checkAndRequestLocationPermission() async { ... }
+  // Future<void> _checkAndRequestActivityPermission() async { ... }
 
   @override
   Widget build(BuildContext context) {
