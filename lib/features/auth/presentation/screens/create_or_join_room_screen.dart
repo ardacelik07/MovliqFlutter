@@ -86,6 +86,15 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
         final dynamic rawRoomId = responseData['roomId'];
         final String? roomIdString = rawRoomId?.toString();
 
+        // API'den gelen roomType ve roomDuration değerlerini al
+        final String? apiRoomType = responseData['roomType']?.toString();
+        final dynamic apiRawRoomDuration = responseData['roomDuration'];
+        final int? apiRoomDuration = apiRawRoomDuration is int
+            ? apiRawRoomDuration
+            : (apiRawRoomDuration is String
+                ? int.tryParse(apiRawRoomDuration)
+                : null);
+
         if (roomIdString == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -110,6 +119,31 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
           return;
         }
 
+        // roomType ve roomDuration kontrolü
+        if (apiRoomType == null || apiRoomType.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text(
+                      'Oda tipi bilgisi yanıtta bulunamadı veya geçersiz.')),
+            );
+          }
+          if (mounted) setState(() => _isLoadingJoin = false);
+          return;
+        }
+
+        if (apiRoomDuration == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text(
+                      'Oda süresi bilgisi yanıtta bulunamadı veya geçersiz.')),
+            );
+          }
+          if (mounted) setState(() => _isLoadingJoin = false);
+          return;
+        }
+
         final String messageText = responseData['message']?.toString() ??
             'Odaya başarıyla katıldınız!';
         if (mounted) {
@@ -122,8 +156,9 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
                 roomId: roomId,
                 roomCode: enteredRoomCode,
                 isHost: false,
-                activityType: _selectedRoomType, // Pass selected room type
-                duration: _selectedDuration, // Pass selected duration
+                activityType: apiRoomType, // API'den gelen roomType'ı kullan
+                duration:
+                    apiRoomDuration, // API'den gelen roomDuration'ı kullan
               ),
             ),
           );
