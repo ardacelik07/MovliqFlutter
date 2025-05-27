@@ -79,7 +79,7 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                   ),
                   // Birthday Label
                   const Text(
-                    'When is your Birthday?',
+                    'Doğum tarihiniz nedir?',
                     style: TextStyle(color: labelColor, fontSize: 14),
                     textAlign: TextAlign.left,
                   ),
@@ -153,7 +153,7 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
 
                   // Gender Label
                   const Text(
-                    'How do you identify?',
+                    'Kim olduğunuzu nasıl tanımlarsınız?',
                     style: TextStyle(color: labelColor, fontSize: 14),
                     textAlign: TextAlign.left,
                   ),

@@ -227,10 +227,11 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
           currentProfile.weight <= 0 ||
           currentProfile.activityLevel.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Lütfen tüm zorunlu alanları doldurun.')),
+          const SnackBar(
+              content: Text('Lütfen tüm zorunlu alanları doldurun.')),
         );
         // Hata durumunda işlemi durdur
-        return; 
+        return;
       }
 
       // Son tercihi güncelle

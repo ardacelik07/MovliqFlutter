@@ -51,7 +51,7 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                 ),
                 const SizedBox(height: 40),
                 const Text(
-                  "How active are you?",
+                  "Hangi kadar aktifsiniz?",
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -64,24 +64,24 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                 // Pass the context to update text colors in options
                 _buildActivityOption(
                   context,
-                  'Beginner',
-                  'Just getting started',
+                  'Başlangıç',
+                  'Sadece başlıyorsunuz',
                   Icons.directions_walk,
                   'beginner',
                 ),
                 const SizedBox(height: 16),
                 _buildActivityOption(
                   context,
-                  'Intermediate',
-                  'Regular exercise',
+                  'Orta',
+                  'Orta düzey egzersiz yapıyorsunuz',
                   Icons.favorite,
                   'intermediate',
                 ),
                 const SizedBox(height: 16),
                 _buildActivityOption(
                   context,
-                  'Advanced',
-                  'Consistent training',
+                  'Gelişmiş',
+                  'Gelişmiş düzey egzersiz yapıyorsunuz',
                   Icons.fitness_center,
                   'advanced',
                 ),
@@ -108,7 +108,7 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                           );
                         }
                       : null,
-                  child: const Text('Continue'),
+                  child: const Text('Devam Et'),
                 ),
               ],
             ),
