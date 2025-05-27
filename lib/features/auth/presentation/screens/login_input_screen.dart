@@ -44,7 +44,16 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
     ref.listen(authProvider, (previous, next) {
       next.whenOrNull(
         loading: () {},
-        error: (error, _) {},
+        error: (error, _) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Giriş hatası: $error'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
         data: (token) {
           // Check if the screen is still mounted AND is the current route
           if (mounted &&

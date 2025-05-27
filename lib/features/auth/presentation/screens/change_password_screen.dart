@@ -66,9 +66,30 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       });
       return;
     }
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       setState(() {
-        _errorMessage = 'Yeni şifre en az 6 karakter olmalıdır.';
+        _errorMessage = 'Yeni şifre en az 8 karakter olmalıdır.';
+        _isLoading = false;
+      });
+      return;
+    }
+    if (!RegExp(r'(?=.*[A-Z])').hasMatch(newPassword)) {
+      setState(() {
+        _errorMessage = 'Yeni şifre en az bir büyük harf içermelidir.';
+        _isLoading = false;
+      });
+      return;
+    }
+    if (!RegExp(r'(?=.*[a-z])').hasMatch(newPassword)) {
+      setState(() {
+        _errorMessage = 'Yeni şifre en az bir küçük harf içermelidir.';
+        _isLoading = false;
+      });
+      return;
+    }
+    if (!RegExp(r'(?=.*[0-9])').hasMatch(newPassword)) {
+      setState(() {
+        _errorMessage = 'Yeni şifre en az bir rakam içermelidir.';
         _isLoading = false;
       });
       return;
@@ -210,7 +231,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // Yeni Şifre Alanı
               _buildPasswordField(
                 controller: _newPasswordController,
-                hintText: 'Yeni şifrenizi girin',
+                hintText:
+                    'Yeni şifrenizi girin En az 8 karakter, büyük harf, küçük harf, rakam',
                 obscureText: _obscureNewPassword,
                 onToggleVisibility: () {
                   setState(() => _obscureNewPassword = !_obscureNewPassword);
@@ -230,7 +252,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               const SizedBox(height: 24),
               // Şifre Gerekliliği
               _buildPasswordRequirement(
-                  'Şifreniz en az:', ['6 karakter uzunluğunda']),
+                  'Şifreniz en az:', ['8 karakter uzunluğunda']),
               const SizedBox(height: 24),
               // Hata Mesajı
               if (_errorMessage.isNotEmpty)
