@@ -23,20 +23,13 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
 
   // Define colors at class level
   static const Color primaryColor = Color(0xFF7BB027);
-  static const Color darkGreenColor = Color(0xFF476C17);
-  static const Color inputBgColor =
-      Color.fromARGB(255, 235, 235, 235); // Light greyish white
+
   static const Color labelColor =
       Color.fromARGB(255, 222, 222, 222); // Light label color
-  static const Color inputTextColor = Colors.black;
+
   static const Color unitLabelColor =
       Color.fromARGB(255, 222, 222, 222); // Light color for ft/in/cm labels
-  static const Color chipSelectedColor =
-      Color(0xFFC4FF62); // Bright green for selected chip
-  static const Color chipUnselectedColor =
-      Color.fromARGB(255, 235, 235, 235); // Light grey for unselected
-  static const Color chipSelectedTextColor = Colors.black;
-  static const Color chipUnselectedTextColor = Colors.black54;
+
   static const Color buttonTextColor = Color(0xFF9FD545);
 
   @override

@@ -42,7 +42,7 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
 
     // Define colors based on the image
     const Color primaryColor = Color(0xFF7BB027); // Green color
-    const Color darkGreenColor = Color(0xFF476C17); // Darker shade
+
     const Color textFieldBgColor =
         Color.fromARGB(195, 0, 0, 0); // Dark background like name_screen
     const Color labelColor =

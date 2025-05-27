@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 import '../providers/user_data_provider.dart';
 import '../../domain/models/user_data_model.dart'; // <-- Eklendi
-import '../providers/user_ranks_provider.dart'; // For streak
+
 import '../providers/latest_product_provider.dart'; // Import LatestProductProvider
 import '../providers/private_race_provider.dart'; // Import PrivateRaceProvider
 import '../../domain/models/latest_product_model.dart'; // Import LatestProductModel
@@ -23,7 +23,7 @@ import 'package:share_plus/share_plus.dart'; // Import share_plus
 import 'package:my_flutter_project/core/config/api_config.dart'; // Import ApiConfig
 import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Import HttpInterceptor
 import 'package:geolocator/geolocator.dart'; // Import Geolocator
-import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
+
 import 'package:pedometer/pedometer.dart'; // Import pedometer
 import 'package:flutter/services.dart'; // Import flutter/services
 import '../providers/race_coin_tracker_provider.dart';

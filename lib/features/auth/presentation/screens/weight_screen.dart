@@ -18,10 +18,7 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
 
   // Define colors (similar to HeightScreen)
   static const Color primaryColor = Color(0xFF7BB027);
-  static const Color darkGreenColor = Color(0xFF476C17);
-  static const Color inputBgColor = Color.fromARGB(255, 235, 235, 235);
   static const Color labelColor = Color.fromARGB(255, 222, 222, 222);
-  static const Color inputTextColor = Colors.black;
   static const Color unitLabelColor = Color.fromARGB(255, 222, 222, 222);
   static const Color buttonTextColor = Color(0xFF9FD545);
 

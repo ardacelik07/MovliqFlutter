@@ -17,7 +17,6 @@ import '../screens/tabs.dart';
 import './record_stats_screen.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
-import 'package:flutter/services.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -94,7 +93,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
-        _initPermissions();
+        //checkAndRequestPermissionsSequentially();
       }
     });
 
@@ -172,131 +171,305 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }
   }
 
-  Future<void> _initPermissions() async {
-    if (Platform.isAndroid) {
-      final notificationStatus = await Permission.notification.request();
-      if (notificationStatus.isPermanentlyDenied) {
-      } else if (notificationStatus.isDenied) {}
-    }
+  Future<void> _checkAndRequestPermissionsSequentially() async {
+    // Önce bildirim iznini iste (en kritik olmayan)
+    await _checkAndRequestNotificationPermission();
 
+    // Sonra konum iznini iste
+    await _checkAndRequestLocationPermission();
+
+    // En son aktivite iznini iste
+    if (mounted) {
+      await _checkAndRequestActivityPermission();
+    }
+    if (mounted) {
+      setState(() {}); // Refresh UI if needed after permission checks
+    }
+  }
+
+  Future<void> _checkAndRequestNotificationPermission() async {
+    debugPrint('RecordScreen - Bildirim izni kontrolü başlatılıyor...');
+
+    if (Platform.isIOS) {
+      final bool hasPermission = await _requestIOSNotificationPermission();
+      debugPrint('RecordScreen - iOS bildirim izni: $hasPermission');
+      // iOS handles its own dialogs. If !hasPermission, it means user previously denied or system restrictions.
+    } else {
+      // Android
+      final notificationStatus = await Permission.notification.status;
+      if (notificationStatus.isDenied) {
+        debugPrint(
+            'RecordScreen - Android bildirim izni reddedilmiş, istek yapılıyor...');
+        await Permission.notification.request();
+      } else if (notificationStatus.isPermanentlyDenied) {
+        debugPrint(
+            'RecordScreen - Android bildirim izni kalıcı olarak reddedilmiş.');
+        // if(mounted) { // ÇAĞRI KALDIRILDI
+        //   _showPermissionPermanentlyDeniedDialog('Bildirim');
+        // }
+      } else {
+        debugPrint('RecordScreen - Android bildirim izni zaten var.');
+      }
+    }
+  }
+
+  Future<bool> _requestIOSNotificationPermission() async {
+    const platform = MethodChannel('com.movliq/notifications');
+    try {
+      final bool result =
+          await platform.invokeMethod('requestNotificationPermission');
+      return result;
+    } catch (e) {
+      debugPrint('RecordScreen - iOS bildirim izni alma hatası: $e');
+      return false;
+    }
+  }
+
+  Future<void> _checkAndRequestLocationPermission() async {
+    debugPrint('RecordScreen - Konum izni kontrolü başlatılıyor...');
     bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Lütfen konum servislerini açın'),
+            content: Text('Lütfen konum servislerini açın.'),
             duration: Duration(seconds: 3),
           ),
         );
+        // Consider guiding the user to settings if they don't enable it.
+        await geo.Geolocator.openLocationSettings();
       }
-      await geo.Geolocator.openLocationSettings();
+      setState(() {
+        _hasLocationPermission = false;
+      });
       return;
     }
 
     if (Platform.isIOS) {
       geo.LocationPermission permission =
           await geo.Geolocator.checkPermission();
-      if (permission == geo.LocationPermission.always ||
-          permission == geo.LocationPermission.whileInUse) {
+      debugPrint('RecordScreen - iOS konum izni durumu: $permission');
+
+      if (permission == geo.LocationPermission.denied) {
+        permission = await geo.Geolocator.requestPermission();
+        debugPrint(
+            'RecordScreen - iOS konum izni istendikten sonra: $permission');
+      }
+
+      if (permission == geo.LocationPermission.deniedForever) {
+        if (mounted) {
+          // _showPermissionPermanentlyDeniedDialog('Konum'); // ÇAĞRI KALDIRILDI
+          debugPrint(
+              'RecordScreen - iOS konum izni kalıcı olarak reddedilmiş.');
+        }
+        setState(() {
+          _hasLocationPermission = false;
+        });
+      } else if (permission == geo.LocationPermission.whileInUse ||
+          permission == geo.LocationPermission.always) {
         setState(() {
           _hasLocationPermission = true;
         });
-        await _getCurrentLocation();
+        await _getCurrentLocation(); // Try to get location if permission granted
       } else {
-        await _checkLocationPermission();
+        setState(() {
+          _hasLocationPermission = false;
+        });
       }
     } else {
+      // Android
       final status = await Permission.location.status;
-      if (status.isGranted) {
+      debugPrint('RecordScreen - Android konum izin durumu: $status');
+
+      if (!status.isGranted && !status.isLimited) {
+        final requestedStatus = await Permission.location.request();
+        debugPrint(
+            'RecordScreen - Android izin istenen durum (Uygulamayı Kullanırken): $requestedStatus');
+        if (requestedStatus.isPermanentlyDenied) {
+          if (mounted) {
+            // _showPermissionPermanentlyDeniedDialog('Konum'); // ÇAĞRI KALDIRILDI
+            debugPrint(
+                'RecordScreen - Android konum izni kalıcı olarak reddedilmiş.');
+          }
+          setState(() {
+            _hasLocationPermission = false;
+          });
+        } else if (requestedStatus.isGranted || requestedStatus.isLimited) {
+          setState(() {
+            _hasLocationPermission = true;
+          });
+          await _getCurrentLocation();
+        } else {
+          setState(() {
+            _hasLocationPermission = false;
+          });
+        }
+      } else {
+        debugPrint(
+            'RecordScreen - Android konum izni (Uygulamayı Kullanırken veya Her Zaman) zaten verilmiş.');
         setState(() {
           _hasLocationPermission = true;
         });
         await _getCurrentLocation();
-      } else {
-        await _checkLocationPermission();
       }
-    }
-
-    await _checkActivityPermission();
-
-    if (mounted) {
-      setState(() {});
     }
   }
 
-  Future<void> _checkActivityPermission() async {
+  Future<void> _checkAndRequestActivityPermission() async {
+    debugPrint('RecordScreen - Aktivite izni kontrolü başlatılıyor...');
     if (Platform.isAndroid) {
-      if (await Permission.activityRecognition.request().isGranted) {
+      final status = await Permission.activityRecognition.status;
+      debugPrint('RecordScreen - Android aktivite izin durumu: $status');
+      if (!status.isGranted) {
+        final requestedStatus = await Permission.activityRecognition.request();
+        debugPrint(
+            'RecordScreen - Android aktivite izin istenen durum: $requestedStatus');
+        if (requestedStatus.isPermanentlyDenied) {
+          if (mounted) {
+            // _showPermissionPermanentlyDeniedDialog('Fiziksel Aktivite'); // ÇAĞRI KALDIRILDI
+            debugPrint(
+                'RecordScreen - Android aktivite izni kalıcı olarak reddedilmiş.');
+          }
+          setState(() {
+            _hasPedometerPermission = false;
+          });
+        } else if (requestedStatus.isGranted) {
+          setState(() {
+            _hasPedometerPermission = true;
+          });
+          _initPedometer();
+        } else {
+          setState(() {
+            _hasPedometerPermission = false;
+          });
+        }
+      } else {
+        debugPrint('RecordScreen - Android aktivite izni zaten verilmiş.');
         setState(() {
           _hasPedometerPermission = true;
         });
         _initPedometer();
       }
     } else if (Platform.isIOS) {
-      setState(() {
-        _hasPedometerPermission = true;
-      });
+      // For iOS, we rely on Pedometer stream and Permission.sensors
+      // First, request general sensor access, which is a prerequisite for motion data.
+      final sensorStatus = await Permission.sensors.request();
+      debugPrint(
+          'RecordScreen - iOS sensör (motion) izin durumu: $sensorStatus');
+
+      // Then, try to listen to Pedometer stream to confirm HealthKit access for steps.
+      bool healthKitStepsVerified = false;
+      StreamSubscription<StepCount>? healthCheckSubscription;
 
       try {
-        _initPedometer();
-        await Permission.sensors.request();
-        bool stepsAvailable = false;
-        final subscription = Pedometer.stepCountStream.listen((step) {
-          stepsAvailable = true;
+        healthCheckSubscription =
+            Pedometer.stepCountStream.listen((StepCount event) {
+          debugPrint(
+              'RecordScreen - HealthKit adım verisi alındı: ${event.steps}');
+          healthKitStepsVerified = true;
+          healthCheckSubscription?.cancel(); // Stop listening once verified
+        }, onError: (error) {
+          debugPrint(
+              'RecordScreen - HealthKit adım verisi dinleme hatası: $error');
+          healthCheckSubscription?.cancel();
+        }, onDone: () {
+          debugPrint('RecordScreen - HealthKit adım verisi stream bitti.');
+        });
+
+        // Wait a short period for data to arrive.
+        await Future.delayed(const Duration(seconds: 2));
+        await healthCheckSubscription?.cancel(); // Ensure cancellation
+
+        if (healthKitStepsVerified) {
+          debugPrint('RecordScreen - iOS HealthKit (Adımlar) izni doğrulandı.');
           setState(() {
             _hasPedometerPermission = true;
           });
-        }, onError: (error) {});
-
-        await Future.delayed(const Duration(seconds: 3));
-        subscription.cancel();
-
-        if (!stepsAvailable && mounted) {}
+          _initPedometer();
+        } else {
+          debugPrint(
+              'RecordScreen - iOS HealthKit (Adımlar) izni DOĞRULANAMADI veya sensör izni reddedildi.');
+          setState(() {
+            _hasPedometerPermission = false;
+          });
+          if (mounted &&
+              (sensorStatus.isDenied ||
+                  sensorStatus.isPermanentlyDenied ||
+                  !healthKitStepsVerified)) {
+            // If general motion sensor access is denied, or steps couldn't be read
+            // _showIOSHealthKitPermissionDialog(); // ÇAĞRI KALDIRILDI
+            debugPrint(
+                'RecordScreen - iOS HealthKit (Adımlar) veya sensör izni reddedilmiş/doğrulanamadı.');
+          }
+        }
       } catch (e) {
-        if (mounted) {}
+        debugPrint(
+            'RecordScreen - iOS HealthKit izin kontrolü sırasında genel hata: $e');
+        setState(() {
+          _hasPedometerPermission = false;
+        });
+        if (mounted) {
+          // _showIOSHealthKitPermissionDialog(); // ÇAĞRI KALDIRILDI
+          debugPrint(
+              'RecordScreen - iOS HealthKit izin kontrol hatası, dialog gösterilmeyecek.');
+        }
       }
     }
   }
 
-  Future<void> _checkLocationPermission() async {
-    if (Platform.isIOS) {
-      geo.LocationPermission permission =
-          await geo.Geolocator.checkPermission();
+  void _showPermissionPermanentlyDeniedDialog(String permissionName) {
+    // Bu fonksiyon artık çağrılmayacak, ancak referans olarak veya gelecekteki bir değişiklik için tutulabilir.
+    // Ya da tamamen silinebilir.
+    // if (!mounted) return;
+    // showDialog(
+    //   context: context,
+    //   builder: (BuildContext context) => AlertDialog(
+    //     title: Text('$permissionName İzni Kalıcı Olarak Reddedildi'),
+    //     content: Text(
+    //         'Uygulamanın bu özelliği kullanabilmesi için $permissionName iznine ihtiyacı var. Lütfen uygulama ayarlarından bu izni etkinleştirin.'),
+    //     actions: <Widget>[
+    //       TextButton(
+    //         child: const Text('İptal'),
+    //         onPressed: () => Navigator.of(context).pop(),
+    //       ),
+    //       TextButton(
+    //         child: const Text('Ayarları Aç'),
+    //         onPressed: () {
+    //           Navigator.of(context).pop();
+    //           openAppSettings();
+    //         },
+    //       ),
+    //     ],
+    //   ),
+    // );
+  }
 
-      if (permission == geo.LocationPermission.denied) {
-        permission = await geo.Geolocator.requestPermission();
-      }
-
-      setState(() {
-        _hasLocationPermission =
-            permission == geo.LocationPermission.whileInUse ||
-                permission == geo.LocationPermission.always;
-      });
-
-      if (_hasLocationPermission) {
-        await _getCurrentLocation();
-      } else if (permission == geo.LocationPermission.denied ||
-          permission == geo.LocationPermission.deniedForever) {}
-    } else {
-      final status = await Permission.location.status;
-
-      if (!status.isGranted && !status.isLimited) {
-        final requestedStatus = await Permission.location.request();
-
-        setState(() {
-          _hasLocationPermission =
-              requestedStatus.isGranted || requestedStatus.isLimited;
-        });
-      } else {
-        setState(() {
-          _hasLocationPermission = true;
-        });
-      }
-
-      if (_hasLocationPermission) {
-        await _getCurrentLocation();
-      }
-    }
+  void _showIOSHealthKitPermissionDialog() {
+    // Bu fonksiyon artık çağrılmayacak, ancak referans olarak veya gelecekteki bir değişiklik için tutulabilir.
+    // Ya da tamamen silinebilir.
+    // if (!mounted) return;
+    // showDialog(
+    //   context: context,
+    //   builder: (BuildContext context) => AlertDialog(
+    //     title: const Text('Sağlık Verisi İzni Gerekli'),
+    //     content: const Text(
+    //         'Adımlarınızı ve aktivitenizi doğru bir şekilde takip edebilmemiz için lütfen Sağlık uygulamasına Movliq için \'Adımlar\' ve \'Hareket ve Fitness\' erişim izni verin. Ayarlar > Sağlık > Veri Erişimi ve Aygıtlar > Movliq bölümünden izinleri yönetebilirsiniz.'
+    //     ),
+    //     actions: <Widget>[
+    //       TextButton(
+    //         child: const Text('Anladım'),
+    //         onPressed: () => Navigator.of(context).pop(),
+    //       ),
+    //       TextButton(
+    //         child: const Text('Ayarları Aç'),
+    //         onPressed: () async {
+    //           Navigator.of(context).pop();
+    //           openAppSettings();
+    //         },
+    //       ),
+    //     ],
+    //   ),
+    // );
   }
 
   Future<void> _getCurrentLocation() async {
@@ -377,7 +550,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   void _startLocationTracking() {
     if (!_hasLocationPermission) {
-      _checkLocationPermission();
+      _checkAndRequestLocationPermission();
       return;
     }
 
@@ -509,6 +682,31 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   void _startRecording() {
     debugPrint('RecordScreen: _startRecording çağrıldı.');
+    // Ensure permissions before starting, _hasLocationPermission is key
+    if (!_hasLocationPermission) {
+      debugPrint(
+          'RecordScreen: Konum izni yok, kayıt başlatılamıyor. İzinler isteniyor...');
+      _checkAndRequestLocationPermission(); // Re-request if not granted
+      // Optionally, show a message to the user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Lütfen konum iznini verdikten sonra tekrar deneyin.')));
+      }
+      return;
+    }
+    if (!_hasPedometerPermission && (Platform.isAndroid || Platform.isIOS)) {
+      debugPrint(
+          'RecordScreen: Adım sayar izni yok, kayıt başlatılıyor ancak adımlar eksik olabilir. İzinler isteniyor...');
+      _checkAndRequestActivityPermission(); // Re-request if not granted
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Adım sayar izni verilmedi, adımlarınız kaydedilemeyebilir.')));
+      }
+      // Allow recording to start without pedometer, but steps might be 0.
+    }
+
     setState(() {
       _isRecording = true;
       _isPaused = false;
@@ -814,7 +1012,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                 ),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
-                                  onPressed: _initPermissions,
+                                  onPressed:
+                                      _checkAndRequestPermissionsSequentially,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFC4FF62),
                                     foregroundColor: Colors.black,
@@ -1190,6 +1389,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _initPedometer() {
+    // Ensure we have permission before initializing
+    if (!_hasPedometerPermission) {
+      debugPrint(
+          "RecordScreen: _initPedometer - Adım sayar izni yok, başlatılamıyor.");
+      // Optionally, try to request it again here or ensure it's requested before _startRecording
+      // _checkAndRequestActivityPermission(); // Could be called here
+      return;
+    }
     _stepCountSubscription?.cancel();
 
     try {

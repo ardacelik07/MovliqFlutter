@@ -17,8 +17,7 @@ class WelcomeScreen extends ConsumerWidget {
 
     // Define colors based on the image
     const Color primaryColor = Color(0xFF7BB027); // Green color from the image
-    const Color darkGreenColor =
-        Color(0xFF476C17); // Darker shade for gradient/button
+
     const Color textColor = Colors.white;
 
     return WillPopScope(

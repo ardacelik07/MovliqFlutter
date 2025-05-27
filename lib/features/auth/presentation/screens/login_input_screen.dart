@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../widgets/auth_text_field.dart';
 import '../providers/auth_provider.dart';
 import '../screens/tabs.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
-import '../../../../core/services/storage_service.dart';
 import '../providers/user_data_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import 'dart:io'; // Platform detection için
 
 class LoginInputScreen extends ConsumerStatefulWidget {
   const LoginInputScreen({super.key});
@@ -79,7 +75,6 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
     });
 
     const Color primaryColor = Color(0xFF7BB027);
-    const Color textFieldBackgroundColor = Color(0xFF333333);
     const Color hintTextColor = Color(0xFFBDBDBD);
     const Color textColor = Colors.white;
     const Color buttonColor = Color(0xFFC4FF62);
