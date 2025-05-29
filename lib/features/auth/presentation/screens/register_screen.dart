@@ -4,6 +4,7 @@ import '../../presentation/providers/auth_provider.dart';
 import 'welcome_screen.dart';
 import 'package:flutter/services.dart';
 import 'login_input_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -94,9 +95,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 30),
-                  const Text(
+                  Text(
                     'Yeni Hesap Oluştur',
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                       color: textColor,
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -111,13 +112,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 40),
                   TextFormField(
                     controller: _emailController,
-                    style: const TextStyle(color: textColor),
+                    style: GoogleFonts.bangers(
+                      color: textColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'E-posta Adresi',
-                      hintStyle: const TextStyle(color: hintTextColor),
+                      hintStyle: GoogleFonts.bangers(
+                          color: hintTextColor, fontSize: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -138,13 +144,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
-                    style: const TextStyle(color: textColor),
+                    style: GoogleFonts.bangers(
+                      color: textColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                     obscureText: _obscurePassword1,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'Parola Oluştur',
-                      hintStyle: const TextStyle(color: hintTextColor),
+                      hintStyle: GoogleFonts.bangers(
+                          color: hintTextColor, fontSize: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -187,20 +198,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 8),
                   Text(
                     ' Parola en az 8 karakter, büyük harf, küçük harf ve rakam içermelidir.',
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                         color: const Color.fromARGB(141, 255, 255, 255),
                         fontSize: 12),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _confirmPasswordController,
-                    style: const TextStyle(color: textColor),
+                    style: GoogleFonts.bangers(
+                      color: textColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                     obscureText: _obscurePassword2,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'Parolayı Tekrarla',
-                      hintStyle: const TextStyle(color: hintTextColor),
+                      hintStyle: GoogleFonts.bangers(
+                          color: hintTextColor, fontSize: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -240,7 +256,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      textStyle: const TextStyle(
+                      textStyle: GoogleFonts.bangers(
                           fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     onPressed: () {
@@ -257,9 +273,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'Zaten bir hesabın var mı? ',
-                        style: TextStyle(color: textColor, fontSize: 14),
+                        style: GoogleFonts.bangers(
+                          color: textColor,
+                          fontSize: 14,
+                        ),
                       ),
                       TextButton(
                         onPressed: () {
@@ -274,9 +293,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Giriş Yap',
-                          style: TextStyle(
+                          style: GoogleFonts.bangers(
                             color: buttonColor,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

@@ -7,6 +7,7 @@ import '../../../../core/config/api_config.dart';
 import 'login_input_screen.dart'; // Başarılı olunca Login'e dön
 // import '../widgets/background_widget.dart'; // KALDIRILDI
 // import '../widgets/custom_snackbar.dart'; // Henüz yok
+import 'package:google_fonts/google_fonts.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String email; // Önceki ekrandan gelen email
@@ -116,8 +117,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       backgroundColor: primaryColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Şifremi Unuttum',
-            style: TextStyle(color: Colors.white)),
+        title: Text('Şifremi Unuttum',
+            style: GoogleFonts.bangers(color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -159,12 +160,16 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     // New Password Field
                     TextFormField(
                       controller: _passwordController,
-                      style: const TextStyle(color: inputColor),
+                      style: GoogleFonts.bangers(
+                        color: inputColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         hintText: 'Yeni Parolanızı Giriniz',
-                        hintStyle:
-                            const TextStyle(color: labelColor, fontSize: 14),
+                        hintStyle: GoogleFonts.bangers(
+                            color: labelColor, fontSize: 14),
                         filled: true,
                         fillColor: textFieldBgColor,
                         border: OutlineInputBorder(
@@ -201,12 +206,16 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     // Confirm New Password Field
                     TextFormField(
                       controller: _confirmPasswordController,
-                      style: const TextStyle(color: inputColor),
+                      style: GoogleFonts.bangers(
+                        color: inputColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                       obscureText: _obscureConfirmPassword,
                       decoration: InputDecoration(
                         hintText: 'Yeni Parolanızı Tekrar Giriniz',
-                        hintStyle:
-                            const TextStyle(color: labelColor, fontSize: 14),
+                        hintStyle: GoogleFonts.bangers(
+                            color: labelColor, fontSize: 14),
                         filled: true,
                         fillColor: textFieldBgColor,
                         border: OutlineInputBorder(
@@ -250,7 +259,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        textStyle: const TextStyle(
+                        textStyle: GoogleFonts.bangers(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
-
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'filter_screen2.dart';
@@ -393,8 +393,8 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Konum Doğrulama',
-            style: TextStyle(color: Colors.white)),
+        title: Text('Konum Doğrulama',
+            style: GoogleFonts.bangers(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
@@ -403,15 +403,15 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("İç Mekan Koşusu için Doğrulama",
-                  style: TextStyle(
+              Text("İç Mekan Koşusu için Doğrulama",
+                  style: GoogleFonts.bangers(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white)),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                   "Lütfen aşağıdaki adımları tamamlayarak bir fitness salonunda olduğunuzu doğrulayın.",
-                  style: TextStyle(fontSize: 14, color: Colors.grey)),
+                  style: GoogleFonts.bangers(fontSize: 14, color: Colors.grey)),
               const SizedBox(height: 32),
 
               // Step 1: Location Verification
@@ -433,7 +433,8 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                   padding: const EdgeInsets.only(
                       top: 8.0, left: 58), // Indent error message
                   child: Text(_errorMessageLocation,
-                      style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      style:
+                          GoogleFonts.bangers(color: Colors.red, fontSize: 12)),
                 ),
               const SizedBox(height: 16),
 
@@ -455,7 +456,8 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                   padding: const EdgeInsets.only(
                       top: 8.0, left: 58), // Indent error message
                   child: Text(_errorMessagePhoto,
-                      style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      style:
+                          GoogleFonts.bangers(color: Colors.red, fontSize: 12)),
                 ),
 
               const Spacer(), // Pushes button to bottom
@@ -502,7 +504,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                           ),
                         )
                       : Text(buttonText,
-                          style: const TextStyle(
+                          style: GoogleFonts.bangers(
                               fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
@@ -552,14 +554,14 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title,
-                        style: const TextStyle(
+                        style: GoogleFonts.bangers(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white)),
                     const SizedBox(height: 4),
                     Text(description,
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey)),
+                        style: GoogleFonts.bangers(
+                            fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ),

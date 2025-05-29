@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LeaveWidget extends StatelessWidget {
   final String imagePath;
@@ -60,7 +61,7 @@ class LeaveWidget extends StatelessWidget {
                 Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: GoogleFonts.bangers(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -70,7 +71,7 @@ class LeaveWidget extends StatelessWidget {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: GoogleFonts.bangers(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 15,
                   ),
@@ -90,7 +91,7 @@ class LeaveWidget extends StatelessWidget {
                         ),
                         child: Text(
                           cancelButtonText,
-                          style: const TextStyle(
+                          style: GoogleFonts.bangers(
                             color: Colors.black,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -111,7 +112,7 @@ class LeaveWidget extends StatelessWidget {
                         ),
                         child: Text(
                           confirmButtonText,
-                          style: const TextStyle(
+                          style: GoogleFonts.bangers(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

@@ -17,6 +17,7 @@ import '../screens/tabs.dart';
 import './record_stats_screen.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
+import 'package:google_fonts/google_fonts.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -851,14 +852,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             fontSize: 10,
             color: Colors.grey,
           ),
@@ -885,7 +886,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           children: [
             Text(
               value,
-              style: const TextStyle(
+              style: GoogleFonts.bangers(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -893,7 +894,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             ),
             Text(
               unit,
-              style: const TextStyle(
+              style: GoogleFonts.bangers(
                 fontSize: 16,
                 color: Color.fromARGB(137, 255, 255, 255),
               ),
@@ -942,9 +943,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                 const Icon(Icons.location_off,
                                     size: 48, color: Colors.grey),
                                 const SizedBox(height: 16),
-                                const Text(
+                                Text(
                                   'Konum izni gerekiyor',
-                                  style: TextStyle(
+                                  style: GoogleFonts.bangers(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.grey,
@@ -958,7 +959,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                     backgroundColor: const Color(0xFFC4FF62),
                                     foregroundColor: Colors.black,
                                   ),
-                                  child: const Text('İzin Ver'),
+                                  child: Text(
+                                    'İzin Ver',
+                                    style: GoogleFonts.bangers(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1056,7 +1064,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                 const SizedBox(height: 8),
                                 Text(
                                   _formatTime(_seconds),
-                                  style: const TextStyle(
+                                  style: GoogleFonts.bangers(
                                     fontSize: 32,
                                     fontWeight: FontWeight.bold,
                                     color: Color.fromARGB(221, 255, 255, 255),
@@ -1170,7 +1178,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                                       _isRecording
                                                           ? 'Bitir'
                                                           : 'Başla',
-                                                      style: const TextStyle(
+                                                      style:
+                                                          GoogleFonts.bangers(
                                                         color: Colors.white,
                                                         fontSize: 14,
                                                         fontWeight:
@@ -1238,7 +1247,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                                   _isPaused
                                                       ? 'Devam Et'
                                                       : 'Durdur',
-                                                  style: const TextStyle(
+                                                  style: GoogleFonts.bangers(
                                                     color: Colors.white,
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.bold,
@@ -1315,7 +1324,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
+            style: GoogleFonts.bangers(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               color: isSelected

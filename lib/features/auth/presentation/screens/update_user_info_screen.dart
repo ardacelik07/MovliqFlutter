@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart'; // For date formatting
-
+import 'package:google_fonts/google_fonts.dart';
 import '../../domain/models/user_data_model.dart';
 import '../providers/user_data_provider.dart';
 
@@ -184,7 +184,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Kullanıcı verisi bulunamadı!',
-                style: TextStyle(color: _backgroundColor)),
+                style: GoogleFonts.bangers(color: _backgroundColor)),
             backgroundColor: _accentColor,
           ),
         );
@@ -215,7 +215,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Profil başarıyla güncellendi!',
-              style: TextStyle(color: _backgroundColor)),
+              style: GoogleFonts.bangers(color: _backgroundColor)),
           backgroundColor: _accentColor,
         ),
       );
@@ -225,7 +225,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Güncelleme hatası: ${error ?? "Bilinmeyen hata"}',
-              style: TextStyle(color: _textColor)),
+              style: GoogleFonts.bangers(color: _textColor)),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -238,7 +238,8 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       backgroundColor: _backgroundColor,
       appBar: AppBar(
         title: Text('Kişisel Bilgiler',
-            style: TextStyle(color: _textColor, fontWeight: FontWeight.bold)),
+            style: GoogleFonts.bangers(
+                color: _textColor, fontWeight: FontWeight.bold)),
         backgroundColor: _backgroundColor, // Match background
         elevation: 0, // No shadow
         iconTheme: IconThemeData(color: _accentColor), // Back button color
@@ -379,9 +380,9 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
                           strokeWidth: 3,
                           color: _backgroundColor), // Thicker stroke
                     )
-                  : const Text(
+                  : Text(
                       'Değişiklikleri Kaydet',
-                      style: TextStyle(
+                      style: GoogleFonts.bangers(
                           fontSize: 16,
                           fontWeight: FontWeight.bold), // Bold text
                     ),
@@ -399,7 +400,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Text(
         text,
-        style: TextStyle(
+        style: GoogleFonts.bangers(
           color: _labelColor,
           fontSize: 14,
           fontWeight: FontWeight.w500,
@@ -419,12 +420,17 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       // Changed from TextFormField
       controller: controller,
       keyboardType: keyboardType,
-      style: TextStyle(color: _textColor, fontSize: 15),
+      style: GoogleFonts.bangers(
+        color: _textColor,
+        fontSize: 15,
+      ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: _secondaryTextColor.withOpacity(0.7)),
+        hintStyle: GoogleFonts.bangers(
+            color: _secondaryTextColor.withOpacity(0.7), fontSize: 15),
         suffixText: suffixText,
-        suffixStyle: TextStyle(color: _secondaryTextColor, fontSize: 14),
+        suffixStyle:
+            GoogleFonts.bangers(color: _secondaryTextColor, fontSize: 14),
         filled: true,
         fillColor: _cardColor, // Use card color for background
         contentPadding:
@@ -468,7 +474,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
                   ? 'gg.aa.yyyy' // Placeholder like in image
                   : DateFormat('dd.MM.yyyy')
                       .format(_selectedBirthday!), // Format like image
-              style: TextStyle(
+              style: GoogleFonts.bangers(
                 color: _selectedBirthday == null
                     ? _secondaryTextColor.withOpacity(0.7)
                     : _textColor,
@@ -551,7 +557,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
         },
         backgroundColor: _cardColor,
         selectedColor: _accentColor,
-        labelStyle: TextStyle(
+        labelStyle: GoogleFonts.bangers(
           color: isSelected ? _backgroundColor : _textColor,
           fontSize: 14,
           fontWeight: FontWeight.w500,

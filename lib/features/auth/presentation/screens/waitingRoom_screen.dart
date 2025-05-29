@@ -25,6 +25,7 @@ import 'package:share_plus/share_plus.dart'; // SharePlus paketi eklendi
 import 'package:flutter/rendering.dart';
 import 'package:my_flutter_project/features/auth/presentation/widgets/leave_widget.dart'; // LeaveWidget importu
 import 'package:flutter/widgets.dart'; // WidgetsBindingObserver için
+import 'package:google_fonts/google_fonts.dart';
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -741,10 +742,10 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                       .stretch, // Stretch elements horizontally
                   children: [
                     // Title
-                    const Text(
+                    Text(
                       'Yarış Başlamak Üzere',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: GoogleFonts.bangers(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: _primaryTextColor,
@@ -755,7 +756,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                     Text(
                       subtitleText,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: GoogleFonts.bangers(
                         fontSize: 16,
                         color: _accentColor,
                         fontWeight: FontWeight.w500,
@@ -775,7 +776,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                         children: [
                           Text(
                             'Seçilen Yarış Tipi',
-                            style: TextStyle(
+                            style: GoogleFonts.bangers(
                               fontSize: 14,
                               color: _secondaryTextColor,
                             ),
@@ -804,7 +805,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                           const SizedBox(height: 16),
                           Text(
                             'Yarış Süresi',
-                            style: TextStyle(
+                            style: GoogleFonts.bangers(
                               fontSize: 14,
                               color: _secondaryTextColor,
                             ),
@@ -818,7 +819,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                               const SizedBox(width: 8),
                               Text(
                                 displayDuration,
-                                style: const TextStyle(
+                                style: GoogleFonts.bangers(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
                                   color: _primaryTextColor,
@@ -831,7 +832,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                             const SizedBox(height: 16),
                             Text(
                               'Oda Kodu',
-                              style: TextStyle(
+                              style: GoogleFonts.bangers(
                                 fontSize: 14,
                                 color: _secondaryTextColor,
                               ),
@@ -848,7 +849,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                 Expanded(
                                   child: SelectableText(
                                     widget.roomCode,
-                                    style: const TextStyle(
+                                    style: GoogleFonts.bangers(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
                                       color: _primaryTextColor,
@@ -913,9 +914,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Text(
+                          Text(
                             'Hazır Olan Yarışmacılar',
-                            style: TextStyle(
+                            style: GoogleFonts.bangers(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: _primaryTextColor,
@@ -942,9 +943,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                   onPressed: _startRaceButtonPressed,
                                   icon: const Icon(Icons.sports_kabaddi,
                                       color: Colors.black), // Icon for start
-                                  label: const Text(
+                                  label: Text(
                                     'Yarışı Başlat',
-                                    style: TextStyle(
+                                    style: GoogleFonts.bangers(
                                       color: Colors
                                           .black, // Text color black for contrast
                                       fontSize: 16,
@@ -971,9 +972,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                           onPressed: () => _leaveRoom(showConfirmation: true),
                           icon: const Icon(Icons.exit_to_app,
                               color: _accentColor),
-                          label: const Text(
+                          label: Text(
                             'Yarıştan Çık',
-                            style: TextStyle(
+                            style: GoogleFonts.bangers(
                               color: _accentColor,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -1006,9 +1007,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           'Yarış Başlıyor',
-                          style: TextStyle(
+                          style: GoogleFonts.bangers(
                             fontSize: 28, // Boyut RaceScreen ile aynı olabilir
                             color: _accentColor,
                             fontWeight: FontWeight.w600,
@@ -1017,7 +1018,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                         const SizedBox(height: 25),
                         Text(
                           raceState.preRaceCountdownValue.toString(),
-                          style: const TextStyle(
+                          style: GoogleFonts.bangers(
                               fontSize:
                                   120, // Boyut RaceScreen ile aynı olabilir
                               color: _accentColor,
@@ -1081,7 +1082,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
             backgroundColor: _secondaryTextColor,
             child: Text(
               '+${_participants.length - maxVisibleAvatars}',
-              style: const TextStyle(
+              style: GoogleFonts.bangers(
                   color: _backgroundColor,
                   fontSize: 12,
                   fontWeight: FontWeight.bold),

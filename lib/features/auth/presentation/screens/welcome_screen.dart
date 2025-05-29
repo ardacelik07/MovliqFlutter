@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'name_screen.dart';
 import 'package:flutter/services.dart'; // Import services
+import 'package:google_fonts/google_fonts.dart';
 
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
@@ -55,9 +56,9 @@ class WelcomeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 30),
                           // Welcome Text
-                          const Text(
+                          Text(
                             'Movliq\'e Hoşgeldin', // Updated text
-                            style: TextStyle(
+                            style: GoogleFonts.bangers(
                               color: textColor,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -85,7 +86,7 @@ class WelcomeScreen extends ConsumerWidget {
                           borderRadius:
                               BorderRadius.circular(12), // More rounded corners
                         ),
-                        textStyle: const TextStyle(
+                        textStyle: GoogleFonts.bangers(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -98,7 +99,9 @@ class WelcomeScreen extends ConsumerWidget {
                           ),
                         );
                       },
-                      child: const Text('Devam Et'),
+                      child: Text('Devam Et',
+                          style: GoogleFonts.bangers(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ),
