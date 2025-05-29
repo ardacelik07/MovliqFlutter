@@ -7,6 +7,7 @@ import '../widgets/footer_widget.dart';
 import '../screens/register_screen.dart';
 import '../screens/login_input_screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -39,18 +40,18 @@ class LoginScreen extends ConsumerWidget {
                       height: 100,
                     ),
                     const SizedBox(height: 60),
-                    const Text(
+                    Text(
                       'Daha Çok Hareket,',
-                      style: TextStyle(
+                      style: GoogleFonts.bangers(
                         color: textColor,
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.start,
                     ),
-                    const Text(
+                    Text(
                       'Daha Çok Kazanç',
-                      style: TextStyle(
+                      style: GoogleFonts.bangers(
                         color: textColor,
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -58,9 +59,9 @@ class LoginScreen extends ConsumerWidget {
                       textAlign: TextAlign.start,
                     ),
                     const SizedBox(height: 48),
-                    const Text(
+                    Text(
                       'Movliq’te ödüller, fırsatlar ve eğlence; hepsi seni bir adım uzaklıkta bekliyor!',
-                      style: TextStyle(
+                      style: GoogleFonts.bangers(
                         color: secondaryTextColor,
                         fontSize: 18,
                         height: 1.5,
@@ -130,18 +131,18 @@ class LoginScreen extends ConsumerWidget {
                       children: [
                         TextButton(
                           onPressed: () {},
-                          child: const Text(
+                          child: Text(
                             'Need Help?',
-                            style: TextStyle(
+                            style: GoogleFonts.bangers(
                                 color: Color.fromARGB(132, 255, 255, 255)),
                           ),
                         ),
                         const SizedBox(width: 16),
                         TextButton(
                           onPressed: () {},
-                          child: const Text(
+                          child: Text(
                             'Privacy Policy',
-                            style: TextStyle(
+                            style: GoogleFonts.bangers(
                                 color: Color.fromARGB(132, 255, 255, 255)),
                           ),
                         ),
@@ -178,7 +179,7 @@ class LoginScreen extends ConsumerWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(
+          textStyle: GoogleFonts.bangers(
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),

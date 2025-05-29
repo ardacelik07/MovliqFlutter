@@ -5,6 +5,7 @@ import '../providers/race_settings_provider.dart';
 import 'verification_screen.dart';
 // import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Commented out or remove
 import 'package:my_flutter_project/features/auth/presentation/screens/create_or_join_room_screen.dart'; // Added import
+import 'package:google_fonts/google_fonts.dart';
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -46,9 +47,9 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 40),
-                const Text(
+                Text(
                   "Koşu Türünü Seç",
-                  style: TextStyle(
+                  style: GoogleFonts.bangers(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -131,9 +132,9 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                             );
                           }
                         },
-                        child: const Text(
+                        child: Text(
                           'Devam',
-                          style: TextStyle(
+                          style: GoogleFonts.bangers(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -207,7 +208,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                           .map((line) => Text(
                                 line,
                                 textAlign: TextAlign.right,
-                                style: const TextStyle(
+                                style: GoogleFonts.bangers(
                                   color: Colors.white,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
@@ -222,7 +223,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                     right: 20,
                     child: Text(
                       description,
-                      style: TextStyle(
+                      style: GoogleFonts.bangers(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 12,
                       ),

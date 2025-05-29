@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // HelpScreen'deki global fonksiyonu kullanabiliriz veya buraya taşıyabilir/import edebiliriz.
 // Şimdilik HelpScreen'deki tanımı varsayalım veya gerekirse buraya kopyalayalım.
@@ -30,7 +31,8 @@ class PrivacyPolicyScreen extends ConsumerWidget {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text('Gizlilik Politikası',
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+            style: GoogleFonts.bangers(
+                color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: backgroundColor,
         elevation: 0,
         iconTheme: IconThemeData(color: accentColor),
@@ -46,7 +48,8 @@ class PrivacyPolicyScreen extends ConsumerWidget {
           children: [
             Text(
               'Verileriniz bizim için önemli. İşte nasıl koruyoruz:',
-              style: TextStyle(color: secondaryTextColor, fontSize: 15),
+              style:
+                  GoogleFonts.bangers(color: secondaryTextColor, fontSize: 15),
             ),
             const SizedBox(height: 24),
 
@@ -108,7 +111,7 @@ class PrivacyPolicyScreen extends ConsumerWidget {
             const SizedBox(height: 32),
             Text(
               'Detaylı bilgi için lütfen bizimle iletişime geçin',
-              style: TextStyle(color: labelColor, fontSize: 14),
+              style: GoogleFonts.bangers(color: labelColor, fontSize: 14),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -116,7 +119,7 @@ class PrivacyPolicyScreen extends ConsumerWidget {
               icon:
                   Icon(Icons.email_outlined, color: backgroundColor, size: 20),
               label: Text('E-posta Gönder',
-                  style: TextStyle(
+                  style: GoogleFonts.bangers(
                       fontWeight: FontWeight.bold, color: backgroundColor)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentColor,
@@ -149,7 +152,7 @@ class PrivacyPolicyScreen extends ConsumerWidget {
       children: [
         Text(
           title,
-          style: TextStyle(
+          style: GoogleFonts.bangers(
             color: titleColor,
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -158,8 +161,11 @@ class PrivacyPolicyScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         Text(
           content,
-          style:
-              TextStyle(color: secondaryTextColor, fontSize: 15, height: 1.4),
+          style: GoogleFonts.bangers(
+            color: secondaryTextColor,
+            fontSize: 15,
+            height: 1.4,
+          ),
         ),
         if (bulletPoints != null && bulletPoints.isNotEmpty)
           Padding(
@@ -171,7 +177,7 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                         padding: const EdgeInsets.only(bottom: 4.0),
                         child: Text(
                           '• $point', // Madde işareti eklendi
-                          style: TextStyle(
+                          style: GoogleFonts.bangers(
                               color: secondaryTextColor,
                               fontSize: 15,
                               height: 1.4),

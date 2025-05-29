@@ -7,6 +7,7 @@ import '../../../../core/config/api_config.dart';
 import 'verify_code_screen.dart'; // Sonraki ekran
 // import '../widgets/background_widget.dart'; // Arka plan widget'ı (KALDIRILDI)
 // import '../widgets/custom_snackbar.dart'; // Özel Snackbar (Henüz yok)
+import 'package:google_fonts/google_fonts.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -103,8 +104,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       backgroundColor: primaryColor,
       extendBodyBehindAppBar: true, // Arka planın AppBar arkasına geçmesi için
       appBar: AppBar(
-        title: const Text('Şifremi Unuttum',
-            style: TextStyle(color: Colors.white)),
+        title: Text(
+          'Şifremi Unuttum',
+          style: GoogleFonts.bangers(
+            color: Colors.white,
+            fontSize: 24,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme:
@@ -149,12 +155,17 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     // Email Field
                     TextFormField(
                       controller: _emailController,
-                      style: const TextStyle(color: inputColor),
+                      style: GoogleFonts.bangers(
+                        color: inputColor,
+                        fontSize: 16,
+                      ),
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         hintText: 'E-posta Adresi',
-                        hintStyle:
-                            const TextStyle(color: labelColor, fontSize: 14),
+                        hintStyle: GoogleFonts.bangers(
+                          color: labelColor,
+                          fontSize: 14,
+                        ),
                         filled: true,
                         fillColor: textFieldBgColor,
                         border: OutlineInputBorder(
@@ -185,7 +196,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        textStyle: const TextStyle(
+                        textStyle: GoogleFonts.bangers(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -200,7 +211,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                 strokeWidth: 3,
                               ),
                             )
-                          : const Text('Kod Gönder'),
+                          : Text(
+                              'Kod Gönder',
+                              style: GoogleFonts.bangers(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                     const SizedBox(height: 40), // Alt boşluk
                   ],

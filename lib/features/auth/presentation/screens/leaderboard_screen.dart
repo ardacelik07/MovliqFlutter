@@ -6,6 +6,7 @@ import '../../domain/models/leaderboard_model.dart';
 import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException;
 import 'dart:io' show SocketException;
+import 'package:google_fonts/google_fonts.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -92,9 +93,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     children: [
                       const Icon(Icons.emoji_events, color: Colors.black),
                       const SizedBox(width: 8),
-                      const Text(
+                      Text(
                         'Ödül Reklamı',
-                        style: TextStyle(
+                        style: GoogleFonts.bangers(
                           color: Colors.black,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -136,7 +137,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                             child: Center(
                               child: Text(
                                 'Outdoor',
-                                style: TextStyle(
+                                style: GoogleFonts.bangers(
                                   color: isOutdoorSelected
                                       ? Colors.black
                                       : Colors.white,
@@ -170,7 +171,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                             child: Center(
                               child: Text(
                                 'Indoor',
-                                style: TextStyle(
+                                style: GoogleFonts.bangers(
                                   color: !isOutdoorSelected
                                       ? Colors.black
                                       : Colors.white,
@@ -213,14 +214,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                             color: Colors.redAccent.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.signal_wifi_off_rounded,
                                   color: Colors.redAccent, size: 16),
                               SizedBox(width: 8),
                               Text('Sıralamanız yüklenemedi',
-                                  style: TextStyle(
+                                  style: GoogleFonts.bangers(
                                       color: Colors.redAccent, fontSize: 12)),
                             ],
                           ),
@@ -292,7 +293,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               Expanded(
                 child: Text(
                   '🏅 Liderlik Tablosu Hakkında',
-                  style: TextStyle(
+                  style: GoogleFonts.bangers(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 18),
@@ -308,56 +309,56 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  const Text(
+                  Text(
                     'Liderlik tablosu her ay sonunda sıfırlanır ve yalnızca canlı, genel yarışlardaki performansına göre şekillenir.',
-                    style: TextStyle(color: Colors.white70),
+                    style: GoogleFonts.bangers(color: Colors.white70),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     '📌 Solo Mod ve arkadaşlarla yapılan özel oda yarışları sıralamaya dahil değildir.',
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                         color: Colors.white70, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Canlı yarışlarda kat ettiğin toplam mesafe (km) baz alınarak sıralama oluşturulur.',
-                    style: TextStyle(color: Colors.white70),
+                    style: GoogleFonts.bangers(color: Colors.white70),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Ayrıca iç mekân ve dış mekân yarışları ayrı kategorilerde değerlendirilir.',
-                    style: TextStyle(color: Colors.white70),
+                    style: GoogleFonts.bangers(color: Colors.white70),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     '🎁 Her Kategoride Ödül Var!',
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                         color: Color(0xFFC4FF62),
                         fontWeight: FontWeight.bold,
                         fontSize: 16),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Ay sonunda iç mekân ve dış mekân kategorilerinde ayrı ayrı:',
-                    style: TextStyle(color: Colors.white70),
+                    style: GoogleFonts.bangers(color: Colors.white70),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     '🥇 İlk 3\'e giren kullanıcılar sürpriz ödüller kazanır!',
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                         color: Color(0xFFC4FF62), fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Ne kadar çok yarışa katılır ve hareket edersen, zirveye o kadar yaklaşırsın.',
-                    style: TextStyle(color: Colors.white70),
+                    style: GoogleFonts.bangers(color: Colors.white70),
                   ),
                   const SizedBox(height: 24),
-                  const Center(
+                  Center(
                     child: Text(
                       '🏃‍♂️ Şimdi sıranı al, yarışlara katıl, ödülleri kap! 💥',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: GoogleFonts.bangers(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 16),
@@ -369,9 +370,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text(
+              child: Text(
                 'Anladım',
-                style: TextStyle(color: Color(0xFFC4FF62)),
+                style: GoogleFonts.bangers(color: Color(0xFFC4FF62)),
               ),
               onPressed: () {
                 Navigator.of(dialogContext).pop();
@@ -466,7 +467,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       width: 24,
                       child: Text(
                         '${user.rank}',
-                        style: TextStyle(
+                        style: GoogleFonts.bangers(
                           color: isCurrentUser
                               ? const Color(0xFFC4FF62)
                               : Colors.white,
@@ -493,7 +494,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 ),
                 title: Text(
                   user.userName,
-                  style: TextStyle(
+                  style: GoogleFonts.bangers(
                     color:
                         isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
                     fontWeight: FontWeight.bold,
@@ -501,7 +502,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 ),
                 trailing: Text(
                   '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
-                  style: const TextStyle(
+                  style: GoogleFonts.bangers(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -597,7 +598,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       width: 24,
                       child: Text(
                         '${user.rank}',
-                        style: TextStyle(
+                        style: GoogleFonts.bangers(
                           color: isCurrentUser
                               ? const Color(0xFFC4FF62)
                               : Colors.white,
@@ -624,7 +625,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 ),
                 title: Text(
                   user.userName,
-                  style: TextStyle(
+                  style: GoogleFonts.bangers(
                     color:
                         isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
                     fontWeight: FontWeight.bold,
@@ -632,7 +633,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 ),
                 trailing: Text(
                   '${user.indoorSteps} steps',
-                  style: const TextStyle(
+                  style: GoogleFonts.bangers(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -686,7 +687,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                         user.profilePicture!.isEmpty)
                     ? Text(
                         user.userName.isNotEmpty ? user.userName[0] : '?',
-                        style: TextStyle(
+                        style: GoogleFonts.bangers(
                           color: Colors.white,
                           fontSize: fontSize,
                           fontWeight: FontWeight.bold,
@@ -708,7 +709,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 child: Center(
                   child: Text(
                     '$position',
-                    style: const TextStyle(
+                    style: GoogleFonts.bangers(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -722,7 +723,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         const SizedBox(height: 8),
         Text(
           user.userName,
-          style: TextStyle(
+          style: GoogleFonts.bangers(
             color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: fontSize - 4,
@@ -731,7 +732,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         if (user is IndoorRankedUser)
           Text(
             '${user.indoorSteps} steps',
-            style: TextStyle(
+            style: GoogleFonts.bangers(
               color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: fontSize - 2,
@@ -742,7 +743,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             children: [
               Text(
                 '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
-                style: TextStyle(
+                style: GoogleFonts.bangers(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: fontSize - 1,
@@ -782,7 +783,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               child: Text(
                 rankText,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: GoogleFonts.bangers(
                   color: Color(0xFFC4FF62),
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -803,7 +804,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       userEntry.userName.isNotEmpty
                           ? userEntry.userName[0].toUpperCase()
                           : '?',
-                      style: const TextStyle(
+                      style: GoogleFonts.bangers(
                           color: Colors.white, fontWeight: FontWeight.bold),
                     )
                   : null,
@@ -812,7 +813,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         ),
         title: Text(
           userEntry.userName, // Kullanıcı adı
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             color: Color(0xFFC4FF62), // Vurgu rengi
             fontWeight: FontWeight.bold,
           ),
@@ -824,7 +825,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           children: [
             Text(
               valueText, // Değer (km veya adım)
-              style: const TextStyle(
+              style: GoogleFonts.bangers(
                 color: Colors.white, // Değer rengi
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

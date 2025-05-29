@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:my_flutter_project/features/auth/presentation/screens/waitingRoom_screen.dart';
 import '../providers/race_settings_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class FilterScreen2 extends ConsumerStatefulWidget {
   const FilterScreen2({super.key});
@@ -31,21 +32,21 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 24),
-              const Text(
-                "Koşu Süresi",
-                style: TextStyle(
-                  fontSize: 24,
+              Text(
+                "Koşu Süresİ",
+                style: GoogleFonts.bangers(
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                "Hedef sürenizi seçin",
-                style: TextStyle(
+              Text(
+                "Hedef sürenİzİ seçİn",
+                style: GoogleFonts.bangers(
                   fontSize: 14,
                   color: Colors.grey,
                 ),
@@ -53,28 +54,24 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
               const SizedBox(height: 32),
               _buildDurationCard(
                 duration: "1",
-                description: "Hızlı antrenman",
                 value: 'beginner',
                 isPopular: false,
               ),
               const SizedBox(height: 16),
               _buildDurationCard(
                 duration: "5",
-                description: "Orta seviye antrenman",
                 value: 'intermediate',
                 isPopular: false,
               ),
               const SizedBox(height: 16),
               _buildDurationCard(
                 duration: "10",
-                description: "Orta seviye antrenman",
                 value: 'preintermediate',
                 isPopular: true,
               ),
               const SizedBox(height: 16),
               _buildDurationCard(
                 duration: "20",
-                description: "Uzun antrenman",
                 value: 'advanced',
                 isPopular: false,
               ),
@@ -159,9 +156,9 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                 });
                               }
                             },
-                            child: const Text(
+                            child: Text(
                               'Devam',
-                              style: TextStyle(
+                              style: GoogleFonts.bangers(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -178,7 +175,6 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
 
   Widget _buildDurationCard({
     required String duration,
-    required String description,
     required String value,
     required bool isPopular,
   }) {
@@ -206,41 +202,29 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Left side - Duration
                   Text(
                     duration,
-                    style: const TextStyle(
+                    style: GoogleFonts.bangers(
                       color: Color(0xFFC4FF62),
                       fontSize: 40,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 16),
                   // Middle - dakika & description
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "dakika",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          description,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+
+                  Text(
+                    "dakİka",
+                    style: GoogleFonts.bangers(
+                      color: Colors.white,
+                      fontSize: 24,
                     ),
                   ),
+                  const SizedBox(height: 4),
+
                   // Right side - Running icon
                 ],
               ),
@@ -256,9 +240,9 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                     color: const Color(0xFFC4FF62).withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
+                  child: Text(
                     "Popüler",
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                       color: Color(0xFFC4FF62),
                       fontSize: 12,
                       fontWeight: FontWeight.bold,

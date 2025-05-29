@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import '../widgets/user_profile_avatar.dart';
 
 import '../providers/race_coin_tracker_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // Define colors from the image design
 const Color _screenBackground = Color(0xFF121212);
@@ -148,9 +149,9 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
                                 color: _primaryText,
                                 size: 36)),
                         const SizedBox(width: 12),
-                        const Text(
+                        Text(
                           'Yarış Sona Erdi!',
-                          style: TextStyle(
+                          style: GoogleFonts.bangers(
                             fontSize: 30, // As per image
                             fontWeight: FontWeight.bold,
                             color: _primaryText,
@@ -168,7 +169,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
                             child: Text(
                               'Yarışı ${currentUser.rank}. sırada tamamladınız!',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: GoogleFonts.bangers(
                                 fontSize: 24, // As per image
                                 color: _accentGreen, // Green text as per image
                                 fontWeight: FontWeight.w500,
@@ -186,9 +187,12 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
                         ],
                       )
                     else
-                      const Text(
+                      Text(
                         'Yarış tamamlandı!', // Fallback if rank is not available
-                        style: TextStyle(fontSize: 17, color: _secondaryText),
+                        style: GoogleFonts.bangers(
+                          fontSize: 17,
+                          color: _secondaryText,
+                        ),
                       ),
                     const SizedBox(height: 24),
 
@@ -230,11 +234,11 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
                     const SizedBox(height: 30),
 
                     // Leaderboard Title
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Liderlik Tablosu',
-                        style: TextStyle(
+                        style: GoogleFonts.bangers(
                           fontSize: 22, // As per image
                           fontWeight: FontWeight.bold,
                           color: _primaryText,
@@ -246,9 +250,13 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
                     // Leaderboard List
                     Expanded(
                       child: sortedLeaderboard.isEmpty
-                          ? const Center(
-                              child: Text('Liderlik tablosu yüklenemedi.',
-                                  style: TextStyle(color: _secondaryText)))
+                          ? Center(
+                              child: Text(
+                              'Liderlik tablosu yüklenemedi.',
+                              style: GoogleFonts.bangers(
+                                color: _secondaryText,
+                              ),
+                            ))
                           : ListView.builder(
                               padding: EdgeInsets.zero,
                               itemCount: math.min(sortedLeaderboard.length,
@@ -289,9 +297,12 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
               ),
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            child: const Text(
+            child: Text(
               'Ana Sayfaya Dön',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: GoogleFonts.bangers(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -316,7 +327,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             fontSize: 20, // As per image
             fontWeight: FontWeight.bold,
             color: _primaryText,
@@ -325,7 +336,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             fontSize: 14, // As per image
             color: _secondaryText,
           ),
@@ -395,7 +406,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
           Expanded(
             child: Text(
               '@${user.userName}', // Displaying @username as per image
-              style: const TextStyle(
+              style: GoogleFonts.bangers(
                 fontWeight: FontWeight.w600, // Bolder
                 fontSize: 16,
                 color: _primaryText,
@@ -411,7 +422,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
               if (!isIndoor)
                 Text(
                   '${user.distance.toStringAsFixed(2)} km',
-                  style: const TextStyle(
+                  style: GoogleFonts.bangers(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: _primaryText,
@@ -419,7 +430,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
                 ),
               Text(
                 '${user.steps} adım',
-                style: TextStyle(
+                style: GoogleFonts.bangers(
                   fontSize: isIndoor ? 14 : 12, // Adjust size
                   fontWeight: isIndoor ? FontWeight.w500 : FontWeight.normal,
                   color: isIndoor ? _primaryText : _secondaryText,
@@ -445,7 +456,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
       child: Center(
         child: Text(
           rank.toString(),
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             color: _primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 12,

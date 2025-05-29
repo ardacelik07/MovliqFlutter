@@ -7,6 +7,7 @@ import '../../../../core/config/api_config.dart'; // API yapılandırmasını im
 // Provider importları (varsayılan)
 import '../providers/auth_provider.dart';
 import '../providers/user_data_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -148,7 +149,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Şifre başarıyla değiştirildi!',
-                  style: TextStyle(color: _backgroundColor)),
+                  style: GoogleFonts.bangers(color: _backgroundColor)),
               backgroundColor: _accentColor,
             ),
           );
@@ -201,7 +202,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       backgroundColor: _backgroundColor,
       appBar: AppBar(
         title: Text('Şifre Değiştir',
-            style: TextStyle(color: _textColor, fontWeight: FontWeight.bold)),
+            style: GoogleFonts.bangers(
+                color: _textColor, fontWeight: FontWeight.bold)),
         backgroundColor: _backgroundColor,
         elevation: 0,
         iconTheme: IconThemeData(color: _accentColor),
@@ -260,7 +262,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   child: Center(
                     child: Text(
                       _errorMessage,
-                      style: TextStyle(color: _errorColor, fontSize: 14),
+                      style:
+                          GoogleFonts.bangers(color: _errorColor, fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -284,9 +287,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 3, color: _backgroundColor),
                       )
-                    : const Text(
+                    : Text(
                         'Şifreyi Değiştir',
-                        style: TextStyle(
+                        style: GoogleFonts.bangers(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
@@ -306,10 +309,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     return TextField(
       controller: controller,
       obscureText: obscureText,
-      style: TextStyle(color: _textColor, fontSize: 15),
+      style: GoogleFonts.bangers(color: _textColor, fontSize: 15),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: _secondaryTextColor.withOpacity(0.7)),
+        hintStyle:
+            GoogleFonts.bangers(color: _secondaryTextColor.withOpacity(0.7)),
         filled: true,
         fillColor: _cardColor,
         contentPadding:
@@ -346,7 +350,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       children: [
         Text(
           title,
-          style: TextStyle(
+          style: GoogleFonts.bangers(
               color: _labelColor, fontSize: 14, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
@@ -359,7 +363,8 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     color: _secondaryTextColor, size: 18),
                 const SizedBox(width: 8),
                 Text(req,
-                    style: TextStyle(color: _secondaryTextColor, fontSize: 14)),
+                    style: GoogleFonts.bangers(
+                        color: _secondaryTextColor, fontSize: 14)),
               ],
             ),
           ),

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../providers/user_data_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginInputScreen extends ConsumerStatefulWidget {
   const LoginInputScreen({super.key});
@@ -108,9 +109,9 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                     ),
                   ),
                   const SizedBox(height: 30),
-                  const Text(
+                  Text(
                     'Tekrar aramızda olmana sevindik',
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                       color: textColor,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -125,13 +126,19 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                   const SizedBox(height: 40),
                   TextFormField(
                     controller: _emailController,
-                    style: const TextStyle(color: textColor),
+                    style: GoogleFonts.bangers(
+                      color: textColor,
+                      fontSize: 16,
+                    ),
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'E-posta Adresi',
-                      hintStyle: const TextStyle(color: hintTextColor),
+                      hintStyle: GoogleFonts.bangers(
+                        color: hintTextColor,
+                        fontSize: 16,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -152,13 +159,19 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
-                    style: const TextStyle(color: textColor),
+                    style: GoogleFonts.bangers(
+                      color: textColor,
+                      fontSize: 16,
+                    ),
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'Parolanız',
-                      hintStyle: const TextStyle(color: hintTextColor),
+                      hintStyle: GoogleFonts.bangers(
+                        color: hintTextColor,
+                        fontSize: 16,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -210,9 +223,12 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                                   const ForgotPasswordScreen()),
                         );
                       },
-                      child: const Text(
+                      child: Text(
                         'Şifremi unuttum?',
-                        style: TextStyle(color: buttonColor, fontSize: 14),
+                        style: GoogleFonts.bangers(
+                          color: buttonColor,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -225,8 +241,10 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                      textStyle: GoogleFonts.bangers(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     onPressed: () {
                       if (_formKey.currentState?.validate() ?? false) {
@@ -242,9 +260,12 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'Hesabın yok mu? ',
-                        style: TextStyle(color: textColor, fontSize: 14),
+                        style: GoogleFonts.bangers(
+                          color: textColor,
+                          fontSize: 14,
+                        ),
                       ),
                       TextButton(
                         onPressed: () {
@@ -259,9 +280,9 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Kayıt Ol',
-                          style: TextStyle(
+                          style: GoogleFonts.bangers(
                             color: buttonColor,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

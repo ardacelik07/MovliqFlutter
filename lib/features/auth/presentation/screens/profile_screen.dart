@@ -22,6 +22,7 @@ import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException;
 import 'dart:io' show SocketException;
 import 'update_user_info_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -280,7 +281,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         const SizedBox(height: 4),
         Text(
           valueText,
-          style: const TextStyle(color: Colors.white, fontSize: 12),
+          style: GoogleFonts.bangers(color: Colors.white, fontSize: 12),
         ),
       ],
     );
@@ -327,7 +328,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               // Kullanıcı adı
                               Text(
                                 userData.fullName,
-                                style: const TextStyle(
+                                style: GoogleFonts.bangers(
                                   color: Colors.white,
                                   fontSize: 22, // Increased font size
                                   fontWeight: FontWeight.bold,
@@ -337,7 +338,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               // Kullanıcı tag'i
                               Text(
                                 '@${userData.userName}',
-                                style: TextStyle(
+                                style: GoogleFonts.bangers(
                                   color: Colors.white.withOpacity(0.7),
                                   fontSize: 16, // Increased font size
                                 ),
@@ -400,10 +401,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           // Title aligned left
                           'Haftalık Performans',
-                          style: TextStyle(
+                          style: GoogleFonts.bangers(
                             color: Colors.white,
                             fontSize: 18, // Slightly larger
                             fontWeight: FontWeight.bold,
@@ -717,9 +718,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Son Yarışlar',
-                              style: TextStyle(
+                              style: GoogleFonts.bangers(
                                 fontSize: 18, // Match performance title size
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -751,9 +752,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 visualDensity:
                                     VisualDensity.compact, // Make it tighter
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Tümünü Gör', // Changed text slightly
-                                style: TextStyle(
+                                style: GoogleFonts.bangers(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -779,9 +780,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 30),
                                     alignment: Alignment.center,
-                                    child: const Text(
+                                    child: Text(
                                       'Henüz yarış kaydınız bulunmuyor.',
-                                      style: TextStyle(
+                                      style: GoogleFonts.bangers(
                                           color: Colors.white54, fontSize: 14),
                                     ),
                                   );
@@ -888,7 +889,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                       isIndoor
                                                           ? 'İç Mekan'
                                                           : 'Dış Mekan',
-                                                      style: const TextStyle(
+                                                      style:
+                                                          GoogleFonts.bangers(
                                                         color: Colors.white,
                                                         fontSize: 18,
                                                         fontWeight:
@@ -897,7 +899,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                     ),
                                                     Text(
                                                       rankText,
-                                                      style: const TextStyle(
+                                                      style:
+                                                          GoogleFonts.bangers(
                                                         color: Colors.white,
                                                         fontSize: 16,
                                                         fontWeight:
@@ -909,7 +912,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                 const SizedBox(height: 4),
                                                 Text(
                                                   formattedDate,
-                                                  style: TextStyle(
+                                                  style: GoogleFonts.bangers(
                                                     color: Colors.white
                                                         .withOpacity(0.7),
                                                     fontSize: 12,
@@ -964,7 +967,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       vertical: 30.0),
                                   child: Text(
                                     'Yarışlar yüklenemedi.', // Simpler error message
-                                    style: const TextStyle(
+                                    style: GoogleFonts.bangers(
                                         color: Colors.redAccent),
                                   ),
                                 ),
@@ -1101,15 +1104,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           color: Colors.white54, strokeWidth: 2),
                     )),
                 const SizedBox(height: 8),
-                const Text('',
-                    style: TextStyle(
+                Text('',
+                    style: GoogleFonts.bangers(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors
                             .transparent)), // Placeholder for value alignment
                 const SizedBox(height: 4),
                 Text('Günlük Seri',
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 12,
                         fontWeight: FontWeight.w500)),
@@ -1133,6 +1136,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildStatIcon({
     IconData? icon,
     Widget? iconWidget,
+    TextStyle? style,
     required String value,
     required String label,
     required Color iconColor,
@@ -1159,7 +1163,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
+            style: GoogleFonts.bangers(
               color: Colors.white,
               fontSize: 18, // Slightly smaller value text
               fontWeight: FontWeight.bold,
@@ -1168,7 +1172,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
+            style: GoogleFonts.bangers(
               color: Colors.white.withOpacity(0.7),
               fontSize: 12, // Standard label size
               fontWeight: FontWeight.w500,
@@ -1292,6 +1296,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             value: totalSteps.toString(),
             label: 'Toplam Adım',
+            style: GoogleFonts.bangers(
+                color: Colors.white,
+                fontSize: 18, // Slightly larger
+                fontWeight: FontWeight.bold),
             iconColor: const Color(0xFF93C53E),
           ),
           _buildStatIcon(
@@ -1330,7 +1338,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -1339,7 +1347,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.bangers(
             color: Colors.white.withOpacity(0.7),
             fontSize: 12,
           ),
@@ -1372,16 +1380,17 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
       final source = await showDialog<ImageSource>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Profil Fotoğrafı'),
-          content: const Text('Fotoğraf kaynağını seçin'),
+          title: Text('Profil Fotoğrafı', style: GoogleFonts.bangers()),
+          content:
+              Text('Fotoğraf kaynağını seçin', style: GoogleFonts.bangers()),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, ImageSource.gallery),
-              child: const Text('Galeri'),
+              child: Text('Galeri', style: GoogleFonts.bangers()),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, ImageSource.camera),
-              child: const Text('Kamera'),
+              child: Text('Kamera', style: GoogleFonts.bangers()),
             ),
           ],
         ),

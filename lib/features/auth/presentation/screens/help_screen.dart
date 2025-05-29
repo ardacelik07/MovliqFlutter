@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:url_launcher/url_launcher.dart'; // E-posta için gerekebilir
+import 'package:google_fonts/google_fonts.dart';
 
 // Email gönderme fonksiyonunu widget dışında tanımla
 Future<void> _launchEmail() async {
@@ -154,8 +155,13 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: Text('Yardım & Destek',
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Yardım & Destek',
+          style: GoogleFonts.bangers(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: backgroundColor,
         elevation: 0,
         iconTheme: IconThemeData(color: accentColor),
@@ -171,7 +177,10 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
           children: [
             Text(
               'Sorularınız mı var? Size yardımcı olmaktan mutluluk duyarız.',
-              style: TextStyle(color: secondaryTextColor, fontSize: 15),
+              style: GoogleFonts.bangers(
+                color: secondaryTextColor,
+                fontSize: 15,
+              ),
             ),
             const SizedBox(height: 24),
             _buildSectionTitle('Bize Ulaşın', textColor), // Pass color
@@ -179,9 +188,13 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
               onPressed: _launchEmail, // Global fonksiyonu çağır
               icon:
                   Icon(Icons.email_outlined, color: backgroundColor, size: 20),
-              label: Text('E-posta Gönder',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: backgroundColor)),
+              label: Text(
+                'E-posta Gönder',
+                style: GoogleFonts.bangers(
+                  fontWeight: FontWeight.bold,
+                  color: backgroundColor,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentColor,
                 foregroundColor: backgroundColor,
@@ -226,7 +239,10 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
             Center(
               child: Text(
                 'Destek taleplerinize en kısa sürede yanıt vereceğiz.',
-                style: TextStyle(color: labelColor, fontSize: 13),
+                style: GoogleFonts.bangers(
+                  color: labelColor,
+                  fontSize: 13,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -269,7 +285,10 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         title: Text(
           question,
-          style: TextStyle(color: textColor, fontSize: 17),
+          style: GoogleFonts.bangers(
+            color: textColor,
+            fontSize: 17,
+          ),
         ),
         trailing: Icon(Icons.arrow_forward_ios, color: accentColor, size: 16),
         onTap: () {
@@ -300,8 +319,11 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
         collapsedIconColor: accentColor,
         title: Text(
           question,
-          style: TextStyle(
-              color: textColor, fontSize: 17, fontWeight: FontWeight.w500),
+          style: GoogleFonts.bangers(
+            color: textColor,
+            fontSize: 17,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         childrenPadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0)
@@ -311,8 +333,11 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
         children: <Widget>[
           Text(
             answer,
-            style:
-                TextStyle(color: secondaryTextColor, fontSize: 14, height: 1.4),
+            style: GoogleFonts.bangers(
+              color: secondaryTextColor,
+              fontSize: 14,
+              height: 1.4,
+            ),
           ),
         ],
       ),

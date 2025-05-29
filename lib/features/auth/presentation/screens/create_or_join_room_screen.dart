@@ -5,6 +5,7 @@ import 'package:my_flutter_project/core/config/api_config.dart'; // Added for Ap
 import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Added for HttpInterceptor
 import 'package:my_flutter_project/features/auth/presentation/screens/waitingRoom_screen.dart'; // Added for WaitingRoomScreen
 import 'package:intl/intl.dart'; // For DateTime formatting
+import 'package:google_fonts/google_fonts.dart';
 
 // Define colors for consistency at file level
 const Color _kAccentColor = Color(0xFFC4FF62);
@@ -327,8 +328,8 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
     return InputDecoration(
       labelText: label,
       hintText: hintText,
-      labelStyle: const TextStyle(color: _kHintTextColor),
-      hintStyle: const TextStyle(color: _kHintTextColor),
+      labelStyle: GoogleFonts.bangers(color: _kHintTextColor),
+      hintStyle: GoogleFonts.bangers(color: _kHintTextColor),
       prefixIcon: prefixIcon, // Use Widget directly
       filled: true,
       fillColor: _kInputFillColor,
@@ -360,7 +361,7 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      textStyle: GoogleFonts.bangers(fontSize: 16, fontWeight: FontWeight.bold),
     );
   }
 
@@ -392,7 +393,7 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
           const SizedBox(width: 8),
           Text(
             text,
-            style: TextStyle(
+            style: GoogleFonts.bangers(
               color: isSelected ? _kAccentColor : _kUnselectedTabIconColor,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               fontSize: 14,
@@ -408,8 +409,8 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
     return Scaffold(
       backgroundColor: _kDarkBackgroundColor,
       appBar: AppBar(
-        title: const Text('Özel Oda',
-            style: TextStyle(
+        title: Text('Özel Oda',
+            style: GoogleFonts.bangers(
                 color: _kLightTextColor, fontWeight: FontWeight.bold)),
         backgroundColor: _kDarkBackgroundColor, // Match screen background
         elevation: 0,
@@ -524,16 +525,16 @@ class _JoinRoomTabWidget extends ConsumerWidget {
               // Temporary: Using one of the provided assets as a placeholder visually
               child: Image.asset('assets/images/createroom.png',
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Center(
+                  errorBuilder: (context, error, stackTrace) => Center(
                       child: Text('Error loading image',
-                          style: TextStyle(color: Colors.red)))),
+                          style: GoogleFonts.bangers(color: Colors.red)))),
             ),
             const SizedBox(height: 20),
             TextFormField(
               controller: roomCodeController,
-              style: const TextStyle(color: _kLightTextColor),
+              style: GoogleFonts.bangers(color: _kLightTextColor),
               decoration: buildInputDecoration(
-                'Oda Kodu Giriniz', // Changed label to hint
+                'Oda Kodu Giriniz',
                 hintText: 'Oda Kodu Giriniz',
                 prefixIcon: Padding(
                   // Add padding to the icon if needed
@@ -545,7 +546,7 @@ class _JoinRoomTabWidget extends ConsumerWidget {
                   ),
                 ),
               ),
-              textAlign: TextAlign.center, // Center the text input
+              textAlign: TextAlign.center,
               enabled: !isLoadingJoin,
             ),
             const SizedBox(height: 24),
@@ -637,8 +638,8 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
           children: <Widget>[
             const SizedBox(
                 height: 16), // Adjusted from 24, as image was removed
-            const Text('Oda Tipi:',
-                style: TextStyle(
+            Text('Oda Tipi:',
+                style: GoogleFonts.bangers(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: _kLightTextColor)),
@@ -672,8 +673,8 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                           width: 25, height: 25),
                       SizedBox(width: 8),
                       Text('İç Mekan',
-                          style:
-                              TextStyle(fontSize: 15.0)) // Increased font size
+                          style: GoogleFonts.bangers(
+                              fontSize: 15.0)) // Increased font size
                     ])),
                 Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -682,21 +683,21 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                           width: 25, height: 25),
                       SizedBox(width: 8),
                       Text('Dış Mekan',
-                          style:
-                              TextStyle(fontSize: 15.0)) // Increased font size
+                          style: GoogleFonts.bangers(
+                              fontSize: 15.0)) // Increased font size
                     ])),
               ],
             ),
             const SizedBox(height: 30), // Increased from 24
-            const Text('Süre (dakika):',
-                style: TextStyle(
+            Text('Süre (dakika):',
+                style: GoogleFonts.bangers(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: _kLightTextColor)),
             const SizedBox(height: 16), // Increased from 12
             DropdownButtonFormField<int>(
               value: _internalSelectedDuration,
-              style: const TextStyle(color: _kLightTextColor),
+              style: GoogleFonts.bangers(color: _kLightTextColor),
               decoration: widget.buildInputDecoration('Süre Seçin',
                   prefixIcon: Image.asset('assets/icons/time.png',
                       width: 24,
@@ -708,7 +709,7 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                 return DropdownMenuItem<int>(
                   value: value,
                   child: Text('$value dakika',
-                      style: const TextStyle(color: _kLightTextColor)),
+                      style: GoogleFonts.bangers(color: _kLightTextColor)),
                 );
               }).toList(),
               onChanged: widget.isLoadingCreate
@@ -721,15 +722,15 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                     },
             ),
             const SizedBox(height: 30), // Increased from 24
-            const Text('Giriş Coini:',
-                style: TextStyle(
+            Text('Giriş Coini:',
+                style: GoogleFonts.bangers(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: _kLightTextColor)),
             const SizedBox(height: 16), // Increased from 12
             TextFormField(
               controller: widget.entryCoinController,
-              style: const TextStyle(color: _kLightTextColor),
+              style: GoogleFonts.bangers(color: _kLightTextColor),
               decoration: widget.buildInputDecoration('Coin Miktarı',
                   prefixIcon: Image.asset('assets/images/mCoin.png',
                       width: 24,

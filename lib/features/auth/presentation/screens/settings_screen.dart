@@ -8,6 +8,7 @@ import 'update_user_info_screen.dart';
 import 'change_password_screen.dart';
 import 'help_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -42,7 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         title: Text(
           'Ayarlar',
-          style: TextStyle(
+          style: GoogleFonts.bangers(
               color: textColor, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -54,20 +55,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 context: context,
                 builder: (context) => AlertDialog(
                   backgroundColor: cardColor,
-                  title: Text('Çıkış Yap', style: TextStyle(color: textColor)),
+                  title: Text('Çıkış Yap',
+                      style: GoogleFonts.bangers(color: textColor)),
                   content: Text(
                     'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
-                    style: TextStyle(color: secondaryTextColor),
+                    style: GoogleFonts.bangers(color: secondaryTextColor),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
-                      child: Text('İptal', style: TextStyle(color: iconColor)),
+                      child: Text('İptal',
+                          style: GoogleFonts.bangers(color: iconColor)),
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       child: Text('Çıkış Yap',
-                          style: TextStyle(color: Colors.red)),
+                          style: GoogleFonts.bangers(color: Colors.red)),
                     ),
                   ],
                 ),
@@ -249,7 +252,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Text(
         title,
-        style: TextStyle(
+        style: GoogleFonts.bangers(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: textColor.withOpacity(0.8),
@@ -284,7 +287,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       leading: Icon(icon, color: iconColor, size: 24),
       title: Text(
         title,
-        style: TextStyle(
+        style: GoogleFonts.bangers(
           fontSize: 15,
           color: textColor,
           fontWeight: FontWeight.w500,
@@ -311,7 +314,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       leading: Icon(icon, color: iconColor, size: 24),
       title: Text(
         title,
-        style: TextStyle(
+        style: GoogleFonts.bangers(
           fontSize: 15,
           color: textColor,
           fontWeight: FontWeight.w500,
@@ -342,7 +345,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       leading: Icon(platformIcon, color: iconColor, size: 24), // Icon widget'ı
       title: Text(
         platformName,
-        style: TextStyle(
+        style: GoogleFonts.bangers(
           fontSize: 15,
           color: textColor,
           fontWeight: FontWeight.w500,
@@ -350,7 +353,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       trailing: Text(
         status,
-        style: TextStyle(
+        style: GoogleFonts.bangers(
           fontSize: 14,
           color: isConnected
               ? const Color(0xFFB2FF59)
