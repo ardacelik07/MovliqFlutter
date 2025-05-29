@@ -136,7 +136,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                             ),
                             child: Center(
                               child: Text(
-                                'Outdoor',
+                                'Dış Mekan',
                                 style: GoogleFonts.bangers(
                                   color: isOutdoorSelected
                                       ? Colors.black
@@ -170,7 +170,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                             ),
                             child: Center(
                               child: Text(
-                                'Indoor',
+                                'İç Mekan',
                                 style: GoogleFonts.bangers(
                                   color: !isOutdoorSelected
                                       ? Colors.black
