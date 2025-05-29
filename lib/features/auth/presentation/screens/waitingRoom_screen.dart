@@ -946,8 +946,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                   color: _accentColor)
                               : ElevatedButton.icon(
                                   onPressed: _startRaceButtonPressed,
-                                  icon: const Icon(Icons.sports_kabaddi,
-                                      color: Colors.black), // Icon for start
                                   label: Text(
                                     'Yarışı Başlat',
                                     style: GoogleFonts.bangers(
