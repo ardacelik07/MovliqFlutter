@@ -789,7 +789,6 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                 'assets/icons/bayrak.png',
                                 width: 20,
                                 height: 20,
-                                color: _accentColor,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -814,8 +813,11 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                           Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              const Icon(Icons.timer_outlined,
-                                  color: _accentColor, size: 20),
+                              Image.asset(
+                                'assets/icons/time.png',
+                                width: 20,
+                                height: 20,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 displayDuration,
