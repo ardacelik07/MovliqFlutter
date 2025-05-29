@@ -307,157 +307,150 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               // Ana Yarış İçeriği
               if (!raceState.isPreRaceCountdownActive)
                 Expanded(
-                  child: _showNewRaceUI
-                      ? RaceUIWidget(
+                  child:
+                      /*RaceUIWidget(
                           participants: raceState.leaderboard,
                           myEmail: raceState.userEmail,
                           profilePictureCache: raceState.profilePictureCache,
                           isIndoorRace: raceState.isIndoorRace,
                           remainingTime: raceState.remainingTime,
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Column(
+                        )*/
+                      Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        // Zamanlayıcı ve Progress Bar
+                        if (raceState.isRaceActive)
+                          Column(
                             children: [
-                              const SizedBox(height: 20),
-                              // Zamanlayıcı ve Progress Bar
-                              if (raceState.isRaceActive)
-                                Column(
-                                  children: [
-                                    Text(
-                                      'Kalan süre: ${_formatDuration(raceState.remainingTime)}',
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18, // Font boyutu ayarlandı
-                                          fontWeight: FontWeight.w500),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      height: 12, // Bar kalınlığı
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(6),
-                                        color: Colors
-                                            .grey.shade800, // Arka plan rengi
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: LinearProgressIndicator(
-                                          value: progress,
-                                          backgroundColor: Colors.transparent,
-                                          valueColor: const AlwaysStoppedAnimation<
-                                                  Color>(
-                                              Color(
-                                                  0xFFC4FF62)), // Yeşil progress
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                  ],
-                                ),
-
-                              // İstatistikler Kartı
+                              Text(
+                                'Kalan süre: ${_formatDuration(raceState.remainingTime)}',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18, // Font boyutu ayarlandı
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              const SizedBox(height: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 20, horizontal: 10),
+                                height: 12, // Bar kalınlığı
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1E1E1E), // Kart rengi
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(6),
+                                  color:
+                                      Colors.grey.shade800, // Arka plan rengi
                                 ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    _buildStatItem(
-                                      iconAsset:
-                                          'assets/icons/alev.png', // Kalori ikonu
-                                      value:
-                                          raceState.currentCalories.toString(),
-                                      label: 'kcal',
-                                    ),
-                                    if (!raceState.isIndoorRace)
-                                      _buildStatItem(
-                                        iconAsset:
-                                            'assets/icons/location.png', // Mesafe/Konum ikonu
-                                        value: raceState.currentDistance
-                                            .toStringAsFixed(2),
-                                        label: 'km',
-                                      ),
-                                    if (raceState.isIndoorRace)
-                                      _buildStatItem(
-                                        iconAsset:
-                                            'assets/icons/location.png', // Tahmini KM için de aynı ikon
-                                        value: raceState.estimatedIndoorDistance
-                                            .toStringAsFixed(2),
-                                        label: 'Tahmini km',
-                                      ),
-                                    _buildStatItem(
-                                      iconAsset:
-                                          'assets/icons/steps.png', // Adım ikonu
-                                      value: raceState.currentSteps.toString(),
-                                      label: 'adım',
-                                    ),
-                                    _buildStatItem(
-                                      iconAsset:
-                                          'assets/icons/speed.png', // Hız ikonu
-                                      value: averageSpeed, // Ortalama hız
-                                      label: 'km/sa',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 25),
-                              // Canlı Sıralama Başlığı
-                              Row(
-                                children: [
-                                  Image.asset('assets/icons/coupa.png',
-                                      width: 28, height: 28), // Kupa ikonu
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Canlı Sıralama',
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: Colors.transparent,
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                            Color(
+                                                0xFFC4FF62)), // Yeşil progress
                                   ),
-                                ],
+                                ),
                               ),
-                              const SizedBox(height: 15),
-                              // Leaderboard Listesi
-                              Expanded(
-                                child: raceState.leaderboard.isEmpty
-                                    ? Center(
-                                        child: raceState.isRaceActive
-                                            ? const CircularProgressIndicator(
-                                                valueColor:
-                                                    AlwaysStoppedAnimation<
-                                                            Color>(
-                                                        Color(0xFFC4FF62)))
-                                            : const Text(
-                                                'Yarışmacı bulunamadı.',
-                                                style: TextStyle(
-                                                    color: Colors.grey)))
-                                    : ListView.builder(
-                                        itemCount: raceState.leaderboard.length,
-                                        itemBuilder: (context, index) {
-                                          final participant =
-                                              raceState.leaderboard[index];
-                                          final bool isMe = participant.email
-                                                  ?.toLowerCase() ==
-                                              raceState.userEmail
-                                                  ?.toLowerCase();
-                                          return ParticipantTile(
-                                            participant: participant,
-                                            isMe: isMe,
-                                            isIndoorRace:
-                                                raceState.isIndoorRace,
-                                            rank: participant.rank,
-                                          );
-                                        },
-                                      ),
+                              const SizedBox(height: 24),
+                            ],
+                          ),
+
+                        // İstatistikler Kartı
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 20, horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E1E), // Kart rengi
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildStatItem(
+                                iconAsset:
+                                    'assets/icons/alev.png', // Kalori ikonu
+                                value: raceState.currentCalories.toString(),
+                                label: 'kcal',
+                              ),
+                              if (!raceState.isIndoorRace)
+                                _buildStatItem(
+                                  iconAsset:
+                                      'assets/icons/location.png', // Mesafe/Konum ikonu
+                                  value: raceState.currentDistance
+                                      .toStringAsFixed(2),
+                                  label: 'km',
+                                ),
+                              if (raceState.isIndoorRace)
+                                _buildStatItem(
+                                  iconAsset:
+                                      'assets/icons/location.png', // Tahmini KM için de aynı ikon
+                                  value: raceState.estimatedIndoorDistance
+                                      .toStringAsFixed(2),
+                                  label: 'Tahmini km',
+                                ),
+                              _buildStatItem(
+                                iconAsset:
+                                    'assets/icons/steps.png', // Adım ikonu
+                                value: raceState.currentSteps.toString(),
+                                label: 'adım',
+                              ),
+                              _buildStatItem(
+                                iconAsset:
+                                    'assets/icons/speed.png', // Hız ikonu
+                                value: averageSpeed, // Ortalama hız
+                                label: 'km/sa',
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(height: 25),
+                        // Canlı Sıralama Başlığı
+                        Row(
+                          children: [
+                            Image.asset('assets/icons/coupa.png',
+                                width: 28, height: 28), // Kupa ikonu
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Canlı Sıralama',
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 15),
+                        // Leaderboard Listesi
+                        Expanded(
+                          child: raceState.leaderboard.isEmpty
+                              ? Center(
+                                  child: raceState.isRaceActive
+                                      ? const CircularProgressIndicator(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Color(0xFFC4FF62)))
+                                      : const Text('Yarışmacı bulunamadı.',
+                                          style: TextStyle(color: Colors.grey)))
+                              : ListView.builder(
+                                  itemCount: raceState.leaderboard.length,
+                                  itemBuilder: (context, index) {
+                                    final participant =
+                                        raceState.leaderboard[index];
+                                    final bool isMe =
+                                        participant.email?.toLowerCase() ==
+                                            raceState.userEmail?.toLowerCase();
+                                    return ParticipantTile(
+                                      participant: participant,
+                                      isMe: isMe,
+                                      isIndoorRace: raceState.isIndoorRace,
+                                      rank: participant.rank,
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               // Hata Mesajı Göstergesi
               if (raceState.errorMessage != null &&

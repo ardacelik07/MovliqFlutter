@@ -135,14 +135,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    ' Parola en az 8 karakter, büyük harf, küçük harf verakam içermelidir.',
-                    style: TextStyle(
-                        color: const Color.fromARGB(141, 255, 255, 255),
-                        fontSize: 12),
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
                     style: const TextStyle(color: textColor),
@@ -191,7 +184,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  Text(
+                    ' Parola en az 8 karakter, büyük harf, küçük harf ve rakam içermelidir.',
+                    style: TextStyle(
+                        color: const Color.fromARGB(141, 255, 255, 255),
+                        fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _confirmPasswordController,
                     style: const TextStyle(color: textColor),

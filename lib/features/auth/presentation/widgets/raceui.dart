@@ -1,4 +1,4 @@
-import 'dart:async'; // For TimeoutException
+/*import 'dart:async'; // For TimeoutException
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/core/services/signalr_service.dart'; // For RaceParticipant
@@ -487,3 +487,4 @@ class _RaceUIWidgetState extends ConsumerState<RaceUIWidget> {
     );
   }
 }
+*/
