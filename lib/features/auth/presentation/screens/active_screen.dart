@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'finish_screen.dart';
 import '../providers/user_profile_provider.dart';
@@ -44,15 +45,15 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
                 Image.asset(
                   'assets/images/activity.png',
-                  height: 300,
+                  height: 250,
                 ),
-                const SizedBox(height: 40),
-                const Text(
-                  "Hangi kadar aktifsiniz?",
-                  style: TextStyle(
+                const SizedBox(height: 20),
+                Text(
+                  "Ne kadar aktif spor yapıyorsunuz?",
+                  style: GoogleFonts.bangers(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     // Change text color to white to be visible on the dark gradient
@@ -64,28 +65,28 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                 // Pass the context to update text colors in options
                 _buildActivityOption(
                   context,
-                  'Başlangıç',
-                  'Sadece başlıyorsunuz',
+                  'Yeni Başlayan',
+                  'Yeni adımlar atmaya hazırım,harekete geçmek istiyorum',
                   Icons.directions_walk,
                   'beginner',
                 ),
                 const SizedBox(height: 16),
                 _buildActivityOption(
                   context,
-                  'Orta',
-                  'Orta düzey egzersiz yapıyorsunuz',
+                  'Orta Seviye',
+                  'Zaman zaman spor yapıyorum, daha istikrarlı olmak istiyorum',
                   Icons.favorite,
                   'intermediate',
                 ),
                 const SizedBox(height: 16),
                 _buildActivityOption(
                   context,
-                  'Gelişmiş',
-                  'Gelişmiş düzey egzersiz yapıyorsunuz',
+                  'İleri Seviye',
+                  'Spor hayatımın bir parçası, her gün kendimi zorlamaya hazırım',
                   Icons.fitness_center,
                   'advanced',
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF476C17),
@@ -108,7 +109,7 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                           );
                         }
                       : null,
-                  child: const Text('Devam Et'),
+                  child: Text('Devam Et', style: GoogleFonts.bangers()),
                 ),
               ],
             ),
@@ -167,7 +168,7 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: titleColor, // Use dynamic title color
@@ -175,7 +176,7 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                       fontSize: 14,
                       color: subtitleColor, // Use dynamic subtitle color
                     ),

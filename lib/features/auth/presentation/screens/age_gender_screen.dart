@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart'; // Import services
+import 'package:google_fonts/google_fonts.dart';
 
 import 'height_screen.dart';
 import '../providers/user_profile_provider.dart';
@@ -73,14 +74,14 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                   SizedBox(height: MediaQuery.of(context).padding.top + 20),
                   // Image
                   Image.asset(
-                    'assets/images/birthday.png', // Keep existing image for now
+                    'assets/images/age.png', // Keep existing image for now
                     height: MediaQuery.of(context).size.height *
                         0.4, // Adjust height
                   ),
                   // Birthday Label
-                  const Text(
+                  Text(
                     'Doğum tarihiniz nedir?',
-                    style: TextStyle(color: labelColor, fontSize: 14),
+                    style: GoogleFonts.bangers(color: labelColor, fontSize: 16),
                     textAlign: TextAlign.left,
                   ),
                   const SizedBox(height: 8),
@@ -135,7 +136,7 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                             selectedDate != null
                                 ? _formatDate(
                                     selectedDate!) // Use formatted date
-                                : 'Calendar', // Placeholder text
+                                : 'Takvimden seçiniz', // Placeholder text
                             style: TextStyle(
                               color: selectedDate != null
                                   ? inputTextColor
@@ -143,8 +144,11 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                               fontSize: 16,
                             ),
                           ),
-                          const Icon(Icons.calendar_today,
-                              color: inputHintColor, size: 20),
+                          const Icon(
+                            Icons.calendar_month_outlined,
+                            color: primaryColor,
+                            size: 40,
+                          ),
                         ],
                       ),
                     ),
@@ -152,9 +156,9 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                   const SizedBox(height: 20),
 
                   // Gender Label
-                  const Text(
+                  Text(
                     'Kim olduğunuzu nasıl tanımlarsınız?',
-                    style: TextStyle(color: labelColor, fontSize: 14),
+                    style: GoogleFonts.bangers(color: labelColor, fontSize: 16),
                     textAlign: TextAlign.left,
                   ),
                   const SizedBox(height: 12), // Added some space
@@ -164,18 +168,33 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                       final String backendValue = entry.key;
                       final String displayValue = entry.value;
                       final bool isSelected = selectedGender == backendValue;
-                      String emoji;
+                      Widget emoji;
 
                       switch (backendValue) {
                         case "Male":
-                          emoji = "👨";
+                          emoji = Image.asset(
+                            'assets/images/genderman.png',
+                            height: 40,
+                          );
                           break;
                         case "Female":
-                          emoji = "👩";
+                          emoji = Image.asset(
+                            'assets/images/genderwomen.png',
+                            height: 40,
+                          );
                           break;
                         case "Other":
+                          emoji = Image.asset(
+                            'assets/images/gendernone.png',
+                            height: 40,
+                          );
+                          break;
                         default:
-                          emoji = "👤";
+                          emoji = Image.asset(
+                            'assets/images/gendernone.png',
+                            height: 40,
+                          );
+                          break;
                       }
 
                       return Expanded(
@@ -220,24 +239,17 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  emoji,
-                                  style: TextStyle(
-                                    fontSize: 28, // Slightly larger emoji
-                                    color: isSelected
-                                        ? Colors.black
-                                        : Colors.white,
-                                  ),
-                                ),
+                                emoji,
+
                                 const SizedBox(height: 8), // Adjusted spacing
                                 Text(
                                   displayValue, // Use display value from map
-                                  style: TextStyle(
+                                  style: GoogleFonts.bangers(
                                     color: isSelected
                                         ? Colors.black
                                         : Colors.white,
                                     fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                                    fontSize: 16,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -286,7 +298,7 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                         );
                       }
                     },
-                    child: const Text('Devam Et'),
+                    child: Text('Devam Et', style: GoogleFonts.bangers()),
                   ),
                   SizedBox(
                       height: MediaQuery.of(context).padding.bottom +

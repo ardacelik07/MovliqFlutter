@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart'; // Import services
+import 'package:google_fonts/google_fonts.dart';
 
 import '../providers/user_profile_provider.dart';
 
@@ -77,7 +78,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     decoration: InputDecoration(
                       hintText: 'İsminiz nedir?',
                       hintStyle:
-                          const TextStyle(color: labelColor, fontSize: 14),
+                          GoogleFonts.bangers(color: labelColor, fontSize: 16),
                       filled: true,
                       fillColor: textFieldBgColor,
                       border: OutlineInputBorder(
@@ -102,7 +103,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     decoration: InputDecoration(
                       hintText: 'Tercih ettiğiniz kullanıcı adı nedir?',
                       hintStyle:
-                          const TextStyle(color: labelColor, fontSize: 14),
+                          GoogleFonts.bangers(color: labelColor, fontSize: 14),
                       filled: true,
                       fillColor: textFieldBgColor,
                       border: OutlineInputBorder(
@@ -195,7 +196,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                           },
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Devam Et'),
+                        : Text('Devam Et', style: GoogleFonts.bangers()),
                   ),
                   SizedBox(
                       height: MediaQuery.of(context).padding.bottom +

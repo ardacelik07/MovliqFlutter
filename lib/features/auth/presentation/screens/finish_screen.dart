@@ -5,6 +5,7 @@ import '../../../onboarding/presentation/screens/guiding_main_screen.dart';
 
 import '../providers/user_profile_provider.dart';
 import '../providers/user_data_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class FinishScreen extends ConsumerStatefulWidget {
   const FinishScreen({super.key});
@@ -94,9 +95,9 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
                   height: 300,
                 ),
                 const SizedBox(height: 60),
-                const Text(
+                Text(
                   "Nerede koşmayı tercih edersin?",
-                  style: TextStyle(
+                  style: GoogleFonts.bangers(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: titleColor, // Change text color to white
@@ -145,7 +146,7 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
                       : _handleComplete,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Tamamla'),
+                      : Text('Tamamla', style: GoogleFonts.bangers()),
                 ),
               ],
             ),
@@ -199,7 +200,7 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
             const SizedBox(height: 12),
             Text(
               title,
-              style: TextStyle(
+              style: GoogleFonts.bangers(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: titleColor, // Use dynamic title color

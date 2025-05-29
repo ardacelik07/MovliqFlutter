@@ -4,6 +4,7 @@ import 'package:flutter/services.dart'; // Import services
 
 import 'weight_screen.dart';
 import '../providers/user_profile_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HeightScreen extends ConsumerStatefulWidget {
   const HeightScreen({super.key});
@@ -72,16 +73,16 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                   SizedBox(height: MediaQuery.of(context).padding.top + 20),
                   // Image
                   Image.asset(
-                    'assets/images/uzunluk.png',
+                    'assets/images/height.png',
                     height: MediaQuery.of(context).size.height * 0.4,
                   ),
                   const SizedBox(height: 30),
 
                   // Title
-                  const Text(
+                  Text(
                     "Boyunuz nedir?",
-                    style: TextStyle(
-                      fontSize: 16,
+                    style: GoogleFonts.bangers(
+                      fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: labelColor,
                     ),
@@ -95,7 +96,8 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 120, // Width for cm input
+                        width: 120,
+                        height: 120, // Width for cm input
                         child: TextFormField(
                           controller: _cmController, // Use cm controller
                           textAlign: TextAlign.center,
@@ -103,11 +105,17 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly
                           ],
-                          style: const TextStyle(
+                          style: GoogleFonts.bangers(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Color.fromARGB(255, 255, 255, 255)),
-                          decoration: _inputDecoration(),
+                          decoration: _inputDecoration().copyWith(
+                            suffixText: 'cm',
+                            suffixStyle: GoogleFonts.bangers(
+                              color: unitLabelColor,
+                              fontSize: 16,
+                            ),
+                          ),
                           validator: (value) {
                             if (value?.isEmpty ?? true)
                               return ''; // Use form level validation
@@ -117,12 +125,6 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                             return null;
                           },
                         ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8.0),
-                        child: Text('cm',
-                            style:
-                                TextStyle(color: unitLabelColor, fontSize: 16)),
                       ),
                     ],
                   ),
@@ -197,7 +199,7 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                         );
                       }
                     },
-                    child: const Text('Devam Et'),
+                    child: Text('Devam Et', style: GoogleFonts.bangers()),
                   ),
                   SizedBox(
                       height: MediaQuery.of(context).padding.bottom +

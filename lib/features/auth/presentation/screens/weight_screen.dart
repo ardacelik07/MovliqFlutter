@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart'; // Import services
-
+import 'package:google_fonts/google_fonts.dart';
 import 'active_screen.dart';
 import '../providers/user_profile_provider.dart';
 
@@ -62,10 +62,10 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                   const SizedBox(height: 30),
 
                   // Title
-                  const Text(
+                  Text(
                     "Kilonuz nedir?",
-                    style: TextStyle(
-                      fontSize: 16,
+                    style: GoogleFonts.bangers(
+                      fontSize: 24,
                       fontWeight: FontWeight.w600,
                       color: labelColor,
                     ),
@@ -79,7 +79,8 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 120, // Adjust width as needed
+                        width: 120,
+                        height: 120, // Adjust width as needed
                         child: TextFormField(
                           controller: _weightController,
                           textAlign: TextAlign.center,
@@ -91,7 +92,13 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Color.fromARGB(255, 255, 255, 255)),
-                          decoration: _inputDecoration(),
+                          decoration: _inputDecoration().copyWith(
+                            suffixText: 'kg',
+                            suffixStyle: GoogleFonts.bangers(
+                              color: unitLabelColor,
+                              fontSize: 16,
+                            ),
+                          ),
                           validator: (value) {
                             if (value?.isEmpty ?? true) return '';
                             final weight = double.tryParse(value!);
@@ -101,13 +108,6 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                             return null;
                           },
                         ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8.0),
-                        // Always display 'kg' now
-                        child: Text('kg',
-                            style:
-                                TextStyle(color: unitLabelColor, fontSize: 16)),
                       ),
                     ],
                   ),
@@ -173,7 +173,7 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                         );
                       }
                     },
-                    child: const Text('Devam Et'),
+                    child: Text('Devam Et', style: GoogleFonts.bangers()),
                   ),
                   SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
                 ],
