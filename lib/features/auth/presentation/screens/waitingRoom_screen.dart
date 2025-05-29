@@ -794,7 +794,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                               const SizedBox(width: 8),
                               Text(
                                 displayActivityType,
-                                style: const TextStyle(
+                                style: GoogleFonts.bangers(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w600,
                                   color: _primaryTextColor,
@@ -866,9 +866,9 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                     Clipboard.setData(
                                         ClipboardData(text: widget.roomCode));
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content:
-                                              Text('Oda kodu kopyalandı!')),
+                                      SnackBar(
+                                          content: Text('Oda kodu kopyalandı!',
+                                              style: GoogleFonts.bangers())),
                                     );
                                   },
                                 ),
@@ -888,20 +888,25 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                         ],
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
 
-                    // Central Image
+                    // Central Image - Wrapped with AspectRatio and FittedBox
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20.0), // Padding for image
-                        child: Image.asset(
-                          'assets/images/waitingroom2.png', // Use provided asset
-                          fit: BoxFit.cover,
+                        child: FittedBox(
+                          fit: BoxFit
+                              .contain, // Ensures the image is fully visible within the bounds
+                          child: Image.asset(
+                            'assets/images/waitingroom2.png', // Use provided asset
+                            // Removed fixed height and width to allow FittedBox to manage sizing
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(
+                        height: 20), // Adjusted SizedBox height after the image
 
                     // Participants Card
                     Container(
