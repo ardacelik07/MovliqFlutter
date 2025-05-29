@@ -423,7 +423,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       children: [
         if (topThree.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -554,7 +554,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       children: [
         if (topThree.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -655,7 +655,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     return Column(
       children: [
         if (position == 1)
-          const Icon(Icons.star, color: Colors.yellow, size: 24),
+          Image.asset(
+            'assets/icons/coupa.png',
+            width: 40,
+            height: 40,
+          ),
         if (position != 1) const SizedBox(height: 24),
         Stack(
           alignment: Alignment.center,
