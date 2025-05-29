@@ -525,8 +525,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                                               builder: (context) =>
                                                   HelpScreen()));
                                     },
-                                    icon: Icon(Icons.info_outline,
-                                        color: Colors.white, size: 20),
+                                    icon: Image.asset(
+                                      'assets/icons/info.png',
+                                      width: 20,
+                                      height: 20,
+                                    ),
                                   ),
                                   // Add badge if needed
                                 ],
@@ -638,8 +641,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.group_add_outlined,
-                              color: Color(0xFFC4FF62), size: 30),
+                          Image.asset(
+                            'assets/icons/invitefriend.png',
+                            width: 30,
+                            height: 30,
+                          ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(

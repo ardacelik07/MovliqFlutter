@@ -71,8 +71,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.info_outline,
-                          color: Color(0xFFC4FF62)),
+                      icon: Image.asset(
+                        'assets/icons/info.png',
+                        width: 20,
+                        height: 20,
+                      ),
                       onPressed: () => _showLeaderboardInfoDialog(context),
                     ),
                   ],

@@ -168,6 +168,8 @@ flutter:
     - assets/images/genderman.png
     - assets/images/gendernone.png
     - assets/images/age.png
+    - assets/icons/info.png
+    - assets/icons/invitefriend.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
