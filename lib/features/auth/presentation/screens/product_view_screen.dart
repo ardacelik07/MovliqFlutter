@@ -751,7 +751,7 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                        '\\${NumberFormat("#,##0", "tr_TR").format(product.price)} mCoin - Hemen Al',
+                        '${NumberFormat("#,##0", "tr_TR").format(product.price)} mCoin - Hemen Al',
                         style: GoogleFonts.bangers()),
                   ],
                 ),

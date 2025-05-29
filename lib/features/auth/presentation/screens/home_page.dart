@@ -654,7 +654,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  'Arkadaşını Davet Et,150 mCoin Kazan',
+                                  'Arkadaşını Davet Et, 150 mCoin Kazan',
                                   style: GoogleFonts.bangers(
                                       color: Colors.grey, fontSize: 12),
                                 ),
