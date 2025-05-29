@@ -772,7 +772,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Seçilen Yarış Tipi',
@@ -783,7 +783,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                           ),
                           const SizedBox(height: 4),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               Image.asset(
                                 'assets/icons/bayrak.png',
@@ -812,7 +812,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                           ),
                           const SizedBox(height: 4),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               const Icon(Icons.timer_outlined,
                                   color: _accentColor, size: 20),
