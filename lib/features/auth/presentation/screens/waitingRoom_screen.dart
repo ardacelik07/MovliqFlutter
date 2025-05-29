@@ -756,7 +756,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                       subtitleText,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 16,
                         color: _accentColor,
                         fontWeight: FontWeight.w500,
                       ),
@@ -768,10 +768,10 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                       padding: const EdgeInsets.all(20.0),
                       decoration: BoxDecoration(
                         color: const Color(0xFF2A2A2A),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(24),
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
                             'Seçilen Yarış Tipi',
@@ -782,6 +782,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                           ),
                           const SizedBox(height: 4),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Image.asset(
                                 'assets/icons/bayrak.png',
@@ -793,7 +794,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                               Text(
                                 displayActivityType,
                                 style: const TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.w600,
                                   color: _primaryTextColor,
                                 ),
@@ -810,6 +811,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                           ),
                           const SizedBox(height: 4),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Icon(Icons.timer_outlined,
                                   color: _accentColor, size: 20),
@@ -817,7 +819,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                               Text(
                                 displayDuration,
                                 style: const TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.w600,
                                   color: _primaryTextColor,
                                 ),
@@ -906,10 +908,10 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                           horizontal: 20.0, vertical: 16.0),
                       decoration: BoxDecoration(
                         color: Color(0xFF2A2A2A),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(24),
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const Text(
                             'Hazır Olan Yarışmacılar',
