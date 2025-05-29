@@ -667,21 +667,21 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                   minWidth: (MediaQuery.of(context).size.width - 48 - 12) / 2),
               children: <Widget>[
                 Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(children: [
                       Image.asset('assets/icons/indoor.png',
                           width: 25, height: 25),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text('İç Mekan',
                           style: GoogleFonts.bangers(
                               fontSize: 15.0)) // Increased font size
                     ])),
                 Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(children: [
                       Image.asset('assets/icons/outdoor.png',
                           width: 25, height: 25),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text('Dış Mekan',
                           style: GoogleFonts.bangers(
                               fontSize: 15.0)) // Increased font size
@@ -695,32 +695,36 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                     fontWeight: FontWeight.bold,
                     color: _kLightTextColor)),
             const SizedBox(height: 16), // Increased from 12
-            DropdownButtonFormField<int>(
-              value: _internalSelectedDuration,
-              style: GoogleFonts.bangers(color: _kLightTextColor),
-              decoration: widget.buildInputDecoration('Süre Seçin',
-                  prefixIcon: Image.asset('assets/icons/time.png',
-                      width: 24,
-                      height: 24)), // Increased icon size from 10x10 to 24x24
-              dropdownColor: _kInputFillColor,
-              iconEnabledColor: _kAccentColor,
-              items: widget.durationOptions
-                  .map<DropdownMenuItem<int>>((int value) {
-                return DropdownMenuItem<int>(
-                  value: value,
-                  child: Text('$value dakika',
-                      style: GoogleFonts.bangers(color: _kLightTextColor)),
-                );
-              }).toList(),
-              onChanged: widget.isLoadingCreate
-                  ? null
-                  : (int? newValue) {
-                      setState(() {
-                        _internalSelectedDuration = newValue;
-                      });
-                      widget.onDurationChanged(newValue);
-                    },
+            // --- DURATION PICKER ---
+            GestureDetector(
+              onTap: () {
+                _showDurationPicker(context);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 18.0, horizontal: 16.0),
+                decoration: BoxDecoration(
+                  color: _kInputFillColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.5), width: 1.5),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _internalSelectedDuration != null
+                          ? '$_internalSelectedDuration dakika'
+                          : 'Süre Seçin',
+                      style: GoogleFonts.bangers(
+                          color: _kLightTextColor, fontSize: 16),
+                    ),
+                    const Icon(Icons.arrow_drop_down, color: _kLightTextColor),
+                  ],
+                ),
+              ),
             ),
+            // --- END DURATION PICKER ---
             const SizedBox(height: 30), // Increased from 24
             Text('Giriş Coini:',
                 style: GoogleFonts.bangers(
@@ -761,4 +765,110 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
       ),
     );
   }
+
+  // --- CUSTOM DURATION PICKER METHOD ---
+  void _showDurationPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1E), // Dark background for the sheet
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (BuildContext bottomSheetContext) {
+        // Changed context variable name
+        return StatefulBuilder(
+          // To update selection within the sheet
+          builder: (BuildContext modalContext, StateSetter modalSetState) {
+            return Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Sürenizi Seçiniz',
+                        style: GoogleFonts.bangers(
+                          color: _kLightTextColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: _kLightTextColor),
+                        onPressed: () => Navigator.pop(
+                            bottomSheetContext), // Use bottomSheetContext
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Divider(color: _kAccentColor, thickness: 1),
+                  const SizedBox(height: 10),
+                  ...widget.durationOptions.map((duration) {
+                    final bool isSelected =
+                        _internalSelectedDuration == duration;
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          modalSetState(() {
+                            // Update selection in sheet
+                            _internalSelectedDuration = duration;
+                          });
+                          // Update parent widget's state
+                          setState(() {
+                            _internalSelectedDuration = duration;
+                          });
+                          widget.onDurationChanged(duration);
+                          Navigator.pop(
+                              bottomSheetContext); // Use bottomSheetContext
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 15.0),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? _kAccentColor.withOpacity(0.3)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border(
+                              bottom: BorderSide(
+                                color: isSelected
+                                    ? _kAccentColor
+                                    : Colors.grey[700]!,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$duration Dakika',
+                              style: GoogleFonts.bangers(
+                                color: isSelected
+                                    ? _kAccentColor
+                                    : _kLightTextColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+  // --- END CUSTOM DURATION PICKER METHOD ---
 }
