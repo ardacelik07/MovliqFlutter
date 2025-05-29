@@ -134,7 +134,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
-                      hintText: 'E-posta Adresi',
+                      hintText: 'E-posta Adresİ',
                       hintStyle: GoogleFonts.bangers(
                         color: hintTextColor,
                         fontSize: 16,
@@ -254,7 +254,10 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                             );
                       }
                     },
-                    child: const Text('Giriş Yap'),
+                    child: Text('Gİrİş Yap',
+                        style: GoogleFonts.bangers(
+                          fontSize: 24,
+                        )),
                   ),
                   const SizedBox(height: 24),
                   Row(

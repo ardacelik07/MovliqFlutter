@@ -98,7 +98,7 @@ class LoginScreen extends ConsumerWidget {
                     bgColor: const Color.fromARGB(80, 255, 255, 255),
                     fgColor: const Color.fromARGB(255, 255, 255, 255),
                   ),*/
-                    const SizedBox(height: 256),
+                    const SizedBox(height: 246),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -122,7 +122,9 @@ class LoginScreen extends ConsumerWidget {
                             ),
                           );
                         },
-                        child: const Text('E-posta ile Devam Et'),
+                        child: Text('E-posta İle Devam Et',
+                            style: GoogleFonts.bangers(
+                                fontSize: 24, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(height: 24),

@@ -94,7 +94,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 10),
                   Text(
                     'Yeni Hesap Oluştur',
                     style: GoogleFonts.bangers(
@@ -267,7 +267,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             );
                       }
                     },
-                    child: const Text('Hesabımı Oluştur'),
+                    child: Text('Hesabımı Oluştur',
+                        style: GoogleFonts.bangers(
+                            fontSize: 24, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 24),
                   Row(
