@@ -73,7 +73,7 @@ class GuidePageOne extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
-                        'Movliq; koşu, yürüyüş ve tempolu aktivitelere dayalı canlı yarışlarla seni ödüllendiren bir spor platformudur.',
+                        'Movliq; koşu, yürüyüş ve tempolu aktivitelere dayalı canlı ve eğlenceli meydan okumalarla seni ödüllendiren bir spor platformudur.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           fontSize: 20,
