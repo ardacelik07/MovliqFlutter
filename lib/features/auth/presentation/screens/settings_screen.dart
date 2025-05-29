@@ -131,88 +131,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     );
                   },
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Bildirimler', textColor),
-            _buildSettingsCard(
-              cardColor: cardColor,
-              children: [
-                _buildSwitchTile(
-                  icon: Icons.grid_view, // Görseldeki ikon
-                  iconColor: iconColor,
-                  title: 'Yarış bildirimleri',
-                  textColor: textColor,
-                  value: _raceNotifications,
-                  onChanged: (value) {
-                    setState(() => _raceNotifications = value);
-                  },
-                  activeColor: activeSwitchColor,
-                ),
                 _buildDivider(secondaryTextColor),
-                _buildSwitchTile(
-                  icon: Icons.grid_view, // Görseldeki ikon
+                _buildNavigationTile(
+                  icon: Icons.delete,
                   iconColor: iconColor,
-                  title: 'Motivasyon Mesajı',
+                  title: 'Hesabİ Sİl',
                   textColor: textColor,
-                  value: _motivationMessages,
-                  onChanged: (value) {
-                    setState(() => _motivationMessages = value);
-                  },
-                  activeColor: activeSwitchColor,
+                  onTap: () {},
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            _buildSectionTitle('Hesap Bağlantıları', textColor),
-            _buildSettingsCard(
-              cardColor: cardColor,
-              children: [
-                _buildConnectedTile(
-                  // SVG yerine Icon kullanıyoruz, gerekirse SVG eklenebilir
-                  platformIcon: Icons.facebook,
-                  platformName: 'Facebook ile Bağlan',
-                  status: 'Bağlı Değil',
-                  isConnected: false,
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                  iconColor: iconColor, // Facebook için varsayılan ikon
-                  onTap: () {},
-                ),
-                _buildDivider(secondaryTextColor),
-                _buildConnectedTile(
-                  platformIcon: Icons.g_mobiledata, // Google ikonu
-                  platformName: 'Google ile Bağlan',
-                  status: 'Bağlı',
-                  isConnected: true,
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                  iconColor: iconColor,
-                  onTap: () {},
-                ),
-                _buildDivider(secondaryTextColor),
-                _buildConnectedTile(
-                  platformIcon: Icons.apple, // Apple ikonu
-                  platformName: 'Apple ile Bağlan',
-                  status: 'Bağlı Değil',
-                  isConnected: false,
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                  iconColor: iconColor,
-                  onTap: () {},
-                ),
-              ],
-            ),
 
+            _buildSettingsCard(
+              cardColor: cardColor,
+              children: [
+                _buildNavigationTile(
+                  icon: Icons.star, // Gizlilik ikonu
+                  iconColor: iconColor,
+                  title: 'Movliqi Puanla',
+                  textColor: textColor,
+                  onTap: () {},
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
-            _buildSectionTitle('Gizlilik ve Destek', textColor),
+            _buildSectionTitle('Gİzlİlİk ve Destek', textColor),
             _buildSettingsCard(
               cardColor: cardColor,
               children: [
                 _buildNavigationTile(
                   icon: Icons.description_outlined, // Gizlilik ikonu
                   iconColor: iconColor,
-                  title: 'Gizlilik Politikası',
+                  title: 'Gİzlİlİk Polİtİkası',
                   textColor: textColor,
                   onTap: () {
                     Navigator.push(
