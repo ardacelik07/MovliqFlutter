@@ -162,6 +162,7 @@ flutter:
     - assets/images/solobuton.png
     - assets/images/recordout.png
     - assets/images/couponicon.png
+    - assets/images/waitingroom2.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

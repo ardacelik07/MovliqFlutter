@@ -128,8 +128,8 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                 final roomType = settings.roomType ?? 'outdoor';
                                 final activityType =
                                     roomType.toLowerCase() == 'outdoor'
-                                        ? 'Outdoor Koşu'
-                                        : 'Indoor Koşu';
+                                        ? 'Dış Mekan'
+                                        : 'İç Mekan';
 
                                 // WaitingRoom'a yönlendir ve oda bilgilerini aktar
                                 Navigator.pushReplacement(

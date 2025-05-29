@@ -702,12 +702,22 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
 
     // --- Subtitle Text'i _isRaceStarting ve Notifier State'ine Göre Al (Güncellendi) ---
     final String subtitleText;
+    const int maxParticipantsForNormalRace =
+        3; // Max participants for normal matchmaking
+
     if (raceState.isPreRaceCountdownActive) {
       subtitleText = 'Yarış Başlıyor...';
     } else if (raceState.isRaceActive && !raceState.isPreRaceCountdownActive) {
       subtitleText = 'Yarış Başladı';
     } else {
-      subtitleText = 'Diğer yarışmacılar bekleniyor...';
+      if (widget.roomCode.isEmpty && mounted) {
+        // Normal matchmaking race and widget is mounted
+        subtitleText =
+            '${_participants.length}/$maxParticipantsForNormalRace Katılımcı';
+      } else {
+        // Private room or other cases
+        subtitleText = 'Diğer yarışmacılar bekleniyor...';
+      }
     }
     // --- Subtitle Text Logic Sonu ---
 
@@ -757,7 +767,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                     Container(
                       padding: const EdgeInsets.all(20.0),
                       decoration: BoxDecoration(
-                        color: _cardBackgroundColor,
+                        color: const Color(0xFF2A2A2A),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
@@ -771,13 +781,24 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            displayActivityType,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: _primaryTextColor,
-                            ),
+                          Row(
+                            children: [
+                              Image.asset(
+                                'assets/icons/bayrak.png',
+                                width: 20,
+                                height: 20,
+                                color: _accentColor,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                displayActivityType,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: _primaryTextColor,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -872,8 +893,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20.0), // Padding for image
                         child: Image.asset(
-                          'assets/images/waiting.png', // Use provided asset
-                          fit: BoxFit.contain,
+                          'assets/images/waitingroom2.png', // Use provided asset
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),
@@ -884,7 +905,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20.0, vertical: 16.0),
                       decoration: BoxDecoration(
-                        color: _cardBackgroundColor,
+                        color: Color(0xFF2A2A2A),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
