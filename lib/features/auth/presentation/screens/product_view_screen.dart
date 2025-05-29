@@ -591,7 +591,7 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                               color: lightTextColor)),
                       const SizedBox(height: 8),
                       Text(
-                          'Kalan kupon adeti: \\${product.stock?.toString() ?? 'Bilgi Yok'}',
+                          'Kalan kupon adeti: ${product.stock?.toString() ?? 'Bilgi Yok'}',
                           style: GoogleFonts.bangers(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
