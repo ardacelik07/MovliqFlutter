@@ -13,6 +13,7 @@ import 'package:my_flutter_project/features/auth/presentation/providers/product_
 import 'package:my_flutter_project/features/auth/presentation/providers/user_data_provider.dart'; // UserDataProvider eklendi
 import './product_view_screen.dart'; // ProductViewScreen import edildi
 // Add imports for NetworkErrorWidget and specific exceptions
+import 'package:google_fonts/google_fonts.dart';
 import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException; // Specific import
 import 'dart:io' show SocketException; // Specific import
@@ -102,9 +103,9 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
+                              Text(
                                 'Mağaza',
-                                style: TextStyle(
+                                style: GoogleFonts.bangers(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
                                   color: lightTextColor,
@@ -131,7 +132,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                       data: (userData) => Text(
                                         userData?.coins?.toStringAsFixed(2) ??
                                             '0.00',
-                                        style: const TextStyle(
+                                        style: GoogleFonts.bangers(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                           color: lightTextColor,
@@ -284,9 +285,9 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                             chipSelectedBackground, // Lime green background
                                         borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: const Text(
+                                      child: Text(
                                         'Bu Aya Özel',
-                                        style: TextStyle(
+                                        style: GoogleFonts.bangers(
                                           color: darkTextColor, // Black text
                                           fontWeight: FontWeight.bold,
                                           fontSize: 12,
@@ -330,7 +331,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                       // Product Title
                                       Text(
                                         product.name,
-                                        style: const TextStyle(
+                                        style: GoogleFonts.bangers(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                           color: lightTextColor,
@@ -340,7 +341,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                       // Product Description
                                       Text(
                                         product.description,
-                                        style: TextStyle(
+                                        style: GoogleFonts.bangers(
                                           fontSize: 14,
                                           color: greyTextColor,
                                         ),
@@ -360,7 +361,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                               Text(
                                                 product.price
                                                     .toStringAsFixed(0),
-                                                style: const TextStyle(
+                                                style: GoogleFonts.bangers(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 14,
                                                   color: limeGreen,
@@ -404,19 +405,20 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                           color: cardBackground,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Center(
+                        child: Center(
                             child: Text('Özel ürün yüklenemedi.',
-                                style: TextStyle(color: Colors.redAccent))),
+                                style: GoogleFonts.bangers(
+                                    color: Colors.redAccent))),
                       ),
                     ),
 
                     const SizedBox(height: 20),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
                         'Alışveriş',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: GoogleFonts.bangers(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: lightTextColor,
@@ -468,11 +470,14 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
             : products.where((p) => p.category == 'All').toList();
 
     if (filteredProducts.isEmpty) {
-      return const Center(
+      return Center(
         heightFactor: 3.0,
         child: Text(
           'No products found in this category.',
-          style: TextStyle(color: lightTextColor, fontSize: 16),
+          style: GoogleFonts.bangers(
+            color: lightTextColor,
+            fontSize: 16,
+          ),
         ),
       );
     }
@@ -568,7 +573,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: GoogleFonts.bangers(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                     color: lightTextColor,
@@ -584,7 +589,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                       children: [
                         Text(
                           price,
-                          style: const TextStyle(
+                          style: GoogleFonts.bangers(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: limeGreen,
