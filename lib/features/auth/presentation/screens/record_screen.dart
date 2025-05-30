@@ -143,7 +143,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         prefs.getBool('permissionsRequested') ?? false;
 
     final statusLocation = await Permission.location.status;
-    final PermissionStatus statusActivity;
+    final statusActivity;
     if (Platform.isIOS) {
       statusActivity = await Permission.sensors.status;
     } else {
