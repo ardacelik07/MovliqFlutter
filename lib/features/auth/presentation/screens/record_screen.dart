@@ -19,6 +19,7 @@ import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/error_display_widget.dart';
+import '../widgets/permission_widget.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -28,7 +29,7 @@ class RecordScreen extends ConsumerStatefulWidget {
 }
 
 class _RecordScreenState extends ConsumerState<RecordScreen>
-    with SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   bool _isRecording = false;
   bool _isPaused = false;
   bool _showStatsScreen = false;
@@ -55,11 +56,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   Uint8List? _femaleMarkerIcon;
 
   bool _hasLocationPermission = false;
+  bool _hasPedometerPermission = false;
+  bool _isOurPermissionDialogShown = false;
 
   int _steps = 0;
   int _initialSteps = 0;
   StreamSubscription<StepCount>? _stepCountSubscription;
-  bool _hasPedometerPermission = false;
 
   double _lastDistance = 0.0;
   int _lastSteps = 0;
@@ -76,6 +78,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadMarkerImage();
 
     _pulseController = AnimationController(
@@ -95,32 +98,17 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
+        _ensurePermissionUi();
         _checkAndRequestPermissionsSequentially();
       }
     });
 
-    // Listen to userDataProvider for gender changes
-    // Ensure this is called after _pointAnnotationManager and _mapboxMap are potentially initialized.
-    // It might be better to set up this listener after _onMapCreated or _onStyleLoaded.
-    // For now, we'll add a null check for managers.
     ref.listenManual(userDataProvider, (previous, next) {
       final prevGender = previous?.value?.gender;
       final String? nextGender = next.value?.gender;
-
-      debugPrint(
-          'RecordScreen: userDataProvider listener triggered. Prev gender: $prevGender, Next gender: $nextGender');
-
-      // Check if gender actually changed or became available
       if (prevGender != nextGender && nextGender != null) {
-        debugPrint(
-            'RecordScreen: Gender changed from $prevGender to $nextGender or became available. Attempting to update marker icon.');
         if (_pointAnnotationManager != null && _mapboxMap != null) {
-          // Ensure map and manager are ready
-          // Call async function without awaiting, or make listener async if needed
           _updateMarkerIconForGenderChange();
-        } else {
-          debugPrint(
-              'RecordScreen: userDataProvider listener - map or annotation manager not ready for icon update.');
         }
       }
     });
@@ -128,6 +116,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pulseController.dispose();
     _timer?.cancel();
     _calorieCalculationTimer?.cancel();
@@ -135,6 +124,48 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     _stepCountSubscription?.cancel();
     _mapboxMap?.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _ensurePermissionUi();
+    }
+  }
+
+  Future<void> _ensurePermissionUi() async {
+    if (!mounted) return;
+
+    final statusLocation = await Permission.location.status;
+    final statusActivity = await Permission.activityRecognition.status;
+
+    bool permissionsGranted =
+        statusLocation.isGranted && statusActivity.isGranted;
+
+    setState(() {
+      _hasLocationPermission = statusLocation.isGranted;
+      _hasPedometerPermission = statusActivity.isGranted;
+    });
+
+    if (permissionsGranted) {
+      if (_isOurPermissionDialogShown) {
+        if (Navigator.canPop(context)) {
+          Navigator.of(context).pop();
+        }
+        _isOurPermissionDialogShown = false;
+      }
+    } else {
+      if (!_isOurPermissionDialogShown && mounted) {
+        _isOurPermissionDialogShown = true;
+        await showDialog(
+          context: context,
+          builder: (BuildContext dialogContext) => const PermissionWidget(),
+          barrierDismissible: false,
+        );
+        _isOurPermissionDialogShown = false;
+      }
+    }
   }
 
   void _finishRecordingAndHideStats() {
@@ -151,19 +182,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       final ByteData maleByteData =
           await rootBundle.load('assets/images/mapbox.png');
       _maleMarkerIcon = maleByteData.buffer.asUint8List();
-      debugPrint('RecordScreen: _loadMarkerImage - Male marker icon LOADED.');
-
       final ByteData femaleByteData =
           await rootBundle.load('assets/icons/locaitonwomen.webp');
       _femaleMarkerIcon = femaleByteData.buffer.asUint8List();
-      debugPrint('RecordScreen: _loadMarkerImage - Female marker icon LOADED.');
-
       if (mounted) {
         setState(() {});
-        // If a marker already exists and icons just loaded, try to update it
         if (_currentLocationMarker != null && _pointAnnotationManager != null) {
-          debugPrint(
-              'RecordScreen: Icons loaded after marker existed, attempting refresh.');
           await _updateMarkerIconForGenderChange();
         }
       }
@@ -174,17 +198,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   Future<void> _checkAndRequestPermissionsSequentially() async {
-    // Önce bildirim iznini iste (en kritik olmayan)
-
-    // Sonra konum iznini iste
     await _checkAndRequestLocationPermission();
-
-    // En son aktivite iznini iste
     if (mounted) {
       await _checkAndRequestActivityPermission();
     }
     if (mounted) {
-      setState(() {}); // Refresh UI if needed after permission checks
+      _ensurePermissionUi();
     }
   }
 
@@ -195,13 +214,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           await platform.invokeMethod('requestNotificationPermission');
       return result;
     } catch (e) {
-      debugPrint('RecordScreen - iOS bildirim izni alma hatası: $e');
       return false;
     }
   }
 
   Future<void> _checkAndRequestLocationPermission() async {
-    debugPrint('RecordScreen - Konum izni kontrolü başlatılıyor...');
     bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) {
@@ -212,205 +229,75 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             duration: Duration(seconds: 3),
           ),
         );
-        // Consider guiding the user to settings if they don't enable it.
         await geo.Geolocator.openLocationSettings();
       }
-      setState(() {
-        _hasLocationPermission = false;
-      });
+      if (mounted) setState(() => _hasLocationPermission = false);
       return;
     }
 
+    PermissionStatus status;
     if (Platform.isIOS) {
-      geo.LocationPermission permission =
+      geo.LocationPermission geoPermission =
           await geo.Geolocator.checkPermission();
-      debugPrint('RecordScreen - iOS konum izni durumu: $permission');
-
-      if (permission == geo.LocationPermission.deniedForever) {
-        if (mounted) {
-          // _showPermissionPermanentlyDeniedDialog('Konum'); // ÇAĞRI KALDIRILDI
-          debugPrint(
-              'RecordScreen - iOS konum izni kalıcı olarak reddedilmiş.');
-        }
-        setState(() {
-          _hasLocationPermission = false;
-        });
-      } else if (permission == geo.LocationPermission.whileInUse ||
-          permission == geo.LocationPermission.always) {
-        setState(() {
-          _hasLocationPermission = true;
-        });
-        await _getCurrentLocation(); // Try to get location if permission granted
-      } else {
-        // If permission is denied (but not forever), we don't request it.
-        // The user needs to grant it manually via settings.
-        debugPrint(
-            'RecordScreen - iOS konum izni verilmemiş, kullanıcı ayarlarından vermeli.');
-        setState(() {
-          _hasLocationPermission = false;
-        });
-      }
+      if (geoPermission == geo.LocationPermission.deniedForever)
+        status = PermissionStatus.permanentlyDenied;
+      else if (geoPermission == geo.LocationPermission.whileInUse ||
+          geoPermission == geo.LocationPermission.always)
+        status = PermissionStatus.granted;
+      else
+        status = PermissionStatus.denied;
     } else {
-      // Android
-      final status = await Permission.location.status;
-      debugPrint('RecordScreen - Android konum izin durumu: $status');
+      status = await Permission.location.status;
+    }
 
-      if (!status.isGranted && !status.isLimited) {
-        // final requestedStatus = await Permission.location.request(); // İZİN İSTEĞİ KALDIRILDI
-        // debugPrint(
-        //     'RecordScreen - Android izin istenen durum (Uygulamayı Kullanırken): $requestedStatus');
-        // if (requestedStatus.isPermanentlyDenied) {
-        if (status.isPermanentlyDenied) {
-          // Check current status for permanent denial
-          if (mounted) {
-            // _showPermissionPermanentlyDeniedDialog('Konum'); // ÇAĞRI KALDIRILDI
-            debugPrint(
-                'RecordScreen - Android konum izni kalıcı olarak reddedilmiş.');
-          }
-          setState(() {
-            _hasLocationPermission = false;
-          });
-          // } else if (requestedStatus.isGranted || requestedStatus.isLimited) {
-          //   setState(() {
-          //     _hasLocationPermission = true;
-          //   });
-          //   await _getCurrentLocation();
-        } else {
-          // If permission is denied (but not forever), we don't request it.
-          debugPrint(
-              'RecordScreen - Android konum izni verilmemiş, kullanıcı ayarlarından vermeli.');
-          setState(() {
-            _hasLocationPermission = false;
-          });
-        }
-      } else {
-        debugPrint(
-            'RecordScreen - Android konum izni (Uygulamayı Kullanırken veya Her Zaman) zaten verilmiş.');
-        setState(() {
-          _hasLocationPermission = true;
-        });
-        await _getCurrentLocation();
-      }
+    if (mounted) setState(() => _hasLocationPermission = status.isGranted);
+
+    if (status.isDenied || status.isPermanentlyDenied) {
+      // _ensurePermissionUi will handle showing the dialog if needed
+    } else if (status.isGranted) {
+      await _getCurrentLocation();
     }
   }
 
   Future<void> _checkAndRequestActivityPermission() async {
-    debugPrint('RecordScreen - Aktivite izni kontrolü başlatılıyor...');
+    PermissionStatus status;
     if (Platform.isAndroid) {
-      final status = await Permission.activityRecognition.status;
-      debugPrint('RecordScreen - Android aktivite izin durumu: $status');
-      if (!status.isGranted) {
-        // final requestedStatus = await Permission.activityRecognition.request(); // İZİN İSTEĞİ KALDIRILDI
-        // debugPrint(
-        //     'RecordScreen - Android aktivite izin istenen durum: $requestedStatus');
-        // if (requestedStatus.isPermanentlyDenied) {
-        if (status.isPermanentlyDenied) {
-          // Check current status for permanent denial
-          if (mounted) {
-            // _showPermissionPermanentlyDeniedDialog('Fiziksel Aktivite'); // ÇAĞRI KALDIRILDI
-            debugPrint(
-                'RecordScreen - Android aktivite izni kalıcı olarak reddedilmiş.');
-          }
-          setState(() {
-            _hasPedometerPermission = false;
-          });
-          // } else if (requestedStatus.isGranted) {
-          //   setState(() {
-          //     _hasPedometerPermission = true;
-          //   });
-          //   _initPedometer();
-        } else {
-          debugPrint(
-              'RecordScreen - Android aktivite izni verilmemiş, kullanıcı ayarlarından vermeli.');
-          setState(() {
-            _hasPedometerPermission = false;
-          });
-        }
-      } else {
-        debugPrint('RecordScreen - Android aktivite izni zaten verilmiş.');
-        setState(() {
-          _hasPedometerPermission = true;
-        });
-        _initPedometer();
-      }
+      status = await Permission.activityRecognition.status;
     } else if (Platform.isIOS) {
-      // For iOS, we rely on Pedometer stream and Permission.sensors
-      // First, check general sensor access, which is a prerequisite for motion data.
-      final sensorStatus =
-          await Permission.sensors.status; // İZİN İSTEĞİ DEĞİL, DURUM KONTROLÜ
-      debugPrint(
-          'RecordScreen - iOS sensör (motion) izin durumu: $sensorStatus');
+      status = await Permission.sensors.status; // General motion access
+      // Further HealthKit check is more complex and tied to Pedometer init
+    } else {
+      return; // Not applicable
+    }
 
-      // Then, try to listen to Pedometer stream to confirm HealthKit access for steps.
-      bool healthKitStepsVerified = false;
-      StreamSubscription<StepCount>? healthCheckSubscription;
+    if (mounted) setState(() => _hasPedometerPermission = status.isGranted);
 
-      if (sensorStatus.isGranted) {
-        // Proceed only if sensor permission is already granted
+    if (status.isDenied || status.isPermanentlyDenied) {
+      // _ensurePermissionUi will handle showing the dialog
+    } else if (status.isGranted) {
+      if (Platform.isIOS) {
+        // For iOS, an explicit Pedometer init might be needed after sensors grant
+        // or we rely on _initPedometer to confirm HealthKit specifically.
+        bool healthKitStepsVerified = false;
+        StreamSubscription<StepCount>? healthCheckSubscription;
         try {
           healthCheckSubscription =
               Pedometer.stepCountStream.listen((StepCount event) {
-            debugPrint(
-                'RecordScreen - HealthKit adım verisi alındı: ${event.steps}');
             healthKitStepsVerified = true;
-            healthCheckSubscription?.cancel(); // Stop listening once verified
-          }, onError: (error) {
-            debugPrint(
-                'RecordScreen - HealthKit adım verisi dinleme hatası: $error');
             healthCheckSubscription?.cancel();
-          }, onDone: () {
-            debugPrint('RecordScreen - HealthKit adım verisi stream bitti.');
+          }, onError: (error) {
+            healthCheckSubscription?.cancel();
           });
-
-          // Wait a short period for data to arrive.
-          await Future.delayed(const Duration(seconds: 2));
-          await healthCheckSubscription?.cancel(); // Ensure cancellation
-
-          if (healthKitStepsVerified) {
-            debugPrint(
-                'RecordScreen - iOS HealthKit (Adımlar) izni doğrulandı.');
-            setState(() {
-              _hasPedometerPermission = true;
-            });
-            _initPedometer();
-          } else {
-            debugPrint(
-                'RecordScreen - iOS HealthKit (Adımlar) izni DOĞRULANAMADI veya sensör izni reddedildi.');
-            setState(() {
-              _hasPedometerPermission = false;
-            });
-            // if (mounted &&
-            //     (sensorStatus.isDenied ||
-            //         sensorStatus.isPermanentlyDenied ||
-            //         !healthKitStepsVerified)) {
-            //   // _showIOSHealthKitPermissionDialog(); // ÇAĞRI KALDIRILDI
-            //   debugPrint(
-            //       'RecordScreen - iOS HealthKit (Adımlar) veya sensör izni reddedilmiş/doğrulanamadı.');
-            // }
-          }
+          await Future.delayed(const Duration(seconds: 1)); // Short wait
+          await healthCheckSubscription?.cancel();
+          if (mounted)
+            setState(() => _hasPedometerPermission = healthKitStepsVerified);
+          if (healthKitStepsVerified) _initPedometer();
         } catch (e) {
-          debugPrint(
-              'RecordScreen - iOS HealthKit izin kontrolü sırasında genel hata: $e');
-          setState(() {
-            _hasPedometerPermission = false;
-          });
-          // if (mounted) {
-          //   // _showIOSHealthKitPermissionDialog(); // ÇAĞRI KALDIRILDI
-          //   debugPrint(
-          //       'RecordScreen - iOS HealthKit izin kontrol hatası, dialog gösterilmeyecek.');
-          // }
+          if (mounted) setState(() => _hasPedometerPermission = false);
         }
       } else {
-        // Sensor permission not granted
-        debugPrint(
-            'RecordScreen - iOS sensör (motion) izni verilmemiş. Adım sayar kullanılamaz.');
-        setState(() {
-          _hasPedometerPermission = false;
-        });
-        // if (mounted) {
-        //    // _showIOSHealthKitPermissionDialog(); // ÇAĞRI KALDIRILDI
-        //    debugPrint('RecordScreen - iOS sensör izni yok, HealthKit dialog gösterilmeyecek.');
-        // }
+        _initPedometer();
       }
     }
   }
@@ -625,12 +512,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   void _startRecording() {
     debugPrint('RecordScreen: _startRecording çağrıldı.');
-    // Ensure permissions before starting, _hasLocationPermission is key
     if (!_hasLocationPermission) {
       debugPrint(
           'RecordScreen: Konum izni yok, kayıt başlatılamıyor. İzinler isteniyor...');
-      _checkAndRequestLocationPermission(); // Re-request if not granted
-      // Optionally, show a message to the user
+      _checkAndRequestLocationPermission();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content:
@@ -641,9 +526,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (!_hasPedometerPermission && (Platform.isAndroid || Platform.isIOS)) {
       debugPrint(
           'RecordScreen: Adım sayar izni yok, kayıt başlatılıyor ancak adımlar eksik olabilir. İzinler isteniyor...');
-      _checkAndRequestActivityPermission(); // Re-request if not granted
+      _checkAndRequestActivityPermission();
       if (mounted) {}
-      // Allow recording to start without pedometer, but steps might be 0.
     }
 
     setState(() {
@@ -1336,12 +1220,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _initPedometer() {
-    // Ensure we have permission before initializing
     if (!_hasPedometerPermission) {
       debugPrint(
           "RecordScreen: _initPedometer - Adım sayar izni yok, başlatılamıyor.");
-      // Optionally, try to request it again here or ensure it's requested before _startRecording
-      // _checkAndRequestActivityPermission(); // Could be called here
       return;
     }
     _stepCountSubscription?.cancel();
@@ -1614,7 +1495,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (_isRecording) {
       debugPrint(
           'RecordScreen: _onStyleLoadedListener - Recording is active. Restoring route and marker.');
-      // Restore polyline
       if (_polylineAnnotationManager != null &&
           _mapboxRouteCoordinates.length > 1) {
         debugPrint(
@@ -1640,7 +1520,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             'RecordScreen: _onStyleLoadedListener - Polyline manager null or not enough points for polyline (${_mapboxRouteCoordinates.length}).');
       }
 
-      // Restore current location marker
       if (_currentMapboxPoint != null && _pointAnnotationManager != null) {
         if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
           debugPrint(
@@ -1682,7 +1561,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             'RecordScreen: _onStyleLoadedListener - Current mapbox point or point manager is null, cannot restore marker.');
       }
     } else {
-      // Not recording
       debugPrint(
           'RecordScreen: _onStyleLoadedListener - Not recording. Calling _getCurrentLocation after delay.');
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -1706,7 +1584,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     debugPrint(
         'RecordScreen: _getCurrentMarkerIconBytes - _maleMarkerIcon is null: ${_maleMarkerIcon == null}');
 
-    // Default to 'male' if gender is null, not available, or not 'female'
     final String effectiveGender =
         (genderFromProvider?.toLowerCase() == 'female') ? 'female' : 'male';
     debugPrint(
@@ -1722,34 +1599,29 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     return _maleMarkerIcon;
   }
 
-  // Function to update marker icon, typically called when gender changes or icons load late.
   Future<void> _updateMarkerIconForGenderChange() async {
-    // Ensure point manager and a current point are available
     if (_pointAnnotationManager == null || _currentMapboxPoint == null) {
       debugPrint(
           'RecordScreen: _updateMarkerIconForGenderChange - PointAnnotationManager or currentMapboxPoint is null. Cannot update icon yet.');
       return;
     }
 
-    // If a current marker exists, delete it first
     if (_currentLocationMarker != null) {
       debugPrint(
           'RecordScreen: _updateMarkerIconForGenderChange - Deleting existing marker ID: ${_currentLocationMarker!.id} to update icon.');
       try {
         await _pointAnnotationManager!.delete(_currentLocationMarker!);
-        _currentLocationMarker = null; // Nullify after deletion
+        _currentLocationMarker = null;
       } catch (e) {
         debugPrint(
             'RecordScreen: _updateMarkerIconForGenderChange - Error deleting existing marker: $e');
-        // Continue, as we want to try creating a new one anyway
       }
     } else {
       debugPrint(
           'RecordScreen: _updateMarkerIconForGenderChange - No existing marker to delete.');
     }
 
-    final Uint8List? newIconBytes =
-        _getCurrentMarkerIconBytes(); // Get the latest icon based on current gender and loaded icons
+    final Uint8List? newIconBytes = _getCurrentMarkerIconBytes();
 
     if (newIconBytes != null) {
       debugPrint(
@@ -1757,11 +1629,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       try {
         _currentLocationMarker = await _pointAnnotationManager!.create(
           mb.PointAnnotationOptions(
-            geometry: _currentMapboxPoint!, // Use the current map point
+            geometry: _currentMapboxPoint!,
             image: newIconBytes,
-            iconSize: newIconBytes == _femaleMarkerIcon
-                ? 0.20
-                : 0.15, // Dynamic icon size
+            iconSize: newIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
           ),
         );
         debugPrint(

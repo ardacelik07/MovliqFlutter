@@ -170,6 +170,7 @@ flutter:
     - assets/images/age.png
     - assets/icons/info.png
     - assets/icons/invitefriend.png
+    - assets/images/permission.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

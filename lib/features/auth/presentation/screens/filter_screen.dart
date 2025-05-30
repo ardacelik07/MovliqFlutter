@@ -6,6 +6,8 @@ import 'verification_screen.dart';
 // import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Commented out or remove
 import 'package:my_flutter_project/features/auth/presentation/screens/create_or_join_room_screen.dart'; // Added import
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../widgets/permission_widget.dart';
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -14,23 +16,60 @@ class FilterScreen extends ConsumerStatefulWidget {
   ConsumerState<FilterScreen> createState() => _FilterScreenState();
 }
 
-class _FilterScreenState extends ConsumerState<FilterScreen> {
+class _FilterScreenState extends ConsumerState<FilterScreen>
+    with WidgetsBindingObserver {
   String? _selectedPreference;
+  bool _isOurPermissionDialogShown = false;
 
   @override
   void initState() {
     super.initState();
-    // İzin isteme çağrısı kaldırıldı
-    // _checkAndRequestPermissionsSequentially();
+    WidgetsBinding.instance.addObserver(this);
+    Future.microtask(() => _ensurePermissionUi());
   }
 
-  // Tüm izin isteme metotları kaldırıldı
-  // Future<void> _checkAndRequestPermissionsSequentially() async { ... }
-  // Future<void> _checkAndRequestNotificationPermission() async { ... }
-  // Future<bool> _requestIOSNotificationPermission() async { ... }
-  // Future<String> _checkIOSNotificationPermission() async { ... }
-  // Future<void> _checkAndRequestLocationPermission() async { ... }
-  // Future<void> _checkAndRequestActivityPermission() async { ... }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _ensurePermissionUi();
+    }
+  }
+
+  Future<void> _ensurePermissionUi() async {
+    if (!mounted) return;
+
+    final statusLocation = await Permission.location.status;
+    final statusActivity = await Permission.activityRecognition.status;
+
+    bool permissionsGranted =
+        statusLocation.isGranted && statusActivity.isGranted;
+
+    if (permissionsGranted) {
+      if (_isOurPermissionDialogShown) {
+        if (Navigator.canPop(context)) {
+          Navigator.of(context).pop();
+        }
+        _isOurPermissionDialogShown = false;
+      }
+    } else {
+      if (!_isOurPermissionDialogShown && mounted) {
+        _isOurPermissionDialogShown = true;
+        await showDialog(
+          context: context,
+          builder: (BuildContext dialogContext) => const PermissionWidget(),
+          barrierDismissible: false,
+        );
+        _isOurPermissionDialogShown = false;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,8 +160,6 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                                   builder: (context) => const FilterScreen2()),
                             );
                           } else if (_selectedPreference == 'private') {
-                            // print("Private race selected. Navigation to PrivateRacesView commented out due to missing parameters.");
-                            // TODO: Investigate PrivateRacesView constructor and pass required parameters.
                             Navigator.push(
                               context,
                               MaterialPageRoute(
