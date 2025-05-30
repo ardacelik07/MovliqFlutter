@@ -165,9 +165,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }
         _isOurPermissionDialogShown = false;
       }
-      if (Platform.isIOS && statusActivity.isGranted) {
-        _initPedometer();
-      }
     } else {
       if ((permissionsAlreadyRequestedAtLeastOnceOnHome &&
               !allPermissionsCurrentlyGranted) ||
@@ -180,9 +177,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             barrierDismissible: false,
           );
           _isOurPermissionDialogShown = false;
-          if (mounted) {
-            _ensurePermissionUi();
-          }
         }
       }
     }
@@ -284,9 +278,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       debugPrint(
           "RecordScreen: Activity/Sensor permission denied or permanently denied. User will be prompted by PermissionWidget if needed.");
     } else if (status.isGranted) {
-      if (Platform.isAndroid) {
-        _initPedometer();
-      }
+      _initPedometer();
     }
   }
 
@@ -1232,30 +1224,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       }, onError: (error) {
         debugPrint('RecordScreen - Adım sayar hatası: $error');
         if (mounted) {
-          String errorMessage = 'Adım sayar başlatılamadı.';
-          bool showSettingsButton = false;
-
-          if (Platform.isIOS) {
-            errorMessage =
-                'Adım verileri alınamıyor. Lütfen Sağlık (Health) uygulamasından Movliq için gerekli izinleri kontrol edin.';
-            showSettingsButton = true;
-          } else {
-            errorMessage =
-                'Adım sayar başlatılamadı: ${error.toString().split('.').last}';
-          }
-
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(errorMessage),
-              duration: const Duration(seconds: 5),
-              action: showSettingsButton
-                  ? SnackBarAction(
-                      label: 'Ayarlar',
-                      onPressed: () {
-                        openAppSettings();
-                      },
-                    )
-                  : null,
+              content: Text(
+                  'Adım sayar başlatılamadı: ${error.toString().split('.').last}'),
+              duration: const Duration(seconds: 3),
             ),
           );
         }
