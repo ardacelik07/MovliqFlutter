@@ -38,26 +38,9 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
         loading: () {},
         error: (error, _) {
           if (mounted) {
-            String errorMessage = 'Bir hata oluştu'; // Varsayılan mesaj
-            if (error is Map<String, dynamic> && error['message'] != null) {
-              // Map ve message anahtarı varsa, message'ı kullan
-              if (error['message'] is String) {
-                errorMessage = error['message'] as String;
-              } else {
-                // message alanı String değilse, güvenli bir şekilde string'e çevir
-                errorMessage = error['message'].toString();
-              }
-            } else if (error is String) {
-              // Hata doğrudan bir String ise (eski durum veya başka bir senaryo)
-              errorMessage = error;
-            } else {
-              // Diğer hata türleri için genel bir mesaj veya error.toString()
-              errorMessage = error.toString();
-            }
-
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: ErrorDisplayWidget(message: errorMessage),
+                content: ErrorDisplayWidget(errorObject: error),
                 duration: const Duration(seconds: 3),
               ),
             );
