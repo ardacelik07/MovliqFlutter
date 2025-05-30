@@ -211,6 +211,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }
       }
     }
+    // Force a rebuild if mounted, to ensure UI updates with the latest permission status
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _checkAndRequestPermissionsSequentially() async {
