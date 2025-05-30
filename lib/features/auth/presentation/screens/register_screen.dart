@@ -42,9 +42,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         loading: () {},
         error: (error, _) {
           if (mounted) {
+            String errorMessage = 'Bir hata oluştu';
+            if (error is Map<String, dynamic> && error['message'] != null) {
+              errorMessage = error['message'];
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Kayıt hatası: $error'),
+                content: Text(errorMessage),
                 backgroundColor: Colors.red,
               ),
             );
