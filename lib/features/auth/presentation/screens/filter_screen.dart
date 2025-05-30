@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../widgets/permission_widget.dart';
 import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -46,6 +47,10 @@ class _FilterScreenState extends ConsumerState<FilterScreen>
   Future<void> _ensurePermissionUi() async {
     if (!mounted) return;
 
+    final prefs = await SharedPreferences.getInstance();
+    final bool permissionsAlreadyRequestedOnHome =
+        prefs.getBool('permissionsRequested') ?? false;
+
     final statusLocation = await Permission.location.status;
     final PermissionStatus statusActivity;
     if (Platform.isIOS) {
@@ -54,10 +59,10 @@ class _FilterScreenState extends ConsumerState<FilterScreen>
       statusActivity = await Permission.activityRecognition.status;
     }
 
-    bool permissionsGranted =
+    bool allPermissionsGranted =
         statusLocation.isGranted && statusActivity.isGranted;
 
-    if (permissionsGranted) {
+    if (allPermissionsGranted) {
       if (_isOurPermissionDialogShown) {
         if (Navigator.canPop(context)) {
           Navigator.of(context).pop();
@@ -65,14 +70,32 @@ class _FilterScreenState extends ConsumerState<FilterScreen>
         _isOurPermissionDialogShown = false;
       }
     } else {
-      if (!_isOurPermissionDialogShown && mounted) {
-        _isOurPermissionDialogShown = true;
-        await showDialog(
-          context: context,
-          builder: (BuildContext dialogContext) => const PermissionWidget(),
-          barrierDismissible: false,
-        );
-        _isOurPermissionDialogShown = false;
+      if (!permissionsAlreadyRequestedOnHome || !_isOurPermissionDialogShown) {
+        if (!_isOurPermissionDialogShown && mounted) {
+          _isOurPermissionDialogShown = true;
+          await showDialog(
+            context: context,
+            builder: (BuildContext dialogContext) => const PermissionWidget(),
+            barrierDismissible: false,
+          );
+          _isOurPermissionDialogShown = false;
+          if (mounted) {
+            await _ensurePermissionUi();
+          }
+        }
+      } else if (permissionsAlreadyRequestedOnHome && !allPermissionsGranted) {
+        if (!_isOurPermissionDialogShown && mounted) {
+          _isOurPermissionDialogShown = true;
+          await showDialog(
+            context: context,
+            builder: (BuildContext dialogContext) => const PermissionWidget(),
+            barrierDismissible: false,
+          );
+          _isOurPermissionDialogShown = false;
+          if (mounted) {
+            await _ensurePermissionUi();
+          }
+        }
       }
     }
   }

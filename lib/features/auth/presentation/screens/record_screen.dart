@@ -20,6 +20,7 @@ import 'dart:typed_data';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/error_display_widget.dart';
 import '../widgets/permission_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -137,6 +138,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   Future<void> _ensurePermissionUi() async {
     if (!mounted) return;
 
+    final prefs = await SharedPreferences.getInstance();
+    final bool permissionsAlreadyRequestedOnHome =
+        prefs.getBool('permissionsRequested') ?? false;
+
     final statusLocation = await Permission.location.status;
     final PermissionStatus statusActivity;
     if (Platform.isIOS) {
@@ -145,7 +150,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       statusActivity = await Permission.activityRecognition.status;
     }
 
-    bool permissionsGranted =
+    bool allPermissionsGranted =
         statusLocation.isGranted && statusActivity.isGranted;
 
     setState(() {
@@ -153,7 +158,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _hasPedometerPermission = statusActivity.isGranted;
     });
 
-    if (permissionsGranted) {
+    if (allPermissionsGranted) {
       if (_isOurPermissionDialogShown) {
         if (Navigator.canPop(context)) {
           Navigator.of(context).pop();
@@ -161,16 +166,31 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _isOurPermissionDialogShown = false;
       }
     } else {
-      if (!_isOurPermissionDialogShown && mounted) {
-        _isOurPermissionDialogShown = true;
-        await showDialog(
-          context: context,
-          builder: (BuildContext dialogContext) => const PermissionWidget(),
-          barrierDismissible: false,
-        );
-        if (mounted) {
+      if (!permissionsAlreadyRequestedOnHome || !_isOurPermissionDialogShown) {
+        if (!_isOurPermissionDialogShown && mounted) {
+          _isOurPermissionDialogShown = true;
+          await showDialog(
+            context: context,
+            builder: (BuildContext dialogContext) => const PermissionWidget(),
+            barrierDismissible: false,
+          );
           _isOurPermissionDialogShown = false;
-          await _checkAndRequestPermissionsSequentially();
+          if (mounted) {
+            await _checkAndRequestPermissionsSequentially();
+          }
+        }
+      } else if (permissionsAlreadyRequestedOnHome && !allPermissionsGranted) {
+        if (!_isOurPermissionDialogShown && mounted) {
+          _isOurPermissionDialogShown = true;
+          await showDialog(
+            context: context,
+            builder: (BuildContext dialogContext) => const PermissionWidget(),
+            barrierDismissible: false,
+          );
+          _isOurPermissionDialogShown = false;
+          if (mounted) {
+            await _checkAndRequestPermissionsSequentially();
+          }
         }
       }
     }
@@ -209,9 +229,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     await _checkAndRequestLocationPermission();
     if (mounted) {
       await _checkAndRequestActivityPermission();
-    }
-    if (mounted) {
-      _ensurePermissionUi();
     }
   }
 
