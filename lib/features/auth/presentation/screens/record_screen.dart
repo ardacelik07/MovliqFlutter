@@ -300,31 +300,34 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       final status = await Permission.activityRecognition.status;
       debugPrint('RecordScreen - Android aktivite izin durumu: $status');
       if (!status.isGranted) {
-        // final requestedStatus = await Permission.activityRecognition.request(); // İZİN İSTEĞİ KALDIRILDI
-        // debugPrint(
-        //     'RecordScreen - Android aktivite izin istenen durum: $requestedStatus');
-        // if (requestedStatus.isPermanentlyDenied) {
         if (status.isPermanentlyDenied) {
-          // Check current status for permanent denial
           if (mounted) {
-            // _showPermissionPermanentlyDeniedDialog('Fiziksel Aktivite'); // ÇAĞRI KALDIRILDI
             debugPrint(
                 'RecordScreen - Android aktivite izni kalıcı olarak reddedilmiş.');
           }
           setState(() {
             _hasPedometerPermission = false;
           });
-          // } else if (requestedStatus.isGranted) {
-          //   setState(() {
-          //     _hasPedometerPermission = true;
-          //   });
-          //   _initPedometer();
         } else {
+          // Request permission if not permanently denied and not already granted
+          debugPrint('RecordScreen - Android aktivite izni isteniyor...');
+          final requestedStatus = await Permission.activityRecognition.request();
           debugPrint(
-              'RecordScreen - Android aktivite izni verilmemiş, kullanıcı ayarlarından vermeli.');
-          setState(() {
-            _hasPedometerPermission = false;
-          });
+              'RecordScreen - Android aktivite izin isteği sonucu: $requestedStatus');
+          if (requestedStatus.isGranted) {
+            setState(() {
+              _hasPedometerPermission = true;
+            });
+            _initPedometer();
+          } else {
+            setState(() {
+              _hasPedometerPermission = false;
+            });
+            if (requestedStatus.isPermanentlyDenied && mounted) {
+              debugPrint(
+                  'RecordScreen - Android aktivite izni (istek sonrası) kalıcı olarak reddedilmiş.');
+            }
+          }
         }
       } else {
         debugPrint('RecordScreen - Android aktivite izni zaten verilmiş.');
@@ -334,83 +337,15 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _initPedometer();
       }
     } else if (Platform.isIOS) {
-      // For iOS, we rely on Pedometer stream and Permission.sensors
-      // First, check general sensor access, which is a prerequisite for motion data.
-      final sensorStatus =
-          await Permission.sensors.status; // İZİN İSTEĞİ DEĞİL, DURUM KONTROLÜ
       debugPrint(
-          'RecordScreen - iOS sensör (motion) izin durumu: $sensorStatus');
-
-      // Then, try to listen to Pedometer stream to confirm HealthKit access for steps.
-      bool healthKitStepsVerified = false;
-      StreamSubscription<StepCount>? healthCheckSubscription;
-
-      if (sensorStatus.isGranted) {
-        // Proceed only if sensor permission is already granted
-        try {
-          healthCheckSubscription =
-              Pedometer.stepCountStream.listen((StepCount event) {
-            debugPrint(
-                'RecordScreen - HealthKit adım verisi alındı: ${event.steps}');
-            healthKitStepsVerified = true;
-            healthCheckSubscription?.cancel(); // Stop listening once verified
-          }, onError: (error) {
-            debugPrint(
-                'RecordScreen - HealthKit adım verisi dinleme hatası: $error');
-            healthCheckSubscription?.cancel();
-          }, onDone: () {
-            debugPrint('RecordScreen - HealthKit adım verisi stream bitti.');
-          });
-
-          // Wait a short period for data to arrive.
-          await Future.delayed(const Duration(seconds: 2));
-          await healthCheckSubscription?.cancel(); // Ensure cancellation
-
-          if (healthKitStepsVerified) {
-            debugPrint(
-                'RecordScreen - iOS HealthKit (Adımlar) izni doğrulandı.');
-            setState(() {
-              _hasPedometerPermission = true;
-            });
-            _initPedometer();
-          } else {
-            debugPrint(
-                'RecordScreen - iOS HealthKit (Adımlar) izni DOĞRULANAMADI veya sensör izni reddedildi.');
-            setState(() {
-              _hasPedometerPermission = false;
-            });
-            // if (mounted &&
-            //     (sensorStatus.isDenied ||
-            //         sensorStatus.isPermanentlyDenied ||
-            //         !healthKitStepsVerified)) {
-            //   // _showIOSHealthKitPermissionDialog(); // ÇAĞRI KALDIRILDI
-            //   debugPrint(
-            //       'RecordScreen - iOS HealthKit (Adımlar) veya sensör izni reddedilmiş/doğrulanamadı.');
-            // }
-          }
-        } catch (e) {
-          debugPrint(
-              'RecordScreen - iOS HealthKit izin kontrolü sırasında genel hata: $e');
-          setState(() {
-            _hasPedometerPermission = false;
-          });
-          // if (mounted) {
-          //   // _showIOSHealthKitPermissionDialog(); // ÇAĞRI KALDIRILDI
-          //   debugPrint(
-          //       'RecordScreen - iOS HealthKit izin kontrol hatası, dialog gösterilmeyecek.');
-          // }
-        }
-      } else {
-        // Sensor permission not granted
-        debugPrint(
-            'RecordScreen - iOS sensör (motion) izni verilmemiş. Adım sayar kullanılamaz.');
+          'RecordScreen - iOS: "Hareket ve Fitness" izni her zaman verilmiş varsayılıyor (senkronizasyon sorununu çözmek için).');
+      if (mounted) {
         setState(() {
-          _hasPedometerPermission = false;
+          _hasPedometerPermission = true;
         });
-        // if (mounted) {
-        //    // _showIOSHealthKitPermissionDialog(); // ÇAĞRI KALDIRILDI
-        //    debugPrint('RecordScreen - iOS sensör izni yok, HealthKit dialog gösterilmeyecek.');
-        // }
+        // _hasPedometerPermission true olduğu için _initPedometer içindeki kontrol geçecek
+        // ve adım sayar başlatılmaya çalışılacaktır.
+        _initPedometer();
       }
     }
   }
