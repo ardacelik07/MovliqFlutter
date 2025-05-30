@@ -97,10 +97,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }
       });
 
-    Future.delayed(const Duration(milliseconds: 200), () {
+    Future.microtask(() {
       if (mounted) {
         _ensurePermissionUi();
-        _checkAndRequestPermissionsSequentially();
       }
     });
 
@@ -131,12 +130,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
+      debugPrint("RecordScreen: App resumed, checking permissions.");
       _ensurePermissionUi();
     }
   }
 
   Future<void> _ensurePermissionUi() async {
     if (!mounted) return;
+    debugPrint("RecordScreen: _ensurePermissionUi called.");
 
     final prefs = await SharedPreferences.getInstance();
     final bool permissionsAlreadyRequestedAtLeastOnceOnHome =
@@ -150,6 +151,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       statusActivity = await Permission.activityRecognition.status;
     }
 
+    debugPrint(
+        "RecordScreen: Location status: $statusLocation, Activity status: $statusActivity");
+
     bool allPermissionsCurrentlyGranted =
         statusLocation.isGranted && statusActivity.isGranted;
 
@@ -159,17 +163,29 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     });
 
     if (allPermissionsCurrentlyGranted) {
+      debugPrint("RecordScreen: All permissions are granted.");
       if (_isOurPermissionDialogShown) {
+        debugPrint(
+            "RecordScreen: Permission dialog was shown, attempting to pop.");
         if (Navigator.canPop(context)) {
           Navigator.of(context).pop();
         }
         _isOurPermissionDialogShown = false;
       }
+      if (_hasPedometerPermission) {
+        _initPedometer();
+      }
+      if (_hasLocationPermission) {
+        _getCurrentLocation();
+      }
     } else {
+      debugPrint(
+          "RecordScreen: Not all permissions are granted. Permissions on home: $permissionsAlreadyRequestedAtLeastOnceOnHome");
       if ((permissionsAlreadyRequestedAtLeastOnceOnHome &&
               !allPermissionsCurrentlyGranted) ||
           (!permissionsAlreadyRequestedAtLeastOnceOnHome)) {
         if (!_isOurPermissionDialogShown && mounted) {
+          debugPrint("RecordScreen: Showing permission dialog.");
           _isOurPermissionDialogShown = true;
           await showDialog(
             context: context,
@@ -177,7 +193,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             barrierDismissible: false,
           );
           _isOurPermissionDialogShown = false;
+          debugPrint("RecordScreen: Permission dialog closed.");
+        } else {
+          debugPrint(
+              "RecordScreen: Permission dialog already shown or component not mounted.");
         }
+      } else {
+        debugPrint(
+            "RecordScreen: Conditions to show permission dialog not met.");
       }
     }
   }
@@ -253,7 +276,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (mounted) setState(() => _hasLocationPermission = status.isGranted);
 
     if (status.isDenied || status.isPermanentlyDenied) {
-      // _ensurePermissionUi will handle showing the dialog if needed
+      debugPrint(
+          "RecordScreen: Location permission not granted. _ensurePermissionUi will handle dialog.");
+      if (mounted) _ensurePermissionUi();
     } else if (status.isGranted) {
       await _getCurrentLocation();
     }
@@ -262,23 +287,28 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   Future<void> _checkAndRequestActivityPermission() async {
     PermissionStatus status;
     if (Platform.isAndroid) {
-      status = await Permission.activityRecognition.status;
+      status = await Permission.activityRecognition.request();
     } else if (Platform.isIOS) {
-      status = await Permission.sensors.status;
+      status = await Permission.sensors.request();
     } else {
       if (mounted) setState(() => _hasPedometerPermission = false);
-      return; // Not applicable
+      return;
     }
 
     if (mounted) {
       setState(() => _hasPedometerPermission = status.isGranted);
     }
 
-    if (status.isDenied || status.isPermanentlyDenied) {
+    if (status.isGranted) {
       debugPrint(
-          "RecordScreen: Activity/Sensor permission denied or permanently denied. User will be prompted by PermissionWidget if needed.");
-    } else if (status.isGranted) {
+          "RecordScreen: Activity/Sensor permission granted. Initializing pedometer.");
       _initPedometer();
+    } else {
+      debugPrint(
+          "RecordScreen: Activity/Sensor permission not granted. _ensurePermissionUi will handle dialog if needed.");
+      if (mounted && (status.isDenied || status.isPermanentlyDenied)) {
+        _ensurePermissionUi();
+      }
     }
   }
 
@@ -1200,7 +1230,13 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _initPedometer() {
+    if (!_hasPedometerPermission) {
+      debugPrint(
+          "RecordScreen: _initPedometer called but _hasPedometerPermission is false.");
+      return;
+    }
     _stepCountSubscription?.cancel();
+    debugPrint("RecordScreen: Initializing pedometer...");
 
     try {
       _stepCountSubscription =
@@ -1208,7 +1244,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         if (!mounted || !_isRecording || _isPaused) {
           return;
         }
-
+        debugPrint(
+            "RecordScreen: StepCount event: ${event.steps}, Current initial steps: $_initialSteps");
         setState(() {
           if (_initialSteps == 0 && event.steps > 0) {
             _initialSteps = event.steps;
@@ -1222,26 +1259,51 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           }
         });
       }, onError: (error) {
-        debugPrint('RecordScreen - Adım sayar hatası: $error');
+        debugPrint('RecordScreen - Pedometer error: $error');
         if (mounted) {
+          String errorMessage = 'Adım sayar başlatılamadı.';
+          bool showSettingsButton = false;
+
+          if (Platform.isIOS) {
+            errorMessage =
+                'Adım verileri alınamıyor. Lütfen Sağlık (Health) uygulamasından Movliq için gerekli izinleri kontrol edin ve uygulamayı yeniden başlatın.';
+            showSettingsButton = true;
+          } else {
+            errorMessage =
+                'Adım sayar başlatılamadı: ${error.toString().split('.').last}';
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                  'Adım sayar başlatılamadı: ${error.toString().split('.').last}'),
-              duration: const Duration(seconds: 3),
+              content: Text(errorMessage),
+              duration: const Duration(seconds: 7),
+              action: showSettingsButton
+                  ? SnackBarAction(
+                      label: 'Ayarlar',
+                      onPressed: () {
+                        openAppSettings();
+                      },
+                    )
+                  : null,
             ),
           );
+          if (mounted) {
+            setState(() {
+              _hasPedometerPermission = false;
+            });
+          }
         }
       }, onDone: () {
         debugPrint("RecordScreen: Pedometer stream done.");
       }, cancelOnError: true);
     } catch (e) {
-      debugPrint('RecordScreen - Pedometer başlatma genel hatası: $e');
+      debugPrint('RecordScreen - Pedometer initialization general error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: ErrorDisplayWidget(
-                errorObject: "Adım sayar başlatılırken kritik hata"),
+                errorObject:
+                    "Adım sayar başlatılırken kritik bir hata oluştu."),
           ),
         );
       }
