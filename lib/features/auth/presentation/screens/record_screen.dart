@@ -139,7 +139,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (!mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final bool permissionsAlreadyRequestedOnHome =
+    final bool permissionsAlreadyRequestedAtLeastOnceOnHome =
         prefs.getBool('permissionsRequested') ?? false;
 
     final statusLocation = await Permission.location.status;
@@ -150,7 +150,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       statusActivity = await Permission.activityRecognition.status;
     }
 
-    bool allPermissionsGranted =
+    bool allPermissionsCurrentlyGranted =
         statusLocation.isGranted && statusActivity.isGranted;
 
     setState(() {
@@ -158,7 +158,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _hasPedometerPermission = statusActivity.isGranted;
     });
 
-    if (allPermissionsGranted) {
+    if (allPermissionsCurrentlyGranted) {
       if (_isOurPermissionDialogShown) {
         if (Navigator.canPop(context)) {
           Navigator.of(context).pop();
@@ -166,9 +166,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _isOurPermissionDialogShown = false;
       }
     } else {
-      if ((!permissionsAlreadyRequestedOnHome || !allPermissionsGranted) &&
-          !_isOurPermissionDialogShown) {
-        if (mounted) {
+      if ((permissionsAlreadyRequestedAtLeastOnceOnHome &&
+              !allPermissionsCurrentlyGranted) ||
+          (!permissionsAlreadyRequestedAtLeastOnceOnHome)) {
+        if (!_isOurPermissionDialogShown && mounted) {
           _isOurPermissionDialogShown = true;
           await showDialog(
             context: context,

@@ -48,7 +48,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen>
     if (!mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final bool permissionsAlreadyRequestedOnHome =
+    final bool permissionsAlreadyRequestedAtLeastOnceOnHome =
         prefs.getBool('permissionsRequested') ?? false;
 
     final statusLocation = await Permission.location.status;
@@ -59,10 +59,10 @@ class _FilterScreenState extends ConsumerState<FilterScreen>
       statusActivity = await Permission.activityRecognition.status;
     }
 
-    bool allPermissionsGranted =
+    bool allPermissionsCurrentlyGranted =
         statusLocation.isGranted && statusActivity.isGranted;
 
-    if (allPermissionsGranted) {
+    if (allPermissionsCurrentlyGranted) {
       if (_isOurPermissionDialogShown) {
         if (Navigator.canPop(context)) {
           Navigator.of(context).pop();
@@ -70,9 +70,10 @@ class _FilterScreenState extends ConsumerState<FilterScreen>
         _isOurPermissionDialogShown = false;
       }
     } else {
-      if ((!permissionsAlreadyRequestedOnHome || !allPermissionsGranted) &&
-          !_isOurPermissionDialogShown) {
-        if (mounted) {
+      if ((permissionsAlreadyRequestedAtLeastOnceOnHome &&
+              !allPermissionsCurrentlyGranted) ||
+          (!permissionsAlreadyRequestedAtLeastOnceOnHome)) {
+        if (!_isOurPermissionDialogShown && mounted) {
           _isOurPermissionDialogShown = true;
           await showDialog(
             context: context,
