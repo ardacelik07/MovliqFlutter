@@ -35,6 +35,7 @@ import 'profile_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'dart:convert'; // Import jsonEncode
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Change to ConsumerStatefulWidget
 class HomePage extends ConsumerStatefulWidget {
@@ -46,10 +47,12 @@ class HomePage extends ConsumerStatefulWidget {
 
 // Create State class
 class _HomePageState extends ConsumerState<HomePage> {
+  bool _permissionsRequested = false;
+
   @override
   void initState() {
     super.initState();
-    _checkAndRequestPermissionsSequentially();
+    _checkPermissionsStatus();
 
     // Check for cheat kicked status when HomePage initializes and listen for changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -69,6 +72,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         _showCheatKickedDialog();
       }
     });
+  }
+
+  Future<void> _checkPermissionsStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    _permissionsRequested = prefs.getBool('permissionsRequested') ?? false;
+
+    if (!_permissionsRequested) {
+      await _checkAndRequestPermissionsSequentially();
+      prefs.setBool('permissionsRequested', true);
+    }
   }
 
   void _showCheatKickedDialog() {
