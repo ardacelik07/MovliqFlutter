@@ -166,8 +166,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _isOurPermissionDialogShown = false;
       }
     } else {
-      if (!permissionsAlreadyRequestedOnHome || !_isOurPermissionDialogShown) {
-        if (!_isOurPermissionDialogShown && mounted) {
+      if ((!permissionsAlreadyRequestedOnHome || !allPermissionsGranted) &&
+          !_isOurPermissionDialogShown) {
+        if (mounted) {
           _isOurPermissionDialogShown = true;
           await showDialog(
             context: context,
@@ -175,22 +176,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             barrierDismissible: false,
           );
           _isOurPermissionDialogShown = false;
-          if (mounted) {
-            await _checkAndRequestPermissionsSequentially();
-          }
-        }
-      } else if (permissionsAlreadyRequestedOnHome && !allPermissionsGranted) {
-        if (!_isOurPermissionDialogShown && mounted) {
-          _isOurPermissionDialogShown = true;
-          await showDialog(
-            context: context,
-            builder: (BuildContext dialogContext) => const PermissionWidget(),
-            barrierDismissible: false,
-          );
-          _isOurPermissionDialogShown = false;
-          if (mounted) {
-            await _checkAndRequestPermissionsSequentially();
-          }
         }
       }
     }
