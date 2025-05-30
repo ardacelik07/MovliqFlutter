@@ -6,10 +6,6 @@ import 'verification_screen.dart';
 // import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Commented out or remove
 import 'package:my_flutter_project/features/auth/presentation/screens/create_or_join_room_screen.dart'; // Added import
 import 'package:google_fonts/google_fonts.dart';
-import 'package:permission_handler/permission_handler.dart';
-import '../widgets/permission_widget.dart';
-import 'dart:io';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -18,72 +14,12 @@ class FilterScreen extends ConsumerStatefulWidget {
   ConsumerState<FilterScreen> createState() => _FilterScreenState();
 }
 
-class _FilterScreenState extends ConsumerState<FilterScreen>
-    with WidgetsBindingObserver {
+class _FilterScreenState extends ConsumerState<FilterScreen> {
   String? _selectedPreference;
-  bool _isOurPermissionDialogShown = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    Future.microtask(() => _ensurePermissionUi());
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      _ensurePermissionUi();
-    }
-  }
-
-  Future<void> _ensurePermissionUi() async {
-    if (!mounted) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final bool permissionsAlreadyRequestedAtLeastOnceOnHome =
-        prefs.getBool('permissionsRequested') ?? false;
-
-    final statusLocation = await Permission.location.status;
-    final PermissionStatus statusActivity;
-    if (Platform.isIOS) {
-      statusActivity = await Permission.sensors.status;
-    } else {
-      statusActivity = await Permission.activityRecognition.status;
-    }
-
-    bool allPermissionsCurrentlyGranted =
-        statusLocation.isGranted && statusActivity.isGranted;
-
-    if (allPermissionsCurrentlyGranted) {
-      if (_isOurPermissionDialogShown) {
-        if (Navigator.canPop(context)) {
-          Navigator.of(context).pop();
-        }
-        _isOurPermissionDialogShown = false;
-      }
-    } else {
-      if ((permissionsAlreadyRequestedAtLeastOnceOnHome &&
-              !allPermissionsCurrentlyGranted) ||
-          (!permissionsAlreadyRequestedAtLeastOnceOnHome)) {
-        if (!_isOurPermissionDialogShown && mounted) {
-          _isOurPermissionDialogShown = true;
-          await showDialog(
-            context: context,
-            builder: (BuildContext dialogContext) => const PermissionWidget(),
-            barrierDismissible: false,
-          );
-          _isOurPermissionDialogShown = false;
-        }
-      }
-    }
   }
 
   @override
@@ -175,6 +111,8 @@ class _FilterScreenState extends ConsumerState<FilterScreen>
                                   builder: (context) => const FilterScreen2()),
                             );
                           } else if (_selectedPreference == 'private') {
+                            // print("Private race selected. Navigation to PrivateRacesView commented out due to missing parameters.");
+                            // TODO: Investigate PrivateRacesView constructor and pass required parameters.
                             Navigator.push(
                               context,
                               MaterialPageRoute(
