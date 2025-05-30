@@ -288,63 +288,26 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (!mounted) return;
     debugPrint("RecordScreen: _checkAndRequestActivityPermission called.");
     PermissionStatus status;
+    bool directSetIosPedometerPermission = false;
 
     if (Platform.isIOS) {
-      PermissionStatus sensorStatus = await Permission.sensors.status;
+      // Kullanıcının isteği üzerine iOS için pedometer iznini doğrudan true ayarlıyoruz.
+      // Bu, HealthKit testini bypass edecek ve adım sayar izni her zaman verilmiş gibi davranacaktır.
+      directSetIosPedometerPermission = true;
+      status =
+          PermissionStatus.granted; // Durumu manuel olarak granted yapıyoruz.
       debugPrint(
-          "RecordScreen: iOS Permission.sensors.status before request: $sensorStatus");
+          "RecordScreen: iOS - Pedometer permission directly set to true as per user request.");
+
+      // Yine de temel sensör iznini kontrol edebiliriz, ancak _hasPedometerPermission\'ı etkilemeyecek.
+      PermissionStatus sensorStatus = await Permission.sensors.status;
       if (sensorStatus.isDenied) {
         sensorStatus = await Permission.sensors.request();
         debugPrint(
-            "RecordScreen: iOS Permission.sensors.request() result: $sensorStatus");
+            "RecordScreen: iOS Permission.sensors.request() result (for logging only): $sensorStatus");
       }
-
-      if (!sensorStatus.isGranted) {
-        if (mounted) {
-          setState(() => _hasPedometerPermission = false);
-        }
-        return;
-      }
-
-      debugPrint(
-          "RecordScreen: iOS Sensor permission granted. Proceeding with HealthKit access test.");
-      final completer = Completer<bool>();
-      StreamSubscription<StepCount>? testSubscription;
-
-      testSubscription = Pedometer.stepCountStream.listen(
-        (event) {
-          if (!completer.isCompleted) {
-            debugPrint(
-                "RecordScreen: HealthKit test - Step data received: ${event.steps}");
-            completer.complete(true);
-            testSubscription?.cancel();
-          }
-        },
-        onError: (error) {
-          if (!completer.isCompleted) {
-            debugPrint("RecordScreen: HealthKit test - Error: $error");
-            completer.complete(false);
-            testSubscription?.cancel();
-          }
-        },
-      );
-
-      Future.delayed(const Duration(seconds: 3), () {
-        if (!completer.isCompleted) {
-          debugPrint(
-              "RecordScreen: HealthKit test - Timed out. Assuming no access.");
-          completer.complete(false);
-          testSubscription?.cancel();
-        }
-      });
-
-      bool healthKitAccessGranted = await completer.future;
-      status = healthKitAccessGranted
-          ? PermissionStatus.granted
-          : PermissionStatus.denied;
-      debugPrint(
-          "RecordScreen: iOS HealthKit access test result: $healthKitAccessGranted -> Status: $status");
     } else {
+      // Android
       status = await Permission.activityRecognition.status;
       if (status.isDenied) {
         status = await Permission.activityRecognition.request();
@@ -352,11 +315,19 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }
 
     debugPrint(
-        "RecordScreen: Final Activity/Sensor Permission Status: $status");
+        "RecordScreen: Final Activity/Sensor Permission Status (after potential direct iOS set): $status");
 
     if (mounted) {
-      setState(() => _hasPedometerPermission = status.isGranted);
-      if (status.isGranted) {
+      setState(() {
+        if (Platform.isIOS) {
+          _hasPedometerPermission = directSetIosPedometerPermission;
+        } else {
+          _hasPedometerPermission = status.isGranted;
+        }
+      });
+
+      // Pedometer'ı sadece gerçekten izin varsa (veya iOS için direkt ayarlandıysa) başlat
+      if (_hasPedometerPermission) {
         _initPedometer();
       }
     }
