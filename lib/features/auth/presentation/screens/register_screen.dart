@@ -5,6 +5,7 @@ import 'welcome_screen.dart';
 import 'package:flutter/services.dart';
 import 'login_input_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/error_display_widget.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -48,8 +49,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(errorMessage),
-                backgroundColor: Colors.red,
+                content: ErrorDisplayWidget(message: errorMessage),
               ),
             );
           }

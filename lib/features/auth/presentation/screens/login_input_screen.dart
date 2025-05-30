@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../widgets/error_display_widget.dart';
 import '../providers/auth_provider.dart';
 import '../screens/tabs.dart';
 import 'package:flutter/services.dart';
@@ -53,10 +54,11 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
               // Diğer hata türleri için genel bir mesaj veya error.toString()
               errorMessage = error.toString();
             }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('$errorMessage'),
-                backgroundColor: Colors.red,
+                content: ErrorDisplayWidget(message: errorMessage),
+                duration: const Duration(seconds: 3),
               ),
             );
           }
