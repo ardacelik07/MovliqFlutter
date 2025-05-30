@@ -416,8 +416,7 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text(
-                                        'Promosyon kodu alınamadı: ${e.toString()}',
+                                    content: Text('Promosyon kodu alınamadı',
                                         style: GoogleFonts.bangers(
                                             color: Colors.red)),
                                     backgroundColor: cardBackground),

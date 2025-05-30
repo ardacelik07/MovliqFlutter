@@ -15,7 +15,7 @@ class ErrorDisplayWidget extends StatelessWidget {
     } else if (error is String) {
       return error;
     }
-    return 'An unexpected error occurred';
+    return 'Bir hata oluştu';
   }
 
   @override

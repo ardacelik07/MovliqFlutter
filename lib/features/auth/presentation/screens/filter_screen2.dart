@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/waitingRoom_screen.dart';
 import '../providers/race_settings_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/error_display_widget.dart';
 
 class FilterScreen2 extends ConsumerStatefulWidget {
   const FilterScreen2({super.key});
@@ -148,7 +149,9 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                 if (!mounted) return;
 
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(e.toString())),
+                                  SnackBar(
+                                    content: ErrorDisplayWidget(errorObject: e),
+                                  ),
                                 );
 
                                 setState(() {

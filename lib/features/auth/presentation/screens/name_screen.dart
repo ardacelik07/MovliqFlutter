@@ -4,7 +4,7 @@ import 'package:flutter/services.dart'; // Import services
 import 'package:google_fonts/google_fonts.dart';
 
 import '../providers/user_profile_provider.dart';
-
+import '../widgets/error_display_widget.dart';
 import 'age_gender_screen.dart';
 
 class NameScreen extends ConsumerStatefulWidget {

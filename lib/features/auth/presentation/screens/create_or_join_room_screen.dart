@@ -6,6 +6,7 @@ import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Adde
 import 'package:my_flutter_project/features/auth/presentation/screens/waitingRoom_screen.dart'; // Added for WaitingRoomScreen
 import 'package:intl/intl.dart'; // For DateTime formatting
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/error_display_widget.dart';
 
 // Define colors for consistency at file level
 const Color _kAccentColor = Color(0xFFC4FF62);
@@ -176,8 +177,8 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Bir hata oluştu: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: ErrorDisplayWidget(errorObject: e)));
       }
     } finally {
       if (mounted) {
@@ -309,8 +310,8 @@ class _CreateOrJoinRoomScreenState extends ConsumerState<CreateOrJoinRoomScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Bir hata oluştu: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: ErrorDisplayWidget(errorObject: e)));
       }
     } finally {
       if (mounted) {
