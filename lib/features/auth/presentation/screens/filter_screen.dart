@@ -8,6 +8,7 @@ import 'package:my_flutter_project/features/auth/presentation/screens/create_or_
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../widgets/permission_widget.dart';
+import 'dart:io';
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -46,7 +47,12 @@ class _FilterScreenState extends ConsumerState<FilterScreen>
     if (!mounted) return;
 
     final statusLocation = await Permission.location.status;
-    final statusActivity = await Permission.activityRecognition.status;
+    final PermissionStatus statusActivity;
+    if (Platform.isIOS) {
+      statusActivity = await Permission.sensors.status;
+    } else {
+      statusActivity = await Permission.activityRecognition.status;
+    }
 
     bool permissionsGranted =
         statusLocation.isGranted && statusActivity.isGranted;

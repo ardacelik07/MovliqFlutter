@@ -138,7 +138,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (!mounted) return;
 
     final statusLocation = await Permission.location.status;
-    final statusActivity = await Permission.activityRecognition.status;
+    final PermissionStatus statusActivity;
+    if (Platform.isIOS) {
+      statusActivity = await Permission.sensors.status;
+    } else {
+      statusActivity = await Permission.activityRecognition.status;
+    }
 
     bool permissionsGranted =
         statusLocation.isGranted && statusActivity.isGranted;
@@ -163,7 +168,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           builder: (BuildContext dialogContext) => const PermissionWidget(),
           barrierDismissible: false,
         );
-        _isOurPermissionDialogShown = false;
+        if (mounted) {
+          _isOurPermissionDialogShown = false;
+          await _checkAndRequestPermissionsSequentially();
+        }
       }
     }
   }
@@ -204,17 +212,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }
     if (mounted) {
       _ensurePermissionUi();
-    }
-  }
-
-  Future<bool> _requestIOSNotificationPermission() async {
-    const platform = MethodChannel('com.movliq/notifications');
-    try {
-      final bool result =
-          await platform.invokeMethod('requestNotificationPermission');
-      return result;
-    } catch (e) {
-      return false;
     }
   }
 
@@ -264,41 +261,21 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (Platform.isAndroid) {
       status = await Permission.activityRecognition.status;
     } else if (Platform.isIOS) {
-      status = await Permission.sensors.status; // General motion access
-      // Further HealthKit check is more complex and tied to Pedometer init
+      status = await Permission.sensors.status;
     } else {
+      if (mounted) setState(() => _hasPedometerPermission = false);
       return; // Not applicable
     }
 
-    if (mounted) setState(() => _hasPedometerPermission = status.isGranted);
+    if (mounted) {
+      setState(() => _hasPedometerPermission = status.isGranted);
+    }
 
     if (status.isDenied || status.isPermanentlyDenied) {
-      // _ensurePermissionUi will handle showing the dialog
+      debugPrint(
+          "RecordScreen: Activity/Sensor permission denied or permanently denied. User will be prompted by PermissionWidget if needed.");
     } else if (status.isGranted) {
-      if (Platform.isIOS) {
-        // For iOS, an explicit Pedometer init might be needed after sensors grant
-        // or we rely on _initPedometer to confirm HealthKit specifically.
-        bool healthKitStepsVerified = false;
-        StreamSubscription<StepCount>? healthCheckSubscription;
-        try {
-          healthCheckSubscription =
-              Pedometer.stepCountStream.listen((StepCount event) {
-            healthKitStepsVerified = true;
-            healthCheckSubscription?.cancel();
-          }, onError: (error) {
-            healthCheckSubscription?.cancel();
-          });
-          await Future.delayed(const Duration(seconds: 1)); // Short wait
-          await healthCheckSubscription?.cancel();
-          if (mounted)
-            setState(() => _hasPedometerPermission = healthKitStepsVerified);
-          if (healthKitStepsVerified) _initPedometer();
-        } catch (e) {
-          if (mounted) setState(() => _hasPedometerPermission = false);
-        }
-      } else {
-        _initPedometer();
-      }
+      _initPedometer();
     }
   }
 
@@ -1220,51 +1197,48 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _initPedometer() {
-    if (!_hasPedometerPermission) {
-      debugPrint(
-          "RecordScreen: _initPedometer - Adım sayar izni yok, başlatılamıyor.");
-      return;
-    }
     _stepCountSubscription?.cancel();
 
     try {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        _stepCountSubscription =
-            Pedometer.stepCountStream.listen((StepCount event) {
-          if (!mounted || !_isRecording || _isPaused) {
-            return;
-          }
+      _stepCountSubscription =
+          Pedometer.stepCountStream.listen((StepCount event) {
+        if (!mounted || !_isRecording || _isPaused) {
+          return;
+        }
 
-          setState(() {
-            if (_initialSteps == 0 && event.steps > 0) {
+        setState(() {
+          if (_initialSteps == 0 && event.steps > 0) {
+            _initialSteps = event.steps;
+            _steps = 0;
+          } else if (_initialSteps > 0) {
+            _steps = event.steps - _initialSteps;
+            if (_steps < 0) {
               _initialSteps = event.steps;
               _steps = 0;
-            } else if (_initialSteps > 0) {
-              _steps = event.steps - _initialSteps;
-              if (_steps < 0) {
-                _steps = 0;
-              }
             }
-          });
-        }, onError: (error) {
-          debugPrint('RecordScreen - Adım sayar hatası: $error');
-          if (Platform.isIOS) {}
-        }, onDone: () {});
-
-        Future.delayed(const Duration(seconds: 5), () {
-          if (mounted && _isRecording && _initialSteps == 0) {
-            _stepCountSubscription?.cancel();
-            _initPedometer();
           }
         });
-      });
+      }, onError: (error) {
+        debugPrint('RecordScreen - Adım sayar hatası: $error');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Adım sayar başlatılamadı: ${error.toString().split('.').last}'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }, onDone: () {
+        debugPrint("RecordScreen: Pedometer stream done.");
+      }, cancelOnError: true);
     } catch (e) {
-      debugPrint('RecordScreen - Pedometer başlatma hatası: $e');
+      debugPrint('RecordScreen - Pedometer başlatma genel hatası: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: ErrorDisplayWidget(
-                errorObject: "Adım sayar başlatılırken hata"),
+                errorObject: "Adım sayar başlatılırken kritik hata"),
           ),
         );
       }
