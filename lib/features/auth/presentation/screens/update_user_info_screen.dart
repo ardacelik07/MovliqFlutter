@@ -5,6 +5,7 @@ import 'package:intl/intl.dart'; // For date formatting
 import 'package:google_fonts/google_fonts.dart';
 import '../../domain/models/user_data_model.dart';
 import '../providers/user_data_provider.dart';
+import '../widgets/error_display_widget.dart';
 
 // Enum definitions matching the visual choices
 // It's better practice to use enums for discrete choices.
@@ -183,8 +184,8 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Kullanıcı verisi bulunamadı!',
-                style: GoogleFonts.bangers(color: _backgroundColor)),
+            content:
+                ErrorDisplayWidget(errorObject: 'Kullanıcı verisi bulunamadı!'),
             backgroundColor: _accentColor,
           ),
         );
@@ -224,8 +225,8 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       final error = ref.read(userDataProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Güncelleme hatası: ${error ?? "Bilinmeyen hata"}',
-              style: GoogleFonts.bangers(color: _textColor)),
+          content: ErrorDisplayWidget(
+              errorObject: 'Güncelleme hatası: Bilinmeyen hata'),
           backgroundColor: Colors.redAccent,
         ),
       );

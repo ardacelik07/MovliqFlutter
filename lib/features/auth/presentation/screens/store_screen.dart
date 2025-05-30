@@ -150,7 +150,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                         if (err is SocketException ||
                                             err is ClientException) {
                                           return const Tooltip(
-                                            message: 'Network Error',
+                                            message: 'Bağlantı hatası',
                                             child: Icon(
                                               Icons.signal_wifi_off_rounded,
                                               color: Colors.red,

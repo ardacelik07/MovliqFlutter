@@ -18,6 +18,7 @@ import './record_stats_screen.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/error_display_widget.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -206,7 +207,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Lütfen konum servislerini açın.'),
+            content: ErrorDisplayWidget(
+                errorObject: 'Lütfen konum servislerini açın.'),
             duration: Duration(seconds: 3),
           ),
         );
@@ -640,11 +642,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       debugPrint(
           'RecordScreen: Adım sayar izni yok, kayıt başlatılıyor ancak adımlar eksik olabilir. İzinler isteniyor...');
       _checkAndRequestActivityPermission(); // Re-request if not granted
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text(
-                'Adım sayar izni verilmedi, adımlarınız kaydedilemeyebilir.')));
-      }
+      if (mounted) {}
       // Allow recording to start without pedometer, but steps might be 0.
     }
 
@@ -762,6 +760,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         const SnackBar(
           content: Text('Aktiviteniz kaydediliyor...'),
           duration: Duration(seconds: 2),
+          backgroundColor: Colors.grey,
         ),
       );
 
@@ -788,8 +787,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         onError: (error) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Aktivite kaydedilemedi: ${error.toString()}'),
-              backgroundColor: Colors.red,
+              content:
+                  ErrorDisplayWidget(errorObject: 'Aktivite kaydedilemedi'),
             ),
           );
         },
@@ -797,8 +796,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          content: ErrorDisplayWidget(errorObject: e),
         ),
       );
     }
@@ -1384,8 +1382,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Adım sayar başlatılırken hata: $e'),
-            backgroundColor: Colors.red,
+            content: ErrorDisplayWidget(
+                errorObject: "Adım sayar başlatılırken hata"),
           ),
         );
       }
