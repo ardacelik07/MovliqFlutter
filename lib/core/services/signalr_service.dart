@@ -172,13 +172,14 @@ class SignalRService {
     final String token = tokenJson;
 
     try {
-      final hubUrl =
-          'http://movliq.mehmetalicakir.tr:5000/racehub'; // Use ApiConfig
+      final hubUrl = 'https://backend.movliq.com/racehub'; // Use ApiConfig
 
       _hubConnection = HubConnectionBuilder()
           .withUrl(hubUrl,
               options: HttpConnectionOptions(
                 accessTokenFactory: () async => token,
+                skipNegotiation: true,
+                transport: HttpTransportType.WebSockets,
                 // logger: Logger("SignalRClient"), // Optional: for detailed logging
                 //logMessageContent: true,
               ))

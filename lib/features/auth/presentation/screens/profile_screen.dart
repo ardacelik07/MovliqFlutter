@@ -1468,8 +1468,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse(
-          'http://movliq.mehmetalicakir.tr:5000/api/User/upload-profile-picture'),
+      Uri.parse('https://backend.movliq.com/api/User/upload-profile-picture'),
     );
 
     request.headers.addAll({
