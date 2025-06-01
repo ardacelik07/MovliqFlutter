@@ -49,57 +49,57 @@ class FontWidget extends StatelessWidget {
           color: textColor,
         );
       case TextStyleType.titleMedium:
-        return GoogleFonts.bangers(
+        return GoogleFonts.boogaloo(
           fontSize: fontSize ?? 24,
           fontWeight: fontWeight ?? FontWeight.bold,
           color: textColor,
         );
       case TextStyleType.titleSmall:
-        return GoogleFonts.bangers(
+        return GoogleFonts.boogaloo(
           fontSize: fontSize ?? 20,
           fontWeight: fontWeight ?? FontWeight.w600,
           color: textColor,
         );
       case TextStyleType.bodyLarge:
-        return GoogleFonts.poppins(
+        return GoogleFonts.boogaloo(
           fontSize: fontSize ?? 16,
           fontWeight: fontWeight ?? FontWeight.normal,
           color: textColor,
         );
       case TextStyleType.bodyMedium:
-        return GoogleFonts.poppins(
+        return GoogleFonts.boogaloo(
           fontSize: fontSize ?? 14,
           fontWeight: fontWeight ?? FontWeight.normal,
           color: textColor,
         );
       case TextStyleType.bodySmall:
-        return GoogleFonts.poppins(
+        return GoogleFonts.boogaloo(
           fontSize: fontSize ?? 12,
           fontWeight: fontWeight ?? FontWeight.normal,
           color: textColor,
         );
       case TextStyleType.labelLarge:
-        return GoogleFonts.bangers(
+        return GoogleFonts.boogaloo(
           fontSize: fontSize ?? 16,
           fontWeight: fontWeight ?? FontWeight.bold,
           color: textColor,
         );
       case TextStyleType.labelMedium:
-        return GoogleFonts.poppins(
+        return GoogleFonts.boogaloo(
           fontSize: fontSize ?? 14,
           fontWeight:
               fontWeight ?? FontWeight.w500, // Medium weight for poppins labels
           color: textColor,
         );
       case TextStyleType.labelSmall:
-        return GoogleFonts.poppins(
+        return GoogleFonts.boogaloo(
           fontSize: fontSize ?? 12,
           fontWeight:
               fontWeight ?? FontWeight.w500, // Medium weight for poppins labels
           color: textColor,
         );
       default:
-        return GoogleFonts.poppins(
+        return GoogleFonts.boogaloo(
           fontSize: fontSize ?? 14,
           fontWeight: fontWeight ?? FontWeight.normal,
           color: textColor,
