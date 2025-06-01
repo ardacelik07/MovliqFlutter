@@ -8,6 +8,7 @@ import 'update_user_info_screen.dart';
 import 'change_password_screen.dart';
 import 'help_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'package:my_flutter_project/features/auth/presentation/screens/delete_account_screen.dart';
 
 import '../widgets/font_widget.dart';
 
@@ -150,7 +151,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   iconColor: iconColor,
                   title: 'Hesabı Sil',
                   textColor: textColor,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DeleteAccountScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
