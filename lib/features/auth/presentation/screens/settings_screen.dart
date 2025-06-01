@@ -148,7 +148,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _buildNavigationTile(
                   icon: Icons.delete,
                   iconColor: iconColor,
-                  title: 'Hesabİ Sİl',
+                  title: 'Hesabı Sil',
                   textColor: textColor,
                   onTap: () {},
                 ),
@@ -176,7 +176,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _buildNavigationTile(
                   icon: Icons.description_outlined, // Gizlilik ikonu
                   iconColor: iconColor,
-                  title: 'Gİzlİlİk Polİtİkası',
+                  title: 'Gizlilik Politikası',
                   textColor: textColor,
                   onTap: () {
                     Navigator.push(
