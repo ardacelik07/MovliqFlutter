@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 import 'finish_screen.dart';
 import '../providers/user_profile_provider.dart';
@@ -51,14 +52,13 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                   height: 250,
                 ),
                 const SizedBox(height: 20),
-                Text(
-                  "Ne kadar aktif spor yapıyorsunuz?",
-                  style: GoogleFonts.bangers(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    // Change text color to white to be visible on the dark gradient
-                    color: Colors.white,
-                  ),
+                FontWidget(
+                  text: "Ne kadar aktif spor yapıyorsunuz?",
+                  styleType: TextStyleType.titleMedium, // Adjusted for Bangers
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  // Change text color to white to be visible on the dark gradient
+                  color: Colors.white,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -109,7 +109,11 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                           );
                         }
                       : null,
-                  child: Text('Devam Et', style: GoogleFonts.bangers()),
+                  child: FontWidget(
+                      text: 'Devam Et',
+                      styleType: TextStyleType.labelLarge,
+                      color: primaryGreen,
+                      fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -166,20 +170,19 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.bangers(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: titleColor, // Use dynamic title color
-                    ),
+                  FontWidget(
+                    text: title,
+                    styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: titleColor, // Use dynamic title color
                   ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.bangers(
-                      fontSize: 14,
-                      color: subtitleColor, // Use dynamic subtitle color
-                    ),
+                  FontWidget(
+                    text: subtitle,
+                    styleType:
+                        TextStyleType.labelMedium, // Adjusted for Bangers
+                    fontSize: 14,
+                    color: subtitleColor, // Use dynamic subtitle color
                   ),
                 ],
               ),

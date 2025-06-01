@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../../../auth/presentation/widgets/font_widget.dart'; // Added FontWidget import
 
 class GuidePageFive extends StatelessWidget {
   const GuidePageFive({super.key});
@@ -31,35 +32,35 @@ class GuidePageFive extends StatelessWidget {
                   const SizedBox(height: 20),
                   Column(
                     children: [
-                      Text(
-                        'SOLO MOD',
+                      FontWidget(
+                        text: 'SOLO MOD',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
-                      Text(
-                        'KENDİ YOLUNUN',
+                      FontWidget(
+                        text: 'KENDİ YOLUNUN',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
-                      Text(
-                        'ŞAMPİYONU OL!',
+                      FontWidget(
+                        text: 'ŞAMPİYONU OL!',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
                     ],
                   ),
@@ -72,14 +73,15 @@ class GuidePageFive extends StatelessWidget {
                   const SizedBox(height: 24),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      'Solo mod ile istediğin hızda hareket et koş ya da yürü kurallar senin! daha fazla hareket daha fazla kazanım',
+                    child: FontWidget(
+                      text:
+                          'Solo mod ile istediğin hızda hareket et koş ya da yürü kurallar senin! daha fazla hareket daha fazla kazanım',
+                      styleType:
+                          TextStyleType.bodyLarge, // Adjusted for Poppins
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 17,
-                        color: textColor,
-                        height: 1.4,
-                      ),
+                      fontSize: 17,
+                      color: textColor,
+                      // height: 1.4, // FontWidget does not directly support height
                     ),
                   ),
                   const SizedBox(height: 60),

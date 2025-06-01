@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'name_screen.dart';
 import 'package:flutter/services.dart'; // Import services
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
@@ -56,13 +57,13 @@ class WelcomeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 30),
                           // Welcome Text
-                          Text(
-                            'Movliq\'e Hoşgeldin', // Updated text
-                            style: GoogleFonts.bangers(
-                              color: textColor,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          FontWidget(
+                            text: 'Movliq\'e Hoşgeldin', // Updated text
+                            styleType: TextStyleType
+                                .titleMedium, // Adjusted for Bangers
+                            color: textColor,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                             textAlign: TextAlign.center,
                           ),
                           const Spacer(flex: 3), // Push button towards bottom
@@ -77,32 +78,35 @@ class WelcomeScreen extends ConsumerWidget {
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(
-                            255, 43, 64, 16), // Darker button background
-                        foregroundColor: const Color(0xFF9FD545), // White text
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(12), // More rounded corners
-                        ),
-                        textStyle: GoogleFonts.bangers(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const NameScreen(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(
+                              255, 43, 64, 16), // Darker button background
+                          foregroundColor:
+                              const Color(0xFF9FD545), // White text
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                12), // More rounded corners
                           ),
-                        );
-                      },
-                      child: Text('Devam Et',
-                          style: GoogleFonts.bangers(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
+                          // textStyle: GoogleFonts.bangers( // Removed as FontWidget handles style
+                          //   fontSize: 16,
+                          //   fontWeight: FontWeight.bold,
+                          // ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NameScreen(),
+                            ),
+                          );
+                        },
+                        child: FontWidget(
+                            text: 'Devam Et',
+                            styleType: TextStyleType
+                                .labelLarge, // Adjusted for Bangers
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],

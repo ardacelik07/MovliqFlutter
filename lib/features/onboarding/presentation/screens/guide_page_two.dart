@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../../../auth/presentation/widgets/font_widget.dart'; // Added FontWidget import
 
 class GuidePageTwo extends StatelessWidget {
   const GuidePageTwo({super.key});
@@ -35,25 +36,25 @@ class GuidePageTwo extends StatelessWidget {
                           20), // Adjusted for consistent spacing with page one
                   Column(
                     children: [
-                      Text(
-                        'CANLI YARIŞLARA',
+                      FontWidget(
+                        text: 'CANLI YARIŞLARA',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
-                      Text(
-                        'KATILMAK ÇOK KOLAY!',
+                      FontWidget(
+                        text: 'KATILMAK ÇOK KOLAY!',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
                     ],
                   ),
@@ -66,14 +67,15 @@ class GuidePageTwo extends StatelessWidget {
                   const SizedBox(height: 24), // Consistent spacing
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      'Ana sayfadaki Movliq butonuna tıkla, canlı yarışın eğlenceli kapışmasına sen de katıl! İster arkadaşların ile istersen uygulamadaki diğer rakiplerin ile rekabetin sınırlarını zorla.',
+                    child: FontWidget(
+                      text:
+                          'Ana sayfadaki Movliq butonuna tıkla, canlı yarışın eğlenceli kapışmasına sen de katıl! İster arkadaşların ile istersen uygulamadaki diğer rakiplerin ile rekabetin sınırlarını zorla.',
+                      styleType:
+                          TextStyleType.bodyLarge, // Adjusted for Poppins
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        color: textColor,
-                        height: 1.4,
-                      ),
+                      fontSize: 18,
+                      color: textColor,
+                      // height: 1.4, // FontWidget does not directly support height
                     ),
                   ),
                   const SizedBox(

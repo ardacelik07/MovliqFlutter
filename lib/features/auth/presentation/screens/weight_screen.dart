@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart'; // Import services
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 import 'active_screen.dart';
 import '../providers/user_profile_provider.dart';
 
@@ -62,13 +63,13 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                   const SizedBox(height: 30),
 
                   // Title
-                  Text(
-                    "Kilonuz nedir?",
-                    style: GoogleFonts.bangers(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: labelColor,
-                    ),
+                  FontWidget(
+                    text: "Kilonuz nedir?",
+                    styleType:
+                        TextStyleType.titleMedium, // Adjusted for Bangers
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
@@ -89,12 +90,18 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                             FilteringTextInputFormatter.digitsOnly
                           ],
                           style: const TextStyle(
+                              // Keep direct TextStyle for TextFormField
+                              fontFamily:
+                                  'Bangers', // Explicitly use Bangers if needed here
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Color.fromARGB(255, 255, 255, 255)),
                           decoration: _inputDecoration().copyWith(
                             suffixText: 'kg',
-                            suffixStyle: GoogleFonts.bangers(
+                            suffixStyle: TextStyle(
+                              // Keep direct TextStyle for suffixStyle
+                              fontFamily:
+                                  'Bangers', // Explicitly use Bangers if needed here
                               color: unitLabelColor,
                               fontSize: 16,
                             ),
@@ -173,7 +180,12 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                         );
                       }
                     },
-                    child: Text('Devam Et', style: GoogleFonts.bangers()),
+                    child: FontWidget(
+                        text: 'Devam Et',
+                        styleType: TextStyleType.labelLarge,
+                        color: buttonTextColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                   ),
                   SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
                 ],

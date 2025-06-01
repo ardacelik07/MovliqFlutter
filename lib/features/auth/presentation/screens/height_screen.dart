@@ -4,7 +4,8 @@ import 'package:flutter/services.dart'; // Import services
 
 import 'weight_screen.dart';
 import '../providers/user_profile_provider.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 class HeightScreen extends ConsumerStatefulWidget {
   const HeightScreen({super.key});
@@ -79,13 +80,12 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                   const SizedBox(height: 30),
 
                   // Title
-                  Text(
-                    "Boyunuz nedir?",
-                    style: GoogleFonts.bangers(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: labelColor,
-                    ),
+                  FontWidget(
+                    text: "Boyunuz nedir?",
+                    styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
@@ -105,13 +105,19 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly
                           ],
-                          style: GoogleFonts.bangers(
+                          style: TextStyle(
+                              // Use TextStyle for TextFormField style
+                              fontFamily:
+                                  'Bangers', // Match FontWidget's Bangers style
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Color.fromARGB(255, 255, 255, 255)),
                           decoration: _inputDecoration().copyWith(
                             suffixText: 'cm',
-                            suffixStyle: GoogleFonts.bangers(
+                            suffixStyle: TextStyle(
+                              // Use TextStyle for suffixStyle
+                              fontFamily:
+                                  'Bangers', // Match FontWidget's Bangers style
                               color: unitLabelColor,
                               fontSize: 16,
                             ),
@@ -199,7 +205,12 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                         );
                       }
                     },
-                    child: Text('Devam Et', style: GoogleFonts.bangers()),
+                    child: FontWidget(
+                        text: 'Devam Et',
+                        styleType: TextStyleType.labelLarge,
+                        color: buttonTextColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                   ),
                   SizedBox(
                       height: MediaQuery.of(context).padding.bottom +

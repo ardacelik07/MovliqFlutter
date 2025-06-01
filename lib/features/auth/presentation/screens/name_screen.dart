@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart'; // Import services
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 import '../providers/user_profile_provider.dart';
 import '../widgets/error_display_widget.dart';
@@ -77,8 +78,11 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     style: const TextStyle(color: inputColor),
                     decoration: InputDecoration(
                       hintText: 'İsminiz nedir?',
-                      hintStyle:
-                          GoogleFonts.bangers(color: labelColor, fontSize: 16),
+                      hintStyle: TextStyle(
+                        fontFamily: 'Bangers',
+                        color: labelColor,
+                        fontSize: 16,
+                      ),
                       filled: true,
                       fillColor: textFieldBgColor,
                       border: OutlineInputBorder(
@@ -102,8 +106,11 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     style: const TextStyle(color: inputColor),
                     decoration: InputDecoration(
                       hintText: 'Tercih ettiğiniz kullanıcı adı nedir?',
-                      hintStyle:
-                          GoogleFonts.bangers(color: labelColor, fontSize: 14),
+                      hintStyle: TextStyle(
+                        fontFamily: 'Bangers',
+                        color: labelColor,
+                        fontSize: 14,
+                      ),
                       filled: true,
                       fillColor: textFieldBgColor,
                       border: OutlineInputBorder(
@@ -196,7 +203,12 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                           },
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : Text('Devam Et', style: GoogleFonts.bangers()),
+                        : const FontWidget(
+                            text: 'Devam Et',
+                            styleType: TextStyleType.labelLarge,
+                            color: buttonTextColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16),
                   ),
                   SizedBox(
                       height: MediaQuery.of(context).padding.bottom +

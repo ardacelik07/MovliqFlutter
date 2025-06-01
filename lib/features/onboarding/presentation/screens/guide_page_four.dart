@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../../../auth/presentation/widgets/font_widget.dart'; // Added FontWidget import
 
 class GuidePageFour extends StatelessWidget {
   const GuidePageFour({super.key});
@@ -32,35 +33,35 @@ class GuidePageFour extends StatelessWidget {
                   const SizedBox(height: 20), // Consistent spacing
                   Column(
                     children: [
-                      Text(
-                        'ÖZEL ODALARLA',
+                      FontWidget(
+                        text: 'ÖZEL ODALARLA',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
-                      Text(
-                        'EĞLENCEYİ ZİRVEYE',
+                      FontWidget(
+                        text: 'EĞLENCEYİ ZİRVEYE',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
-                      Text(
-                        'TAŞI!',
+                      FontWidget(
+                        text: 'TAŞI!',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
                     ],
                   ),
@@ -73,14 +74,15 @@ class GuidePageFour extends StatelessWidget {
                   const SizedBox(height: 24), // Consistent spacing
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      'Arkadaşlarınla kendi yarışınızı başlatmak artık çok kolay! Movliq\'te özel odalar sayesinde sadece davet ettiğin kişilerle yarışabilir, kendi kurallarınızı belirleyerek eğlenceyi kişiselleştirebilirsiniz.',
+                    child: FontWidget(
+                      text:
+                          'Arkadaşlarınla kendi yarışınızı başlatmak artık çok kolay! Movliq\'te özel odalar sayesinde sadece davet ettiğin kişilerle yarışabilir, kendi kurallarınızı belirleyerek eğlenceyi kişiselleştirebilirsiniz.',
+                      styleType:
+                          TextStyleType.bodyLarge, // Adjusted for Poppins
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 17,
-                        color: textColor,
-                        height: 1.4,
-                      ),
+                      fontSize: 17,
+                      color: textColor,
+                      // height: 1.4, // FontWidget does not directly support height
                     ),
                   ),
                   const SizedBox(height: 60), // Adjusted bottom spacing

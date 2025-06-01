@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../../../auth/presentation/widgets/font_widget.dart'; // Added FontWidget import
 import '../../../auth/presentation/screens/tabs.dart';
 
 class GuidePageOne extends ConsumerWidget {
@@ -41,25 +42,25 @@ class GuidePageOne extends ConsumerWidget {
                     const SizedBox(height: 20),
                     Column(
                       children: [
-                        Text(
-                          'HAREKETE GEÇ,',
+                        FontWidget(
+                          text: 'HAREKETE GEÇ,',
+                          styleType:
+                              TextStyleType.titleLarge, // Adjusted for Bangers
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.bangers(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                            height: 1.1,
-                          ),
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          // height: 1.1, // FontWidget does not directly support height, manage via line spacing if needed
                         ),
-                        Text(
-                          'KAZANMAYA BAŞLA!',
+                        FontWidget(
+                          text: 'KAZANMAYA BAŞLA!',
+                          styleType:
+                              TextStyleType.titleLarge, // Adjusted for Bangers
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.bangers(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                            height: 1.1,
-                          ),
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          // height: 1.1, // FontWidget does not directly support height
                         ),
                       ],
                     ),
@@ -72,14 +73,15 @@ class GuidePageOne extends ConsumerWidget {
                     const SizedBox(height: 24),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Text(
-                        'Movliq; koşu, yürüyüş ve tempolu aktivitelere dayalı canlı ve eğlenceli meydan okumalarla seni ödüllendiren bir spor platformudur.',
+                      child: FontWidget(
+                        text:
+                            'Movliq; koşu, yürüyüş ve tempolu aktivitelere dayalı canlı ve eğlenceli meydan okumalarla seni ödüllendiren bir spor platformudur.',
+                        styleType:
+                            TextStyleType.bodyLarge, // Adjusted for Poppins
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          color: textColor,
-                          height: 1.4,
-                        ),
+                        fontSize: 20,
+                        color: textColor,
+                        // height: 1.4, // FontWidget does not directly support height
                       ),
                     ),
                     const SizedBox(height: 100),

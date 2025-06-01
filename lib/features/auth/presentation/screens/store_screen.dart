@@ -13,7 +13,7 @@ import 'package:my_flutter_project/features/auth/presentation/providers/product_
 import 'package:my_flutter_project/features/auth/presentation/providers/user_data_provider.dart'; // UserDataProvider eklendi
 import './product_view_screen.dart'; // ProductViewScreen import edildi
 // Add imports for NetworkErrorWidget and specific exceptions
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
 import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException; // Specific import
 import 'dart:io' show SocketException; // Specific import
@@ -105,13 +105,13 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Mağaza',
-                                style: GoogleFonts.bangers(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: lightTextColor,
-                                ),
+                              FontWidget(
+                                text: 'Mağaza',
+                                styleType: TextStyleType
+                                    .titleLarge, // Adjusted for Bangers
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: lightTextColor,
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -131,14 +131,15 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                     ),
                                     const SizedBox(width: 4),
                                     userDataAsync.when(
-                                      data: (userData) => Text(
-                                        userData?.coins?.toStringAsFixed(2) ??
+                                      data: (userData) => FontWidget(
+                                        text: userData?.coins
+                                                ?.toStringAsFixed(2) ??
                                             '0.00',
-                                        style: GoogleFonts.bangers(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: lightTextColor,
-                                        ),
+                                        styleType: TextStyleType
+                                            .labelLarge, // Adjusted for Bangers
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: lightTextColor,
                                       ),
                                       loading: () => const SizedBox(
                                         width: 25,
@@ -287,13 +288,13 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                             chipSelectedBackground, // Lime green background
                                         borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: Text(
-                                        'Bu Aya Özel',
-                                        style: GoogleFonts.bangers(
-                                          color: darkTextColor, // Black text
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
+                                      child: FontWidget(
+                                        text: 'Bu Aya Özel',
+                                        styleType: TextStyleType
+                                            .labelSmall, // Adjusted for Bangers
+                                        color: darkTextColor, // Black text
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
                                       ),
                                     ),
                                     // Image
@@ -331,22 +332,22 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       // Product Title
-                                      Text(
-                                        product.name,
-                                        style: GoogleFonts.bangers(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: lightTextColor,
-                                        ),
+                                      FontWidget(
+                                        text: product.name,
+                                        styleType: TextStyleType
+                                            .labelLarge, // Adjusted for Bangers
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: lightTextColor,
                                       ),
                                       const SizedBox(height: 4),
                                       // Product Description
-                                      Text(
-                                        product.description,
-                                        style: GoogleFonts.bangers(
-                                          fontSize: 14,
-                                          color: greyTextColor,
-                                        ),
+                                      FontWidget(
+                                        text: product.description,
+                                        styleType: TextStyleType
+                                            .labelMedium, // Adjusted for Bangers
+                                        fontSize: 14,
+                                        color: greyTextColor,
                                         maxLines: 3,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -360,14 +361,14 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                         children: [
                                           Row(
                                             children: [
-                                              Text(
-                                                product.price
+                                              FontWidget(
+                                                text: product.price
                                                     .toStringAsFixed(0),
-                                                style: GoogleFonts.bangers(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14,
-                                                  color: limeGreen,
-                                                ),
+                                                styleType: TextStyleType
+                                                    .labelMedium, // Adjusted for Bangers
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                                color: limeGreen,
                                               ),
                                               const SizedBox(width: 4),
                                               Image.asset(
@@ -408,23 +409,25 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Center(
-                            child: Text('Özel ürün yüklenemedi.',
-                                style: GoogleFonts.bangers(
-                                    color: Colors.redAccent))),
+                            child: FontWidget(
+                                text: 'Özel ürün yüklenemedi.',
+                                styleType: TextStyleType
+                                    .bodyMedium, // Adjusted for Bangers
+                                color: Colors.redAccent)),
                       ),
                     ),
 
                     const SizedBox(height: 20),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Text(
-                        'Alışveriş',
+                      child: FontWidget(
+                        text: 'Alışveriş',
+                        styleType:
+                            TextStyleType.titleSmall, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: lightTextColor,
-                        ),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: lightTextColor,
                       ),
                     ),
 
@@ -474,12 +477,11 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
     if (filteredProducts.isEmpty) {
       return Center(
         heightFactor: 3.0,
-        child: Text(
-          'No products found in this category.',
-          style: GoogleFonts.bangers(
-            color: lightTextColor,
-            fontSize: 16,
-          ),
+        child: FontWidget(
+          text: 'No products found in this category.',
+          styleType: TextStyleType.bodyLarge, // Adjusted for Bangers
+          color: lightTextColor,
+          fontSize: 16,
         ),
       );
     }
@@ -573,13 +575,12 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: GoogleFonts.bangers(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: lightTextColor,
-                  ),
+                FontWidget(
+                  text: title,
+                  styleType: TextStyleType.labelMedium, // Adjusted for Bangers
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: lightTextColor,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -589,13 +590,13 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          price,
-                          style: GoogleFonts.bangers(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: limeGreen,
-                          ),
+                        FontWidget(
+                          text: price,
+                          styleType:
+                              TextStyleType.labelMedium, // Adjusted for Bangers
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: limeGreen,
                         ),
                         const SizedBox(width: 4),
                         Image.asset(

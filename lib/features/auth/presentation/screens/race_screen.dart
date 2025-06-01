@@ -20,7 +20,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
 import '../widgets/raceui.dart';
 import 'package:my_flutter_project/features/auth/presentation/widgets/leave_widget.dart'; // LeaveWidget importu
-import 'package:google_fonts/google_fonts.dart';
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 class RaceScreen extends ConsumerStatefulWidget {
   final int roomId;
@@ -238,16 +238,16 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               Image.asset('assets/icons/bayrak.png',
                   width: 24, height: 24), // Bayrak ikonu
               const SizedBox(width: 8),
-              Text(
-                raceState.isPreRaceCountdownActive
+              FontWidget(
+                text: raceState.isPreRaceCountdownActive
                     ? 'Başlıyor...'
                     : (raceState.isRaceActive
                         ? 'Yarış Başladı!'
                         : 'Yarış Bitti'),
-                style: GoogleFonts.bangers(
-                    fontSize: 22, // Font boyutu büyütüldü
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
+                styleType: TextStyleType.titleMedium, // Adjusted for Bangers
+                fontSize: 22, // Font boyutu büyütüldü
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
               const SizedBox(width: 8),
               /* if (raceState.isRaceActive) // Sadece yarış aktifken göster
@@ -283,21 +283,22 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            'Yarış Başlıyor',
-                            style: GoogleFonts.bangers(
-                              fontSize: 32, // Font boyutu büyütüldü
-                              color: Color(0xFFC4FF62),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          FontWidget(
+                            text: 'Yarış Başlıyor',
+                            styleType: TextStyleType
+                                .titleMedium, // Adjusted for Bangers
+                            fontSize: 32, // Font boyutu büyütüldü
+                            color: Color(0xFFC4FF62),
+                            fontWeight: FontWeight.w600,
                           ),
                           const SizedBox(height: 20),
-                          Text(
-                            raceState.preRaceCountdownValue.toString(),
-                            style: GoogleFonts.bangers(
-                                fontSize: 120, // Font boyutu büyütüldü
-                                color: Color(0xFFC4FF62),
-                                fontWeight: FontWeight.bold),
+                          FontWidget(
+                            text: raceState.preRaceCountdownValue.toString(),
+                            styleType: TextStyleType
+                                .titleLarge, // Adjusted for Bangers
+                            fontSize: 120, // Font boyutu büyütüldü
+                            color: Color(0xFFC4FF62),
+                            fontWeight: FontWeight.bold,
                           ),
                         ],
                       ),
@@ -325,12 +326,14 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                         if (raceState.isRaceActive)
                           Column(
                             children: [
-                              Text(
-                                'Kalan süre: ${_formatDuration(raceState.remainingTime)}',
-                                style: GoogleFonts.bangers(
-                                    color: Colors.white,
-                                    fontSize: 18, // Font boyutu ayarlandı
-                                    fontWeight: FontWeight.w500),
+                              FontWidget(
+                                text:
+                                    'Kalan süre: ${_formatDuration(raceState.remainingTime)}',
+                                styleType: TextStyleType
+                                    .labelLarge, // Adjusted for Bangers
+                                color: Colors.white,
+                                fontSize: 18, // Font boyutu ayarlandı
+                                fontWeight: FontWeight.w500,
                               ),
                               const SizedBox(height: 8),
                               Container(
@@ -411,12 +414,13 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                             Image.asset('assets/icons/coupa.png',
                                 width: 28, height: 28), // Kupa ikonu
                             const SizedBox(width: 8),
-                            Text(
-                              'Canlı Sıralama',
-                              style: GoogleFonts.bangers(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
+                            FontWidget(
+                              text: 'Canlı Sıralama',
+                              styleType: TextStyleType
+                                  .titleSmall, // Adjusted for Bangers
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ],
                         ),
@@ -430,9 +434,11 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
                                                   Color(0xFFC4FF62)))
-                                      : Text('Yarışmacı bulunamadı.',
-                                          style: GoogleFonts.bangers(
-                                              color: Colors.grey)))
+                                      : FontWidget(
+                                          text: 'Yarışmacı bulunamadı.',
+                                          styleType: TextStyleType
+                                              .bodyMedium, // Adjusted for Bangers
+                                          color: Colors.grey))
                               : ListView.builder(
                                   itemCount: raceState.leaderboard.length,
                                   itemBuilder: (context, index) {
@@ -460,9 +466,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                   !raceState.isRaceActive) // Sadece yarış bittiyse göster
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Hata: ${raceState.errorMessage}',
-                    style: const TextStyle(color: Colors.redAccent),
+                  child: FontWidget(
+                    text: 'Hata: ${raceState.errorMessage}',
+                    styleType: TextStyleType.bodyMedium, // Adjusted for Bangers
+                    color: Colors.redAccent,
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -494,32 +501,30 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
               size: 80,
             ),
             const SizedBox(height: 24),
-            Text(
-              'Hız Sınırı Aşıldı',
+            FontWidget(
+              text: 'Hız Sınırı Aşıldı',
+              styleType: TextStyleType.titleMedium, // Adjusted for Bangers
               textAlign: TextAlign.center,
-              style: GoogleFonts.bangers(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
             const SizedBox(height: 16),
-            Text(
-              'Sistem olağan dışı bir hız tespit etti.',
+            FontWidget(
+              text: 'Sistem olağan dışı bir hız tespit etti.',
+              styleType: TextStyleType.bodyLarge, // Adjusted for Bangers
               textAlign: TextAlign.center,
-              style: GoogleFonts.bangers(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
+              fontSize: 16,
+              color: Colors.white70,
             ),
             const SizedBox(height: 8),
-            Text(
-              'Devam etmek için hızınızı normale düşürün, aksi halde yarış iptal edilecektir.',
+            FontWidget(
+              text:
+                  'Devam etmek için hızınızı normale düşürün, aksi halde yarış iptal edilecektir.',
+              styleType: TextStyleType.bodyLarge, // Adjusted for Bangers
               textAlign: TextAlign.center,
-              style: GoogleFonts.bangers(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
+              fontSize: 16,
+              color: Colors.white70,
             ),
             const SizedBox(height: 32),
             ElevatedButton(
@@ -537,13 +542,12 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                     .dismissFirstCheatWarning();
                 Navigator.of(context).pop();
               },
-              child: Text(
-                'Yarışa devam et',
-                style: GoogleFonts.bangers(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+              child: FontWidget(
+                text: 'Yarışa devam et',
+                styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
               ),
             ),
             const SizedBox(height: 8),
@@ -630,21 +634,19 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
       children: [
         Image.asset(iconAsset, width: 36, height: 36), // Asset ikonu
         const SizedBox(height: 8),
-        Text(
-          value,
-          style: GoogleFonts.bangers(
-            fontSize: 20, // Font boyutu güncellendi
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        FontWidget(
+          text: value,
+          styleType: TextStyleType.titleSmall, // Adjusted for Bangers
+          fontSize: 20, // Font boyutu güncellendi
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: GoogleFonts.bangers(
-            fontSize: 12, // Font boyutu güncellendi
-            color: Colors.grey,
-          ),
+        FontWidget(
+          text: label,
+          styleType: TextStyleType.labelSmall, // Adjusted for Bangers
+          fontSize: 12, // Font boyutu güncellendi
+          color: Colors.grey,
         ),
       ],
     );
@@ -713,41 +715,37 @@ class ParticipantTile extends ConsumerWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              participant.userName,
-              style: GoogleFonts.bangers(
-                fontWeight: FontWeight.w600, // Font ağırlığı güncellendi
-                fontSize: 16,
-                color: Colors.white,
-              ),
+            child: FontWidget(
+              text: participant.userName,
+              styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+              fontWeight: FontWeight.w600, // Font ağırlığı güncellendi
+              fontSize: 16,
+              color: Colors.white,
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (!isIndoorRace) // Only show distance for outdoor races
-                Text(
-                  '${participant.distance.toStringAsFixed(2)} km',
-                  style: GoogleFonts.bangers(
-                    fontSize: 14,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
+                FontWidget(
+                  text: '${participant.distance.toStringAsFixed(2)} km',
+                  styleType: TextStyleType.labelMedium, // Adjusted for Bangers
+                  fontSize: 14,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
                 ),
               if (!isIndoorRace)
                 const SizedBox(
                     height: 4), // Add spacing only if distance is shown
-              Text(
-                '${participant.steps} adım',
-                style: GoogleFonts.bangers(
-                  fontSize: isIndoorRace
-                      ? 16
-                      : 12, // Larger font for steps if it's the only metric
-                  color: Colors
-                      .white, // White color for steps when it's the primary metric
-                  fontWeight:
-                      isIndoorRace ? FontWeight.w600 : FontWeight.normal,
-                ),
+              FontWidget(
+                text: '${participant.steps} adım',
+                styleType: TextStyleType.labelSmall, // Adjusted for Bangers
+                fontSize: isIndoorRace
+                    ? 16
+                    : 12, // Larger font for steps if it's the only metric
+                color: Colors
+                    .white, // White color for steps when it's the primary metric
+                fontWeight: isIndoorRace ? FontWeight.w600 : FontWeight.normal,
               ),
             ],
           )

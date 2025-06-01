@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../../../auth/presentation/widgets/font_widget.dart'; // Added FontWidget import
 
 class GuidePageThree extends StatelessWidget {
   const GuidePageThree({super.key});
@@ -31,25 +32,25 @@ class GuidePageThree extends StatelessWidget {
                   const SizedBox(height: 20),
                   Column(
                     children: [
-                      Text(
-                        'HER YARIŞTA',
+                      FontWidget(
+                        text: 'HER YARIŞTA',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
-                      Text(
-                        'M-COIN KAZAN!',
+                      FontWidget(
+                        text: 'M-COIN KAZAN!',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
                     ],
                   ),
@@ -62,14 +63,15 @@ class GuidePageThree extends StatelessWidget {
                   const SizedBox(height: 24),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      'Yarışta gösterdiğin performansa göre mCoin kazan. mCoin\'leri profilinde biriktir ve mağazada özel ürünlere ve kuponlara erişim sağla.',
+                    child: FontWidget(
+                      text:
+                          'Yarışta gösterdiğin performansa göre mCoin kazan. mCoin\'leri profilinde biriktir ve mağazada özel ürünlere ve kuponlara erişim sağla.',
+                      styleType:
+                          TextStyleType.bodyLarge, // Adjusted for Poppins
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        color: textColor,
-                        height: 1.4,
-                      ),
+                      fontSize: 18,
+                      color: textColor,
+                      // height: 1.4, // FontWidget does not directly support height
                     ),
                   ),
                   const SizedBox(height: 60),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Google Fonts paketini içe aktardık
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../../../auth/presentation/widgets/font_widget.dart'; // Added FontWidget import
 
 class GuidePageLocation extends StatelessWidget {
   const GuidePageLocation({super.key});
@@ -31,25 +32,25 @@ class GuidePageLocation extends StatelessWidget {
                   const SizedBox(height: 20), // Consistent spacing
                   Column(
                     children: [
-                      Text(
-                        'SANA EN İYİ DENEYİMİ',
+                      FontWidget(
+                        text: 'SANA EN İYİ DENEYİMİ',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
-                      Text(
-                        'SUNMAMIZA İZİN VERİR MİSİN?',
+                      FontWidget(
+                        text: 'SUNMAMIZA İZİN VERİR MİSİN?',
+                        styleType:
+                            TextStyleType.titleLarge, // Adjusted for Bangers
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.bangers(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                        // height: 1.1, // FontWidget does not directly support height
                       ),
                     ],
                   ),
@@ -62,14 +63,15 @@ class GuidePageLocation extends StatelessWidget {
                   const SizedBox(height: 24), // Consistent spacing
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      'Adım ve konum bilgilerinle yarışları doğru takip edebilir, ödülleri doğru şekilde ulaştırabiliriz. Endişelenme, verilerin bizim için çok değerli ve güvende! Bu izinler olmadan bazı keyifli özellikleri ne yazık ki sunamıyoruz.',
+                    child: FontWidget(
+                      text:
+                          'Adım ve konum bilgilerinle yarışları doğru takip edebilir, ödülleri doğru şekilde ulaştırabiliriz. Endişelenme, verilerin bizim için çok değerli ve güvende! Bu izinler olmadan bazı keyifli özellikleri ne yazık ki sunamıyoruz.',
+                      styleType:
+                          TextStyleType.bodyLarge, // Adjusted for Poppins
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        color: textColor,
-                        height: 1.4,
-                      ),
+                      fontSize: 16,
+                      color: textColor,
+                      // height: 1.4, // FontWidget does not directly support height
                     ),
                   ),
                   const SizedBox(height: 60), // Adjusted bottom spacing

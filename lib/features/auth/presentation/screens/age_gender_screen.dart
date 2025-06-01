@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart'; // Import services
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 import 'height_screen.dart';
 import '../providers/user_profile_provider.dart';
@@ -79,9 +80,11 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                         0.4, // Adjust height
                   ),
                   // Birthday Label
-                  Text(
-                    'Doğum tarihiniz nedir?',
-                    style: GoogleFonts.bangers(color: labelColor, fontSize: 16),
+                  FontWidget(
+                    text: 'Doğum tarihiniz nedir?',
+                    styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+                    color: labelColor,
+                    fontSize: 16,
                     textAlign: TextAlign.left,
                   ),
                   const SizedBox(height: 8),
@@ -156,9 +159,11 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                   const SizedBox(height: 20),
 
                   // Gender Label
-                  Text(
-                    'Kim olduğunuzu nasıl tanımlarsınız?',
-                    style: GoogleFonts.bangers(color: labelColor, fontSize: 16),
+                  FontWidget(
+                    text: 'Kim olduğunuzu nasıl tanımlarsınız?',
+                    styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+                    color: labelColor,
+                    fontSize: 16,
                     textAlign: TextAlign.left,
                   ),
                   const SizedBox(height: 12), // Added some space
@@ -242,15 +247,15 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                                 emoji,
 
                                 const SizedBox(height: 8), // Adjusted spacing
-                                Text(
-                                  displayValue, // Use display value from map
-                                  style: GoogleFonts.bangers(
-                                    color: isSelected
-                                        ? Colors.black
-                                        : Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
+                                FontWidget(
+                                  text:
+                                      displayValue, // Use display value from map
+                                  styleType: TextStyleType
+                                      .labelLarge, // Adjusted for Bangers
+                                  color:
+                                      isSelected ? Colors.black : Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
                                   textAlign: TextAlign.center,
                                 ),
                               ],
@@ -298,7 +303,12 @@ class _AgeGenderScreenState extends ConsumerState<AgeGenderScreen> {
                         );
                       }
                     },
-                    child: Text('Devam Et', style: GoogleFonts.bangers()),
+                    child: FontWidget(
+                        text: 'Devam Et',
+                        styleType: TextStyleType.labelLarge,
+                        color: buttonTextColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                   ),
                   SizedBox(
                       height: MediaQuery.of(context).padding.bottom +

@@ -5,7 +5,9 @@ import '../../../onboarding/presentation/screens/guiding_main_screen.dart';
 
 import '../providers/user_profile_provider.dart';
 import '../providers/user_data_provider.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
+import '../widgets/error_display_widget.dart';
 
 class FinishScreen extends ConsumerStatefulWidget {
   const FinishScreen({super.key});
@@ -95,13 +97,12 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
                   height: 300,
                 ),
                 const SizedBox(height: 60),
-                Text(
-                  "Nerede koşmayı tercih edersin?",
-                  style: GoogleFonts.bangers(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: titleColor, // Change text color to white
-                  ),
+                FontWidget(
+                  text: "Nerede koşmayı tercih edersin?",
+                  styleType: TextStyleType.titleMedium, // Adjusted for Bangers
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: titleColor, // Change text color to white
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -146,7 +147,12 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
                       : _handleComplete,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : Text('Tamamla', style: GoogleFonts.bangers()),
+                      : FontWidget(
+                          text: 'Tamamla',
+                          styleType: TextStyleType.labelLarge,
+                          color: buttonTextColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
                 ),
               ],
             ),
@@ -198,13 +204,12 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
               size: 32,
             ),
             const SizedBox(height: 12),
-            Text(
-              title,
-              style: GoogleFonts.bangers(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: titleColor, // Use dynamic title color
-              ),
+            FontWidget(
+              text: title,
+              styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: titleColor, // Use dynamic title color
             ),
           ],
         ),
