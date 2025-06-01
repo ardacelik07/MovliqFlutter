@@ -134,11 +134,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     await Permission.notification.status;
     PermissionStatus activityStatus =
         await Permission.activityRecognition.status;
-    PermissionStatus sensorStatus = await Permission.sensors.status;
 
     // If any permission is denied, show the PermissionWidget
     if (Platform.isAndroid) {
-      if (locationStatus.isDenied || sensorStatus.isDenied) {
+      if (locationStatus.isDenied || activityStatus.isDenied) {
         setState(() {
           showDialog(
             context: context,
