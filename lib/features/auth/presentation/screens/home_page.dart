@@ -37,6 +37,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert'; // Import jsonEncode
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
+import '../widgets/permission_widget.dart';
 
 // Change to ConsumerStatefulWidget
 class HomePage extends ConsumerStatefulWidget {
@@ -82,6 +83,13 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (!_permissionsRequested) {
       await _checkAndRequestPermissionsSequentially();
       prefs.setBool('permissionsRequested', true);
+    } else {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return const PermissionWidget();
+        },
+      );
     }
   }
 
