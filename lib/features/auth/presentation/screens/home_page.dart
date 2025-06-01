@@ -82,14 +82,13 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     if (!_permissionsRequested) {
       await _checkAndRequestPermissionsSequentially();
-      prefs.setBool('permissionsRequested', true);
-    } else {
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return const PermissionWidget();
         },
       );
+      prefs.setBool('permissionsRequested', true);
     }
   }
 
