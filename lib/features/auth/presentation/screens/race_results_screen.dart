@@ -9,7 +9,8 @@ import '../providers/activity_stats_provider.dart';
 import '../../domain/models/activity_stats_model.dart';
 import '../../domain/models/activity_model.dart' as activity_model;
 import '../providers/user_data_provider.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import '../widgets/font_widget.dart';
 // import '../widgets/network_error_widget.dart'; // Bu import muhtemelen kullanılmıyor, kontrol edilebilir.
 
 // Aktivite tipine göre yarış sonuçlarını çekmek için provider
@@ -130,9 +131,11 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
               const Icon(Icons.error, color: Colors.red, size: 32),
         ),
         const SizedBox(height: 4),
-        Text(
-          valueText,
-          style: GoogleFonts.bangers(color: Colors.white, fontSize: 12),
+        FontWidget(
+          text: valueText,
+          styleType: TextStyleType.labelLarge,
+          color: Colors.white,
+          fontSize: 12,
         ),
       ],
     );
@@ -183,13 +186,11 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
           backgroundColor: Colors
               .transparent, // Arkaplanı transparan yap veya _darkBackgroundColor
           foregroundColor: Colors.white, // İkon ve başlık rengi
-          title: Text(
-            'Koşu Geçmişim', // Başlığı güncelle
-            style: GoogleFonts.bangers(
-              fontSize: 20, // Biraz küçültülebilir
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+          title: FontWidget(
+            text: 'Koşu Geçmişim', // Başlığı güncelle
+            styleType: TextStyleType.titleLarge,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
           centerTitle: false, // Başlığı sola al
           leading: IconButton(
@@ -348,13 +349,11 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
               ),
             ],
             const SizedBox(width: 8),
-            Text(
-              title,
-              style: GoogleFonts.bangers(
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.black : Colors.white,
-                fontSize: 15,
-              ),
+            FontWidget(
+              text: title,
+              styleType: TextStyleType.labelLarge,
+              color: isSelected ? Colors.black : Colors.white,
+              fontSize: 15,
             ),
           ],
         ),
@@ -391,17 +390,19 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'İstatistikler yüklenemedi.',
-                  style: GoogleFonts.bangers(color: Colors.white70),
+                FontWidget(
+                  text: 'İstatistikler yüklenemedi.',
+                  styleType: TextStyleType.labelSmall,
+                  color: Colors.white70,
                   textAlign: TextAlign.center,
                 ),
-                Text(
-                  error.toString().length > 50
+                FontWidget(
+                  text: error.toString().length > 50
                       ? '${error.toString().substring(0, 50)}...'
                       : error.toString(),
-                  style: GoogleFonts.bangers(
-                      color: Colors.redAccent, fontSize: 12),
+                  styleType: TextStyleType.labelSmall,
+                  color: Colors.redAccent,
+                  fontSize: 12,
                   textAlign: TextAlign.center,
                 ),
                 // Buton çok yer kaplamasın diye kaldırılabilir veya küçültülebilir
@@ -482,14 +483,12 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         mainAxisAlignment: MainAxisAlignment.center, // Ortala
         children: [
           const SizedBox(height: 1),
-          Text(
-            value,
-            style: GoogleFonts.bangers(
-              color: Colors.white, // Beyaz renk
-              fontSize: 32, // Daha büyük font
-              fontWeight: FontWeight.bold,
-            ),
-            maxLines: 1,
+          FontWidget(
+            text: value,
+            styleType: TextStyleType.labelLarge,
+            color: Colors.white, // Beyaz renk
+            fontSize: 32, // Daha büyük font
+            fontWeight: FontWeight.bold,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 1), // Yüksekliği 2'den 1'e düşür
@@ -497,16 +496,12 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
           FittedBox(
             fit: BoxFit.scaleDown, // Metni yalnızca gerekirse küçültür
             alignment: Alignment.centerLeft, // Metni sola hizala
-            child: Text(
-              label,
-              style: GoogleFonts.bangers(
-                color: _primaryAccentColor, // Yeşil renk
-                fontSize: 12, // Orijinal font boyutu (FittedBox küçültebilir)
-                fontWeight: FontWeight.w500,
-              ),
-              maxLines: 1, // Tek satırda kalmasını sağla (opsiyonel)
-              overflow:
-                  TextOverflow.ellipsis, // Taşma durumunda ... (opsiyonel)
+            child: FontWidget(
+              text: label,
+              styleType: TextStyleType.labelLarge,
+              color: _primaryAccentColor, // Yeşil renk
+              fontSize: 12, // Orijinal font boyutu (FittedBox küçültebilir)
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -544,13 +539,11 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
           color: isSelected ? _primaryAccentColor : _lightGrayColor,
           borderRadius: BorderRadius.circular(20), // Daha yuvarlak
         ),
-        child: Text(
-          title,
-          style: GoogleFonts.bangers(
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.black : Colors.white,
-            fontSize: 14,
-          ),
+        child: FontWidget(
+          text: title,
+          styleType: TextStyleType.labelLarge,
+          color: isSelected ? Colors.black : Colors.white,
+          fontSize: 14,
         ),
       ),
     );
@@ -637,31 +630,29 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      isIndoor ? 'İç Mekan' : 'Dış Mekan',
-                      style: GoogleFonts.bangers(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    FontWidget(
+                      text: isIndoor ? 'İç Mekan' : 'Dış Mekan',
+                      styleType: TextStyleType.labelLarge,
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                    Text(
-                      rankText, // Display rank text (will be '-' if rank is not found)
-                      style: GoogleFonts.bangers(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    FontWidget(
+                      text:
+                          rankText, // Display rank text (will be '-' if rank is not found)
+                      styleType: TextStyleType.labelLarge,
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  formattedDate,
-                  style: GoogleFonts.bangers(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 12,
-                  ),
+                FontWidget(
+                  text: formattedDate,
+                  styleType: TextStyleType.labelLarge,
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12,
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -707,30 +698,31 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
               color: _secondaryTextColor, // Gri renk
             ),
             const SizedBox(height: 16),
-            Text(
-              'Veriler yüklenirken bir hata oluştu.',
-              style: GoogleFonts.bangers(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+            FontWidget(
+              text: 'Veriler yüklenirken bir hata oluştu.',
+              styleType: TextStyleType.labelSmall,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            SelectableText(
-              error.toString(), // Hata mesajını seçilebilir yap
-              style: GoogleFonts.bangers(
-                color: _secondaryTextColor,
-                fontSize: 13,
-              ),
+            FontWidget(
+              text: error.toString(), // Hata mesajını seçilebilir yap
+              styleType: TextStyleType.labelSmall,
+              color: _secondaryTextColor,
+              fontSize: 13,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _fetchActivities,
               icon: const Icon(Icons.refresh, color: Colors.black),
-              label: Text('Tekrar Dene',
-                  style: GoogleFonts.bangers(color: Colors.black)),
+              label: FontWidget(
+                text: 'Tekrar Dene',
+                styleType: TextStyleType.labelSmall,
+                color: Colors.black,
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primaryAccentColor, // Yeşil buton
                 foregroundColor: Colors.black,
@@ -762,12 +754,11 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
             color: _secondaryTextColor.withOpacity(0.5), // Rengi soluklaştır
           ),
           const SizedBox(height: 16),
-          Text(
-            'Bu filtre için sonuç bulunamadı',
-            style: GoogleFonts.bangers(
-              color: _secondaryTextColor, // Gri renk
-              fontSize: 16,
-            ),
+          FontWidget(
+            text: 'Bu filtre için sonuç bulunamadı',
+            styleType: TextStyleType.labelSmall,
+            color: _secondaryTextColor, // Gri renk
+            fontSize: 16,
           ),
         ],
       ),

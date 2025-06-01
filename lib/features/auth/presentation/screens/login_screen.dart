@@ -7,7 +7,7 @@ import '../widgets/footer_widget.dart';
 import '../screens/register_screen.dart';
 import '../screens/login_input_screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../widgets/font_widget.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -40,32 +40,29 @@ class LoginScreen extends ConsumerWidget {
                       height: 100,
                     ),
                     const SizedBox(height: 60),
-                    Text(
-                      'Daha Çok Hareket,',
-                      style: GoogleFonts.bangers(
-                        color: textColor,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    FontWidget(
+                      text: 'Daha Çok Hareket,',
+                      styleType: TextStyleType.titleLarge,
+                      color: textColor,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
                       textAlign: TextAlign.start,
                     ),
-                    Text(
-                      'Daha Çok Kazanç',
-                      style: GoogleFonts.bangers(
-                        color: textColor,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    FontWidget(
+                      text: 'Daha Çok Kazanç',
+                      styleType: TextStyleType.titleLarge,
+                      color: textColor,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
                       textAlign: TextAlign.start,
                     ),
                     const SizedBox(height: 48),
-                    Text(
-                      'Movliq’te ödüller, fırsatlar ve eğlence; hepsi seni bir adım uzaklıkta bekliyor!',
-                      style: GoogleFonts.bangers(
-                        color: secondaryTextColor,
-                        fontSize: 18,
-                        height: 1.5,
-                      ),
+                    FontWidget(
+                      text:
+                          'Movliq’te ödüller, fırsatlar ve eğlence; hepsi seni bir adım uzaklıkta bekliyor!',
+                      styleType: TextStyleType.bodyMedium,
+                      color: secondaryTextColor,
+                      fontSize: 18,
                       textAlign: TextAlign.center,
                     ),
                     /* const SizedBox(height: 32),
@@ -109,10 +106,6 @@ class LoginScreen extends ConsumerWidget {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
                         ),
                         onPressed: () {
                           Navigator.push(
@@ -122,9 +115,12 @@ class LoginScreen extends ConsumerWidget {
                             ),
                           );
                         },
-                        child: Text('E-posta İle Devam Et',
-                            style: GoogleFonts.bangers(
-                                fontSize: 24, fontWeight: FontWeight.bold)),
+                        child: FontWidget(
+                            text: 'E-posta İle Devam Et',
+                            styleType: TextStyleType.labelLarge,
+                            fontSize: 24,
+                            color: emailButtonFg,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -133,20 +129,18 @@ class LoginScreen extends ConsumerWidget {
                       children: [
                         TextButton(
                           onPressed: () {},
-                          child: Text(
-                            'Need Help?',
-                            style: GoogleFonts.bangers(
-                                color: Color.fromARGB(132, 255, 255, 255)),
-                          ),
+                          child: FontWidget(
+                              text: 'Need Help?',
+                              styleType: TextStyleType.labelMedium,
+                              color: Color.fromARGB(132, 255, 255, 255)),
                         ),
                         const SizedBox(width: 16),
                         TextButton(
                           onPressed: () {},
-                          child: Text(
-                            'Privacy Policy',
-                            style: GoogleFonts.bangers(
-                                color: Color.fromARGB(132, 255, 255, 255)),
-                          ),
+                          child: FontWidget(
+                              text: 'Privacy Policy',
+                              styleType: TextStyleType.labelMedium,
+                              color: Color.fromARGB(132, 255, 255, 255)),
                         ),
                       ],
                     ),
@@ -172,7 +166,12 @@ class LoginScreen extends ConsumerWidget {
       width: double.infinity,
       child: ElevatedButton.icon(
         icon: FaIcon(icon, size: 20, color: fgColor),
-        label: Text(text),
+        label: FontWidget(
+            text: text,
+            styleType: TextStyleType.labelMedium,
+            color: fgColor,
+            fontWeight: FontWeight.w500,
+            fontSize: 16),
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
@@ -180,10 +179,6 @@ class LoginScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-          ),
-          textStyle: GoogleFonts.bangers(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
           ),
           alignment: Alignment.center,
         ),

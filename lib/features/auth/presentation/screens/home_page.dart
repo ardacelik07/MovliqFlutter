@@ -36,6 +36,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'dart:convert'; // Import jsonEncode
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
 
 // Change to ConsumerStatefulWidget
 class HomePage extends ConsumerStatefulWidget {
@@ -469,14 +470,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                userData?.userName ??
+                              FontWidget(
+                                text: userData?.userName ??
                                     'Kullanıcı', // Display name or default
-                                style: GoogleFonts.bangers(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                                styleType: TextStyleType.titleLarge,
+                                color: Colors.white,
+                                fontSize: 16,
                               ),
                             ],
                           ),
@@ -492,20 +491,18 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                               const SizedBox(width: 4),
                               userStreakAsync.maybeWhen(
-                                data: (streak) => Text(
-                                  streak.toString(),
-                                  style: GoogleFonts.bangers(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14),
+                                data: (streak) => FontWidget(
+                                  text: streak.toString(),
+                                  styleType: TextStyleType.bodyLarge,
+                                  color: Colors.white,
+                                  fontSize: 14,
                                 ),
                                 // Show '-' or loading indicator for non-data states
-                                orElse: () => const Text(
-                                  '-',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14),
+                                orElse: () => const FontWidget(
+                                  text: '-',
+                                  styleType: TextStyleType.bodyLarge,
+                                  color: Colors.white,
+                                  fontSize: 14,
                                 ),
                               ),
 
@@ -518,13 +515,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 height: 25,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                userCoins?.toStringAsFixed(2) ??
+                              FontWidget(
+                                text: userCoins?.toStringAsFixed(2) ??
                                     '0.00', // Format to 2 decimal places
-                                style: GoogleFonts.bangers(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14),
+                                styleType: TextStyleType.bodyLarge,
+                                color: Colors.white,
+                                fontSize: 14,
                               ),
 
                               Stack(
@@ -608,13 +604,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                                         color: Colors.black.withOpacity(0.2),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: Text(
-                                        'NEW',
-                                        style: GoogleFonts.bangers(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 10,
-                                        ),
+                                      child: FontWidget(
+                                        text: 'NEW',
+                                        styleType: TextStyleType.titleSmall,
+                                        color: Colors.white,
+                                        fontSize: 10,
                                       ),
                                     ),
                                   ),
@@ -624,16 +618,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 Positioned(
                                   top: 0,
                                   right: 0,
-                                  child: Text(
-                                    index == 0
+                                  child: FontWidget(
+                                    text: index == 0
                                         ? '1/5'
                                         : (index == 1
                                             ? 'Daily'
                                             : 'Weekly'), // Example content variation
-                                    style: GoogleFonts.bangers(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                    ),
+                                    styleType: TextStyleType.bodySmall,
+                                    color: Colors.white70,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ],
@@ -664,18 +657,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Arkadaşını Davet Et',
-                                  style: GoogleFonts.bangers(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16),
+                                FontWidget(
+                                  text: 'Arkadaşını Davet Et',
+                                  styleType: TextStyleType.titleLarge,
+                                  color: Colors.white,
+                                  fontSize: 16,
                                 ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Arkadaşını Davet Et, 150 mCoin Kazan',
-                                  style: GoogleFonts.bangers(
-                                      color: Colors.grey, fontSize: 12),
+                                const SizedBox(height: 4),
+                                FontWidget(
+                                  text: 'Arkadaşını Davet Et, 150 mCoin Kazan',
+                                  styleType: TextStyleType.bodyLarge,
+                                  color: Colors.grey,
+                                  fontSize: 12,
                                 ),
                               ],
                             ),
@@ -689,8 +682,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 borderRadius: BorderRadius.circular(10.0),
                               ),
                             ),
-                            child:
-                                Text('Davet Et', style: GoogleFonts.bangers()),
+                            child: FontWidget(
+                              text: 'Davet Et',
+                              styleType: TextStyleType.labelLarge,
+                              color: Colors.black,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
@@ -703,13 +700,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                           horizontal: 16.0, vertical: 8.0), // Keep padding
                       child: Column(
                         children: [
-                          Text(
-                            'Yarışa hazır mısın?',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.bangers(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18),
+                          FontWidget(
+                            text: 'Yarışa hazır mısın?',
+                            styleType: TextStyleType.titleLarge,
+                            color: Colors.white,
+                            fontSize: 18,
                           ),
                           const SizedBox(height: 8),
                           const SizedBox(height: 4),
@@ -732,13 +727,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Alınabilir Ürünler',
-                                style: GoogleFonts.bangers(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              FontWidget(
+                                text: 'Alınabilir Ürünler',
+                                styleType: TextStyleType.titleMedium,
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
                               TextButton(
                                 onPressed: () {
@@ -746,11 +740,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   ref.read(selectedTabProvider.notifier).state =
                                       1;
                                 },
-                                child: Text(
-                                  'Mağaza >',
-                                  style: GoogleFonts.bangers(
-                                    color: Color(0xFFC4FF62),
-                                  ),
+                                child: FontWidget(
+                                  text: 'Mağaza >',
+                                  styleType: TextStyleType.labelLarge,
+                                  color: Color(0xFFC4FF62),
+                                  fontSize: 16,
                                 ),
                               ),
                             ],
@@ -763,10 +757,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                               data: (products) {
                                 if (products.isEmpty) {
                                   return Center(
-                                    child: Text(
-                                      'Gösterilecek ürün bulunamadı.',
-                                      style: GoogleFonts.bangers(
-                                          color: Colors.white70),
+                                    child: FontWidget(
+                                      text: 'Gösterilecek ürün bulunamadı.',
+                                      styleType: TextStyleType.bodyLarge,
+                                      color: Colors.white70,
                                     ),
                                   );
                                 }
@@ -809,11 +803,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   return Center(
                                     child: Padding(
                                       padding: const EdgeInsets.all(8.0),
-                                      child: SelectableText(
-                                        'Ürünler yüklenemedi.',
-                                        style: GoogleFonts.bangers(
-                                            color: Colors.redAccent),
-                                        textAlign: TextAlign.center,
+                                      child: FontWidget(
+                                        text: 'Ürünler yüklenemedi.',
+                                        styleType: TextStyleType.bodyLarge,
+                                        color: Colors.redAccent,
                                       ),
                                     ),
                                   );
@@ -965,11 +958,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     return Center(
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
-                                        child: SelectableText(
-                                          'Özel yarışlar yüklenemedi: $error',
-                                          style: const TextStyle(
-                                              color: Colors.redAccent),
-                                          textAlign: TextAlign.center,
+                                        child: FontWidget(
+                                          text: 'Özel yarışlar yüklenemedi: $error',
+                                          styleType: TextStyleType.bodyLarge,
+                                          color: Colors.redAccent,
                                         ),
                                       ),
                                     );
@@ -1167,13 +1159,11 @@ class _ProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    product.name, // Use product name
-                    style: GoogleFonts.bangers(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14),
-                    maxLines: 1,
+                  FontWidget(
+                    text: product.name, // Use product name
+                    styleType: TextStyleType.titleSmall,
+                    color: Colors.white,
+                    fontSize: 14,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
@@ -1185,12 +1175,11 @@ class _ProductCard extends StatelessWidget {
                         height: 16,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        product.price.toString(), // Use product price
-                        style: GoogleFonts.bangers(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14),
+                      FontWidget(
+                        text: product.price.toString(), // Use product price
+                        styleType: TextStyleType.bodySmall,
+                        color: Colors.white,
+                        fontSize: 14,
                       ),
                     ],
                   ),

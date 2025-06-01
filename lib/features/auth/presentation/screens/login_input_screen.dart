@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import '../providers/user_data_provider.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../widgets/font_widget.dart';
 
 class LoginInputScreen extends ConsumerStatefulWidget {
   const LoginInputScreen({super.key});
@@ -79,6 +79,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
     const Color hintTextColor = Color(0xFFBDBDBD);
     const Color textColor = Colors.white;
     const Color buttonColor = Color(0xFFC4FF62);
+    const Color buttonTextColor = Colors.black;
 
     return Scaffold(
       backgroundColor: primaryColor,
@@ -110,13 +111,12 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                     ),
                   ),
                   const SizedBox(height: 30),
-                  Text(
-                    'Tekrar aramızda olmana sevindik',
-                    style: GoogleFonts.bangers(
-                      color: textColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  FontWidget(
+                    text: 'Tekrar aramızda olmana sevindik',
+                    styleType: TextStyleType.titleMedium,
+                    color: textColor,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                     textAlign: TextAlign.left,
                   ),
                   const SizedBox(height: 40),
@@ -127,7 +127,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                   const SizedBox(height: 40),
                   TextFormField(
                     controller: _emailController,
-                    style: GoogleFonts.bangers(
+                    style: const TextStyle(
                       color: textColor,
                       fontSize: 16,
                     ),
@@ -136,7 +136,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'E-posta Adresİ',
-                      hintStyle: GoogleFonts.bangers(
+                      hintStyle: const TextStyle(
                         color: hintTextColor,
                         fontSize: 16,
                       ),
@@ -160,7 +160,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
-                    style: GoogleFonts.bangers(
+                    style: const TextStyle(
                       color: textColor,
                       fontSize: 16,
                     ),
@@ -169,7 +169,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'Parolanız',
-                      hintStyle: GoogleFonts.bangers(
+                      hintStyle: const TextStyle(
                         color: hintTextColor,
                         fontSize: 16,
                       ),
@@ -198,21 +198,11 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                         return 'Lütfen parolanızı girin';
                       }
                       if (value!.length < 6) {
-                        return 'Parola en az 6 karakter olmalı';
+                        return 'Parolanız en az 6 karakter olmalıdır';
                       }
-                      /*if (!RegExp(r'(?=.*[A-Z])').hasMatch(value)) {
-                        return 'Parola en az bir büyük harf içermeli';
-                      }
-                      if (!RegExp(r'(?=.*[a-z])').hasMatch(value)) {
-                        return 'Parola en az bir küçük harf içermeli';
-                      }
-                      if (!RegExp(r'(?=.*[0-9])').hasMatch(value)) {
-                        return 'Parola en az bir rakam içermeli';
-                      }*/
                       return null;
                     },
                   ),
-                  const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -220,16 +210,14 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) =>
-                                  const ForgotPasswordScreen()),
+                            builder: (context) => const ForgotPasswordScreen(),
+                          ),
                         );
                       },
-                      child: Text(
-                        'Şifremi unuttum?',
-                        style: GoogleFonts.bangers(
-                          color: buttonColor,
-                          fontSize: 14,
-                        ),
+                      child: FontWidget(
+                        text: 'Parolamı Unuttum',
+                        styleType: TextStyleType.labelSmall,
+                        color: textColor,
                       ),
                     ),
                   ),
@@ -237,65 +225,61 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: buttonColor,
-                      foregroundColor: Colors.black,
+                      foregroundColor: buttonTextColor,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      textStyle: GoogleFonts.bangers(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState?.validate() ?? false) {
-                        ref.read(authProvider.notifier).login(
-                              email: _emailController.text.trim(),
-                              password: _passwordController.text.trim(),
+                        await ref.read(authProvider.notifier).login(
+                              email: _emailController.text,
+                              password: _passwordController.text,
                             );
                       }
                     },
-                    child: Text('Gİrİş Yap',
-                        style: GoogleFonts.bangers(
-                          fontSize: 16,
-                        )),
+                    child: ref.watch(authProvider).maybeWhen(
+                          loading: () => const CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.black),
+                          ),
+                          orElse: () => FontWidget(
+                            text: 'Giriş Yap',
+                            styleType: TextStyleType.labelLarge,
+                            color: buttonTextColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                   ),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Hesabın yok mu? ',
-                        style: GoogleFonts.bangers(
-                          color: textColor,
-                          fontSize: 14,
-                        ),
+                      FontWidget(
+                        text: 'Hesabın yok mu?',
+                        styleType: TextStyleType.bodyMedium,
+                        color: textColor,
                       ),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const RegisterScreen()),
+                              builder: (context) => const RegisterScreen(),
+                            ),
                           );
                         },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          'Kayıt Ol',
-                          style: GoogleFonts.bangers(
-                            color: buttonColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: FontWidget(
+                          text: 'Hemen Hesap Oluştur',
+                          styleType: TextStyleType.labelMedium,
+                          color: buttonColor,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),

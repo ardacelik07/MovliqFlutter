@@ -23,6 +23,7 @@ import 'package:http/http.dart' show ClientException;
 import 'dart:io' show SocketException;
 import 'update_user_info_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -326,22 +327,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       userData), // Use existing widget, size adjusted within
                               const SizedBox(height: 12), // Boşluk
                               // Kullanıcı adı
-                              Text(
-                                userData.fullName,
-                                style: GoogleFonts.bangers(
-                                  color: Colors.white,
-                                  fontSize: 22, // Increased font size
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              FontWidget(
+                                text: userData.fullName,
+                                styleType: TextStyleType.titleLarge,
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(height: 4), // Boşluk
+                              const SizedBox(height: 4),
                               // Kullanıcı tag'i
-                              Text(
-                                '@${userData.userName}',
-                                style: GoogleFonts.bangers(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 16, // Increased font size
-                                ),
+                              FontWidget(
+                                text: '@${userData.userName}',
+                                styleType: TextStyleType.bodyMedium,
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 16,
                               ),
                             ],
                           ),
@@ -1377,24 +1376,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
   Future<void> _selectAndUploadProfileImage(
       BuildContext context, WidgetRef ref) async {
     try {
-      final source = await showDialog<ImageSource>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Profil Fotoğrafı', style: GoogleFonts.bangers()),
-          content:
-              Text('Fotoğraf kaynağını seçin', style: GoogleFonts.bangers()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, ImageSource.gallery),
-              child: Text('Galeri', style: GoogleFonts.bangers()),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, ImageSource.camera),
-              child: Text('Kamera', style: GoogleFonts.bangers()),
-            ),
-          ],
-        ),
-      );
+      final source = await _showImageSourceDialog(context);
 
       if (source == null) return;
 
@@ -1626,6 +1608,45 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
           ),
         );
       },
+    );
+  }
+
+  Future<ImageSource?> _showImageSourceDialog(BuildContext context) {
+    return showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E), // Dark background for dialog
+        title: FontWidget(
+          text: 'Profil Fotoğrafı',
+          styleType: TextStyleType.titleMedium,
+          color: Colors.white, // Explicitly white
+          fontWeight: FontWeight.bold,
+        ),
+        content: FontWidget(
+          text: 'Fotoğraf kaynağını seçin',
+          styleType: TextStyleType.bodyMedium,
+          color: Colors.white70, // Explicitly white70 for content
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            child: FontWidget(
+              text: 'Galeri',
+              styleType: TextStyleType.labelLarge, // Button text
+              color: const Color(0xFFC4FF62), // Accent color for actions
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+            child: FontWidget(
+              text: 'Kamera',
+              styleType: TextStyleType.labelLarge, // Button text
+              color: const Color(0xFFC4FF62), // Accent color for actions
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }

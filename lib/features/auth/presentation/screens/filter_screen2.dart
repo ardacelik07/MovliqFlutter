@@ -5,6 +5,7 @@ import 'package:my_flutter_project/features/auth/presentation/screens/waitingRoo
 import '../providers/race_settings_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/error_display_widget.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
 
 class FilterScreen2 extends ConsumerStatefulWidget {
   const FilterScreen2({super.key});
@@ -35,22 +36,18 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 24),
-              Text(
-                "Koşu Süresİ",
-                style: GoogleFonts.bangers(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+              FontWidget(
+                text: "Yarış Özelliklerini Belirle",
+                styleType: TextStyleType.titleLarge,
+                color: Colors.white,
+                // Original style: GoogleFonts.bangers(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)
               ),
               const SizedBox(height: 8),
-              Text(
-                "Hedef sürenİzİ seçİn",
-                style: GoogleFonts.bangers(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+              FontWidget(
+                text: "Ne kadar süre ve hangi modda koşmak istersin?",
+                styleType: TextStyleType.bodyMedium,
+                color: Colors.grey,
+                // Original style: GoogleFonts.bangers(fontSize: 14, color: Colors.grey)
               ),
               const SizedBox(height: 32),
               _buildDurationCard(

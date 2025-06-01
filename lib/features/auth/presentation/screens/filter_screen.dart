@@ -6,6 +6,7 @@ import 'verification_screen.dart';
 // import 'package:my_flutter_project/features/auth/presentation/screens/private_races_view.dart'; // Commented out or remove
 import 'package:my_flutter_project/features/auth/presentation/screens/create_or_join_room_screen.dart'; // Added import
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -37,13 +38,11 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 40),
-                Text(
-                  "Koşu Türünü Seç",
-                  style: GoogleFonts.bangers(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                FontWidget(
+                  text: "Koşu Türünü Seç",
+                  styleType: TextStyleType.titleLarge,
+                  color: Colors.white,
+                  fontSize: 26,
                 ),
                 const SizedBox(height: 40),
                 _buildOptionCard(
@@ -122,12 +121,11 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                             );
                           }
                         },
-                        child: Text(
-                          'Devam',
-                          style: GoogleFonts.bangers(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: FontWidget(
+                          text: 'Devam',
+                          styleType: TextStyleType.labelLarge,
+                          color: Colors.black,
+                          fontSize: 16,
                         ),
                       ),
                     ),
@@ -195,15 +193,12 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: titleLines
-                          .map((line) => Text(
-                                line,
+                          .map((line) => FontWidget(
+                                text: line,
+                                styleType: TextStyleType.titleMedium,
+                                color: Colors.white,
                                 textAlign: TextAlign.right,
-                                style: GoogleFonts.bangers(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  height: 1.2,
-                                ),
+                                fontSize: 22,
                               ))
                           .toList(),
                     ),
@@ -211,12 +206,11 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                   Positioned(
                     bottom: 15,
                     right: 20,
-                    child: Text(
-                      description,
-                      style: GoogleFonts.bangers(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
-                      ),
+                    child: FontWidget(
+                      text: description,
+                      styleType: TextStyleType.bodySmall,
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 12,
                     ),
                   ),
                 ],

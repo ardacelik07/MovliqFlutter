@@ -7,6 +7,7 @@ import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException;
 import 'dart:io' show SocketException;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -60,6 +61,27 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        title: FontWidget(
+          text: 'Liderlik Tablosu',
+          styleType: TextStyleType.titleMedium,
+          color: Colors.white,
+          // Original style: GoogleFonts.bangers(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Image.asset(
+              'assets/icons/info.png',
+              width: 20,
+              height: 20,
+            ),
+            onPressed: () => _showLeaderboardInfoDialog(context),
+          ),
+        ],
+      ),
       // Use the chosen leaderboard provider's state for the main body
       body: leaderboardAsync.when(
         data: (leaderboardUsers) {
@@ -67,22 +89,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           return SafeArea(
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    IconButton(
-                      icon: Image.asset(
-                        'assets/icons/info.png',
-                        width: 20,
-                        height: 20,
-                      ),
-                      onPressed: () => _showLeaderboardInfoDialog(context),
-                    ),
-                  ],
-                ),
-                // Title Section
-
-                // Title Section
                 Container(
                   margin: const EdgeInsets.all(16.0),
                   padding: const EdgeInsets.symmetric(
@@ -96,13 +102,12 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     children: [
                       const Icon(Icons.emoji_events, color: Colors.black),
                       const SizedBox(width: 8),
-                      Text(
-                        'Ödül Reklamı',
-                        style: GoogleFonts.bangers(
-                          color: Colors.black,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      FontWidget(
+                        text: 'Ödül Reklamı',
+                        styleType: TextStyleType.titleSmall, // Or labelLarge
+                        color: Colors.black,
+                        fontSize: 20,
+                        // Original: GoogleFonts.bangers(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)
                       ),
                     ],
                   ),
@@ -138,14 +143,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                               borderRadius: BorderRadius.circular(25),
                             ),
                             child: Center(
-                              child: Text(
-                                'Dış Mekan',
-                                style: GoogleFonts.bangers(
-                                  color: isOutdoorSelected
-                                      ? Colors.black
-                                      : Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              child: FontWidget(
+                                text: 'Dış Mekan',
+                                styleType: TextStyleType
+                                    .labelLarge, // Or bodyMedium with bold
+                                color: isOutdoorSelected
+                                    ? Colors.black
+                                    : Colors.white,
+                                // Original: GoogleFonts.bangers(color: isOutdoorSelected ? Colors.black : Colors.white, fontWeight: FontWeight.bold)
                               ),
                             ),
                           ),
@@ -172,14 +177,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                               borderRadius: BorderRadius.circular(25),
                             ),
                             child: Center(
-                              child: Text(
-                                'İç Mekan',
-                                style: GoogleFonts.bangers(
-                                  color: !isOutdoorSelected
-                                      ? Colors.black
-                                      : Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              child: FontWidget(
+                                text: 'İç Mekan',
+                                styleType: TextStyleType
+                                    .labelLarge, // Or bodyMedium with bold
+                                color: !isOutdoorSelected
+                                    ? Colors.black
+                                    : Colors.white,
+                                // Original: GoogleFonts.bangers(color: !isOutdoorSelected ? Colors.black : Colors.white, fontWeight: FontWeight.bold)
                               ),
                             ),
                           ),
@@ -223,9 +228,13 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                               Icon(Icons.signal_wifi_off_rounded,
                                   color: Colors.redAccent, size: 16),
                               SizedBox(width: 8),
-                              Text('Sıralamanız yüklenemedi',
-                                  style: GoogleFonts.bangers(
-                                      color: Colors.redAccent, fontSize: 12)),
+                              FontWidget(
+                                text: 'Sıralamanız yüklenemedi',
+                                styleType: TextStyleType.bodySmall,
+                                color: Colors.redAccent,
+                                fontSize: 12,
+                                // Original: GoogleFonts.bangers(color: Colors.redAccent, fontSize: 12)
+                              ),
                             ],
                           ),
                         );
@@ -294,12 +303,12 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           title: Row(
             children: [
               Expanded(
-                child: Text(
-                  '🏅 Liderlik Tablosu Hakkında',
-                  style: GoogleFonts.bangers(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18),
+                child: FontWidget(
+                  text: '🏅 Liderlik Tablosu Hakkında',
+                  styleType: TextStyleType.titleSmall,
+                  color: Colors.white,
+                  fontSize: 18,
+                  // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -312,59 +321,81 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
-                    'Liderlik tablosu her ay sonunda sıfırlanır ve yalnızca canlı, genel yarışlardaki performansına göre şekillenir.',
-                    style: GoogleFonts.bangers(color: Colors.white70),
+                  FontWidget(
+                    text:
+                        'Liderlik tablosu her ay sonunda sıfırlanır ve yalnızca canlı, genel yarışlardaki performansına göre şekillenir.',
+                    styleType: TextStyleType.bodyMedium,
+                    color: Colors.white70,
+                    // Original: GoogleFonts.bangers(color: Colors.white70)
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    '📌 Solo Mod ve arkadaşlarla yapılan özel oda yarışları sıralamaya dahil değildir.',
-                    style: GoogleFonts.bangers(
-                        color: Colors.white70, fontWeight: FontWeight.bold),
+                  FontWidget(
+                    text:
+                        '📌 Solo Mod ve arkadaşlarla yapılan özel oda yarışları sıralamaya dahil değildir.',
+                    styleType: TextStyleType.bodyMedium, // With bold
+                    color: Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    // Original: GoogleFonts.bangers(color: Colors.white70, fontWeight: FontWeight.bold)
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Canlı yarışlarda kat ettiğin toplam mesafe (km) baz alınarak sıralama oluşturulur.',
-                    style: GoogleFonts.bangers(color: Colors.white70),
+                  FontWidget(
+                    text:
+                        'Canlı yarışlarda kat ettiğin toplam mesafe (km) baz alınarak sıralama oluşturulur.',
+                    styleType: TextStyleType.bodyMedium,
+                    color: Colors.white70,
+                    // Original: GoogleFonts.bangers(color: Colors.white70)
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Ayrıca iç mekân ve dış mekân yarışları ayrı kategorilerde değerlendirilir.',
-                    style: GoogleFonts.bangers(color: Colors.white70),
+                  FontWidget(
+                    text:
+                        'Ayrıca iç mekân ve dış mekân yarışları ayrı kategorilerde değerlendirilir.',
+                    styleType: TextStyleType.bodyMedium,
+                    color: Colors.white70,
+                    // Original: GoogleFonts.bangers(color: Colors.white70)
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    '🎁 Her Kategoride Ödül Var!',
-                    style: GoogleFonts.bangers(
-                        color: Color(0xFFC4FF62),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16),
+                  FontWidget(
+                    text: '🎁 Her Kategoride Ödül Var!',
+                    styleType: TextStyleType.titleSmall, // Or labelLarge
+                    color: Color(0xFFC4FF62),
+                    fontSize: 16,
+                    // Original: GoogleFonts.bangers(color: Color(0xFFC4FF62), fontWeight: FontWeight.bold, fontSize: 16)
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'Ay sonunda iç mekân ve dış mekân kategorilerinde ayrı ayrı:',
-                    style: GoogleFonts.bangers(color: Colors.white70),
+                  FontWidget(
+                    text:
+                        'Ay sonunda iç mekân ve dış mekân kategorilerinde ayrı ayrı:',
+                    styleType: TextStyleType.bodyMedium,
+                    color: Colors.white70,
+                    // Original: GoogleFonts.bangers(color: Colors.white70)
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    '🥇 İlk 3\'e giren kullanıcılar sürpriz ödüller kazanır!',
-                    style: GoogleFonts.bangers(
-                        color: Color(0xFFC4FF62), fontWeight: FontWeight.bold),
+                  FontWidget(
+                    text:
+                        '🥇 İlk 3\'e giren kullanıcılar sürpriz ödüller kazanır!',
+                    styleType: TextStyleType.bodyMedium, // With bold
+                    color: Color(0xFFC4FF62),
+                    fontWeight: FontWeight.bold,
+                    // Original: GoogleFonts.bangers(color: Color(0xFFC4FF62), fontWeight: FontWeight.bold)
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Ne kadar çok yarışa katılır ve hareket edersen, zirveye o kadar yaklaşırsın.',
-                    style: GoogleFonts.bangers(color: Colors.white70),
+                  FontWidget(
+                    text:
+                        'Ne kadar çok yarışa katılır ve hareket edersen, zirveye o kadar yaklaşırsın.',
+                    styleType: TextStyleType.bodyMedium,
+                    color: Colors.white70,
+                    // Original: GoogleFonts.bangers(color: Colors.white70)
                   ),
                   const SizedBox(height: 24),
                   Center(
-                    child: Text(
-                      '🏃‍♂️ Şimdi sıranı al, yarışlara katıl, ödülleri kap! 💥',
+                    child: FontWidget(
+                      text:
+                          '🏃‍♂️ Şimdi sıranı al, yarışlara katıl, ödülleri kap! 💥',
+                      styleType: TextStyleType.titleSmall, // Or labelLarge
+                      color: Colors.white,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.bangers(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16),
+                      fontSize: 16,
+                      // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
                     ),
                   ),
                 ],
@@ -373,9 +404,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text(
-                'Anladım',
-                style: GoogleFonts.bangers(color: Color(0xFFC4FF62)),
+              child: FontWidget(
+                text: 'Anladım',
+                styleType: TextStyleType.labelLarge,
+                color: Color(0xFFC4FF62),
+                // Original: GoogleFonts.bangers(color: Color(0xFFC4FF62))
               ),
               onPressed: () {
                 Navigator.of(dialogContext).pop();
@@ -397,7 +430,12 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
     if (leaderboardUsers.isEmpty) {
       return const Center(
-        child: Text('No data available', style: TextStyle(color: Colors.white)),
+        child: FontWidget(
+            text: 'No data available',
+            styleType: TextStyleType.bodyLarge,
+            color: Colors.white
+            // Original: const TextStyle(color: Colors.white)
+            ),
       );
     }
 
@@ -468,14 +506,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   children: [
                     SizedBox(
                       width: 24,
-                      child: Text(
-                        '${user.rank}',
-                        style: GoogleFonts.bangers(
-                          color: isCurrentUser
-                              ? const Color(0xFFC4FF62)
-                              : Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: FontWidget(
+                        text: '${user.rank}',
+                        styleType:
+                            TextStyleType.labelLarge, // Or bodyMedium with bold
+                        color: isCurrentUser
+                            ? const Color(0xFFC4FF62)
+                            : Colors.white,
+                        // Original: GoogleFonts.bangers(color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white, fontWeight: FontWeight.bold)
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -487,29 +525,34 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                           : null,
                       child: (user.profilePicture == null ||
                               user.profilePicture!.isEmpty)
-                          ? Text(
-                              user.userName.isNotEmpty ? user.userName[0] : '?',
-                              style: const TextStyle(color: Colors.white),
+                          ? FontWidget(
+                              text: user.userName.isNotEmpty
+                                  ? user.userName[0]
+                                  : '?',
+                              styleType:
+                                  TextStyleType.labelMedium, // Or bodyMedium
+                              color: Colors.white,
+                              // Original: const TextStyle(color: Colors.white)
                             )
                           : null,
                     ),
                   ],
                 ),
-                title: Text(
-                  user.userName,
-                  style: GoogleFonts.bangers(
-                    color:
-                        isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                title: FontWidget(
+                  text: user.userName,
+                  styleType:
+                      TextStyleType.labelLarge, // Or bodyMedium with bold
+                  color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
+                  // Original: GoogleFonts.bangers(color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white, fontWeight: FontWeight.bold)
                 ),
-                trailing: Text(
-                  '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
-                  style: GoogleFonts.bangers(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                trailing: FontWidget(
+                  text:
+                      '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
+                  styleType:
+                      TextStyleType.labelLarge, // Or bodyMedium with bold
+                  color: Colors.white,
+                  fontSize: 16,
+                  // Original: GoogleFonts.bangers(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
                 ),
               ),
             );
@@ -529,7 +572,12 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
     if (leaderboardUsers.isEmpty) {
       return const Center(
-        child: Text('No data available', style: TextStyle(color: Colors.white)),
+        child: FontWidget(
+            text: 'No data available',
+            styleType: TextStyleType.bodyLarge,
+            color: Colors.white
+            // Original: const TextStyle(color: Colors.white)
+            ),
       );
     }
 
@@ -599,14 +647,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   children: [
                     SizedBox(
                       width: 24,
-                      child: Text(
-                        '${user.rank}',
-                        style: GoogleFonts.bangers(
-                          color: isCurrentUser
-                              ? const Color(0xFFC4FF62)
-                              : Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: FontWidget(
+                        text: '${user.rank}',
+                        styleType:
+                            TextStyleType.labelLarge, // Or bodyMedium with bold
+                        color: isCurrentUser
+                            ? const Color(0xFFC4FF62)
+                            : Colors.white,
+                        // Original: GoogleFonts.bangers(color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white, fontWeight: FontWeight.bold)
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -618,28 +666,32 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                           : null,
                       child: (user.profilePicture == null ||
                               user.profilePicture!.isEmpty)
-                          ? Text(
-                              user.userName.isNotEmpty ? user.userName[0] : '?',
-                              style: const TextStyle(color: Colors.white),
+                          ? FontWidget(
+                              text: user.userName.isNotEmpty
+                                  ? user.userName[0]
+                                  : '?',
+                              styleType:
+                                  TextStyleType.labelMedium, // Or bodyMedium
+                              color: Colors.white,
+                              // Original: const TextStyle(color: Colors.white)
                             )
                           : null,
                     ),
                   ],
                 ),
-                title: Text(
-                  user.userName,
-                  style: GoogleFonts.bangers(
-                    color:
-                        isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                title: FontWidget(
+                  text: user.userName,
+                  styleType:
+                      TextStyleType.labelLarge, // Or bodyMedium with bold
+                  color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
+                  // Original: GoogleFonts.bangers(color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white, fontWeight: FontWeight.bold)
                 ),
-                trailing: Text(
-                  '${user.indoorSteps} steps',
-                  style: GoogleFonts.bangers(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                trailing: FontWidget(
+                  text: '${user.indoorSteps} steps',
+                  styleType:
+                      TextStyleType.labelLarge, // Or bodyMedium with bold
+                  color: Colors.white,
+                  // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold)
                 ),
               ),
             );
@@ -692,13 +744,12 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     : null,
                 child: (user.profilePicture == null ||
                         user.profilePicture!.isEmpty)
-                    ? Text(
-                        user.userName.isNotEmpty ? user.userName[0] : '?',
-                        style: GoogleFonts.bangers(
-                          color: Colors.white,
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    ? FontWidget(
+                        text: user.userName.isNotEmpty ? user.userName[0] : '?',
+                        styleType: TextStyleType.titleMedium, // Or labelLarge
+                        color: Colors.white,
+                        fontSize: fontSize,
+                        // Original: GoogleFonts.bangers(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.bold)
                       )
                     : null,
               ),
@@ -714,13 +765,13 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Text(
-                    '$position',
-                    style: GoogleFonts.bangers(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+                  child: FontWidget(
+                    text: '$position',
+                    styleType:
+                        TextStyleType.labelMedium, // Or bodySmall with bold
+                    color: Colors.black,
+                    fontSize: 14,
+                    // Original: GoogleFonts.bangers(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14)
                   ),
                 ),
               ),
@@ -728,33 +779,31 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Text(
-          user.userName,
-          style: GoogleFonts.bangers(
-            color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: fontSize - 4,
-          ),
+        FontWidget(
+          text: user.userName,
+          styleType: TextStyleType.labelLarge, // Or bodyMedium with bold
+          color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
+          fontSize: fontSize - 4,
+          // Original: GoogleFonts.bangers(color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize - 4)
         ),
         if (user is IndoorRankedUser)
-          Text(
-            '${user.indoorSteps} steps',
-            style: GoogleFonts.bangers(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: fontSize - 2,
-            ),
+          FontWidget(
+            text: '${user.indoorSteps} steps',
+            styleType: TextStyleType.labelLarge, // Or bodyMedium with bold
+            color: Colors.white,
+            fontSize: fontSize - 2,
+            // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize - 2)
           )
         else if (user is OutdoorRankedUser)
           Column(
             children: [
-              Text(
-                '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
-                style: GoogleFonts.bangers(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: fontSize - 1,
-                ),
+              FontWidget(
+                text:
+                    '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
+                styleType: TextStyleType.labelLarge, // Or bodyMedium with bold
+                color: Colors.white,
+                fontSize: fontSize - 1,
+                // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize - 1)
               ),
             ],
           ),
@@ -787,14 +836,13 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           children: [
             SizedBox(
               width: 30, // Sıralama için genişlik
-              child: Text(
-                rankText,
+              child: FontWidget(
+                text: rankText,
+                styleType: TextStyleType.labelLarge, // Or titleSmall
+                color: Color(0xFFC4FF62),
                 textAlign: TextAlign.center,
-                style: GoogleFonts.bangers(
-                  color: Color(0xFFC4FF62),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                fontSize: 16,
+                // Original: GoogleFonts.bangers(color: Color(0xFFC4FF62), fontWeight: FontWeight.bold, fontSize: 16)
               ),
             ),
             const SizedBox(width: 8),
@@ -807,36 +855,35 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   : null, // AssetImage or default icon
               child: (userEntry.profilePicture == null ||
                       userEntry.profilePicture!.isEmpty)
-                  ? Text(
-                      userEntry.userName.isNotEmpty
+                  ? FontWidget(
+                      text: userEntry.userName.isNotEmpty
                           ? userEntry.userName[0].toUpperCase()
                           : '?',
-                      style: GoogleFonts.bangers(
-                          color: Colors.white, fontWeight: FontWeight.bold),
+                      styleType: TextStyleType.labelLarge, // Or titleSmall
+                      color: Colors.white,
+                      // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold)
                     )
                   : null,
             ),
           ],
         ),
-        title: Text(
-          userEntry.userName, // Kullanıcı adı
-          style: GoogleFonts.bangers(
-            color: Color(0xFFC4FF62), // Vurgu rengi
-            fontWeight: FontWeight.bold,
-          ),
+        title: FontWidget(
+          text: userEntry.userName, // Kullanıcı adı
+          styleType: TextStyleType.labelLarge, // Or titleSmall
+          color: Color(0xFFC4FF62), // Vurgu rengi
           overflow: TextOverflow.ellipsis,
+          // Original: GoogleFonts.bangers(color: Color(0xFFC4FF62), fontWeight: FontWeight.bold)
         ),
         trailing: Row(
           // Modified trailing to include IconButton
           mainAxisSize: MainAxisSize.min, // To keep Row compact
           children: [
-            Text(
-              valueText, // Değer (km veya adım)
-              style: GoogleFonts.bangers(
-                color: Colors.white, // Değer rengi
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            FontWidget(
+              text: valueText, // Değer (km veya adım)
+              styleType: TextStyleType.labelLarge, // Or titleSmall
+              color: Colors.white, // Değer rengi
+              fontSize: 16,
+              // Original: GoogleFonts.bangers(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
             ),
           ],
         ),

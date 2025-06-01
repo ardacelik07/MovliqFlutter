@@ -17,6 +17,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException; // Specific import
 import 'dart:io' show SocketException; // Specific import
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
 
 // StoreScreen ConsumerStatefulWidget olarak değiştirildi
 class StoreScreen extends ConsumerStatefulWidget {
@@ -77,6 +78,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
         ref.watch(userDataProvider);
 
     return Scaffold(
+      key: _refreshIndicatorKey,
       backgroundColor: darkBackground,
       // Wrap the main content area with productsAsync.when
       body: productsAsync.when(
