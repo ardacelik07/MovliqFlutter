@@ -8,7 +8,8 @@ import 'update_user_info_screen.dart';
 import 'change_password_screen.dart';
 import 'help_screen.dart';
 import 'privacy_policy_screen.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import '../widgets/font_widget.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -41,10 +42,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           icon: Icon(Icons.arrow_back_ios, color: iconColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'Ayarlar',
-          style: GoogleFonts.bangers(
-              color: textColor, fontSize: 18, fontWeight: FontWeight.bold),
+        title: FontWidget(
+          text: 'Ayarlar',
+          styleType: TextStyleType.labelLarge,
+          color: textColor,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
         ),
         actions: [
           IconButton(
@@ -55,22 +58,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 context: context,
                 builder: (context) => AlertDialog(
                   backgroundColor: cardColor,
-                  title: Text('Çıkış Yap',
-                      style: GoogleFonts.bangers(color: textColor)),
-                  content: Text(
-                    'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
-                    style: GoogleFonts.bangers(color: secondaryTextColor),
+                  title: FontWidget(
+                    text: 'Çıkış Yap',
+                    styleType: TextStyleType.labelLarge,
+                    color: textColor,
+                  ),
+                  content: FontWidget(
+                    text:
+                        'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
+                    styleType: TextStyleType.labelLarge,
+                    color: secondaryTextColor,
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
-                      child: Text('İptal',
-                          style: GoogleFonts.bangers(color: iconColor)),
+                      child: FontWidget(
+                        text: 'İptal',
+                        styleType: TextStyleType.labelLarge,
+                        color: iconColor,
+                      ),
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(true),
-                      child: Text('Çıkış Yap',
-                          style: GoogleFonts.bangers(color: Colors.red)),
+                      child: FontWidget(
+                        text: 'Çıkış Yap',
+                        styleType: TextStyleType.labelLarge,
+                        color: Colors.red,
+                      ),
                     ),
                   ],
                 ),
@@ -201,13 +215,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildSectionTitle(String title, Color textColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(
-        title,
-        style: GoogleFonts.bangers(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: textColor.withOpacity(0.8),
-        ),
+      child: FontWidget(
+        text: title,
+        styleType: TextStyleType.labelLarge,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: textColor.withOpacity(0.8),
       ),
     );
   }
@@ -236,13 +249,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       leading: Icon(icon, color: iconColor, size: 24),
-      title: Text(
-        title,
-        style: GoogleFonts.bangers(
-          fontSize: 15,
-          color: textColor,
-          fontWeight: FontWeight.w500,
-        ),
+      title: FontWidget(
+        text: title,
+        styleType: TextStyleType.labelLarge,
+        fontSize: 15,
+        color: textColor,
+        fontWeight: FontWeight.w500,
       ),
       trailing:
           Icon(Icons.arrow_forward_ios, color: Colors.grey[600], size: 16),
@@ -263,13 +275,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       leading: Icon(icon, color: iconColor, size: 24),
-      title: Text(
-        title,
-        style: GoogleFonts.bangers(
-          fontSize: 15,
-          color: textColor,
-          fontWeight: FontWeight.w500,
-        ),
+      title: FontWidget(
+        text: title,
+        styleType: TextStyleType.labelLarge,
+        fontSize: 15,
+        color: textColor,
+        fontWeight: FontWeight.w500,
       ),
       trailing: CupertinoSwitch(
         value: value,
@@ -294,23 +305,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       leading: Icon(platformIcon, color: iconColor, size: 24), // Icon widget'ı
-      title: Text(
-        platformName,
-        style: GoogleFonts.bangers(
-          fontSize: 15,
-          color: textColor,
-          fontWeight: FontWeight.w500,
-        ),
+      title: FontWidget(
+        text: platformName,
+        styleType: TextStyleType.labelLarge,
+        fontSize: 15,
+        color: textColor,
+        fontWeight: FontWeight.w500,
       ),
-      trailing: Text(
-        status,
-        style: GoogleFonts.bangers(
-          fontSize: 14,
-          color: isConnected
-              ? const Color(0xFFB2FF59)
-              : secondaryTextColor, // Bağlı ise yeşil, değilse gri
-          fontWeight: FontWeight.w500,
-        ),
+
+      trailing: FontWidget(
+        text: status,
+        styleType: TextStyleType.labelLarge,
+        fontSize: 14,
+        color: isConnected
+            ? const Color(0xFFB2FF59)
+            : secondaryTextColor, // Bağlı ise yeşil, değilse gri
+        fontWeight: FontWeight.w500,
       ),
       onTap: onTap,
     );

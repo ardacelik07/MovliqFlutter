@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:url_launcher/url_launcher.dart'; // E-posta için gerekebilir
-import 'package:google_fonts/google_fonts.dart';
+import '../widgets/font_widget.dart';
 
 // Email gönderme fonksiyonunu widget dışında tanımla
 Future<void> _launchEmail() async {
@@ -155,12 +155,11 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: Text(
-          'Yardım & Destek',
-          style: GoogleFonts.bangers(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-          ),
+        title: FontWidget(
+          text: 'Yardım & Destek',
+          styleType: TextStyleType.labelLarge,
+          color: textColor,
+          fontWeight: FontWeight.bold,
         ),
         backgroundColor: backgroundColor,
         elevation: 0,
@@ -175,12 +174,12 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Sorularınız mı var? Size yardımcı olmaktan mutluluk duyarız.',
-              style: GoogleFonts.bangers(
-                color: secondaryTextColor,
-                fontSize: 15,
-              ),
+            FontWidget(
+              text:
+                  'Sorularınız mı var? Size yardımcı olmaktan mutluluk duyarız.',
+              styleType: TextStyleType.labelLarge,
+              color: secondaryTextColor,
+              fontSize: 15,
             ),
             const SizedBox(height: 24),
             _buildSectionTitle('Bize Ulaşın', textColor), // Pass color
@@ -188,12 +187,11 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
               onPressed: _launchEmail, // Global fonksiyonu çağır
               icon:
                   Icon(Icons.email_outlined, color: backgroundColor, size: 20),
-              label: Text(
-                'E-posta Gönder',
-                style: GoogleFonts.bangers(
-                  fontWeight: FontWeight.bold,
-                  color: backgroundColor,
-                ),
+              label: FontWidget(
+                text: 'E-posta Gönder',
+                styleType: TextStyleType.labelLarge,
+                fontWeight: FontWeight.bold,
+                color: backgroundColor,
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentColor,
@@ -237,12 +235,11 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
 
             const SizedBox(height: 32),
             Center(
-              child: Text(
-                'Destek taleplerinize en kısa sürede yanıt vereceğiz.',
-                style: GoogleFonts.bangers(
-                  color: labelColor,
-                  fontSize: 13,
-                ),
+              child: FontWidget(
+                text: 'Destek taleplerinize en kısa sürede yanıt vereceğiz.',
+                styleType: TextStyleType.labelLarge,
+                color: labelColor,
+                fontSize: 13,
                 textAlign: TextAlign.center,
               ),
             ),
@@ -256,13 +253,12 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
   Widget _buildSectionTitle(String title, Color textColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-        ),
+      child: FontWidget(
+        text: title,
+        styleType: TextStyleType.labelLarge,
+        color: textColor,
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
@@ -283,12 +279,11 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
       child: ListTile(
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        title: Text(
-          question,
-          style: GoogleFonts.bangers(
-            color: textColor,
-            fontSize: 17,
-          ),
+        title: FontWidget(
+          text: question,
+          styleType: TextStyleType.labelLarge,
+          color: textColor,
+          fontSize: 17,
         ),
         trailing: Icon(Icons.arrow_forward_ios, color: accentColor, size: 16),
         onTap: () {
@@ -317,13 +312,12 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
       child: ExpansionTile(
         iconColor: accentColor,
         collapsedIconColor: accentColor,
-        title: Text(
-          question,
-          style: GoogleFonts.bangers(
-            color: textColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w500,
-          ),
+        title: FontWidget(
+          text: question,
+          styleType: TextStyleType.labelLarge,
+          color: textColor,
+          fontSize: 17,
+          fontWeight: FontWeight.w500,
         ),
         childrenPadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0)
@@ -331,13 +325,11 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
         tilePadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         children: <Widget>[
-          Text(
-            answer,
-            style: GoogleFonts.bangers(
-              color: secondaryTextColor,
-              fontSize: 14,
-              height: 1.4,
-            ),
+          FontWidget(
+            text: answer,
+            styleType: TextStyleType.labelLarge,
+            color: secondaryTextColor,
+            fontSize: 14,
           ),
         ],
       ),
