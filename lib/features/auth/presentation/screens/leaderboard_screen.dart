@@ -65,8 +65,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         backgroundColor: Colors.black,
         elevation: 0,
         title: FontWidget(
-          text: 'Liderlik Tablosu',
-          styleType: TextStyleType.titleMedium,
+          text: 'Lİderlİk Tablosu',
+          styleType: TextStyleType.titleLarge,
           color: Colors.white,
           // Original style: GoogleFonts.bangers(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)
         ),
@@ -146,7 +146,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                               child: FontWidget(
                                 text: 'Dış Mekan',
                                 styleType: TextStyleType
-                                    .labelLarge, // Or bodyMedium with bold
+                                    .bodyLarge, // Or bodyMedium with bold
                                 color: isOutdoorSelected
                                     ? Colors.black
                                     : Colors.white,
@@ -180,7 +180,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                               child: FontWidget(
                                 text: 'İç Mekan',
                                 styleType: TextStyleType
-                                    .labelLarge, // Or bodyMedium with bold
+                                    .bodyLarge, // Or bodyMedium with bold
                                 color: !isOutdoorSelected
                                     ? Colors.black
                                     : Colors.white,
@@ -406,7 +406,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             TextButton(
               child: FontWidget(
                 text: 'Anladım',
-                styleType: TextStyleType.labelLarge,
+                styleType: TextStyleType.bodyLarge,
                 color: Color(0xFFC4FF62),
                 // Original: GoogleFonts.bangers(color: Color(0xFFC4FF62))
               ),
@@ -509,7 +509,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       child: FontWidget(
                         text: '${user.rank}',
                         styleType:
-                            TextStyleType.labelLarge, // Or bodyMedium with bold
+                            TextStyleType.bodyLarge, // Or bodyMedium with bold
                         color: isCurrentUser
                             ? const Color(0xFFC4FF62)
                             : Colors.white,
@@ -530,7 +530,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                                   ? user.userName[0]
                                   : '?',
                               styleType:
-                                  TextStyleType.labelMedium, // Or bodyMedium
+                                  TextStyleType.bodyMedium, // Or bodyMedium
                               color: Colors.white,
                               // Original: const TextStyle(color: Colors.white)
                             )
@@ -540,18 +540,15 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 ),
                 title: FontWidget(
                   text: user.userName,
-                  styleType:
-                      TextStyleType.labelLarge, // Or bodyMedium with bold
+                  styleType: TextStyleType.bodyLarge, // Or bodyMedium with bold
                   color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
                   // Original: GoogleFonts.bangers(color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white, fontWeight: FontWeight.bold)
                 ),
                 trailing: FontWidget(
                   text:
                       '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
-                  styleType:
-                      TextStyleType.labelLarge, // Or bodyMedium with bold
+                  styleType: TextStyleType.bodyLarge, // Or bodyMedium with bold
                   color: Colors.white,
-                  fontSize: 16,
                   // Original: GoogleFonts.bangers(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
                 ),
               ),
@@ -650,7 +647,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       child: FontWidget(
                         text: '${user.rank}',
                         styleType:
-                            TextStyleType.labelLarge, // Or bodyMedium with bold
+                            TextStyleType.bodyLarge, // Or bodyMedium with bold
                         color: isCurrentUser
                             ? const Color(0xFFC4FF62)
                             : Colors.white,
@@ -671,7 +668,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                                   ? user.userName[0]
                                   : '?',
                               styleType:
-                                  TextStyleType.labelMedium, // Or bodyMedium
+                                  TextStyleType.bodyMedium, // Or bodyMedium
                               color: Colors.white,
                               // Original: const TextStyle(color: Colors.white)
                             )
@@ -681,15 +678,13 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 ),
                 title: FontWidget(
                   text: user.userName,
-                  styleType:
-                      TextStyleType.labelLarge, // Or bodyMedium with bold
+                  styleType: TextStyleType.bodyLarge, // Or bodyMedium with bold
                   color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
                   // Original: GoogleFonts.bangers(color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white, fontWeight: FontWeight.bold)
                 ),
                 trailing: FontWidget(
                   text: '${user.indoorSteps} steps',
-                  styleType:
-                      TextStyleType.labelLarge, // Or bodyMedium with bold
+                  styleType: TextStyleType.bodyLarge, // Or bodyMedium with bold
                   color: Colors.white,
                   // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold)
                 ),
@@ -768,9 +763,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   child: FontWidget(
                     text: '$position',
                     styleType:
-                        TextStyleType.labelMedium, // Or bodySmall with bold
+                        TextStyleType.bodyMedium, // Or bodySmall with bold
                     color: Colors.black,
-                    fontSize: 14,
                     // Original: GoogleFonts.bangers(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14)
                   ),
                 ),
@@ -781,7 +775,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         const SizedBox(height: 8),
         FontWidget(
           text: user.userName,
-          styleType: TextStyleType.labelLarge, // Or bodyMedium with bold
+          styleType: TextStyleType.bodyLarge, // Or bodyMedium with bold
           color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white,
           fontSize: fontSize - 4,
           // Original: GoogleFonts.bangers(color: isCurrentUser ? const Color(0xFFC4FF62) : Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize - 4)
@@ -789,7 +783,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         if (user is IndoorRankedUser)
           FontWidget(
             text: '${user.indoorSteps} steps',
-            styleType: TextStyleType.labelLarge, // Or bodyMedium with bold
+            styleType: TextStyleType.bodyLarge, // Or bodyMedium with bold
             color: Colors.white,
             fontSize: fontSize - 2,
             // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize - 2)
@@ -800,7 +794,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               FontWidget(
                 text:
                     '${user.generalDistance?.toStringAsFixed(2) ?? "0.00"} km',
-                styleType: TextStyleType.labelLarge, // Or bodyMedium with bold
+                styleType: TextStyleType.bodyLarge, // Or bodyMedium with bold
                 color: Colors.white,
                 fontSize: fontSize - 1,
                 // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold, fontSize: fontSize - 1)
@@ -838,10 +832,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               width: 30, // Sıralama için genişlik
               child: FontWidget(
                 text: rankText,
-                styleType: TextStyleType.labelLarge, // Or titleSmall
+                styleType: TextStyleType.bodyLarge, // Or titleSmall
                 color: Color(0xFFC4FF62),
                 textAlign: TextAlign.center,
-                fontSize: 16,
+
                 // Original: GoogleFonts.bangers(color: Color(0xFFC4FF62), fontWeight: FontWeight.bold, fontSize: 16)
               ),
             ),
@@ -859,7 +853,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                       text: userEntry.userName.isNotEmpty
                           ? userEntry.userName[0].toUpperCase()
                           : '?',
-                      styleType: TextStyleType.labelLarge, // Or titleSmall
+                      styleType: TextStyleType.bodyLarge, // Or titleSmall
                       color: Colors.white,
                       // Original: GoogleFonts.bangers(color: Colors.white, fontWeight: FontWeight.bold)
                     )
@@ -869,7 +863,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         ),
         title: FontWidget(
           text: userEntry.userName, // Kullanıcı adı
-          styleType: TextStyleType.labelLarge, // Or titleSmall
+          styleType: TextStyleType.bodyLarge, // Or titleSmall
           color: Color(0xFFC4FF62), // Vurgu rengi
           overflow: TextOverflow.ellipsis,
           // Original: GoogleFonts.bangers(color: Color(0xFFC4FF62), fontWeight: FontWeight.bold)
@@ -880,9 +874,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           children: [
             FontWidget(
               text: valueText, // Değer (km veya adım)
-              styleType: TextStyleType.labelLarge, // Or titleSmall
+              styleType: TextStyleType.bodyLarge, // Or titleSmall
               color: Colors.white, // Değer rengi
-              fontSize: 16,
               // Original: GoogleFonts.bangers(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
             ),
           ],

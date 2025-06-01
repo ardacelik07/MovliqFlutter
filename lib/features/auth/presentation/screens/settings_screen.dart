@@ -44,9 +44,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         title: FontWidget(
           text: 'Ayarlar',
-          styleType: TextStyleType.labelLarge,
+          styleType: TextStyleType.titleLarge,
           color: textColor,
-          fontSize: 18,
           fontWeight: FontWeight.bold,
         ),
         actions: [
@@ -60,13 +59,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   backgroundColor: cardColor,
                   title: FontWidget(
                     text: 'Çıkış Yap',
-                    styleType: TextStyleType.labelLarge,
+                    styleType: TextStyleType.bodyLarge,
                     color: textColor,
                   ),
                   content: FontWidget(
                     text:
                         'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
-                    styleType: TextStyleType.labelLarge,
+                    styleType: TextStyleType.bodyLarge,
                     color: secondaryTextColor,
                   ),
                   actions: [
@@ -74,7 +73,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onPressed: () => Navigator.of(context).pop(false),
                       child: FontWidget(
                         text: 'İptal',
-                        styleType: TextStyleType.labelLarge,
+                        styleType: TextStyleType.bodyLarge,
                         color: iconColor,
                       ),
                     ),
@@ -82,7 +81,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onPressed: () => Navigator.of(context).pop(true),
                       child: FontWidget(
                         text: 'Çıkış Yap',
-                        styleType: TextStyleType.labelLarge,
+                        styleType: TextStyleType.bodyLarge,
                         color: Colors.red,
                       ),
                     ),
@@ -217,8 +216,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.only(bottom: 8.0),
       child: FontWidget(
         text: title,
-        styleType: TextStyleType.labelLarge,
-        fontSize: 16,
+        styleType: TextStyleType.titleSmall,
         fontWeight: FontWeight.w600,
         color: textColor.withOpacity(0.8),
       ),
@@ -251,8 +249,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       leading: Icon(icon, color: iconColor, size: 24),
       title: FontWidget(
         text: title,
-        styleType: TextStyleType.labelLarge,
-        fontSize: 15,
+        styleType: TextStyleType.bodyLarge,
         color: textColor,
         fontWeight: FontWeight.w500,
       ),
@@ -277,8 +274,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       leading: Icon(icon, color: iconColor, size: 24),
       title: FontWidget(
         text: title,
-        styleType: TextStyleType.labelLarge,
-        fontSize: 15,
+        styleType: TextStyleType.titleMedium,
         color: textColor,
         fontWeight: FontWeight.w500,
       ),
@@ -307,16 +303,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       leading: Icon(platformIcon, color: iconColor, size: 24), // Icon widget'ı
       title: FontWidget(
         text: platformName,
-        styleType: TextStyleType.labelLarge,
-        fontSize: 15,
+        styleType: TextStyleType.bodyMedium,
         color: textColor,
         fontWeight: FontWeight.w500,
       ),
 
       trailing: FontWidget(
         text: status,
-        styleType: TextStyleType.labelLarge,
-        fontSize: 14,
+        styleType: TextStyleType.bodyMedium,
         color: isConnected
             ? const Color(0xFFB2FF59)
             : secondaryTextColor, // Bağlı ise yeşil, değilse gri

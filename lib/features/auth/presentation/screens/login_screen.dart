@@ -117,8 +117,7 @@ class LoginScreen extends ConsumerWidget {
                         },
                         child: FontWidget(
                             text: 'E-posta İle Devam Et',
-                            styleType: TextStyleType.labelLarge,
-                            fontSize: 24,
+                            styleType: TextStyleType.bodyLarge,
                             color: emailButtonFg,
                             fontWeight: FontWeight.bold),
                       ),
@@ -131,7 +130,7 @@ class LoginScreen extends ConsumerWidget {
                           onPressed: () {},
                           child: FontWidget(
                               text: 'Need Help?',
-                              styleType: TextStyleType.labelMedium,
+                              styleType: TextStyleType.bodyMedium,
                               color: Color.fromARGB(132, 255, 255, 255)),
                         ),
                         const SizedBox(width: 16),
@@ -139,7 +138,7 @@ class LoginScreen extends ConsumerWidget {
                           onPressed: () {},
                           child: FontWidget(
                               text: 'Privacy Policy',
-                              styleType: TextStyleType.labelMedium,
+                              styleType: TextStyleType.bodyMedium,
                               color: Color.fromARGB(132, 255, 255, 255)),
                         ),
                       ],
@@ -168,10 +167,9 @@ class LoginScreen extends ConsumerWidget {
         icon: FaIcon(icon, size: 20, color: fgColor),
         label: FontWidget(
             text: text,
-            styleType: TextStyleType.labelMedium,
+            styleType: TextStyleType.bodyMedium,
             color: fgColor,
-            fontWeight: FontWeight.w500,
-            fontSize: 16),
+            fontWeight: FontWeight.w500),
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,

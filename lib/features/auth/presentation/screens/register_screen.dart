@@ -270,7 +270,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           orElse: () => FontWidget(
                             text: 'Hesabımı Oluştur',
-                            styleType: TextStyleType.labelLarge,
+                            styleType: TextStyleType.bodyLarge,
                             color: buttonTextColor,
                             fontWeight: FontWeight.bold,
                           ),
@@ -300,7 +300,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         ),
                         child: FontWidget(
                           text: 'Giriş Yap',
-                          styleType: TextStyleType.labelMedium,
+                          styleType: TextStyleType.bodyMedium,
                           color: buttonColor,
                           fontWeight: FontWeight.bold,
                         ),

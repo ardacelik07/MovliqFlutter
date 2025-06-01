@@ -188,7 +188,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
           foregroundColor: Colors.white, // İkon ve başlık rengi
           title: FontWidget(
             text: 'Koşu Geçmişim', // Başlığı güncelle
-            styleType: TextStyleType.titleLarge,
+            styleType: TextStyleType.titleMedium,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),

@@ -109,7 +109,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                 text: 'Mağaza',
                                 styleType: TextStyleType
                                     .titleLarge, // Adjusted for Bangers
-                                fontSize: 28,
+
                                 fontWeight: FontWeight.bold,
                                 color: lightTextColor,
                               ),
@@ -136,7 +136,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                                 ?.toStringAsFixed(2) ??
                                             '0.00',
                                         styleType: TextStyleType
-                                            .labelLarge, // Adjusted for Bangers
+                                            .bodyLarge, // Adjusted for Bangers
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                         color: lightTextColor,
@@ -291,7 +291,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                       child: FontWidget(
                                         text: 'Bu Aya Özel',
                                         styleType: TextStyleType
-                                            .labelSmall, // Adjusted for Bangers
+                                            .bodyMedium, // Adjusted for Bangers
                                         color: darkTextColor, // Black text
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
@@ -335,8 +335,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                       FontWidget(
                                         text: product.name,
                                         styleType: TextStyleType
-                                            .labelLarge, // Adjusted for Bangers
-                                        fontSize: 16,
+                                            .bodyLarge, // Adjusted for Bangers
                                         fontWeight: FontWeight.bold,
                                         color: lightTextColor,
                                       ),
@@ -345,8 +344,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                       FontWidget(
                                         text: product.description,
                                         styleType: TextStyleType
-                                            .labelMedium, // Adjusted for Bangers
-                                        fontSize: 14,
+                                            .bodyMedium, // Adjusted for Bangers
                                         color: greyTextColor,
                                         maxLines: 3,
                                         overflow: TextOverflow.ellipsis,
@@ -365,9 +363,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                                 text: product.price
                                                     .toStringAsFixed(0),
                                                 styleType: TextStyleType
-                                                    .labelMedium, // Adjusted for Bangers
+                                                    .bodyMedium, // Adjusted for Bangers
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 14,
                                                 color: limeGreen,
                                               ),
                                               const SizedBox(width: 4),
@@ -421,7 +418,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
                       child: FontWidget(
-                        text: 'Alışveriş',
+                        text: 'Alışverİş',
                         styleType:
                             TextStyleType.titleSmall, // Adjusted for Bangers
                         textAlign: TextAlign.center,
@@ -577,9 +574,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
               children: [
                 FontWidget(
                   text: title,
-                  styleType: TextStyleType.labelMedium, // Adjusted for Bangers
+                  styleType: TextStyleType.bodyMedium, // Adjusted for Bangers
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
                   color: lightTextColor,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -593,9 +589,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                         FontWidget(
                           text: price,
                           styleType:
-                              TextStyleType.labelMedium, // Adjusted for Bangers
+                              TextStyleType.bodyMedium, // Adjusted for Bangers
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
                           color: limeGreen,
                         ),
                         const SizedBox(width: 4),

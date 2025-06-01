@@ -329,9 +329,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               // Kullanıcı adı
                               FontWidget(
                                 text: userData.fullName,
-                                styleType: TextStyleType.titleLarge,
+                                styleType: TextStyleType.titleMedium,
                                 color: Colors.white,
-                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
                               ),
                               const SizedBox(height: 4),
@@ -340,7 +339,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 text: '@${userData.userName}',
                                 styleType: TextStyleType.bodyMedium,
                                 color: Colors.white.withOpacity(0.7),
-                                fontSize: 16,
                               ),
                             ],
                           ),
@@ -400,14 +398,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        FontWidget(
                           // Title aligned left
-                          'Haftalık Performans',
-                          style: GoogleFonts.bangers(
-                            color: Colors.white,
-                            fontSize: 18, // Slightly larger
-                            fontWeight: FontWeight.bold,
-                          ),
+                          text: 'Haftalık Performans',
+                          styleType: TextStyleType.titleMedium,
+                          color: Colors.white,
                         ),
                         const SizedBox(height: 16),
 
@@ -717,13 +712,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Son Yarışlar',
-                              style: GoogleFonts.bangers(
-                                fontSize: 18, // Match performance title size
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                            FontWidget(
+                              text: 'Son Yarışlar',
+                              styleType: TextStyleType.titleMedium,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                             TextButton(
                               onPressed: () {
@@ -1006,19 +999,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildFilterButton(String typeKey, bool isSelected) {
-    String buttonText;
+    Widget buttonText;
     switch (typeKey.toLowerCase()) {
       case 'indoor':
-        buttonText = 'İç Mekan';
+        buttonText = FontWidget(
+          text: 'İç Mekan',
+          styleType: TextStyleType.bodyLarge,
+        );
         break;
       case 'outdoor':
-        buttonText = 'Dış Mekan';
+        buttonText = FontWidget(
+          text: 'Dış Mekan',
+          styleType: TextStyleType.bodyLarge,
+        );
         break;
       case 'record':
-        buttonText = 'Kayıt'; // Assuming 'Record' maps to 'Kayıt'
+        buttonText = FontWidget(
+          text: 'Kayıt',
+          styleType: TextStyleType.bodyLarge,
+        );
         break;
       default:
-        buttonText = typeKey;
+        buttonText = FontWidget(
+          text: typeKey,
+          styleType: TextStyleType.bodyLarge,
+        );
     }
 
     return GestureDetector(
@@ -1032,17 +1037,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               : const Color(0xFF3A3A3A), // Updated colors
           borderRadius: BorderRadius.circular(20), // More rounded corners
         ),
-        child: Text(
-          buttonText,
-          style: TextStyle(
-            color: isSelected
-                ? Colors.black
-                : Colors.white, // Black text on selected
-            fontSize: 14, // Slightly larger text
-            fontWeight:
-                isSelected ? FontWeight.bold : FontWeight.w500, // Adjust weight
-          ),
-        ),
+        child: buttonText,
       ),
     );
   }

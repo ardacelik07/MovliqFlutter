@@ -6,7 +6,8 @@ import 'dart:convert';
 import '../../../../core/config/api_config.dart';
 import 'verify_code_screen.dart'; // Sonraki ekran
 // import '../widgets/background_widget.dart'; // Arka plan widget'ı (KALDIRILDI)
-// import '../widgets/custom_snackbar.dart'; // Özel Snackbar (Henüz yok)
+// import '../widgets/custom_snackbar.dart'; // Özel Snackbar (Henüz yok
+import '../widgets/font_widget.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -104,12 +105,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       backgroundColor: primaryColor,
       extendBodyBehindAppBar: true, // Arka planın AppBar arkasına geçmesi için
       appBar: AppBar(
-        title: Text(
-          'Şifremi Unuttum',
-          style: GoogleFonts.bangers(
-            color: Colors.white,
-            fontSize: 24,
-          ),
+        title: FontWidget(
+          text: 'Şifremi Unuttum',
+          styleType: TextStyleType.titleLarge,
+          color: Colors.white,
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -155,14 +154,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     // Email Field
                     TextFormField(
                       controller: _emailController,
-                      style: GoogleFonts.bangers(
+                      style: GoogleFonts.boogaloo(
                         color: inputColor,
                         fontSize: 16,
                       ),
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         hintText: 'E-posta Adresi',
-                        hintStyle: GoogleFonts.bangers(
+                        hintStyle: GoogleFonts.boogaloo(
                           color: labelColor,
                           fontSize: 14,
                         ),
@@ -211,14 +210,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                 strokeWidth: 3,
                               ),
                             )
-                          : Text(
-                              'Kod Gönder',
-                              style: GoogleFonts.bangers(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          : FontWidget(
+                              text: 'Kod Gönder',
+                              styleType: TextStyleType.bodyLarge,
+                              fontWeight: FontWeight.bold,
+                              color: buttonTextColor,
                             ),
                     ),
+
                     const SizedBox(height: 40), // Alt boşluk
                   ],
                 ),

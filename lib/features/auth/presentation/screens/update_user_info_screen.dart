@@ -392,6 +392,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
                       text: 'Değişiklikleri Kaydet',
                       styleType: TextStyleType.labelLarge,
                       fontWeight: FontWeight.bold, // Bold text
+                      color: Colors.black,
                     ),
             ),
           ],
@@ -426,17 +427,17 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       // Changed from TextFormField
       controller: controller,
       keyboardType: keyboardType,
-      style: GoogleFonts.bangers(
+      style: GoogleFonts.boogaloo(
         color: _textColor,
         fontSize: 15,
       ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: GoogleFonts.bangers(
+        hintStyle: GoogleFonts.boogaloo(
             color: _secondaryTextColor.withOpacity(0.7), fontSize: 15),
         suffixText: suffixText,
         suffixStyle:
-            GoogleFonts.bangers(color: _secondaryTextColor, fontSize: 14),
+            GoogleFonts.boogaloo(color: _secondaryTextColor, fontSize: 14),
         filled: true,
         fillColor: _cardColor, // Use card color for background
         contentPadding:

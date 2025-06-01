@@ -157,7 +157,7 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
       appBar: AppBar(
         title: FontWidget(
           text: 'Yardım & Destek',
-          styleType: TextStyleType.labelLarge,
+          styleType: TextStyleType.titleLarge,
           color: textColor,
           fontWeight: FontWeight.bold,
         ),
@@ -281,9 +281,8 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         title: FontWidget(
           text: question,
-          styleType: TextStyleType.labelLarge,
+          styleType: TextStyleType.titleMedium,
           color: textColor,
-          fontSize: 17,
         ),
         trailing: Icon(Icons.arrow_forward_ios, color: accentColor, size: 16),
         onTap: () {
@@ -314,7 +313,7 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
         collapsedIconColor: accentColor,
         title: FontWidget(
           text: question,
-          styleType: TextStyleType.labelLarge,
+          styleType: TextStyleType.titleMedium,
           color: textColor,
           fontSize: 17,
           fontWeight: FontWeight.w500,
@@ -327,7 +326,7 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
         children: <Widget>[
           FontWidget(
             text: answer,
-            styleType: TextStyleType.labelLarge,
+            styleType: TextStyleType.bodyLarge,
             color: secondaryTextColor,
             fontSize: 14,
           ),

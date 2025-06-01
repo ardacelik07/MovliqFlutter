@@ -216,7 +216,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                       },
                       child: FontWidget(
                         text: 'Parolamı Unuttum',
-                        styleType: TextStyleType.labelSmall,
+                        styleType: TextStyleType.bodySmall,
                         color: textColor,
                       ),
                     ),
@@ -246,7 +246,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                           ),
                           orElse: () => FontWidget(
                             text: 'Giriş Yap',
-                            styleType: TextStyleType.labelLarge,
+                            styleType: TextStyleType.bodyLarge,
                             color: buttonTextColor,
                             fontWeight: FontWeight.bold,
                           ),
@@ -272,7 +272,7 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
                         },
                         child: FontWidget(
                           text: 'Hemen Hesap Oluştur',
-                          styleType: TextStyleType.labelMedium,
+                          styleType: TextStyleType.bodyMedium,
                           color: buttonColor,
                           fontWeight: FontWeight.bold,
                         ),

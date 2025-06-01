@@ -319,11 +319,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     return TextField(
       controller: controller,
       obscureText: obscureText,
-      style: GoogleFonts.bangers(color: _textColor, fontSize: 15),
+      style: GoogleFonts.boogaloo(color: _textColor, fontSize: 15),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle:
-            GoogleFonts.bangers(color: _secondaryTextColor.withOpacity(0.7)),
+            GoogleFonts.boogaloo(color: _secondaryTextColor.withOpacity(0.7)),
         filled: true,
         fillColor: _cardColor,
         contentPadding:

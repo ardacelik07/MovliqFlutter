@@ -473,7 +473,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                               FontWidget(
                                 text: userData?.userName ??
                                     'Kullanıcı', // Display name or default
-                                styleType: TextStyleType.titleLarge,
+                                styleType: TextStyleType.bodyLarge,
                                 color: Colors.white,
                                 fontSize: 16,
                               ),
@@ -684,7 +684,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ),
                             child: FontWidget(
                               text: 'Davet Et',
-                              styleType: TextStyleType.labelLarge,
+                              styleType: TextStyleType.titleSmall,
                               color: Colors.black,
                               fontSize: 16,
                             ),
@@ -728,7 +728,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               FontWidget(
-                                text: 'Alınabilir Ürünler',
+                                text: 'Alınabİlİr Ürünler',
                                 styleType: TextStyleType.titleMedium,
                                 color: Colors.white,
                                 fontSize: 18,
@@ -742,9 +742,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 },
                                 child: FontWidget(
                                   text: 'Mağaza >',
-                                  styleType: TextStyleType.labelLarge,
+                                  styleType: TextStyleType.bodyLarge,
                                   color: Color(0xFFC4FF62),
-                                  fontSize: 16,
                                 ),
                               ),
                             ],

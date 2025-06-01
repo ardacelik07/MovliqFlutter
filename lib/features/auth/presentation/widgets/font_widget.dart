@@ -49,43 +49,43 @@ class FontWidget extends StatelessWidget {
           color: textColor,
         );
       case TextStyleType.titleMedium:
-        return GoogleFonts.boogaloo(
+        return GoogleFonts.bangers(
           fontSize: fontSize ?? 24,
           fontWeight: fontWeight ?? FontWeight.bold,
           color: textColor,
         );
       case TextStyleType.titleSmall:
-        return GoogleFonts.boogaloo(
+        return GoogleFonts.bangers(
           fontSize: fontSize ?? 20,
           fontWeight: fontWeight ?? FontWeight.w600,
           color: textColor,
         );
       case TextStyleType.bodyLarge:
-        return GoogleFonts.boogaloo(
+        return GoogleFonts.pangolin(
           fontSize: fontSize ?? 16,
           fontWeight: fontWeight ?? FontWeight.normal,
           color: textColor,
         );
       case TextStyleType.bodyMedium:
-        return GoogleFonts.boogaloo(
+        return GoogleFonts.pangolin(
           fontSize: fontSize ?? 14,
           fontWeight: fontWeight ?? FontWeight.normal,
           color: textColor,
         );
       case TextStyleType.bodySmall:
-        return GoogleFonts.boogaloo(
+        return GoogleFonts.pangolin(
           fontSize: fontSize ?? 12,
           fontWeight: fontWeight ?? FontWeight.normal,
           color: textColor,
         );
       case TextStyleType.labelLarge:
-        return GoogleFonts.boogaloo(
+        return GoogleFonts.caveatBrush(
           fontSize: fontSize ?? 16,
           fontWeight: fontWeight ?? FontWeight.bold,
           color: textColor,
         );
       case TextStyleType.labelMedium:
-        return GoogleFonts.boogaloo(
+        return GoogleFonts.caveatBrush(
           fontSize: fontSize ?? 14,
           fontWeight:
               fontWeight ?? FontWeight.w500, // Medium weight for poppins labels
