@@ -304,7 +304,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             children: [
               Expanded(
                 child: FontWidget(
-                  text: '🏅 Liderlik Tablosu Hakkında',
+                  text: '🏅 Lİderlİk Tablosu Hakkında',
                   styleType: TextStyleType.titleSmall,
                   color: Colors.white,
                   fontSize: 18,
@@ -355,7 +355,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   FontWidget(
-                    text: '🎁 Her Kategoride Ödül Var!',
+                    text: '🎁 Her Kategorİde Ödül Var!',
                     styleType: TextStyleType.titleSmall, // Or labelLarge
                     color: Color(0xFFC4FF62),
                     fontSize: 16,
@@ -390,7 +390,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                   Center(
                     child: FontWidget(
                       text:
-                          '🏃‍♂️ Şimdi sıranı al, yarışlara katıl, ödülleri kap! 💥',
+                          '🏃‍♂️ Şİmdİ sıranı al, yarışlara katıl, ödüllerİ kap! 💥',
                       styleType: TextStyleType.titleSmall, // Or labelLarge
                       color: Colors.white,
                       textAlign: TextAlign.center,
