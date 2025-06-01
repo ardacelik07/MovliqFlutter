@@ -95,17 +95,28 @@ class _HomePageState extends ConsumerState<HomePage> {
     PermissionStatus sensorStatus = await Permission.sensors.status;
 
     // If any permission is denied, show the PermissionWidget
-    if (locationStatus.isDenied ||
-        activityStatus.isDenied ||
-        sensorStatus.isDenied) {
-      setState(() {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return const PermissionWidget();
-          },
-        );
-      });
+    if (Platform.isIOS) {
+      if (locationStatus.isDenied || sensorStatus.isDenied) {
+        setState(() {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return const PermissionWidget();
+            },
+          );
+        });
+      }
+    } else {
+      if (locationStatus.isDenied || activityStatus.isDenied) {
+        setState(() {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return const PermissionWidget();
+            },
+          );
+        });
+      }
     }
   }
 
