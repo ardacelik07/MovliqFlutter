@@ -90,13 +90,15 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<void> _checkPermissions() async {
     // Check the status of the required permissions
     PermissionStatus locationStatus = await Permission.location.status;
+    bool locationStatusBool = await Geolocator.isLocationServiceEnabled();
+    await Permission.notification.status;
     PermissionStatus activityStatus =
         await Permission.activityRecognition.status;
     PermissionStatus sensorStatus = await Permission.sensors.status;
 
     // If any permission is denied, show the PermissionWidget
     if (Platform.isIOS) {
-      if (locationStatus.isDenied || sensorStatus.isDenied) {
+      if (locationStatusBool == false || sensorStatus.isDenied) {
         setState(() {
           showDialog(
             context: context,
