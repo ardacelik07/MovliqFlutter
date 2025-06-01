@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart'; // For date formatting
-import 'package:google_fonts/google_fonts.dart';
+import '../widgets/font_widget.dart';
 import '../../domain/models/user_data_model.dart';
 import '../providers/user_data_provider.dart';
 import '../widgets/error_display_widget.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // Enum definitions matching the visual choices
 // It's better practice to use enums for discrete choices.
@@ -215,8 +216,11 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Profil başarıyla güncellendi!',
-              style: GoogleFonts.bangers(color: _backgroundColor)),
+          content: FontWidget(
+            text: 'Profil başarıyla güncellendi!',
+            styleType: TextStyleType.labelLarge,
+            color: _backgroundColor,
+          ),
           backgroundColor: _accentColor,
         ),
       );
@@ -238,9 +242,12 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: Text('Kişisel Bilgiler',
-            style: GoogleFonts.bangers(
-                color: _textColor, fontWeight: FontWeight.bold)),
+        title: FontWidget(
+          text: 'Kişisel Bilgiler',
+          styleType: TextStyleType.labelLarge,
+          color: _textColor,
+          fontWeight: FontWeight.bold,
+        ),
         backgroundColor: _backgroundColor, // Match background
         elevation: 0, // No shadow
         iconTheme: IconThemeData(color: _accentColor), // Back button color
@@ -381,11 +388,10 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
                           strokeWidth: 3,
                           color: _backgroundColor), // Thicker stroke
                     )
-                  : Text(
-                      'Değişiklikleri Kaydet',
-                      style: GoogleFonts.bangers(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold), // Bold text
+                  : FontWidget(
+                      text: 'Değişiklikleri Kaydet',
+                      styleType: TextStyleType.labelLarge,
+                      fontWeight: FontWeight.bold, // Bold text
                     ),
             ),
           ],
@@ -399,13 +405,12 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(
-        text,
-        style: GoogleFonts.bangers(
-          color: _labelColor,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
+      child: FontWidget(
+        text: text,
+        styleType: TextStyleType.labelLarge,
+        color: _labelColor,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
@@ -470,17 +475,16 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              _selectedBirthday == null
+            FontWidget(
+              text: _selectedBirthday == null
                   ? 'gg.aa.yyyy' // Placeholder like in image
                   : DateFormat('dd.MM.yyyy')
                       .format(_selectedBirthday!), // Format like image
-              style: GoogleFonts.bangers(
-                color: _selectedBirthday == null
-                    ? _secondaryTextColor.withOpacity(0.7)
-                    : _textColor,
-                fontSize: 15,
-              ),
+              styleType: TextStyleType.labelLarge,
+              color: _selectedBirthday == null
+                  ? _secondaryTextColor.withOpacity(0.7)
+                  : _textColor,
+              fontSize: 15,
             ),
             Icon(Icons.calendar_today_outlined, color: _accentColor, size: 20),
           ],
