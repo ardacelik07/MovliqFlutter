@@ -1,23 +1,225 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:my_flutter_project/core/config/api_config.dart';
+import 'package:my_flutter_project/core/services/http_interceptor.dart';
 // import 'package:url_launcher/url_launcher.dart'; // E-posta için gerekebilir
 import '../widgets/font_widget.dart';
+import '../widgets/error_display_widget.dart'; // For ErrorDisplayWidget
 
-// Email gönderme fonksiyonunu widget dışında tanımla
-Future<void> _launchEmail() async {
-  // const String email = 'destek@example.com'; // TODO: Replace with actual support email
-  // final Uri emailLaunchUri = Uri(
-  //   scheme: 'mailto',
-  //   path: email,
-  //   query: 'subject=Yardım Talebi&body=Merhaba,',
-  // );
-  // try {
-  //   await launchUrl(emailLaunchUri);
-  // } catch (e) {
-  //   print('Could not launch email: $e');
-  //   // Show error to user
-  // }
-  print('Email button pressed'); // Placeholder action
+// Updated _launchEmail function to show a dialog
+Future<void> _launchEmail(BuildContext context, WidgetRef ref) async {
+  showDialog(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return _SupportEmailDialog(ref: ref);
+    },
+  );
+}
+
+class _SupportEmailDialog extends StatefulWidget {
+  final WidgetRef ref;
+  const _SupportEmailDialog({required this.ref});
+
+  @override
+  State<_SupportEmailDialog> createState() => _SupportEmailDialogState();
+}
+
+class _SupportEmailDialogState extends State<_SupportEmailDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _messageController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendSupportEmail() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final email = _emailController.text;
+      final message = _messageController.text;
+
+      try {
+        final response = await HttpInterceptor.post(
+          Uri.parse('${ApiConfig.baseUrl}/User/send-support-email'),
+          body: jsonEncode({'email': email, 'message': message}),
+        );
+
+        if (mounted) {
+          if (response.statusCode == 200) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: FontWidget(
+                  text: 'Destek mesajınız başarıyla gönderildi.',
+                  styleType: TextStyleType.bodyMedium,
+                  color: Colors.black,
+                ),
+                backgroundColor: const Color(0xFFB2FF59), // accentColor
+              ),
+            );
+            Navigator.of(context).pop(); // Close the dialog
+          } else {
+            final responseData = jsonDecode(response.body);
+            final errorMessage = responseData['message'] ??
+                'Destek mesajı gönderilirken bir hata oluştu. Kod: ${response.statusCode}';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: ErrorDisplayWidget(errorObject: errorMessage),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: ErrorDisplayWidget(errorObject: e.toString()),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color backgroundColor = Colors.grey[900]!;
+    final Color textColor = Colors.white;
+    final Color accentColor = const Color(0xFFB2FF59);
+    final Color inputFillColor = Colors.grey[800]!;
+
+    return AlertDialog(
+      backgroundColor: backgroundColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: FontWidget(
+        text: 'Destek Talebi Oluştur',
+        styleType: TextStyleType.titleMedium,
+        color: textColor,
+      ),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  labelText: 'E-posta Adresiniz',
+                  labelStyle: TextStyle(color: accentColor.withOpacity(0.7)),
+                  filled: true,
+                  fillColor: inputFillColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: accentColor),
+                  ),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Lütfen e-posta adresinizi girin.';
+                  }
+                  if (!value.contains('@') || !value.contains('.')) {
+                    return 'Lütfen geçerli bir e-posta adresi girin.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _messageController,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  labelText: 'Mesajınız',
+                  labelStyle: TextStyle(color: accentColor.withOpacity(0.7)),
+                  filled: true,
+                  fillColor: inputFillColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: accentColor),
+                  ),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 5,
+                minLines: 3,
+                keyboardType: TextInputType.multiline,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Lütfen mesajınızı girin.';
+                  }
+                  if (value.length < 10) {
+                    return 'Mesajınız en az 10 karakter olmalıdır.';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: FontWidget(
+            text: 'İptal',
+            styleType: TextStyleType.labelLarge,
+            color: accentColor,
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: accentColor,
+            foregroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          onPressed: _isLoading ? null : _sendSupportEmail,
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.black,
+                    strokeWidth: 2,
+                  ),
+                )
+              : FontWidget(
+                  text: 'Gönder',
+                  styleType: TextStyleType.labelLarge,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+        ),
+      ],
+    );
+  }
 }
 
 class HelpScreen extends ConsumerWidget {
@@ -110,7 +312,7 @@ Yani sonuncu olsan bile üzülme — yine de coin kazanırsın! 🏆''',
 
 🎯 Kayıt edilen her aktiviteyle mCoin kazanırsın.
 Ama unutma:
-💡 Solo Mod\'da kazandığın mCoin, canlı yarışlara göre biraz daha azdır.
+💡 Solo Mod'da kazandığın mCoin, canlı yarışlara göre biraz daha azdır.
 Yine de her adımın ödül!
 
 🟢 Solo mod = özgürlük, esneklik ve motivasyon!''',
@@ -202,7 +404,8 @@ mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
             const SizedBox(height: 24),
             _buildSectionTitle('Bize Ulaşın', textColor), // Pass color
             ElevatedButton.icon(
-              onPressed: _launchEmail, // Global fonksiyonu çağır
+              onPressed: () => _launchEmail(
+                  context, ref), // Updated to call with context and ref
               icon:
                   Icon(Icons.email_outlined, color: backgroundColor, size: 20),
               label: FontWidget(
