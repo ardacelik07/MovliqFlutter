@@ -55,6 +55,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
     _checkPermissionsStatus();
+    _checkPermissions();
 
     // Check for cheat kicked status when HomePage initializes and listen for changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -82,13 +83,29 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     if (!_permissionsRequested) {
       await _checkAndRequestPermissionsSequentially();
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return const PermissionWidget();
-        },
-      );
       prefs.setBool('permissionsRequested', true);
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    // Check the status of the required permissions
+    PermissionStatus locationStatus = await Permission.location.status;
+    PermissionStatus activityStatus =
+        await Permission.activityRecognition.status;
+    PermissionStatus sensorStatus = await Permission.sensors.status;
+
+    // If any permission is denied, show the PermissionWidget
+    if (locationStatus.isDenied ||
+        activityStatus.isDenied ||
+        sensorStatus.isDenied) {
+      setState(() {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return const PermissionWidget();
+          },
+        );
+      });
     }
   }
 
