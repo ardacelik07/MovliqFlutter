@@ -25,7 +25,7 @@ import 'package:share_plus/share_plus.dart'; // SharePlus paketi eklendi
 import 'package:flutter/rendering.dart';
 import 'package:my_flutter_project/features/auth/presentation/widgets/leave_widget.dart'; // LeaveWidget importu
 import 'package:flutter/widgets.dart'; // WidgetsBindingObserver için
-import 'package:google_fonts/google_fonts.dart';
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -742,25 +742,24 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                       .stretch, // Stretch elements horizontally
                   children: [
                     // Title
-                    Text(
-                      'Yarış Başlamak Üzere',
+                    FontWidget(
+                      text: 'Yarış Başlamak Üzere',
+                      styleType: TextStyleType.titleLarge,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.bangers(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: _primaryTextColor,
-                      ),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: _primaryTextColor,
                     ),
                     const SizedBox(height: 8),
                     // Subtitle (Güncellenmiş Metinle)
-                    Text(
-                      subtitleText,
+                    FontWidget(
+                      text: subtitleText,
+                      styleType: TextStyleType
+                          .labelLarge, // Adjusted for Bangers style
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.bangers(
-                        fontSize: 16,
-                        color: _accentColor,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      fontSize: 16,
+                      color: _accentColor,
+                      fontWeight: FontWeight.w500,
                     ),
                     const SizedBox(height: 30),
 
@@ -774,12 +773,12 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Seçilen Yarış Tipi',
-                            style: GoogleFonts.bangers(
-                              fontSize: 14,
-                              color: _secondaryTextColor,
-                            ),
+                          FontWidget(
+                            text: 'Seçilen Yarış Tipi',
+                            styleType: TextStyleType
+                                .labelMedium, // Adjusted for Bangers style
+                            fontSize: 14,
+                            color: _secondaryTextColor,
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -791,23 +790,23 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                 height: 20,
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                displayActivityType,
-                                style: GoogleFonts.bangers(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w600,
-                                  color: _primaryTextColor,
-                                ),
+                              FontWidget(
+                                text: displayActivityType,
+                                styleType: TextStyleType
+                                    .titleMedium, // Adjusted for Bangers style
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                                color: _primaryTextColor,
                               ),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Text(
-                            'Yarış Süresi',
-                            style: GoogleFonts.bangers(
-                              fontSize: 14,
-                              color: _secondaryTextColor,
-                            ),
+                          FontWidget(
+                            text: 'Yarış Süresi',
+                            styleType: TextStyleType
+                                .labelMedium, // Adjusted for Bangers style
+                            fontSize: 14,
+                            color: _secondaryTextColor,
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -819,25 +818,25 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                 height: 20,
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                displayDuration,
-                                style: GoogleFonts.bangers(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  color: _primaryTextColor,
-                                ),
+                              FontWidget(
+                                text: displayDuration,
+                                styleType: TextStyleType
+                                    .titleSmall, // Adjusted for Bangers style
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: _primaryTextColor,
                               ),
                             ],
                           ),
                           // Display Room Code
                           if (widget.roomCode.isNotEmpty) ...[
                             const SizedBox(height: 16),
-                            Text(
-                              'Oda Kodu',
-                              style: GoogleFonts.bangers(
-                                fontSize: 14,
-                                color: _secondaryTextColor,
-                              ),
+                            FontWidget(
+                              text: 'Oda Kodu',
+                              styleType: TextStyleType
+                                  .labelMedium, // Adjusted for Bangers style
+                              fontSize: 14,
+                              color: _secondaryTextColor,
                             ),
                             const SizedBox(height: 4),
                             Row(
@@ -851,7 +850,10 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                 Expanded(
                                   child: SelectableText(
                                     widget.roomCode,
-                                    style: GoogleFonts.bangers(
+                                    style: const TextStyle(
+                                      // Keep SelectableText with TextStyle for now
+                                      fontFamily:
+                                          'Bangers', // Explicitly keep Bangers for SelectableText if needed
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
                                       color: _primaryTextColor,
@@ -869,8 +871,10 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                         ClipboardData(text: widget.roomCode));
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                          content: Text('Oda kodu kopyalandı!',
-                                              style: GoogleFonts.bangers())),
+                                          content: FontWidget(
+                                              text: 'Oda kodu kopyalandı!',
+                                              styleType: TextStyleType
+                                                  .labelMedium)), // Adjusted for Bangers style
                                     );
                                   },
                                 ),
@@ -921,13 +925,13 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            'Hazır Olan Yarışmacılar',
-                            style: GoogleFonts.bangers(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: _primaryTextColor,
-                            ),
+                          FontWidget(
+                            text: 'Hazır Olan Yarışmacılar',
+                            styleType: TextStyleType
+                                .labelLarge, // Adjusted for Bangers style
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: _primaryTextColor,
                           ),
                           const SizedBox(height: 12),
                           // Stacked Profile Pictures
@@ -948,14 +952,14 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                                   color: _accentColor)
                               : ElevatedButton.icon(
                                   onPressed: _startRaceButtonPressed,
-                                  label: Text(
-                                    'Yarışı Başlat',
-                                    style: GoogleFonts.bangers(
-                                      color: Colors
-                                          .black, // Text color black for contrast
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  label: FontWidget(
+                                    text: 'Yarışı Başlat',
+                                    styleType: TextStyleType
+                                        .labelLarge, // Adjusted for Bangers style
+                                    color: Colors
+                                        .black, // Text color black for contrast
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor:
@@ -977,13 +981,13 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                           onPressed: () => _leaveRoom(showConfirmation: true),
                           icon: const Icon(Icons.exit_to_app,
                               color: _accentColor),
-                          label: Text(
-                            'Yarıştan Çık',
-                            style: GoogleFonts.bangers(
-                              color: _accentColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          label: FontWidget(
+                            text: 'Yarıştan Çık',
+                            styleType: TextStyleType
+                                .labelLarge, // Adjusted for Bangers style
+                            color: _accentColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1012,22 +1016,22 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'Yarış Başlıyor',
-                          style: GoogleFonts.bangers(
-                            fontSize: 28, // Boyut RaceScreen ile aynı olabilir
-                            color: _accentColor,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        FontWidget(
+                          text: 'Yarış Başlıyor',
+                          styleType: TextStyleType
+                              .titleMedium, // Adjusted for Bangers style
+                          fontSize: 28, // Boyut RaceScreen ile aynı olabilir
+                          color: _accentColor,
+                          fontWeight: FontWeight.w600,
                         ),
                         const SizedBox(height: 25),
-                        Text(
-                          raceState.preRaceCountdownValue.toString(),
-                          style: GoogleFonts.bangers(
-                              fontSize:
-                                  120, // Boyut RaceScreen ile aynı olabilir
-                              color: _accentColor,
-                              fontWeight: FontWeight.bold),
+                        FontWidget(
+                          text: raceState.preRaceCountdownValue.toString(),
+                          styleType: TextStyleType
+                              .titleLarge, // Adjusted for Bangers style
+                          fontSize: 120, // Boyut RaceScreen ile aynı olabilir
+                          color: _accentColor,
+                          fontWeight: FontWeight.bold,
                         ),
                       ],
                     ),
@@ -1085,12 +1089,12 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
           child: CircleAvatar(
             radius: avatarRadius,
             backgroundColor: _secondaryTextColor,
-            child: Text(
-              '+${_participants.length - maxVisibleAvatars}',
-              style: GoogleFonts.bangers(
-                  color: _backgroundColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold),
+            child: FontWidget(
+              text: '+${_participants.length - maxVisibleAvatars}',
+              styleType: TextStyleType.labelSmall, // Adjusted for Bangers style
+              color: _backgroundColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
