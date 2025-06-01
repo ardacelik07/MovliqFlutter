@@ -59,6 +59,24 @@ class HelpScreen extends ConsumerWidget {
         'isExpanded': true,
       },
       {
+        'question': 'Neden Adımlarım ve Konumum Uygulamada Çalışmıyor?',
+        'answer':
+            '''Bunun sebebi büyük ihtimalle adım ve konum izinlerinin kapalı olmasıdır.
+Yarışlar, Solo Mod ve diğer özelliklerin düzgün çalışması için bu iki izne ihtiyaç duyuyoruz.
+
+📲 Çözüm için:
+
+Telefon ayarlarına git
+
+Uygulamalar > Movliq'i seç
+
+“Adım (hareket)” ve “Konum” izinlerini aç
+
+İzinleri açtıktan sonra uygulamayı yeniden başlat ve tekrar dene.
+Hâlâ sorun yaşıyorsan bizimle iletişime geçebilirsin! 🛠️''',
+        'isExpanded': true,
+      },
+      {
         'question': 'Canlı Yarış Nasıl Çalışır?',
         'answer':
             '''Kullanıcı, uygulama üzerinden canlı yarış lobisine katılırken yarışın türünü (iç veya dış mekân) ve süresini seçer. Sistem, aynı yarış ayarlarına sahip diğer kullanıcılarla eşleştirme yapar veya kullanıcı yeni bir yarış başlatarak oda oluşturabilir.

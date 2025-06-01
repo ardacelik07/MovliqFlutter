@@ -37,7 +37,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert'; // Import jsonEncode
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
-import '../widgets/permission_widget.dart';
 
 // Change to ConsumerStatefulWidget
 class HomePage extends ConsumerStatefulWidget {
@@ -55,7 +54,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
     _checkPermissionsStatus();
-    _checkPermissions();
 
     // Check for cheat kicked status when HomePage initializes and listen for changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -84,41 +82,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (!_permissionsRequested) {
       await _checkAndRequestPermissionsSequentially();
       prefs.setBool('permissionsRequested', true);
-    }
-  }
-
-  Future<void> _checkPermissions() async {
-    // Check the status of the required permissions
-    PermissionStatus locationStatus = await Permission.location.status;
-    bool locationStatusBool = await Geolocator.isLocationServiceEnabled();
-    await Permission.notification.status;
-    PermissionStatus activityStatus =
-        await Permission.activityRecognition.status;
-    PermissionStatus sensorStatus = await Permission.sensors.status;
-
-    // If any permission is denied, show the PermissionWidget
-    if (Platform.isIOS) {
-      if (locationStatusBool == false || sensorStatus.isDenied) {
-        setState(() {
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return const PermissionWidget();
-            },
-          );
-        });
-      }
-    } else {
-      if (locationStatus.isDenied || activityStatus.isDenied) {
-        setState(() {
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return const PermissionWidget();
-            },
-          );
-        });
-      }
     }
   }
 

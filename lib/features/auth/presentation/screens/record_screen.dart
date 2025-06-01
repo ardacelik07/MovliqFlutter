@@ -19,6 +19,7 @@ import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/error_display_widget.dart';
+import '../widgets/permission_widget.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -77,6 +78,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   void initState() {
     super.initState();
     _loadMarkerImage();
+    _checkPermissions();
 
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -124,6 +126,29 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }
       }
     });
+  }
+
+  Future<void> _checkPermissions() async {
+    // Check the status of the required permissions
+    PermissionStatus locationStatus = await Permission.location.status;
+    await Permission.notification.status;
+    PermissionStatus activityStatus =
+        await Permission.activityRecognition.status;
+    PermissionStatus sensorStatus = await Permission.sensors.status;
+
+    // If any permission is denied, show the PermissionWidget
+    if (Platform.isAndroid) {
+      if (locationStatus.isDenied || sensorStatus.isDenied) {
+        setState(() {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return const PermissionWidget();
+            },
+          );
+        });
+      }
+    }
   }
 
   @override
@@ -185,18 +210,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }
     if (mounted) {
       setState(() {}); // Refresh UI if needed after permission checks
-    }
-  }
-
-  Future<bool> _requestIOSNotificationPermission() async {
-    const platform = MethodChannel('com.movliq/notifications');
-    try {
-      final bool result =
-          await platform.invokeMethod('requestNotificationPermission');
-      return result;
-    } catch (e) {
-      debugPrint('RecordScreen - iOS bildirim izni alma hatası: $e');
-      return false;
     }
   }
 
@@ -311,10 +324,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         } else {
           // Request permission if not permanently denied and not already granted
           debugPrint('RecordScreen - Android aktivite izni isteniyor...');
-          final requestedStatus = await Permission.activityRecognition.request();
-          debugPrint(
-              'RecordScreen - Android aktivite izin isteği sonucu: $requestedStatus');
-          if (requestedStatus.isGranted) {
+
+          if (status.isGranted) {
             setState(() {
               _hasPedometerPermission = true;
             });
@@ -323,7 +334,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             setState(() {
               _hasPedometerPermission = false;
             });
-            if (requestedStatus.isPermanentlyDenied && mounted) {
+            if (status.isPermanentlyDenied && mounted) {
               debugPrint(
                   'RecordScreen - Android aktivite izni (istek sonrası) kalıcı olarak reddedilmiş.');
             }
