@@ -7,6 +7,7 @@ import '../../../../core/config/api_config.dart'; // API yapılandırmasını im
 // Provider importları (varsayılan)
 import '../providers/auth_provider.dart';
 import '../providers/user_data_provider.dart';
+import '../widgets/font_widget.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
@@ -148,8 +149,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         if (response.statusCode == 200 || response.statusCode == 204) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Şifre başarıyla değiştirildi!',
-                  style: GoogleFonts.bangers(color: _backgroundColor)),
+              content: FontWidget(
+                text: 'Şifre başarıyla değiştirildi!',
+                styleType: TextStyleType.labelLarge,
+                color: _backgroundColor,
+              ),
               backgroundColor: _accentColor,
             ),
           );
@@ -201,9 +205,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: Text('Şifre Değiştir',
-            style: GoogleFonts.bangers(
-                color: _textColor, fontWeight: FontWeight.bold)),
+        title: FontWidget(
+          text: 'Şifre Değiştir',
+          styleType: TextStyleType.labelLarge,
+          color: _textColor,
+          fontWeight: FontWeight.bold,
+        ),
         backgroundColor: _backgroundColor,
         elevation: 0,
         iconTheme: IconThemeData(color: _accentColor),
@@ -260,10 +267,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: Center(
-                    child: Text(
-                      _errorMessage,
-                      style:
-                          GoogleFonts.bangers(color: _errorColor, fontSize: 14),
+                    child: FontWidget(
+                      text: _errorMessage,
+                      styleType: TextStyleType.labelLarge,
+                      color: _errorColor,
+                      fontSize: 14,
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -287,10 +295,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 3, color: _backgroundColor),
                       )
-                    : Text(
-                        'Şifreyi Değiştir',
-                        style: GoogleFonts.bangers(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                    : FontWidget(
+                        text: 'Şifreyi Değiştir',
+                        styleType: TextStyleType.labelLarge,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: _backgroundColor,
                       ),
               ),
             ],
@@ -348,10 +358,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: GoogleFonts.bangers(
-              color: _labelColor, fontSize: 14, fontWeight: FontWeight.w500),
+        FontWidget(
+          text: title,
+          styleType: TextStyleType.labelLarge,
+          color: _labelColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
         ),
         const SizedBox(height: 8),
         ...requirements.map(
@@ -362,9 +374,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 Icon(Icons.check_circle_outline,
                     color: _secondaryTextColor, size: 18),
                 const SizedBox(width: 8),
-                Text(req,
-                    style: GoogleFonts.bangers(
-                        color: _secondaryTextColor, fontSize: 14)),
+                FontWidget(
+                  text: req,
+                  styleType: TextStyleType.labelLarge,
+                  color: _secondaryTextColor,
+                  fontSize: 14,
+                ),
               ],
             ),
           ),
