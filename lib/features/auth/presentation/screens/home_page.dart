@@ -115,13 +115,10 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Bildirim izni kontrolü ve istek işlemi
   Future<void> _checkAndRequestNotificationPermission() async {
-    print('Ana Sayfa - Bildirim izni kontrolü başlatılıyor...');
-
     // iOS ve Android için farklı stratejiler
     if (Platform.isIOS) {
       // iOS için native Swift üzerinden bildirim izni alma
       final bool hasPermission = await _requestIOSNotificationPermission();
-      print('Ana Sayfa - iOS bildirim izni: $hasPermission');
 
       // İzin almak için yeterli, kullanıcı iOS sisteminin kendi dialog kutusunu görecek
     } else {
@@ -130,15 +127,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       if (notificationStatus.isDenied ||
           notificationStatus.isPermanentlyDenied) {
-        print(
-            'Ana Sayfa - Android bildirim izni reddedilmiş, istek yapılıyor...');
         // Android için izin iste
         final notificationRequest = await Permission.notification.request();
 
         // Kullanıcıya bilgi ver (opsiyonel)
-      } else {
-        print('Ana Sayfa - Android bildirim izni zaten var');
-      }
+      } else {}
     }
   }
 
@@ -153,7 +146,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           await platform.invokeMethod('requestNotificationPermission');
       return result;
     } catch (e) {
-      print('Ana Sayfa - iOS bildirim izni alma hatası: $e');
       return false;
     }
   }
@@ -167,15 +159,12 @@ class _HomePageState extends ConsumerState<HomePage> {
           await platform.invokeMethod('checkNotificationPermission');
       return status;
     } catch (e) {
-      print('Ana Sayfa - iOS bildirim izni kontrolü hatası: $e');
       return 'error';
     }
   }
 
   // Function to check and request location permission (directly requesting Always)
   Future<void> _checkAndRequestLocationPermission() async {
-    print('Ana Sayfa - Konum izni kontrolü başlatılıyor...');
-
     // First check if location services are enabled
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -197,36 +186,26 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (Platform.isIOS) {
       // For iOS: Use Geolocator directly which works better
       LocationPermission permission = await Geolocator.checkPermission();
-      print('Ana Sayfa - iOS konum izni durumu: $permission');
 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        print('Ana Sayfa - iOS konum izni istendikten sonra: $permission');
       }
 
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         if (mounted) {}
-      } else {
-        print('Ana Sayfa - iOS konum izni alındı: $permission');
-      }
+      } else {}
     } else {
       // For Android: Request Permission.location which handles "While using the app"
       final status = await Permission.location.status;
-      print('Ana Sayfa - Android konum izin durumu: $status');
 
       // Define the critical permission dialog details for races
 
       if (!status.isGranted && !status.isLimited) {
         final requestedStatus = await Permission.location.request();
-        print(
-            'Ana Sayfa - Android izin istenen durum (Uygulamayı Kullanırken): $requestedStatus');
 
         // If permission granted here, it's "While using the app" or "Always"
-      } else {
-        print(
-            'Ana Sayfa - Android konum izni (Uygulamayı Kullanırken veya Her Zaman) zaten verilmiş.');
-      }
+      } else {}
     }
   }
 
@@ -235,20 +214,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (Platform.isAndroid) {
       // Android işlemi aynı kalıyor
       final status = await Permission.activityRecognition.status;
-      print('Ana Sayfa - Android aktivite izin durumu: $status');
 
       if (!status.isGranted) {
         final requestedStatus = await Permission.activityRecognition.request();
-        print(
-            'Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
-      } else {
-        print('Ana Sayfa - Android aktivite izni zaten verilmiş.');
-      }
+      } else {}
     } else if (Platform.isIOS) {
       // iOS için: Health Kit izinlerini kontrol et
       // Önce normal sensör iznini iste
       final sensorStatus = await Permission.sensors.request();
-      print('Ana Sayfa - iOS sensör izin durumu: $sensorStatus');
 
       // Health Kit izinlerinin verilip verilmediğini kontrol etmek için
       try {
@@ -256,12 +229,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         bool healthKitPermissionVerified = false;
 
         final subscription = Pedometer.stepCountStream.listen((step) {
-          print(
-              'HomePage - Adım algılandı: ${step.steps}, Health Kit izinleri verilmiş');
           healthKitPermissionVerified = true;
-        }, onError: (error) {
-          print('HomePage - Adım algılama hatası: $error');
-        });
+        }, onError: (error) {});
 
         // Kısa bir süre bekle
         await Future.delayed(const Duration(seconds: 3));
@@ -269,14 +238,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
         // Eğer Health Kit verisi alınamadıysa dialog göster
         if (!healthKitPermissionVerified && mounted) {
-          print(
-              'Ana Sayfa - Health Kit izinleri verilmemiş, kullanıcıyı yönlendiriyoruz');
-        } else {
-          print(
-              'Ana Sayfa - Health Kit izinleri verilmiş veya başarıyla algılandı');
-        }
+        } else {}
       } catch (e) {
-        print('Ana Sayfa - Health Kit izin kontrolü sırasında hata: $e');
         if (mounted) {}
       }
     }
@@ -308,8 +271,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       bool apiCallSuccessful = await _callYourOneTimeShareRewardApi();
 
       if (apiCallSuccessful) {
-        print(
-            'Tek kullanımlık paylaşım ödülü APIsi başarıyla çağrıldı ve coin verildi.');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -327,7 +288,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         return;
       }
     } catch (e) {
-      print('Paylaşım diyalogu sırasında hata oluştu: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Paylaşım başlatılamadı.')),
@@ -347,8 +307,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       );
 
       if (response.statusCode == 200) {
-        print('Claim initial bonus API call successful: ${response.body}');
-        // API'den dönen yanıta göre ek kontroller yapabilirsiniz (örn: response.body parse edilebilir)
         return true; // Başarılı
       } else {
         return false; // Başarısız
@@ -371,7 +329,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     final trackingState = ref.watch(raceCoinTrackingProvider);
 
     if (trackingState != null && trackingState.justFinishedRace) {
-      print("🏁 HomePage Build: Race finished flag detected.");
       // Durumu kontrol ettikten hemen sonra temizle
       // Bu, build sırasında state değişikliği hatasını önler
       // ve popup'ın tekrar tekrar tetiklenmesini engeller.
@@ -380,7 +337,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ref.read(raceCoinTrackingProvider.notifier).clearState();
-          print("🏁 HomePage Build: Race finished flag cleared after check.");
         }
       });
 
@@ -392,7 +348,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             trackingState.beforeRaceCoin != null) {
           final double earnedCoin =
               currentUserData.coins! - trackingState.beforeRaceCoin!;
-          print("🏁 HomePage Build: UserData loaded. Earned Coin: $earnedCoin");
 
           if (earnedCoin > 0.001) {
             // Build bittikten sonra popup'ı göster
@@ -401,21 +356,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _showCoinPopup(context, earnedCoin);
               }
             });
-          } else {
-            print(
-                "🏁 HomePage Build: No significant coin difference detected.");
-          }
-        } else {
-          print(
-              "🏁 HomePage Build: UserData not ready or coin info missing for diff calc.");
-        }
+          } else {}
+        } else {}
       } else if (userDataAsync is AsyncError) {
-        print(
-            "🏁 HomePage Build: Error loading UserData, cannot calculate diff.");
-      } else {
-        print(
-            "🏁 HomePage Build: UserData is loading, cannot calculate diff yet.");
-      }
+      } else {}
     }
     // --- Coin Popup Logic Sonu ---
 
@@ -718,8 +662,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                       child: AnimatedCentralButton(),
                     ),
 
-                    /*
-
                     // --- Available Products Section ---
                     Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -819,10 +761,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                     ),
 
-                    */
-
                     // --- Special Races Section (Horizontal Scroll) ---
-                    /*Padding(
+                    Padding(
                       padding: const EdgeInsets.only(
                           left: 16.0,
                           top: 16.0,
@@ -907,8 +847,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                                                 // Add errorBuilder for NetworkImage
                                                 onError:
                                                     (exception, stackTrace) {
-                                                  print(
-                                                      "Error loading race image: ${race.imagePath}, Error: $exception");
                                                   // Optionally show a placeholder
                                                 },
                                               ),
@@ -956,13 +894,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                                       child: CircularProgressIndicator(
                                           color: Colors.white)),
                                   error: (error, stackTrace) {
-                                    print(
-                                        'Error loading special races: $error\n$stackTrace');
                                     return Center(
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
                                         child: FontWidget(
-                                          text: 'Özel yarışlar yüklenemedi: $error',
+                                          text:
+                                              'Özel yarışlar yüklenemedi: $error',
                                           styleType: TextStyleType.bodyLarge,
                                           color: Colors.redAccent,
                                         ),
@@ -975,7 +912,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                         ],
                       ),
-                    ),*/
+                    ),
                     const SizedBox(height: 20), // Add some bottom padding
                   ],
                 ),
@@ -1098,7 +1035,6 @@ class _ProductCard extends StatelessWidget {
     // Wrap the card with InkWell for tap feedback and navigation
     return InkWell(
       onTap: () {
-        print("📦 Tapped product: ${product.name} (ID: ${product.id})");
         // Navigate to ProductViewScreen, passing only the product ID
         Navigator.push(
           context,
@@ -1145,8 +1081,6 @@ class _ProductCard extends StatelessWidget {
                   },
                   errorBuilder: (BuildContext context, Object exception,
                       StackTrace? stackTrace) {
-                    print(
-                        "❌ Error loading image: ${product.mainImageUrl}, Error: $exception");
                     return Container(
                       color: Colors.grey[800],
                       child: const Center(
