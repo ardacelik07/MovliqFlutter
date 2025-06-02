@@ -39,7 +39,7 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
               children: [
                 const SizedBox(height: 40),
                 FontWidget(
-                  text: "Yarış Özelliklerini Belirle",
+                  text: "YARIŞ ÖZELLİKLERİNİ BELİRLE",
                   styleType: TextStyleType.titleLarge,
                   color: Colors.white,
                   // Original style: GoogleFonts.bangers(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)
