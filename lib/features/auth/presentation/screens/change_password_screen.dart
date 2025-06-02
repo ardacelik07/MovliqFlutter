@@ -162,7 +162,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           String errorMsg = 'Şifre değiştirilirken bir hata oluştu.';
           try {
             final responseBody = jsonDecode(response.body);
-            print('API Error Response: ${response.body}');
+
             if (responseBody is Map && responseBody.containsKey('message')) {
               errorMsg = responseBody['message'];
             } else if (responseBody is Map &&
@@ -177,8 +177,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   'Sunucu hatası (${response.statusCode}). Lütfen tekrar deneyin.';
             }
           } catch (e) {
-            print('Error parsing API error response: $e');
-            print('Raw API Error Response: ${response.body}');
             errorMsg = 'Sunucudan geçersiz yanıt alındı.';
           }
           setState(() {
@@ -187,7 +185,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         }
       }
     } catch (e) {
-      print('Network or other error during password change: $e');
       if (mounted) {
         setState(() {
           _errorMessage = 'Bağlantı hatası veya beklenmedik bir sorun oluştu.';

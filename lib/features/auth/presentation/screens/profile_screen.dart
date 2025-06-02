@@ -113,7 +113,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       return spots;
     } catch (e) {
-      debugPrint('Aktivite verisi işlenirken hata: $e');
       // Hata durumunda varsayılan veri döndür
       return [
         const FlSpot(0, 0),
@@ -252,7 +251,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             'Yarış sonuçları getirilirken hata: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Yarış sonuçları provider hatası: $e');
       return [];
     }
   });
@@ -1572,7 +1570,6 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                   backgroundImage: imageProvider,
                   onBackgroundImageError: (exception, stackTrace) {
                     // Handle background image error if needed, though errorBuilder is primary
-                    debugPrint("BackgroundImage Error: $exception");
                   },
                   child: _isUploading
                       ? Container(

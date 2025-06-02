@@ -24,7 +24,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       if (response.statusCode == 200) {
         final token = response.body;
-        print('JWT Token: $token');
+
         return token;
       } else {
         throw Exception('Registration failed: ${response.body}');

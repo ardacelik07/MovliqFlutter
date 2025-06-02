@@ -13,14 +13,8 @@ class CouponScreen extends ConsumerWidget {
     final AsyncValue<List<CouponModel>> couponsAsyncValue =
         ref.watch(couponProvider);
 
-    // Hata ayıklama mesajları
-    print('🎫 CouponScreen: Provider durumu: ${couponsAsyncValue}');
     if (couponsAsyncValue is AsyncData) {
-      print(
-          '📋 CouponScreen: Kupon sayısı: ${couponsAsyncValue.value?.length}');
-    } else if (couponsAsyncValue is AsyncError) {
-      print('❌ CouponScreen: Provider hatası: ${couponsAsyncValue.error}');
-    }
+    } else if (couponsAsyncValue is AsyncError) {}
 
     return Scaffold(
       appBar: AppBar(

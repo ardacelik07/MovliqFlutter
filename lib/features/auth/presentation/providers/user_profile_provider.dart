@@ -111,16 +111,10 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
         throw Exception('No authentication token found');
       }
 
-      print('Bearer Token for update: $currentAccessToken');
-      print('Profile data to send: ${jsonEncode(_profile!.toJson())}');
-
       final response = await HttpInterceptor.put(
         Uri.parse('${ApiConfig.baseUrl}/User/update-profile'),
         body: jsonEncode(_profile!.toJson()),
       );
-
-      print('Response status for update-profile: ${response.statusCode}');
-      print('Response body for update-profile: ${response.body}');
 
       if (response.statusCode == 200) {
         state = AsyncValue.data(_profile);
@@ -132,8 +126,6 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
               responseDataMap['accessToken'] as String?;
 
           if (newApiAccessToken != null && newApiAccessToken.isNotEmpty) {
-            print(
-                '✅ New access token received from update-profile: $newApiAccessToken');
             final String? currentRefreshToken =
                 await StorageService.getRefreshToken();
 
@@ -144,27 +136,17 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
               );
               _ref.read(authProvider.notifier).state =
                   AsyncValue.data(newApiAccessToken);
-              print('✅ New access token saved. AuthProvider state updated.');
             } else {
-              print(
-                  '⚠️ New access token received, but current refresh token is missing. Tokens not fully updated.');
               _ref.read(authProvider.notifier).state =
                   AsyncValue.data(newApiAccessToken);
             }
-          } else {
-            print(
-                'ℹ️ Profile updated successfully. No new access token found in JSON response.');
-          }
-        } catch (e) {
-          print(
-              'ℹ️ Profile updated successfully. Response body was not a JSON or could not be parsed for new tokens: ${response.body}');
-        }
+          } else {}
+        } catch (e) {}
       } else {
         throw Exception(
             'Failed to update profile: ${response.statusCode} - ${response.body}');
       }
     } catch (error, stack) {
-      print('Error in saveProfile: $error');
       state = AsyncValue.error(error, stack);
     }
   }

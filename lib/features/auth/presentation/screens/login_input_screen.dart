@@ -51,8 +51,6 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
           if (mounted &&
               ModalRoute.of(context)?.isCurrent == true &&
               token != null) {
-            print('Login successful! Token: $token');
-
             // Kullanıcı verilerini getir
             ref.read(userDataProvider.notifier).fetchUserData();
             ref.read(userDataProvider.notifier).fetchCoins();
@@ -68,8 +66,6 @@ class _LoginInputScreenState extends ConsumerState<LoginInputScreen> {
           } else if (token != null &&
               (ModalRoute.of(context)?.isCurrent == false)) {
             // Optional: Log that the listener fired but didn't act because screen wasn't current
-            print(
-                'LoginInputScreen: authProvider updated but screen is not current (e.g., during registration flow). Token: $token');
           }
         },
       );

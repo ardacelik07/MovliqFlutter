@@ -109,21 +109,13 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       final prevGender = previous?.value?.gender;
       final String? nextGender = next.value?.gender;
 
-      debugPrint(
-          'RecordScreen: userDataProvider listener triggered. Prev gender: $prevGender, Next gender: $nextGender');
-
       // Check if gender actually changed or became available
       if (prevGender != nextGender && nextGender != null) {
-        debugPrint(
-            'RecordScreen: Gender changed from $prevGender to $nextGender or became available. Attempting to update marker icon.');
         if (_pointAnnotationManager != null && _mapboxMap != null) {
           // Ensure map and manager are ready
           // Call async function without awaiting, or make listener async if needed
           _updateMarkerIconForGenderChange();
-        } else {
-          debugPrint(
-              'RecordScreen: userDataProvider listener - map or annotation manager not ready for icon update.');
-        }
+        } else {}
       }
     });
   }
@@ -175,26 +167,19 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       final ByteData maleByteData =
           await rootBundle.load('assets/images/mapbox.png');
       _maleMarkerIcon = maleByteData.buffer.asUint8List();
-      debugPrint('RecordScreen: _loadMarkerImage - Male marker icon LOADED.');
 
       final ByteData femaleByteData =
           await rootBundle.load('assets/icons/locaitonwomen.webp');
       _femaleMarkerIcon = femaleByteData.buffer.asUint8List();
-      debugPrint('RecordScreen: _loadMarkerImage - Female marker icon LOADED.');
 
       if (mounted) {
         setState(() {});
         // If a marker already exists and icons just loaded, try to update it
         if (_currentLocationMarker != null && _pointAnnotationManager != null) {
-          debugPrint(
-              'RecordScreen: Icons loaded after marker existed, attempting refresh.');
           await _updateMarkerIconForGenderChange();
         }
       }
-    } catch (e) {
-      debugPrint(
-          'RecordScreen: _loadMarkerImage - Özel işaretçi yüklenirken HATA: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _checkAndRequestPermissionsSequentially() async {
@@ -213,7 +198,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   Future<void> _checkAndRequestLocationPermission() async {
-    debugPrint('RecordScreen - Konum izni kontrolü başlatılıyor...');
     bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) {
@@ -236,13 +220,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     if (Platform.isIOS) {
       geo.LocationPermission permission =
           await geo.Geolocator.checkPermission();
-      debugPrint('RecordScreen - iOS konum izni durumu: $permission');
 
       if (permission == geo.LocationPermission.deniedForever) {
         if (mounted) {
           // _showPermissionPermanentlyDeniedDialog('Konum'); // ÇAĞRI KALDIRILDI
-          debugPrint(
-              'RecordScreen - iOS konum izni kalıcı olarak reddedilmiş.');
         }
         setState(() {
           _hasLocationPermission = false;
@@ -256,8 +237,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       } else {
         // If permission is denied (but not forever), we don't request it.
         // The user needs to grant it manually via settings.
-        debugPrint(
-            'RecordScreen - iOS konum izni verilmemiş, kullanıcı ayarlarından vermeli.');
         setState(() {
           _hasLocationPermission = false;
         });
@@ -265,19 +244,15 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     } else {
       // Android
       final status = await Permission.location.status;
-      debugPrint('RecordScreen - Android konum izin durumu: $status');
 
       if (!status.isGranted && !status.isLimited) {
         // final requestedStatus = await Permission.location.request(); // İZİN İSTEĞİ KALDIRILDI
-        // debugPrint(
-        //     'RecordScreen - Android izin istenen durum (Uygulamayı Kullanırken): $requestedStatus');
+
         // if (requestedStatus.isPermanentlyDenied) {
         if (status.isPermanentlyDenied) {
           // Check current status for permanent denial
           if (mounted) {
             // _showPermissionPermanentlyDeniedDialog('Konum'); // ÇAĞRI KALDIRILDI
-            debugPrint(
-                'RecordScreen - Android konum izni kalıcı olarak reddedilmiş.');
           }
           setState(() {
             _hasLocationPermission = false;
@@ -289,15 +264,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           //   await _getCurrentLocation();
         } else {
           // If permission is denied (but not forever), we don't request it.
-          debugPrint(
-              'RecordScreen - Android konum izni verilmemiş, kullanıcı ayarlarından vermeli.');
           setState(() {
             _hasLocationPermission = false;
           });
         }
       } else {
-        debugPrint(
-            'RecordScreen - Android konum izni (Uygulamayı Kullanırken veya Her Zaman) zaten verilmiş.');
         setState(() {
           _hasLocationPermission = true;
         });
@@ -307,22 +278,16 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   Future<void> _checkAndRequestActivityPermission() async {
-    debugPrint('RecordScreen - Aktivite izni kontrolü başlatılıyor...');
     if (Platform.isAndroid) {
       final status = await Permission.activityRecognition.status;
-      debugPrint('RecordScreen - Android aktivite izin durumu: $status');
       if (!status.isGranted) {
         if (status.isPermanentlyDenied) {
-          if (mounted) {
-            debugPrint(
-                'RecordScreen - Android aktivite izni kalıcı olarak reddedilmiş.');
-          }
+          if (mounted) {}
           setState(() {
             _hasPedometerPermission = false;
           });
         } else {
           // Request permission if not permanently denied and not already granted
-          debugPrint('RecordScreen - Android aktivite izni isteniyor...');
 
           if (status.isGranted) {
             setState(() {
@@ -333,22 +298,16 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             setState(() {
               _hasPedometerPermission = false;
             });
-            if (status.isPermanentlyDenied && mounted) {
-              debugPrint(
-                  'RecordScreen - Android aktivite izni (istek sonrası) kalıcı olarak reddedilmiş.');
-            }
+            if (status.isPermanentlyDenied && mounted) {}
           }
         }
       } else {
-        debugPrint('RecordScreen - Android aktivite izni zaten verilmiş.');
         setState(() {
           _hasPedometerPermission = true;
         });
         _initPedometer();
       }
     } else if (Platform.isIOS) {
-      debugPrint(
-          'RecordScreen - iOS: "Hareket ve Fitness" izni her zaman verilmiş varsayılıyor (senkronizasyon sorununu çözmek için).');
       if (mounted) {
         setState(() {
           _hasPedometerPermission = true;
@@ -375,10 +334,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         try {
           _currentLocationMarker!.geometry = _currentMapboxPoint!;
           await _pointAnnotationManager!.update(_currentLocationMarker!);
-        } catch (e) {
-          debugPrint(
-              'RecordScreen: _getCurrentLocation - İşaretçi güncellenirken HATA: $e');
-        }
+        } catch (e) {}
       } else if (_currentMapboxPoint != null &&
           _pointAnnotationManager != null) {
         if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
@@ -387,8 +343,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         final Uint8List? selectedMarkerIconBytes = _getCurrentMarkerIconBytes();
 
         if (selectedMarkerIconBytes == null) {
-          debugPrint(
-              'RecordScreen: _getCurrentLocation - Seçilen işaretçi resmi yüklenemedi veya bulunamadı.');
           return;
         }
 
@@ -401,12 +355,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                   selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
             ),
           );
-          debugPrint(
-              'RecordScreen: _getCurrentLocation - Marker created. Icon was: ${selectedMarkerIconBytes == _femaleMarkerIcon ? "FEMALE" : (selectedMarkerIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
-        } catch (e) {
-          debugPrint(
-              'RecordScreen: _getCurrentLocation - Yeni işaretçi oluşturulurken HATA: $e');
-        }
+        } catch (e) {}
       }
 
       if (_mapboxMap != null && _currentMapboxPoint != null) {
@@ -429,7 +378,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _mapboxRouteCoordinates.add(_currentMapboxPoint!);
       }
     } catch (e) {
-      debugPrint('RecordScreen: _getCurrentLocation genel HATA: $e');
       if (mounted) {
         setState(() {});
       }
@@ -495,18 +443,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
             if (_pointAnnotationManager != null &&
                 _currentLocationMarker != null) {
-              debugPrint(
-                  'RecordScreen: _startLocationTracking - Mevcut işaretçi (${_currentLocationMarker?.id}) güncelleniyor. Yeni Point: ${newMapboxPoint.encode()}');
               _pointAnnotationManager
                   ?.update(_currentLocationMarker!..geometry = newMapboxPoint)
-                  .then((_) => debugPrint(
-                      'RecordScreen: _startLocationTracking - İşaretçi GÜNCELLENDİ.'))
-                  .catchError((e) => debugPrint(
-                      "RecordScreen: _startLocationTracking - İşaretçi güncellerken HATA: $e"));
+                  .then((_) {});
             } else if (_pointAnnotationManager != null &&
                 _currentLocationMarker == null) {
-              debugPrint(
-                  'RecordScreen: _startLocationTracking - Yeni özel işaretçi oluşturuluyor. Point: ${newMapboxPoint.encode()}');
               final Uint8List? selectedMarkerIconBytes =
                   _getCurrentMarkerIconBytes();
               if (selectedMarkerIconBytes != null) {
@@ -520,17 +461,13 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                 ))
                     .then((annotation) {
                   _currentLocationMarker = annotation;
-                  debugPrint(
-                      'RecordScreen: _startLocationTracking - Yeni işaretçi OLUŞTURULDU. ID: ${annotation.id}. Icon was: ${selectedMarkerIconBytes == _femaleMarkerIcon ? "FEMALE" : (selectedMarkerIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
-                }).catchError((e) => debugPrint(
-                        "RecordScreen: _startLocationTracking - Takip sırasında işaretçi oluşturulurken HATA: $e"));
+                }).catchError((e) {});
               }
             }
 
             if (_polylineAnnotationManager != null &&
                 _mapboxRouteCoordinates.length > 1) {
-              _polylineAnnotationManager?.deleteAll().catchError(
-                  (e) => debugPrint("Error deleting polylines: $e"));
+              _polylineAnnotationManager?.deleteAll().catchError((e) {});
               _polylineAnnotationManager
                   ?.create(mb.PolylineAnnotationOptions(
                     geometry: mb.LineString(
@@ -540,19 +477,15 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                     lineColor: const Color(0xFFC4FF62).value,
                     lineWidth: 5.0,
                   ))
-                  .catchError((e) => debugPrint("Error creating polyline: $e"));
+                  .catchError((e) {});
             }
 
             _mapboxMap?.flyTo(mb.CameraOptions(center: newMapboxPoint),
                 mb.MapAnimationOptions(duration: 500));
           });
         }
-      }, onError: (e) {
-        debugPrint('Konum takibi hatası: $e');
-      });
-    } catch (e) {
-      debugPrint('Konum takibi başlatma hatası: $e');
-    }
+      }, onError: (e) {});
+    } catch (e) {}
   }
 
   void _stopLocationTracking() {
@@ -569,11 +502,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _startRecording() {
-    debugPrint('RecordScreen: _startRecording çağrıldı.');
     // Ensure permissions before starting, _hasLocationPermission is key
     if (!_hasLocationPermission) {
-      debugPrint(
-          'RecordScreen: Konum izni yok, kayıt başlatılamıyor. İzinler isteniyor...');
       _checkAndRequestLocationPermission(); // Re-request if not granted
       // Optionally, show a message to the user
       if (mounted) {
@@ -584,8 +514,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       return;
     }
     if (!_hasPedometerPermission && (Platform.isAndroid || Platform.isIOS)) {
-      debugPrint(
-          'RecordScreen: Adım sayar izni yok, kayıt başlatılıyor ancak adımlar eksik olabilir. İzinler isteniyor...');
       _checkAndRequestActivityPermission(); // Re-request if not granted
       if (mounted) {}
       // Allow recording to start without pedometer, but steps might be 0.
@@ -602,11 +530,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _calories = 0;
       _pace = 0.0;
       _mapboxRouteCoordinates = [];
-      _polylineAnnotationManager?.deleteAll().catchError(
-          (e) => debugPrint("Error deleting polylines on start: $e"));
+      _polylineAnnotationManager?.deleteAll().catchError((e) {});
       if (_currentLocationMarker != null) {
-        _pointAnnotationManager?.delete(_currentLocationMarker!).catchError(
-            (e) => debugPrint("Error deleting marker on start: $e"));
+        _pointAnnotationManager
+            ?.delete(_currentLocationMarker!)
+            .catchError((e) {});
         _currentLocationMarker = null;
       }
       _lastCalorieCalculationTime = null;
@@ -631,7 +559,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _finishRecording() {
-    debugPrint('RecordScreen: _finishRecording çağrıldı.');
     final int finalDuration = _seconds;
     final double finalDistance = _distance;
     final int finalCalories = _calories;
@@ -668,13 +595,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _lastCalorieCalculationTime = null;
 
       _mapboxRouteCoordinates = [];
-      _polylineAnnotationManager?.deleteAll().catchError(
-          (e) => debugPrint("Error deleting polylines on finish: $e"));
+      _polylineAnnotationManager?.deleteAll().catchError((e) {});
 
       if (_currentLocationMarker != null) {
         _pointAnnotationManager?.delete(_currentLocationMarker!).catchError(
-            (e) => debugPrint("Error deleting marker on finish: $e"));
-        _currentLocationMarker = null;
+              (e) {},
+            );
       }
 
       _getCurrentLocation();
@@ -725,9 +651,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             if (earnedAmount > 0 && mounted) {
               _showCoinPopup(context, earnedAmount);
             }
-          } catch (coinError) {
-            debugPrint("🪙 Coin Kazanma İsteği Hatası: $coinError");
-          }
+          } catch (coinError) {}
         },
         onError: (error) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -748,8 +672,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   }
 
   void _togglePause() {
-    debugPrint(
-        'RecordScreen: _togglePause çağrıldı. _isPaused: $_isPaused -> ${!_isPaused}');
     setState(() {
       _isPaused = !_isPaused;
 
@@ -1282,13 +1204,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   void _initPedometer() {
     // Ensure we have permission before initializing
-    if (!_hasPedometerPermission) {
-      debugPrint(
-          "RecordScreen: _initPedometer - Adım sayar izni yok, başlatılamıyor.");
-      // Optionally, try to request it again here or ensure it's requested before _startRecording
-      // _checkAndRequestActivityPermission(); // Could be called here
-      return;
-    }
+
     _stepCountSubscription?.cancel();
 
     try {
@@ -1311,7 +1227,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             }
           });
         }, onError: (error) {
-          debugPrint('RecordScreen - Adım sayar hatası: $error');
           if (Platform.isIOS) {}
         }, onDone: () {});
 
@@ -1323,7 +1238,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         });
       });
     } catch (e) {
-      debugPrint('RecordScreen - Pedometer başlatma hatası: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1467,9 +1381,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _calories += newCalories;
     });
 
-    debugPrint(
-        'RecordScreen 🔥 Kalori hesaplandı: +$newCalories kal (Toplam: $_calories) - MET: $metValue, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h, Aktivite: $_activityType');
-
     _lastDistance = _distance;
     _lastSteps = _steps;
     _lastCalorieCalculationTime = now;
@@ -1477,7 +1388,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   void _forceStopAndResetActivity() {
     if (!mounted) return;
-    debugPrint('RecordScreen: _forceStopAndResetActivity çağrıldı.');
     setState(() {
       _isRecording = false;
       _isPaused = false;
@@ -1502,11 +1412,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _lastCalorieCalculationTime = null;
 
       _mapboxRouteCoordinates = [];
-      _polylineAnnotationManager?.deleteAll().catchError(
-          (e) => debugPrint("Error deleting polylines on force stop: $e"));
+      _polylineAnnotationManager?.deleteAll().catchError((e) {});
       if (_currentLocationMarker != null) {
-        _pointAnnotationManager?.delete(_currentLocationMarker!).catchError(
-            (e) => debugPrint("Error deleting marker on force stop: $e"));
+        _pointAnnotationManager
+            ?.delete(_currentLocationMarker!)
+            .catchError((e) {});
         _currentLocationMarker = null;
       }
       _currentMapboxPoint = null;
@@ -1522,74 +1432,47 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
   void _onStyleLoadedListener(dynamic data) async {
     if (_mapboxMap == null || !mounted) {
-      debugPrint(
-          'RecordScreen: _onStyleLoadedListener - Map is null or widget not mounted, returning.');
       return;
     }
-
-    debugPrint(
-        'RecordScreen: _onStyleLoadedListener - Style loaded, (re)initializing annotation managers.');
 
     try {
       _pointAnnotationManager =
           await _mapboxMap!.annotations.createPointAnnotationManager();
-      debugPrint(
-          'RecordScreen: _onStyleLoadedListener - PointAnnotationManager created.');
-    } catch (e) {
-      debugPrint(
-          'RecordScreen: _onStyleLoadedListener - Error creating PointAnnotationManager: $e');
-    }
+    } catch (e) {}
 
     try {
       _polylineAnnotationManager =
           await _mapboxMap!.annotations.createPolylineAnnotationManager();
-      debugPrint(
-          'RecordScreen: _onStyleLoadedListener - PolylineAnnotationManager created.');
-    } catch (e) {
-      debugPrint(
-          'RecordScreen: _onStyleLoadedListener - Error creating PolylineAnnotationManager: $e');
-    }
+    } catch (e) {}
 
     if (!mounted) {
-      debugPrint(
-          'RecordScreen: _onStyleLoadedListener - Widget unmounted after creating managers, returning.');
       return;
     }
 
     if (_isRecording) {
-      debugPrint(
-          'RecordScreen: _onStyleLoadedListener - Recording is active. Restoring route and marker.');
       // Restore polyline
       if (_polylineAnnotationManager != null &&
           _mapboxRouteCoordinates.length > 1) {
-        debugPrint(
-            'RecordScreen: _onStyleLoadedListener - Restoring polyline with ${_mapboxRouteCoordinates.length} points.');
-        _polylineAnnotationManager!.deleteAll().then((_) {
-          return _polylineAnnotationManager!
-              .create(mb.PolylineAnnotationOptions(
-            geometry: mb.LineString(
-                coordinates:
-                    _mapboxRouteCoordinates.map((p) => p.coordinates).toList()),
-            lineColor: const Color(0xFFC4FF62).value,
-            lineWidth: 5.0,
-          ));
-        }).then((_) {
-          debugPrint(
-              'RecordScreen: _onStyleLoadedListener - Polyline restored.');
-        }).catchError((e) {
-          debugPrint(
-              'RecordScreen: _onStyleLoadedListener - Error restoring polyline: $e');
-        });
-      } else {
-        debugPrint(
-            'RecordScreen: _onStyleLoadedListener - Polyline manager null or not enough points for polyline (${_mapboxRouteCoordinates.length}).');
-      }
+        _polylineAnnotationManager!
+            .deleteAll()
+            .then((_) {
+              return _polylineAnnotationManager!
+                  .create(mb.PolylineAnnotationOptions(
+                geometry: mb.LineString(
+                    coordinates: _mapboxRouteCoordinates
+                        .map((p) => p.coordinates)
+                        .toList()),
+                lineColor: const Color(0xFFC4FF62).value,
+                lineWidth: 5.0,
+              ));
+            })
+            .then((_) {})
+            .catchError((e) {});
+      } else {}
 
       // Restore current location marker
       if (_currentMapboxPoint != null && _pointAnnotationManager != null) {
         if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
-          debugPrint(
-              'RecordScreen: _onStyleLoadedListener - İşaretçi resimleri null, yükleniyor.');
           await _loadMarkerImage();
           if (!mounted) return;
         }
@@ -1597,8 +1480,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         final Uint8List? selectedMarkerIconBytes = _getCurrentMarkerIconBytes();
 
         if (selectedMarkerIconBytes != null) {
-          debugPrint(
-              'RecordScreen: _onStyleLoadedListener - Mevcut konum işaretçisi geri yükleniyor/oluşturuluyor.');
           _pointAnnotationManager!
               .create(
             mb.PointAnnotationOptions(
@@ -1611,32 +1492,16 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
               .then((newMarker) {
             if (mounted) {
               _currentLocationMarker = newMarker;
-              debugPrint(
-                  'RecordScreen: _onStyleLoadedListener - Current location marker restored/created. ID: ${newMarker.id}. Icon was: ${selectedMarkerIconBytes == _femaleMarkerIcon ? "FEMALE" : (selectedMarkerIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
             }
-          }).catchError((e) {
-            debugPrint(
-                'RecordScreen: _onStyleLoadedListener - Error restoring current location marker: $e');
-          });
-        } else {
-          debugPrint(
-              'RecordScreen: _onStyleLoadedListener - Marker image still null after attempting load, cannot create marker.');
-        }
-      } else {
-        debugPrint(
-            'RecordScreen: _onStyleLoadedListener - Current mapbox point or point manager is null, cannot restore marker.');
-      }
+          }).catchError((e) {});
+        } else {}
+      } else {}
     } else {
       // Not recording
-      debugPrint(
-          'RecordScreen: _onStyleLoadedListener - Not recording. Calling _getCurrentLocation after delay.');
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           _getCurrentLocation();
-        } else {
-          debugPrint(
-              'RecordScreen: _onStyleLoadedListener - Widget unmounted before _getCurrentLocation callback.');
-        }
+        } else {}
       });
     }
   }
@@ -1644,26 +1509,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   Uint8List? _getCurrentMarkerIconBytes() {
     final userData = ref.read(userDataProvider).value;
     final String? genderFromProvider = userData?.gender;
-    debugPrint(
-        'RecordScreen: _getCurrentMarkerIconBytes - Gender from provider: $genderFromProvider');
-    debugPrint(
-        'RecordScreen: _getCurrentMarkerIconBytes - _femaleMarkerIcon is null: ${_femaleMarkerIcon == null}');
-    debugPrint(
-        'RecordScreen: _getCurrentMarkerIconBytes - _maleMarkerIcon is null: ${_maleMarkerIcon == null}');
 
     // Default to 'male' if gender is null, not available, or not 'female'
     final String effectiveGender =
         (genderFromProvider?.toLowerCase() == 'female') ? 'female' : 'male';
-    debugPrint(
-        'RecordScreen: _getCurrentMarkerIconBytes - Effective gender for icon choice: $effectiveGender');
 
     if (effectiveGender == 'female' && _femaleMarkerIcon != null) {
-      debugPrint(
-          'RecordScreen: _getCurrentMarkerIconBytes - Returning FEMALE icon.');
       return _femaleMarkerIcon;
     }
-    debugPrint(
-        'RecordScreen: _getCurrentMarkerIconBytes - Returning MALE icon (or null if male icon not loaded).');
     return _maleMarkerIcon;
   }
 
@@ -1671,34 +1524,21 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   Future<void> _updateMarkerIconForGenderChange() async {
     // Ensure point manager and a current point are available
     if (_pointAnnotationManager == null || _currentMapboxPoint == null) {
-      debugPrint(
-          'RecordScreen: _updateMarkerIconForGenderChange - PointAnnotationManager or currentMapboxPoint is null. Cannot update icon yet.');
       return;
     }
 
     // If a current marker exists, delete it first
     if (_currentLocationMarker != null) {
-      debugPrint(
-          'RecordScreen: _updateMarkerIconForGenderChange - Deleting existing marker ID: ${_currentLocationMarker!.id} to update icon.');
       try {
         await _pointAnnotationManager!.delete(_currentLocationMarker!);
         _currentLocationMarker = null; // Nullify after deletion
-      } catch (e) {
-        debugPrint(
-            'RecordScreen: _updateMarkerIconForGenderChange - Error deleting existing marker: $e');
-        // Continue, as we want to try creating a new one anyway
-      }
-    } else {
-      debugPrint(
-          'RecordScreen: _updateMarkerIconForGenderChange - No existing marker to delete.');
-    }
+      } catch (e) {}
+    } else {}
 
     final Uint8List? newIconBytes =
         _getCurrentMarkerIconBytes(); // Get the latest icon based on current gender and loaded icons
 
     if (newIconBytes != null) {
-      debugPrint(
-          'RecordScreen: _updateMarkerIconForGenderChange - Attempting to create new marker with fresh icon.');
       try {
         _currentLocationMarker = await _pointAnnotationManager!.create(
           mb.PointAnnotationOptions(
@@ -1709,15 +1549,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                 : 0.15, // Dynamic icon size
           ),
         );
-        debugPrint(
-            'RecordScreen: _updateMarkerIconForGenderChange - Marker recreated/created. ID: ${_currentLocationMarker?.id}. Icon is: ${newIconBytes == _femaleMarkerIcon ? "FEMALE" : (newIconBytes == _maleMarkerIcon ? "MALE" : "UNKNOWN/NULL")}');
-      } catch (e) {
-        debugPrint(
-            'RecordScreen: _updateMarkerIconForGenderChange - Error recreating marker: $e');
-      }
-    } else {
-      debugPrint(
-          'RecordScreen: _updateMarkerIconForGenderChange - Failed to get new icon bytes. Marker not created/updated.');
-    }
+      } catch (e) {}
+    } else {}
   }
 }

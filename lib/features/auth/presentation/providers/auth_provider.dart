@@ -59,14 +59,11 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
           refreshToken: actualRefreshToken,
         );
         state = AsyncValue.data(actualAccessToken);
-        print('Registration successful and tokens parsed and saved correctly.');
       } else {
-        print('Error: Tokens not found in registration response or are empty.');
         throw Exception(
             'Invalid token data received from server after registration.');
       }
     } catch (e, stack) {
-      print('Registration Provider Error: $e');
       Object errorForState;
       String exceptionString = e.toString();
 
@@ -129,14 +126,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
           refreshToken: actualRefreshToken,
         );
         state = AsyncValue.data(actualAccessToken);
-        print('Login successful and tokens parsed and saved correctly.');
-      } else {
-        print('Error: Tokens not found in parsed response or are empty.');
-        throw Exception('Invalid token data received from server.');
-      }
+      } else {}
     } catch (e, stack) {
-      print('Login Provider Error: $e');
-
       Object errorForState;
       String exceptionString = e.toString();
 

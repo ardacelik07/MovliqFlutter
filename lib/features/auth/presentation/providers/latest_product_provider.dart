@@ -16,25 +16,20 @@ class LatestProductNotifier extends AsyncNotifier<List<LatestProductModel>> {
   }
 
   Future<List<LatestProductModel>> _fetchLatestProducts() async {
-    print("📦 LatestProductProvider: Fetching latest products...");
-
     try {
       // Retrieve token
       final String? tokenJson = await StorageService.getToken();
       if (tokenJson == null) {
-        print("❌ LatestProductProvider: Token bulunamadı");
         throw Exception("Oturum açılmamış veya token alınamadı.");
       }
 
       final String token = tokenJson;
       if (token == null || token.isEmpty) {
-        print("❌ LatestProductProvider: Token boş veya geçersiz");
         throw Exception("Geçersiz token.");
       }
 
       // Construct URL and Headers
       final Uri url = Uri.parse('${ApiConfig.baseUrl}/Products/latest/$_count');
-      print("📦 LatestProductProvider: API URL: $url");
       final Map<String, String> headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -46,9 +41,6 @@ class LatestProductNotifier extends AsyncNotifier<List<LatestProductModel>> {
           onTimeout: () =>
               throw Exception("API isteği zaman aşımına uğradı (15 saniye)"));
 
-      print(
-          "📦 LatestProductProvider: API yanıtı alındı, durum kodu: ${response.statusCode}");
-
       // Process response
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
@@ -56,17 +48,12 @@ class LatestProductNotifier extends AsyncNotifier<List<LatestProductModel>> {
             .map((item) =>
                 LatestProductModel.fromJson(item as Map<String, dynamic>))
             .toList();
-        print(
-            "📦 LatestProductProvider: ${products.length} adet ürün başarıyla işlendi");
         return products;
       } else {
-        print(
-            '❌ LatestProductProvider: Ürünler yüklenemedi: Durum kodu ${response.statusCode}, Yanıt: ${response.body}');
         throw Exception(
             'Ürünler yüklenemedi: Sunucu Hatası ${response.statusCode}');
       }
     } catch (e, stackTrace) {
-      print('❌ LatestProductProvider Error: $e');
       // Catch block automatically sets state to AsyncError
       // Rethrow to ensure AsyncValue.guard handles it
       rethrow;
@@ -75,7 +62,6 @@ class LatestProductNotifier extends AsyncNotifier<List<LatestProductModel>> {
 
   // Refresh method
   Future<void> refreshProducts() async {
-    print("📦 LatestProductProvider: Refreshing products...");
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _fetchLatestProducts());
   }

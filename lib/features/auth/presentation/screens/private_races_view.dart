@@ -75,7 +75,6 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
 
       if (response.statusCode == 200) {
         // Successfully matched/joined the room
-        print('Successfully joined private race room via API.');
 
         // Navigate to WaitingRoomScreen using the existing race ID
         if (widget.race.id == null) {
@@ -100,13 +99,10 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
         }
       } else {
         // Handle API error
-        print(
-            'Failed to join private race room: ${response.statusCode} - ${response.body}');
         throw Exception(
             'Odaya katılırken hata oluştu: ${response.reasonPhrase}');
       }
     } catch (e) {
-      print('Error joining private race: $e');
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text('Yarışa katılırken bir hata oluştu: $e'),
@@ -128,9 +124,6 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
     final race = widget.race;
 
     // Log the received race data
-    print('🎁 Race Data Received:');
-    print('  giftPoll: ${race.giftPoll}');
-    print('  giftPollList: ${race.giftPollList}');
 
     // Use the passed race data directly
     final DateFormat dateFormat = DateFormat('d MMMM yyyy — HH:mm', 'tr_TR');
@@ -206,7 +199,7 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
             Builder(builder: (context) {
               // Use Builder to get context for print
               final imageUrl = race.imagePath ?? '';
-              print('🖼️ Loading image from URL: $imageUrl'); // Print the URL
+
               return Stack(
                 children: [
                   CachedNetworkImage(
@@ -222,8 +215,6 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
                       ),
                     ),
                     errorWidget: (context, url, error) {
-                      print(
-                          "Error loading race image: $imageUrl, Error: $error"); // Null check
                       return Container(
                         height: 250,
                         color: Colors.grey[800],
@@ -388,8 +379,7 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
         // Use Builder to ensure context is available if needed
         builder: (context) {
           // Log button state just before building
-          print(
-              '🔘 Button State: isLoading=$_isLoading, isJoinAllowed=$isJoinAllowed');
+
           return Padding(
             padding: const EdgeInsets.all(16.0),
             // Restore original ElevatedButton code

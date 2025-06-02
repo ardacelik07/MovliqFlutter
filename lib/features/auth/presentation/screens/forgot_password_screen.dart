@@ -73,14 +73,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         if (mounted) {
           // TODO: Hata Snackbar'ını etkinleştir (custom_snackbar oluşturulunca)
           // showErrorSnackbar(context, errorMessage);
-          print('API Hatası: $errorMessage'); // Geçici print
         }
       }
     } catch (e) {
       if (mounted) {
         // TODO: Hata Snackbar'ını etkinleştir
         // showErrorSnackbar(context, 'Bir ağ hatası oluştu: ${e.toString()}');
-        print('Ağ Hatası: ${e.toString()}'); // Geçici print
       }
     } finally {
       if (mounted) {
