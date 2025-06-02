@@ -535,8 +535,8 @@ class _JoinRoomTabWidget extends ConsumerWidget {
               controller: roomCodeController,
               style: GoogleFonts.bangers(color: _kLightTextColor),
               decoration: buildInputDecoration(
-                'Oda Kodu Giriniz',
-                hintText: 'Oda Kodu Giriniz',
+                'Oda Kodu GİRİNİZ',
+                hintText: 'Oda Kodu GİRİNİZ',
                 prefixIcon: Padding(
                   // Add padding to the icon if needed
                   padding: const EdgeInsets.all(12.0),
@@ -690,7 +690,7 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
               ],
             ),
             const SizedBox(height: 30), // Increased from 24
-            Text('Süre (dakika):',
+            Text('Süre (DAKİKA):',
                 style: GoogleFonts.bangers(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -715,8 +715,8 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                   children: [
                     Text(
                       _internalSelectedDuration != null
-                          ? '$_internalSelectedDuration dakika'
-                          : 'Süre Seçin',
+                          ? '$_internalSelectedDuration DAKİKA'
+                          : 'SÜRE SEÇİNİZ',
                       style: GoogleFonts.bangers(
                           color: _kLightTextColor, fontSize: 16),
                     ),
@@ -848,7 +848,7 @@ class _CreateRoomTabWidgetState extends ConsumerState<_CreateRoomTabWidget> {
                           ),
                           child: Center(
                             child: Text(
-                              '$duration Dakika',
+                              '$duration DAKİKA',
                               style: GoogleFonts.bangers(
                                 color: isSelected
                                     ? _kAccentColor
