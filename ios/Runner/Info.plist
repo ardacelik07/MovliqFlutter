@@ -28,20 +28,12 @@
 		<true/>
 		<key>MKDirectionsApplicationSupportedModes</key>
 		<array/>
-		<key>NSHealthShareUsageDescription</key>
-		<string>Movliq, adım verilerinizi Apple Sağlık uygulamasından okumak için izin ister.</string>
-		<key>NSHealthUpdateUsageDescription</key>
-		<string>Movliq, antrenmanlarınızı Apple Sağlık uygulamasına kaydetmek için izin ister.</string>
-		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-		<string>Movliq, uygulama arka plandayken bile yarış aktivitenizi doğru bir şekilde kaydetmek için konumunuza sürekli erişime ihtiyaç duyar.</string>
-		<key>NSLocationAlwaysUsageDescription</key>
-		<string>Movliq, uygulama arka plandayken bile yarış aktivitenizi doğru bir şekilde kaydetmek için konumunuza sürekli erişime ihtiyaç duyar.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>Movliq, yarışlar sırasında konumunuzu takip etmek ve size daha iyi bir deneyim sunmak için konumunuza ihtiyaç duyar.</string>
+		<string> Canlı yarışlarda kat ettiğin mesafeyi doğru hesaplamak için konumuna ihtiyacımız olacak. Konum verin hiçbir şekilde kaydedilmez ya da paylaşılmaz. Güvendesin.</string>
 		<key>NSMotionUsageDescription</key>
-		<string>Movliq, adım sayınızı ve aktivite seviyenizi ölçmek için hareket sensörlerinize erişim ister.</string>
+		<string>Yarışlarda performansını takip edebilmemiz için adım verilerine ihtiyacımız var. Endişelenme, bu veriler sadece senin sıralamanı oluşturmak için kullanılır.kimse konumunu göremez</string>
 		<key>NSUserNotificationUsageDescription</key>
-		<string>This app would like to send you notifications about your races, step counts, and fitness achievements.</string>
+		<string>Yeni yarışlar, davetler ve kazandığın ödülleri sana bildirmek için bildirim izni istiyoruz. Sadece önemli şeyleri söylüyoruz, spam asla!</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UIBackgroundModes</key>
