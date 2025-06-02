@@ -7,6 +7,9 @@ import 'verification_screen.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/create_or_join_room_screen.dart'; // Added import
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../widgets/permission_widget.dart';
+import 'dart:io';
 
 class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
@@ -21,6 +24,29 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
   @override
   void initState() {
     super.initState();
+    _checkPermissions();
+  }
+
+  Future<void> _checkPermissions() async {
+    // Check the status of the required permissions
+    PermissionStatus locationStatus = await Permission.location.status;
+    await Permission.notification.status;
+    PermissionStatus activityStatus =
+        await Permission.activityRecognition.status;
+
+    // If any permission is denied, show the PermissionWidget
+    if (Platform.isAndroid) {
+      if (locationStatus.isDenied || activityStatus.isDenied) {
+        setState(() {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return const PermissionWidget();
+            },
+          );
+        });
+      }
+    }
   }
 
   @override

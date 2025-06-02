@@ -89,27 +89,64 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           return SafeArea(
             child: Column(
               children: [
-                Container(
-                  margin: const EdgeInsets.all(16.0),
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 12.0, horizontal: 16.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC4FF62),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.emoji_events, color: Colors.black),
-                      const SizedBox(width: 8),
-                      FontWidget(
-                        text: 'Ödül Reklamı',
-                        styleType: TextStyleType.titleSmall, // Or labelLarge
-                        color: Colors.black,
-                        fontSize: 20,
-                        // Original: GoogleFonts.bangers(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)
-                      ),
-                    ],
+                SizedBox(
+                  height: 170, // Adjust height for the slider area
+                  child: PageView.builder(
+                    controller: PageController(
+                        viewportFraction: 1), // Shows parts of adjacent pages
+                    padEnds: false, // Don't add padding at the ends
+                    itemCount: 1, // Placeholder count for demonstration
+                    itemBuilder: (context, index) {
+                      // Define the image path based on the index
+                      final imagePaths = [
+                        'assets/images/leaderboardreward.png',
+                      ];
+                      // Use modulo in case itemCount changes later, although currently it's 3
+                      final imagePath = imagePaths[index % imagePaths.length];
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 30.0,
+                            vertical:
+                                5.0), // Add horizontal margin between cards
+                        padding: const EdgeInsets.all(20.0),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20.0),
+                          image: DecorationImage(
+                            image: AssetImage(imagePath),
+                            fit: BoxFit.cover, // Make image cover the container
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          children: [
+                            // NEW Tag (Only for the first item in this example)
+                            if (index == 0)
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            // Level Number (Placeholder - varies by index)
+
+                            // Progress Indicator (Placeholder - varies by index)
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
 
