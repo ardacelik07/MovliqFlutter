@@ -1350,6 +1350,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ],
     );
   }
+
+  void onProfilePhotoChange() async {
+    if (Platform.isIOS) {
+      await _checkAndRequestCameraPermission();
+    }
+    // Proceed with photo change if permission is granted
+  }
+
+  Future<void> _checkAndRequestCameraPermission() async {
+    final status = await Permission.camera.status;
+    if (!status.isGranted) {
+      final result = await Permission.camera.request();
+      if (result.isGranted) {
+        // Camera permission granted
+      } else {
+        // Camera permission denied
+      }
+    }
+  }
 }
 
 class ProfilePictureWidget extends StatefulWidget {
