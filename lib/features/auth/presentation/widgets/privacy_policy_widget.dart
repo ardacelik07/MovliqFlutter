@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'font_widget.dart'; // Assuming FontWidget is in the same directory or accessible
+import 'font_widget.dart'; // Varsayılan olarak aynı dizinde veya erişilebilir
 
-class PrivacyPolicyWidget extends StatefulWidget {
+class PrivacyPolicyWidget extends StatelessWidget {
   final VoidCallback onAccepted;
 
   const PrivacyPolicyWidget({
@@ -10,19 +10,15 @@ class PrivacyPolicyWidget extends StatefulWidget {
   });
 
   @override
-  State<PrivacyPolicyWidget> createState() => _PrivacyPolicyWidgetState();
-}
-
-class _PrivacyPolicyWidgetState extends State<PrivacyPolicyWidget> {
-  bool _hasAcceptedPolicy = false;
-
-  @override
   Widget build(BuildContext context) {
-    final Color textColor = Colors.black87; // Adjusted for a dialog
+    final Color textColor = Colors.black87;
     final Color secondaryTextColor = Colors.black54;
     final Color titleColor = Theme.of(context).primaryColor;
     final Color buttonColor = Theme.of(context).primaryColor;
     final Color buttonTextColor = Colors.white;
+
+    // Kullanıcının yaptığı son düzenlemedeki maxHeight: 0.4 değeri korundu.
+    final double dialogMaxHeight = MediaQuery.of(context).size.height * 0.4;
 
     return AlertDialog(
       title: FontWidget(
@@ -33,8 +29,7 @@ class _PrivacyPolicyWidgetState extends State<PrivacyPolicyWidget> {
       ),
       content: Container(
         constraints: BoxConstraints(
-          maxHeight:
-              MediaQuery.of(context).size.height * 0.4, // 60% of screen height
+          maxHeight: dialogMaxHeight,
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -101,57 +96,34 @@ class _PrivacyPolicyWidgetState extends State<PrivacyPolicyWidget> {
           ),
         ),
       ),
+      actionsAlignment: MainAxisAlignment.spaceEvenly,
+      actionsPadding:
+          const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
       actions: [
-        CheckboxListTile(
-          title: FontWidget(
-            text: 'Okudum, anladım ve kabul ediyorum.',
-            styleType: TextStyleType.bodyMedium,
-            color: textColor,
-          ),
-          value: _hasAcceptedPolicy,
-          onChanged: (bool? value) {
-            if (value != null) {
-              setState(() {
-                _hasAcceptedPolicy = value;
-              });
-            }
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
           },
-          controlAffinity: ListTileControlAffinity.leading,
-          activeColor: titleColor,
-          contentPadding: EdgeInsets.zero,
+          child: FontWidget(
+            text: 'Reddet',
+            styleType: TextStyleType.labelLarge,
+            color: secondaryTextColor,
+          ),
         ),
-        Row(
-          children: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog without accepting
-              },
-              child: FontWidget(
-                text: 'Reddet',
-                styleType: TextStyleType.labelLarge,
-                color: secondaryTextColor,
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: buttonColor,
-                foregroundColor: buttonTextColor,
-              ),
-              onPressed: _hasAcceptedPolicy
-                  ? () {
-                      widget.onAccepted();
-                      Navigator.of(context)
-                          .pop(); // Close dialog after accepting
-                    }
-                  : null, // Button is disabled if not accepted
-              child: FontWidget(
-                text: 'Kabul Et',
-                styleType: TextStyleType.labelLarge,
-                color: buttonTextColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: buttonColor,
+            foregroundColor: buttonTextColor,
+          ),
+          onPressed: () {
+            onAccepted();
+          },
+          child: FontWidget(
+            text: 'Kabul Et',
+            styleType: TextStyleType.labelLarge,
+            color: buttonTextColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -170,14 +142,14 @@ class _PrivacyPolicyWidgetState extends State<PrivacyPolicyWidget> {
       children: [
         FontWidget(
           text: title,
-          styleType: TextStyleType.titleSmall, // Adjusted for dialog
+          styleType: TextStyleType.titleSmall,
           color: titleColor,
           fontWeight: FontWeight.w600,
         ),
         const SizedBox(height: 6),
         FontWidget(
           text: content,
-          styleType: TextStyleType.bodySmall, // Adjusted for dialog
+          styleType: TextStyleType.bodySmall,
           color: secondaryTextColor,
         ),
         if (bulletPoints != null && bulletPoints.isNotEmpty)
@@ -190,7 +162,7 @@ class _PrivacyPolicyWidgetState extends State<PrivacyPolicyWidget> {
                         padding: const EdgeInsets.only(bottom: 3.0),
                         child: FontWidget(
                           text: '• $point',
-                          styleType: TextStyleType.bodySmall, // Adjusted
+                          styleType: TextStyleType.bodySmall,
                           color: secondaryTextColor,
                         ),
                       ))

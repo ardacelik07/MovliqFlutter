@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/background_widget.dart';
@@ -19,48 +20,38 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  bool _isPolicyAcceptedByCheckbox = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkFirstTimeUser());
   }
 
-  Future<void> _checkFirstTimeUser() async {
-    // TODO: Implement actual first-time user check (e.g., using shared_preferences)
-    // For now, we'll simulate it as true
-    bool isFirstTime = await _getIsFirstTime();
-
-    if (isFirstTime && mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false, // User must interact with the dialog
-        builder: (BuildContext dialogContext) {
-          return PrivacyPolicyWidget(
-            onAccepted: () async {
-              // TODO: Save that the user has accepted the policy
-              // For example, using shared_preferences:
-              // SharedPreferences prefs = await SharedPreferences.getInstance();
-              // await prefs.setBool('hasAcceptedPolicy', true);
-              await _setHasAcceptedPolicy(true);
-              // You might want to navigate away or update UI accordingly
-            },
-          );
-        },
-      );
+  Future<void> _setHasAcceptedPolicyOverall(bool accepted) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasAcceptedPolicyOverall', accepted);
+    if (mounted && accepted) {
+      setState(() {
+        _isPolicyAcceptedByCheckbox = true;
+      });
     }
   }
 
-  // Placeholder for getting first time status
-  Future<bool> _getIsFirstTime() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    // If 'hasAcceptedPolicy' is not set, it means it's the first time or policy was never accepted.
-    return !(prefs.getBool('hasAcceptedPolicy') ?? false);
-  }
-
-  // Placeholder for saving policy acceptance
-  Future<void> _setHasAcceptedPolicy(bool accepted) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hasAcceptedPolicy', accepted);
+  void _showPrivacyPolicyDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        return PrivacyPolicyWidget(
+          onAccepted: () async {
+            await _setHasAcceptedPolicyOverall(true);
+            if (Navigator.of(dialogContext).canPop()) {
+              Navigator.of(dialogContext).pop();
+            }
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -116,37 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       fontSize: 18,
                       textAlign: TextAlign.center,
                     ),
-                    /* const SizedBox(height: 32),
-                  _buildSocialButton(
-                    icon: FontAwesomeIcons.google,
-                    text: 'Google ile Giriş   ',
-                    onPressed: () {
-                      // TODO: Implement Google login
-                    },
-                    bgColor: const Color.fromARGB(80, 255, 255, 255),
-                    fgColor: const Color.fromARGB(255, 255, 255, 255),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSocialButton(
-                    icon: FontAwesomeIcons.facebookF,
-                    text: 'Facebook ile Giriş',
-                    onPressed: () {
-                      // TODO: Implement Facebook login
-                    },
-                    bgColor: const Color.fromARGB(80, 255, 255, 255),
-                    fgColor: const Color.fromARGB(255, 255, 255, 255),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSocialButton(
-                    icon: FontAwesomeIcons.apple,
-                    text: 'Apple ile Giriş      ',
-                    onPressed: () {
-                      // TODO: Implement Apple login
-                    },
-                    bgColor: const Color.fromARGB(80, 255, 255, 255),
-                    fgColor: const Color.fromARGB(255, 255, 255, 255),
-                  ),*/
-                    const SizedBox(height: 246),
+                    const SizedBox(height: 180),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -157,44 +118,123 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          disabledForegroundColor:
+                              emailButtonFg.withOpacity(0.5),
+                          disabledBackgroundColor:
+                              emailButtonBg.withOpacity(0.5),
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginInputScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: _isPolicyAcceptedByCheckbox
+                            ? () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const LoginInputScreen(),
+                                  ),
+                                );
+                              }
+                            : null,
                         child: FontWidget(
                             text: 'E-posta İle Devam Et',
                             styleType: TextStyleType.bodyLarge,
-                            color: emailButtonFg,
+                            color: _isPolicyAcceptedByCheckbox
+                                ? emailButtonFg
+                                : emailButtonFg.withOpacity(0.7),
                             fontWeight: FontWeight.bold),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Theme(
+                            data: Theme.of(context).copyWith(
+                              unselectedWidgetColor: textColor,
+                            ),
+                            child: Checkbox(
+                              value: _isPolicyAcceptedByCheckbox,
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  _isPolicyAcceptedByCheckbox = value ?? false;
+                                });
+                              },
+                              activeColor: lightGreenButton,
+                              checkColor: Colors.black,
+                            ),
+                          ),
+                          Expanded(
+                            child: RichText(
+                              text: TextSpan(
+                                style:
+                                    TextStyle(color: textColor, fontSize: 13),
+                                children: [
+                                  const TextSpan(
+                                      text:
+                                          'Gizlilik Politikasını okudum ve kabul ediyorum. '),
+                                  TextSpan(
+                                    text: '[ Gizlilik Politikasını Gör]',
+                                    style: TextStyle(
+                                      color: lightGreenButton,
+                                      decoration: TextDecoration.underline,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    recognizer: TapGestureRecognizer()
+                                      ..onTap = () {
+                                        _showPrivacyPolicyDialog();
+                                      },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        TextButton(
-                          onPressed: () {},
-                          child: FontWidget(
-                              text: 'Need Help?',
-                              styleType: TextStyleType.bodyMedium,
-                              color: Color.fromARGB(132, 255, 255, 255)),
+                        Theme(
+                          data: Theme.of(context).copyWith(
+                            unselectedWidgetColor: textColor,
+                          ),
+                          child: Checkbox(
+                            value: _isPolicyAcceptedByCheckbox,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                _isPolicyAcceptedByCheckbox = value ?? false;
+                              });
+                            },
+                            activeColor: lightGreenButton,
+                            checkColor: Colors.black,
+                          ),
                         ),
-                        const SizedBox(width: 16),
-                        TextButton(
-                          onPressed: () {},
-                          child: FontWidget(
-                              text: 'Privacy Policy',
-                              styleType: TextStyleType.bodyMedium,
-                              color: Color.fromARGB(132, 255, 255, 255)),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: TextStyle(color: textColor, fontSize: 13),
+                              children: [
+                                const TextSpan(
+                                    text:
+                                        'Gizlilik Politikasını okudum ve kabul ediyorum. '),
+                                TextSpan(
+                                  text: '[ Gizlilik Politikasını Gör]',
+                                  style: TextStyle(
+                                    color: lightGreenButton,
+                                    decoration: TextDecoration.underline,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      _showPrivacyPolicyDialog();
+                                    },
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
                   ],
                 ),
               ),
