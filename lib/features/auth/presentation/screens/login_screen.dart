@@ -21,6 +21,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isPolicyAcceptedByCheckbox = false;
+  bool _isTermsAcceptedByCheckbox = false;
 
   @override
   void initState() {
@@ -33,6 +34,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (mounted && accepted) {
       setState(() {
         _isPolicyAcceptedByCheckbox = true;
+      });
+    }
+  }
+
+  Future<void> _setHasAcceptedTermsOverall(bool accepted) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasAcceptedTermsOverall', accepted);
+    if (mounted && accepted) {
+      setState(() {
+        _isTermsAcceptedByCheckbox = true;
       });
     }
   }
@@ -199,10 +210,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             unselectedWidgetColor: textColor,
                           ),
                           child: Checkbox(
-                            value: _isPolicyAcceptedByCheckbox,
+                            value: _isTermsAcceptedByCheckbox,
                             onChanged: (bool? value) {
                               setState(() {
-                                _isPolicyAcceptedByCheckbox = value ?? false;
+                                _isTermsAcceptedByCheckbox = value ?? false;
                               });
                             },
                             activeColor: lightGreenButton,
@@ -216,9 +227,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               children: [
                                 const TextSpan(
                                     text:
-                                        'Gizlilik Politikasını okudum ve kabul ediyorum. '),
+                                        'Kullanım Sözleşmesini okudum ve kabul ediyorum. '),
                                 TextSpan(
-                                  text: '[ Gizlilik Politikasını Gör]',
+                                  text: '[ Kullanım Sözleşmesini Gör]',
                                   style: TextStyle(
                                     color: lightGreenButton,
                                     decoration: TextDecoration.underline,
