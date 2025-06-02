@@ -692,7 +692,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 60),
 
                     // --- Ready to Race Text ---
                     Padding(
@@ -701,7 +701,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       child: Column(
                         children: [
                           FontWidget(
-                            text: 'Yarışa hazır mısın?',
+                            text: 'Harekete geçmek İçİn hazır mısın?',
                             styleType: TextStyleType.titleLarge,
                             color: Colors.white,
                             fontSize: 18,
@@ -717,6 +717,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       padding: const EdgeInsets.symmetric(vertical: 10.0),
                       child: AnimatedCentralButton(),
                     ),
+
+                    /*
 
                     // --- Available Products Section ---
                     Padding(
@@ -816,6 +818,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ],
                       ),
                     ),
+
+                    */
 
                     // --- Special Races Section (Horizontal Scroll) ---
                     /*Padding(
