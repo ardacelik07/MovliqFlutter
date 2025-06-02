@@ -8,12 +8,63 @@ import '../screens/register_screen.dart';
 import '../screens/login_input_screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../widgets/font_widget.dart';
+import '../widgets/privacy_policy_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginScreen extends ConsumerWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkFirstTimeUser());
+  }
+
+  Future<void> _checkFirstTimeUser() async {
+    // TODO: Implement actual first-time user check (e.g., using shared_preferences)
+    // For now, we'll simulate it as true
+    bool isFirstTime = await _getIsFirstTime();
+
+    if (isFirstTime && mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false, // User must interact with the dialog
+        builder: (BuildContext dialogContext) {
+          return PrivacyPolicyWidget(
+            onAccepted: () async {
+              // TODO: Save that the user has accepted the policy
+              // For example, using shared_preferences:
+              // SharedPreferences prefs = await SharedPreferences.getInstance();
+              // await prefs.setBool('hasAcceptedPolicy', true);
+              await _setHasAcceptedPolicy(true);
+              // You might want to navigate away or update UI accordingly
+            },
+          );
+        },
+      );
+    }
+  }
+
+  // Placeholder for getting first time status
+  Future<bool> _getIsFirstTime() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    // If 'hasAcceptedPolicy' is not set, it means it's the first time or policy was never accepted.
+    return !(prefs.getBool('hasAcceptedPolicy') ?? false);
+  }
+
+  // Placeholder for saving policy acceptance
+  Future<void> _setHasAcceptedPolicy(bool accepted) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasAcceptedPolicy', accepted);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     const Color primaryGreen = Color(0xFF7BB027);
     const Color lightGreenButton = Color(0xFFC4FF62);
     const Color socialButtonBg = Color.fromARGB(150, 255, 255, 255);
