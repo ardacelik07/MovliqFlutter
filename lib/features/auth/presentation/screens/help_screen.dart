@@ -147,7 +147,7 @@ class _SupportEmailDialogState extends State<_SupportEmailDialog> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               TextFormField(
                 controller: _messageController,
                 style: TextStyle(color: textColor),
@@ -166,8 +166,8 @@ class _SupportEmailDialogState extends State<_SupportEmailDialog> {
                   ),
                   alignLabelWithHint: true,
                 ),
-                maxLines: 5,
-                minLines: 3,
+                maxLines: 16,
+                minLines: 12,
                 keyboardType: TextInputType.multiline,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
