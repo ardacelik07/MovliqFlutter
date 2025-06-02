@@ -63,7 +63,6 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
                 FontWidget(
                   text: "Koşu Türünü Seç",
                   styleType: TextStyleType.titleLarge,

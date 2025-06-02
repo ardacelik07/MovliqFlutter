@@ -33,140 +33,148 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              FontWidget(
-                text: "Yarış Özelliklerini Belirle",
-                styleType: TextStyleType.titleLarge,
-                color: Colors.white,
-                // Original style: GoogleFonts.bangers(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)
-              ),
-              const SizedBox(height: 8),
-              FontWidget(
-                text: "Ne kadar süre ve hangi modda koşmak istersin?",
-                styleType: TextStyleType.bodyMedium,
-                color: Colors.grey,
-                // Original style: GoogleFonts.bangers(fontSize: 14, color: Colors.grey)
-              ),
-              const SizedBox(height: 32),
-              _buildDurationCard(
-                duration: "1",
-                value: 'beginner',
-                isPopular: false,
-              ),
-              const SizedBox(height: 16),
-              _buildDurationCard(
-                duration: "5",
-                value: 'intermediate',
-                isPopular: false,
-              ),
-              const SizedBox(height: 16),
-              _buildDurationCard(
-                duration: "10",
-                value: 'preintermediate',
-                isPopular: true,
-              ),
-              const SizedBox(height: 16),
-              _buildDurationCard(
-                duration: "20",
-                value: 'advanced',
-                isPopular: false,
-              ),
-              const Spacer(),
-              if (_selectedLevel != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                                color: Color(0xFFC4FF62)))
-                        : ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFC4FF62),
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () async {
-                              try {
-                                setState(() {
-                                  _isLoading = true;
-                                });
-
-                                // Seçilen süreyi provider'a kaydet
-                                final duration =
-                                    _durationMap[_selectedLevel!] ?? 10;
-                                ref
-                                    .read(raceSettingsProvider.notifier)
-                                    .setDuration(duration);
-
-                                // Tüm seçimleri al ve API'ye gönder
-                                final settings = ref.read(raceSettingsProvider);
-                                if (!settings.isComplete) {
-                                  throw Exception(
-                                      'Please complete all selections');
-                                }
-
-                                final request = settings.toRequest();
-                                final result = await ref
-                                    .read(raceJoinProvider(request).future);
-
-                                // API cevabını işle
-                                if (!mounted) return;
-
-                                // Get formatted display values for the selections
-                                final roomType = settings.roomType ?? 'outdoor';
-                                final activityType =
-                                    roomType.toLowerCase() == 'outdoor'
-                                        ? 'Dış Mekan'
-                                        : 'İç Mekan';
-
-                                // WaitingRoom'a yönlendir ve oda bilgilerini aktar
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => WaitingRoomScreen(
-                                      roomId: result['roomId'],
-                                      startTime: result['startTime'] != null
-                                          ? DateTime.parse(result['startTime'])
-                                          : null,
-                                      activityType: activityType,
-                                      duration: duration,
-                                      roomCode: '',
-                                      isHost: false,
-                                    ),
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!mounted) return;
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: ErrorDisplayWidget(errorObject: e),
-                                  ),
-                                );
-
-                                setState(() {
-                                  _isLoading = false;
-                                });
-                              }
-                            },
-                            child: Text(
-                              'Devam',
-                              style: GoogleFonts.bangers(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                  ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 40),
+                FontWidget(
+                  text: "Yarış Özelliklerini Belirle",
+                  styleType: TextStyleType.titleLarge,
+                  color: Colors.white,
+                  // Original style: GoogleFonts.bangers(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)
                 ),
-            ],
+                const SizedBox(height: 8),
+                FontWidget(
+                  text: "Ne kadar süre ve hangi modda koşmak istersin?",
+                  styleType: TextStyleType.bodyMedium,
+                  color: Colors.grey,
+                  // Original style: GoogleFonts.bangers(fontSize: 14, color: Colors.grey)
+                ),
+                const SizedBox(height: 32),
+                _buildDurationCard(
+                  duration: "1",
+                  value: 'beginner',
+                  isPopular: false,
+                ),
+                const SizedBox(height: 16),
+                _buildDurationCard(
+                  duration: "5",
+                  value: 'intermediate',
+                  isPopular: false,
+                ),
+                const SizedBox(height: 16),
+                _buildDurationCard(
+                  duration: "10",
+                  value: 'preintermediate',
+                  isPopular: true,
+                ),
+                const SizedBox(height: 16),
+                _buildDurationCard(
+                  duration: "20",
+                  value: 'advanced',
+                  isPopular: false,
+                ),
+                const SizedBox(height: 80),
+                if (_selectedLevel != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: _isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: Color(0xFFC4FF62)))
+                          : ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFC4FF62),
+                                foregroundColor: Colors.black,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () async {
+                                try {
+                                  setState(() {
+                                    _isLoading = true;
+                                  });
+
+                                  // Seçilen süreyi provider'a kaydet
+                                  final duration =
+                                      _durationMap[_selectedLevel!] ?? 10;
+                                  ref
+                                      .read(raceSettingsProvider.notifier)
+                                      .setDuration(duration);
+
+                                  // Tüm seçimleri al ve API'ye gönder
+                                  final settings =
+                                      ref.read(raceSettingsProvider);
+                                  if (!settings.isComplete) {
+                                    throw Exception(
+                                        'Please complete all selections');
+                                  }
+
+                                  final request = settings.toRequest();
+                                  final result = await ref
+                                      .read(raceJoinProvider(request).future);
+
+                                  // API cevabını işle
+                                  if (!mounted) return;
+
+                                  // Get formatted display values for the selections
+                                  final roomType =
+                                      settings.roomType ?? 'outdoor';
+                                  final activityType =
+                                      roomType.toLowerCase() == 'outdoor'
+                                          ? 'Dış Mekan'
+                                          : 'İç Mekan';
+
+                                  // WaitingRoom'a yönlendir ve oda bilgilerini aktar
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => WaitingRoomScreen(
+                                        roomId: result['roomId'],
+                                        startTime: result['startTime'] != null
+                                            ? DateTime.parse(
+                                                result['startTime'])
+                                            : null,
+                                        activityType: activityType,
+                                        duration: duration,
+                                        roomCode: '',
+                                        isHost: false,
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          ErrorDisplayWidget(errorObject: e),
+                                    ),
+                                  );
+
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+                                }
+                              },
+                              child: Text(
+                                'Devam',
+                                style: GoogleFonts.bangers(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
