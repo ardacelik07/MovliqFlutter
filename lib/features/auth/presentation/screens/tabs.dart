@@ -144,11 +144,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
           } else {
             ref.refresh(indoorLeaderboardProvider);
           }
-        } catch (e) {
-          if (kDebugMode) {
-            print("Leaderboard refresh error: $e");
-          }
-        }
+        } catch (e) {}
       });
     }
   }
