@@ -240,6 +240,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                       ),
                     ),
 
+                    /*
+
                     // Special Offer Card (uses movliqProductAsync, NO specific error handling here)
                     movliqProductAsync.when(
                       data: (product) {
@@ -254,6 +256,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                               ),
                             );
                           },
+                          
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 12),
                             padding:
@@ -269,6 +272,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                 ),
                               ],
                             ),
+                            
                             child: Row(
                               crossAxisAlignment:
                                   CrossAxisAlignment.start, // Align items top
@@ -321,6 +325,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                     ),
                                   ],
                                 ),
+
+                               
                                 const SizedBox(
                                     width:
                                         12), // Reduced space between left and right columns
@@ -412,7 +418,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                     .bodyMedium, // Adjusted for Bangers
                                 color: Colors.redAccent)),
                       ),
-                    ),
+                    ), */
 
                     const SizedBox(height: 20),
                     Padding(
@@ -428,8 +434,24 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                       ),
                     ),
 
+                    const SizedBox(height: 40),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: FontWidget(
+                          text:
+                              '🎁 Çok Yakında: Kazandığın coin’lerle süper ödüllerin kilidini açmaya hazır mısın? Şimdilik yarış, kazan, biriktir. 🎯\nMağaza çok yakında açılıyor!',
+                          styleType:
+                              TextStyleType.titleSmall, // Adjusted for Bangers
+                          textAlign: TextAlign.center,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: limeGreen,
+                        ),
+                      ),
+                    ),
                     // Products Grid (uses products from the main data block)
-                    _buildProductGrid(products),
+                    //_buildProductGrid(products),
 
                     // Bottom padding
                     const SizedBox(height: 20),
