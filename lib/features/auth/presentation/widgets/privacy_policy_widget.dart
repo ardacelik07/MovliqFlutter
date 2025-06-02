@@ -31,117 +31,127 @@ class _PrivacyPolicyWidgetState extends State<PrivacyPolicyWidget> {
         color: titleColor,
         fontWeight: FontWeight.bold,
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FontWidget(
-              text: 'Verileriniz bizim için önemli. İşte nasıl koruyoruz:',
-              styleType: TextStyleType.bodyMedium,
-              color: secondaryTextColor,
-            ),
-            const SizedBox(height: 16),
-            _buildPolicySection(
-              title: 'Veri Toplama',
-              titleColor: titleColor,
-              content:
-                  'Uygulamamızı kullanırken, size daha iyi hizmet verebilmek için bazı kişisel verilerinizi topluyoruz. Bu veriler şunları içerir:',
-              textColor: textColor,
-              secondaryTextColor: secondaryTextColor,
-              bulletPoints: [
-                'Koşu aktiviteleriniz ve rotalarınız',
-                'Temel profil bilgileriniz',
-                'Cihaz ve uygulama kullanım verileri',
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildPolicySection(
-              title: 'Veri Kullanımı',
-              titleColor: titleColor,
-              content:
-                  'Topladığımız verileri aşağıdaki amaçlar için kullanıyoruz:',
-              textColor: textColor,
-              secondaryTextColor: secondaryTextColor,
-              bulletPoints: [
-                'Hizmet kalitesini iyileştirmek',
-                'Kişiselleştirilmiş antrenman planları oluşturmak',
-                'Uygulama performansını optimize etmek',
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildPolicySection(
-              title: 'Üçüncü Taraflarla Paylaşım',
-              titleColor: titleColor,
-              content:
-                  'Verileriniz, yalnızca sizin açık rızanızla ve hizmet kalitesini artırmak amacıyla güvenilir üçüncü taraf hizmet sağlayıcılarıyla paylaşılabilir.',
-              textColor: textColor,
-              secondaryTextColor: secondaryTextColor,
-            ),
-            const SizedBox(height: 16),
-            _buildPolicySection(
-              title: 'Haklarınız',
-              titleColor: titleColor,
-              content: 'KVKK kapsamında aşağıdaki haklara sahipsiniz:',
-              textColor: textColor,
-              secondaryTextColor: secondaryTextColor,
-              bulletPoints: [
-                'Verilerinize erişim hakkı',
-                'Düzeltme talep etme hakkı',
-                'Silme talep etme hakkı',
-                'İşlemeyi sınırlandırma hakkı',
-              ],
-            ),
-            const SizedBox(height: 24),
-            CheckboxListTile(
-              title: FontWidget(
-                text: 'Okudum, anladım ve kabul ediyorum.',
+      content: Container(
+        constraints: BoxConstraints(
+          maxHeight:
+              MediaQuery.of(context).size.height * 0.4, // 60% of screen height
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FontWidget(
+                text: 'Verileriniz bizim için önemli. İşte nasıl koruyoruz:',
                 styleType: TextStyleType.bodyMedium,
-                color: textColor,
+                color: secondaryTextColor,
               ),
-              value: _hasAcceptedPolicy,
-              onChanged: (bool? value) {
-                if (value != null) {
-                  setState(() {
-                    _hasAcceptedPolicy = value;
-                  });
-                }
-              },
-              controlAffinity: ListTileControlAffinity.leading,
-              activeColor: titleColor,
-              contentPadding: EdgeInsets.zero,
-            ),
-          ],
+              const SizedBox(height: 16),
+              _buildPolicySection(
+                title: 'Veri Toplama',
+                titleColor: titleColor,
+                content:
+                    'Uygulamamızı kullanırken, size daha iyi hizmet verebilmek için bazı kişisel verilerinizi topluyoruz. Bu veriler şunları içerir:',
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
+                bulletPoints: [
+                  'Koşu aktiviteleriniz ve rotalarınız',
+                  'Temel profil bilgileriniz',
+                  'Cihaz ve uygulama kullanım verileri',
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildPolicySection(
+                title: 'Veri Kullanımı',
+                titleColor: titleColor,
+                content:
+                    'Topladığımız verileri aşağıdaki amaçlar için kullanıyoruz:',
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
+                bulletPoints: [
+                  'Hizmet kalitesini iyileştirmek',
+                  'Kişiselleştirilmiş antrenman planları oluşturmak',
+                  'Uygulama performansını optimize etmek',
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildPolicySection(
+                title: 'Üçüncü Taraflarla Paylaşım',
+                titleColor: titleColor,
+                content:
+                    'Verileriniz, yalnızca sizin açık rızanızla ve hizmet kalitesini artırmak amacıyla güvenilir üçüncü taraf hizmet sağlayıcılarıyla paylaşılabilir.',
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
+              ),
+              const SizedBox(height: 16),
+              _buildPolicySection(
+                title: 'Haklarınız',
+                titleColor: titleColor,
+                content: 'KVKK kapsamında aşağıdaki haklara sahipsiniz:',
+                textColor: textColor,
+                secondaryTextColor: secondaryTextColor,
+                bulletPoints: [
+                  'Verilerinize erişim hakkı',
+                  'Düzeltme talep etme hakkı',
+                  'Silme talep etme hakkı',
+                  'İşlemeyi sınırlandırma hakkı',
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop(); // Close dialog without accepting
+        CheckboxListTile(
+          title: FontWidget(
+            text: 'Okudum, anladım ve kabul ediyorum.',
+            styleType: TextStyleType.bodyMedium,
+            color: textColor,
+          ),
+          value: _hasAcceptedPolicy,
+          onChanged: (bool? value) {
+            if (value != null) {
+              setState(() {
+                _hasAcceptedPolicy = value;
+              });
+            }
           },
-          child: FontWidget(
-            text: 'Reddet',
-            styleType: TextStyleType.labelLarge,
-            color: secondaryTextColor,
-          ),
+          controlAffinity: ListTileControlAffinity.leading,
+          activeColor: titleColor,
+          contentPadding: EdgeInsets.zero,
         ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: buttonColor,
-            foregroundColor: buttonTextColor,
-          ),
-          onPressed: _hasAcceptedPolicy
-              ? () {
-                  widget.onAccepted();
-                  Navigator.of(context).pop(); // Close dialog after accepting
-                }
-              : null, // Button is disabled if not accepted
-          child: FontWidget(
-            text: 'Kabul Et',
-            styleType: TextStyleType.labelLarge,
-            color: buttonTextColor,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          children: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog without accepting
+              },
+              child: FontWidget(
+                text: 'Reddet',
+                styleType: TextStyleType.labelLarge,
+                color: secondaryTextColor,
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: buttonColor,
+                foregroundColor: buttonTextColor,
+              ),
+              onPressed: _hasAcceptedPolicy
+                  ? () {
+                      widget.onAccepted();
+                      Navigator.of(context)
+                          .pop(); // Close dialog after accepting
+                    }
+                  : null, // Button is disabled if not accepted
+              child: FontWidget(
+                text: 'Kabul Et',
+                styleType: TextStyleType.labelLarge,
+                color: buttonTextColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ],
     );
