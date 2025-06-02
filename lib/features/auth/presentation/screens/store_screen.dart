@@ -186,27 +186,32 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                     SizedBox(
                       height: 170, // Adjust height for the slider area
                       child: PageView.builder(
-                        controller:
-                            _pageController, // Use the defined controller
+                        controller: PageController(
+                            viewportFraction:
+                                1), // Shows parts of adjacent pages
                         padEnds: false, // Don't add padding at the ends
-                        itemCount: 3, // Placeholder count for demonstration
+                        itemCount: 1, // Placeholder count for demonstration
                         itemBuilder: (context, index) {
+                          // Define the image path based on the index
+                          final imagePaths = [
+                            'assets/images/storereward.png',
+                          ];
+                          // Use modulo in case itemCount changes later, although currently it's 3
+                          final imagePath =
+                              imagePaths[index % imagePaths.length];
+
                           return Container(
                             margin: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
+                                horizontal: 30.0,
                                 vertical:
-                                    8.0), // Add horizontal margin between cards
+                                    1.0), // Add horizontal margin between cards
+                            padding: const EdgeInsets.all(20.0),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20.0),
-                              // Apply gradient background from image
-                              gradient: LinearGradient(
-                                colors: [
-                                  limeGreen.withOpacity(
-                                      0.8), // Adjust opacity as needed
-                                  limeGreen.withOpacity(0.5),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                              image: DecorationImage(
+                                image: AssetImage(imagePath),
+                                fit: BoxFit
+                                    .fill, // Make image cover the container
                               ),
                               boxShadow: [
                                 BoxShadow(
@@ -216,13 +221,34 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                 ),
                               ],
                             ),
+                            child: Stack(
+                              children: [
+                                // NEW Tag (Only for the first item in this example)
+                                if (index == 0)
+                                  Positioned(
+                                    top: 0,
+                                    left: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  ),
+                                // Level Number (Placeholder - varies by index)
+
+                                // Progress Indicator (Placeholder - varies by index)
+                              ],
+                            ),
                           );
                         },
                       ),
                     ),
 
                     // Carousel Indicator Dots (remains the same)
-                    Center(
+                    /*Center(
                       child: Padding(
                         padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
                         child: SmoothPageIndicator(
@@ -239,7 +265,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                         ),
                       ),
                     ),
-
+                    */
+                    const SizedBox(height: 20),
                     /*
 
                     // Special Offer Card (uses movliqProductAsync, NO specific error handling here)
