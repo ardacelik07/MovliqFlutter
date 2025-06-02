@@ -148,9 +148,9 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                         },
                         child: FontWidget(
                           text: 'Devam',
-                          styleType: TextStyleType.labelLarge,
+                          styleType: TextStyleType.titleMedium,
                           color: Colors.black,
-                          fontSize: 16,
+                          fontSize: 20,
                         ),
                       ),
                     ),

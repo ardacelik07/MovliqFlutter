@@ -163,12 +163,12 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                                   });
                                 }
                               },
-                              child: Text(
-                                'Devam',
-                                style: GoogleFonts.bangers(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              child: FontWidget(
+                                text: 'Devam',
+                                styleType: TextStyleType.titleMedium,
+                                color: Colors.black,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                     ),
