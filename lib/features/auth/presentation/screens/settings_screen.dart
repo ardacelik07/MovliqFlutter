@@ -162,9 +162,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
 
-            _buildSettingsCard(
+            /*_buildSettingsCard(
               cardColor: cardColor,
               children: [
                 _buildNavigationTile(
@@ -175,7 +174,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () {},
                 ),
               ],
-            ),
+            ),*/
             const SizedBox(height: 24),
             _buildSectionTitle('Gİzlİlİk ve Destek', textColor),
             _buildSettingsCard(
