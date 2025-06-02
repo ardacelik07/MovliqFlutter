@@ -24,6 +24,7 @@ import 'dart:io' show SocketException;
 import 'update_user_info_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -1371,6 +1372,19 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
   Future<void> _selectAndUploadProfileImage(
       BuildContext context, WidgetRef ref) async {
     try {
+      if (Platform.isIOS) {
+        var status = await Permission.camera.status;
+        var status2 = await Permission.photos.status;
+        if (!status.isGranted || !status2.isGranted) {
+          status = await Permission.camera.request();
+          status2 = await Permission.photos.request();
+          if (!status.isGranted || !status2.isGranted) {
+            _showErrorMessage(
+                context, 'Kamera ve galeri erişimine izin veriniz.');
+            return;
+          }
+        }
+      }
       final source = await _showImageSourceDialog(context);
 
       if (source == null) return;
