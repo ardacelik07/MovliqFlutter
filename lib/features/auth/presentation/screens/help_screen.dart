@@ -249,7 +249,7 @@ class HelpScreen extends ConsumerWidget {
 
     final List<Map<String, dynamic>> faqs = [
       {
-        'question': 'Movliq Nedir?',
+        'question': 'MOVLIQ NEDİR?',
         'answer':
             '''Movliq, yürüyüşü ve koşuyu oyunlaştırarak kullanıcıları gerçek zamanlı yarışlara dahil eden, adımlarını mCoin\'e ve ödüllere dönüştüren yenilikçi bir mobil uygulamadır. Sporu yalnızca fiziksel değil, aynı zamanda sosyal ve eğlenceli bir deneyime dönüştürür.
 
@@ -261,7 +261,7 @@ class HelpScreen extends ConsumerWidget {
         'isExpanded': true,
       },
       {
-        'question': 'Neden Adımlarım ve Konumum Uygulamada Çalışmıyor?',
+        'question': 'NEDEN ADIMLARIM VE KONUMUM UYGULAMADA ÇALIŞMIYOR?',
         'answer':
             '''Bunun sebebi büyük ihtimalle adım ve konum izinlerinin kapalı olmasıdır.
 Yarışlar, Solo Mod ve diğer özelliklerin düzgün çalışması için bu iki izne ihtiyaç duyuyoruz.
@@ -319,7 +319,7 @@ Yine de her adımın ödül!
         'isExpanded': true,
       },
       {
-        'question': 'Sadece Uygulama Değil, Bir Kültür',
+        'question': 'Sadece Uygulama DEĞİL, BİR KÜLTÜR',
         'answer':
             '''Movliq, sadece bir fitness uygulaması değil; kazanmak, paylaşmak ve sosyalleşmek isteyenlerin buluşma noktasıdır.
 Burada attığın her adım sadece fiziksel bir hareket değil; bir bağ kurma, bir yaşam tarzı oluşturma ve ilham verme fırsatıdır.
@@ -333,7 +333,7 @@ Movliq Kültürünün Temel Taşları:
         'isExpanded': true,
       },
       {
-        'question': 'Ödül Sistemi & mCoin',
+        'question': 'ÖDÜL SİSTEMİ & mCOİN',
         'answer':
             '''Ne kadar çok hareket edersen, o kadar çok kazanırsın! mCoin, movliq evreninde hareketin karşılığıdır. Attığın her adım, çıktığın her yarış, gösterdiğin her performans sana mCoin olarak geri döner.
 Kazandığın mCoin\'leri Movliq mağazasında; kuponlara, özel kampanyalara, sürpriz hediyelere ve daha fazlasına dönüştürebilirsin.
@@ -346,7 +346,7 @@ Nasıl Kazanırsın?
         'isExpanded': true,
       },
       {
-        'question': 'Bireysel & Sosyal Deneyim',
+        'question': 'BİREYSEL & SOSYAL DENEYİM',
         'answer':
             '''İster tek başına, ister arkadaşlarınla yarış! Movliq\'te özel yarış odaları oluşturabilir, kodla arkadaşlarını davet edebilir, toplulukla etkileşime geçebilir, birlikte motive olabilirsiniz.
 Sosyal Kullanım (Özel Odalar & Topluluk):
@@ -358,7 +358,7 @@ Sosyal Kullanım (Özel Odalar & Topluluk):
         'isExpanded': true,
       },
       {
-        'question': 'Ortak Havuz Yarışları',
+        'question': 'ORTAK HAVUZ YARISLARI',
         'answer':
             '''Arkadaşlarınla heyecanı artırmak istiyorsan doğru yerdesin! Movliq\'te özel odalarda "ortak havuz yarışları" oluşturabilirsin.
 
