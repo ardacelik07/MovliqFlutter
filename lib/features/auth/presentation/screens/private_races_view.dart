@@ -44,11 +44,10 @@ class _PrivateRacesViewState extends ConsumerState<PrivateRacesView> {
       if (tokenData == null) {
         throw Exception('Authentication token not found.');
       }
-      final token = jsonDecode(tokenData)['token'];
 
       final headers = {
         ...ApiConfig.headers,
-        'Authorization': 'Bearer $token',
+        'Authorization': 'Bearer $tokenData',
       };
 
       // Construct request body from race data
