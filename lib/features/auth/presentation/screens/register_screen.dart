@@ -53,16 +53,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         },
         data: (token) {
           if (token != null) {
-            print('Registration successful! Token: $token');
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (context) => const WelcomeScreen(),
               ),
             );
-          } else {
-            print("register failed");
-          }
+          } else {}
         },
       );
     });

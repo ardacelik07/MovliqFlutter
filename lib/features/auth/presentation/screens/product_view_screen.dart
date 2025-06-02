@@ -219,15 +219,8 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                       );
 
                       if (trafficIncrementResponse.statusCode == 200) {
-                        print(
-                            'Successfully incremented traffic for product $currentProductId');
-                      } else {
-                        print(
-                            'Failed to increment traffic for product $currentProductId: ${trafficIncrementResponse.statusCode} ${trafficIncrementResponse.body}');
-                      }
-                    } catch (e) {
-                      print('Error calling increment traffic API: $e');
-                    }
+                      } else {}
+                    } catch (e) {}
 
                     if (code != null) {
                       await Clipboard.setData(ClipboardData(text: code));
@@ -245,7 +238,6 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
 
                     // --- URL Açma Mantığı ---
                     if (urlString == null || urlString.isEmpty) {
-                      print('Error: Product URL is null or empty.');
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                             content: FontWidget(
@@ -262,10 +254,7 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                     Uri? uri;
                     try {
                       uri = Uri.parse(urlString);
-                      print(
-                          'Parsed URI: ${uri.toString()}'); // Parsed URI'yi yazdır
                     } catch (e) {
-                      print('Error parsing URI: $e');
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                             content: FontWidget(
@@ -280,19 +269,12 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                     }
 
                     try {
-                      print('Checking if URL can be launched...');
                       bool canLaunch = await canLaunchUrl(uri);
-                      print(
-                          'canLaunchUrl result: $canLaunch'); // canLaunchUrl sonucunu yazdır
 
                       if (canLaunch) {
-                        print('Attempting to launch URL...');
                         await launchUrl(uri,
                             mode: LaunchMode.externalApplication);
-                        print(
-                            'launchUrl call completed.'); // Bu satır yazdırılıyor mu kontrol et
                       } else {
-                        print('URL cannot be launched.');
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                               content: FontWidget(
@@ -306,8 +288,6 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                         );
                       }
                     } catch (e) {
-                      print(
-                          'Error during launchUrl: $e'); // launchUrl hatasını yazdır
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                             content: FontWidget(

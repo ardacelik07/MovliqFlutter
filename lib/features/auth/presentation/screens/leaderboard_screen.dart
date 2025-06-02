@@ -276,7 +276,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                           ),
                         );
                       } else {
-                        print("User rank card error: $error");
                         return const SizedBox.shrink(); // Hide for other errors
                       }
                     },

@@ -13,8 +13,6 @@ class StorageService {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, accessToken);
     await prefs.setString(_refreshTokenKey, refreshToken);
-    print('Access token saved: $accessToken');
-    print('Refresh token saved: $refreshToken');
   }
 
   // Access Token'ı getir
@@ -35,7 +33,6 @@ class StorageService {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_refreshTokenKey);
-    print('Tokens deleted');
   }
 
   // Token var mı kontrol et

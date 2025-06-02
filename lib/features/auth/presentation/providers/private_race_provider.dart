@@ -41,13 +41,11 @@ class PrivateRace extends _$PrivateRace {
         return races;
       } else {
         // Handle specific error codes if needed
-        print(
-            'Failed to load special races: ${response.statusCode} - ${response.body}');
+
         throw Exception(
             'Failed to load special races: ${response.reasonPhrase}');
       }
     } catch (e) {
-      print('Error fetching special races: $e');
       // Rethrow to let the UI handle the error state
       throw Exception('Error fetching special races: $e');
     }

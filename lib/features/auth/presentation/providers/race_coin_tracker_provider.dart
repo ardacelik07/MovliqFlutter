@@ -50,7 +50,6 @@ class RaceCoinTrackingNotifier extends StateNotifier<RaceCoinTrackingState?> {
   }
 
   void clearState() {
-    print("🏁 RaceCoinTracker: State temizleniyor.");
     state = null;
   }
 }

@@ -56,13 +56,10 @@ final activityStatsProvider =
       // Use the manual fromJson factory
       return ActivityStatsModel.fromJson(data);
     } else {
-      debugPrint(
-          'Failed to load activity stats: ${response.statusCode} ${response.body}');
       throw Exception(
           'Failed to load activity stats. Status code: ${response.statusCode}');
     }
   } catch (e) {
-    debugPrint('Error fetching activity stats: $e');
     throw Exception('Error fetching activity stats: $e');
   }
 });
