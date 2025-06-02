@@ -44,7 +44,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   void initState() {
     super.initState();
     WakelockPlus.toggle(enable: true);
-    debugPrint('[RaceScreen initState] Wakelock TOGGLED ON');
+
     _startWakelockForceTimer();
 
     if (Platform.isIOS) {
@@ -53,28 +53,16 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
   }
 
   void _warmupIOSLocationTracking() {
-    debugPrint(
-        '[RaceScreen] iOS konum servislerini uyandırma ve arka plan takibini etkinleştirme');
     try {
       const platform = MethodChannel('com.movliq/location');
-      platform.invokeMethod('enableBackgroundLocationTracking').then((_) {
-        debugPrint(
-            '[RaceScreen] iOS native konum takibi başarıyla etkinleştirildi.');
-      }).catchError((error) {
-        debugPrint(
-            '[RaceScreen] iOS native konum takibi etkinleştirme hatası: $error');
-      });
+      platform
+          .invokeMethod('enableBackgroundLocationTracking')
+          .then((_) {})
+          .catchError((error) {});
       Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best,
-      ).then((position) {
-        debugPrint(
-            '[RaceScreen] iOS konum uyandırma başarılı: ${position.latitude}, ${position.longitude}');
-      }).catchError((e) {
-        debugPrint('[RaceScreen] iOS konum uyandırma hatası: $e');
-      });
-    } catch (e) {
-      debugPrint('[RaceScreen] iOS konum takibi etkinleştirme genel hata: $e');
-    }
+      ).then((position) {}).catchError((e) {});
+    } catch (e) {}
   }
 
   void _startWakelockForceTimer() {
@@ -85,16 +73,13 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
         return;
       }
       WakelockPlus.toggle(enable: true);
-      debugPrint('[Wakelock Force Timer] Wakelock TOGGLED ON (Forced)');
     });
   }
 
   @override
   void dispose() {
-    debugPrint('[RaceScreen dispose] Attempting to toggle Wakelock OFF...');
     _wakelockForceTimer?.cancel();
     WakelockPlus.toggle(enable: false);
-    debugPrint('[RaceScreen dispose] Wakelock toggled OFF.');
     super.dispose();
   }
 
@@ -124,17 +109,10 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
         (RaceState? previous, RaceState next) {
       if (_navigationTriggered) return;
 
-      debugPrint(
-          '[RaceScreen Listener] State changed: isRaceFinished=${next.isRaceFinished}, errorMessage=${next.errorMessage}, showWarning=${next.showFirstCheatWarning}');
-
       if (next.isRaceFinished == true &&
           (previous == null || previous.isRaceFinished == false)) {
-        debugPrint(
-            '[RaceScreen Listener] Race finished normally. Navigating to FinishRaceScreen...');
         if (mounted) {
           _navigationTriggered = true;
-          debugPrint(
-              '[RaceScreen Listener] Toggling Wakelock OFF before navigating to FinishRaceScreen...');
           _wakelockForceTimer?.cancel();
           WakelockPlus.toggle(enable: false);
           Navigator.of(context).pushReplacement(
@@ -159,12 +137,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
           _showErrorMessage(context, next.errorMessage!);
         }
         if (!next.showFirstCheatWarning) {
-          debugPrint(
-              '[RaceScreen Listener] Error/Leave detected: ${next.errorMessage}. Navigating to TabsScreen...');
           if (mounted) {
             _navigationTriggered = true;
-            debugPrint(
-                '[RaceScreen Listener] Toggling Wakelock OFF before navigating to TabsScreen (Error/Leave)...');
             _wakelockForceTimer?.cancel();
             WakelockPlus.toggle(enable: false);
             Navigator.of(context).pushAndRemoveUntil(
@@ -178,8 +152,6 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
 
       if (next.showFirstCheatWarning == true &&
           (previous == null || previous.showFirstCheatWarning == false)) {
-        debugPrint(
-            '[RaceScreen Listener] Showing first cheat warning dialog...');
         if (mounted) {
           _showFirstCheatWarningDialog(context, ref);
         }
@@ -264,8 +236,6 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                     setState(() {
                       _showNewRaceUI = !_showNewRaceUI; // Toggle the UI state
                     });
-                    debugPrint(
-                        'Road icon tapped, _showNewRaceUI is now: $_showNewRaceUI');
                   },
                 ),*/
             ],
@@ -604,7 +574,6 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     );
 
     if (result == true) {
-      debugPrint('Kullanıcı yarıştan ayrılmayı onayladı.');
       await raceNotifier.leaveRace();
       return true;
     } else {

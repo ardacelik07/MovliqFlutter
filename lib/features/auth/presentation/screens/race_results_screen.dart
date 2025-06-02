@@ -43,7 +43,6 @@ final raceResultsProvider =
           'Yarış sonuçları getirilirken hata: ${response.statusCode}');
     }
   } catch (e) {
-    debugPrint('Yarış sonuçları provider hatası: $e');
     return [];
   }
 });
