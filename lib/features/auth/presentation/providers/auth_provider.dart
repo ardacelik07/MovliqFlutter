@@ -4,6 +4,7 @@ import '../../data/repositories/auth_repository_impl.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/signalr_service.dart';
 import 'dart:convert';
+import 'dart:math';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
@@ -58,15 +59,39 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
           refreshToken: actualRefreshToken,
         );
         state = AsyncValue.data(actualAccessToken);
-        print('Registration successful and tokens parsed and saved correctly.');
       } else {
-        print('Error: Tokens not found in registration response or are empty.');
         throw Exception(
             'Invalid token data received from server after registration.');
       }
     } catch (e, stack) {
-      print('Registration Provider Error: $e');
-      state = AsyncValue.error(e, stack);
+      Object errorForState;
+      String exceptionString = e.toString();
+
+      int jsonStartIndex = exceptionString.indexOf('{');
+      int jsonEndIndex = exceptionString.lastIndexOf('}');
+
+      if (jsonStartIndex != -1 && jsonEndIndex > jsonStartIndex) {
+        String potentialJson =
+            exceptionString.substring(jsonStartIndex, jsonEndIndex + 1);
+        try {
+          var decoded = jsonDecode(potentialJson);
+          if (decoded is Map<String, dynamic> &&
+              decoded.containsKey('message')) {
+            errorForState = decoded;
+          } else if (decoded is Map<String, dynamic>) {
+            String fallbackMessage =
+                'Sunucudan detay alınamadı: ${decoded.toString().substring(0, min(decoded.toString().length, 100))}';
+            errorForState = {'message': fallbackMessage};
+          } else {
+            errorForState = {'message': potentialJson};
+          }
+        } catch (jsonError) {
+          errorForState = {'message': exceptionString};
+        }
+      } else {
+        errorForState = {'message': exceptionString};
+      }
+      state = AsyncValue.error(errorForState, stack);
     }
   }
 
@@ -101,14 +126,36 @@ class AuthNotifier extends StateNotifier<AsyncValue<String?>> {
           refreshToken: actualRefreshToken,
         );
         state = AsyncValue.data(actualAccessToken);
-        print('Login successful and tokens parsed and saved correctly.');
-      } else {
-        print('Error: Tokens not found in parsed response or are empty.');
-        throw Exception('Invalid token data received from server.');
-      }
+      } else {}
     } catch (e, stack) {
-      print('Login Provider Error: $e');
-      state = AsyncValue.error(e, stack);
+      Object errorForState;
+      String exceptionString = e.toString();
+
+      int jsonStartIndex = exceptionString.indexOf('{');
+      int jsonEndIndex = exceptionString.lastIndexOf('}');
+
+      if (jsonStartIndex != -1 && jsonEndIndex > jsonStartIndex) {
+        String potentialJson =
+            exceptionString.substring(jsonStartIndex, jsonEndIndex + 1);
+        try {
+          var decoded = jsonDecode(potentialJson);
+          if (decoded is Map<String, dynamic> &&
+              decoded.containsKey('message')) {
+            errorForState = decoded;
+          } else if (decoded is Map<String, dynamic>) {
+            String fallbackMessage =
+                'Sunucudan detay alınamadı: ${decoded.toString().substring(0, min(decoded.toString().length, 100))}';
+            errorForState = {'message': fallbackMessage};
+          } else {
+            errorForState = {'message': potentialJson};
+          }
+        } catch (jsonError) {
+          errorForState = {'message': exceptionString};
+        }
+      } else {
+        errorForState = {'message': exceptionString};
+      }
+      state = AsyncValue.error(errorForState, stack);
     }
   }
 }

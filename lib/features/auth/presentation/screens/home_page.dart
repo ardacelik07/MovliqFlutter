@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:my_flutter_project/features/auth/presentation/screens/filter_screen.dart';
 import '../providers/user_data_provider.dart';
 import '../../domain/models/user_data_model.dart'; // <-- Eklendi
-import '../providers/user_ranks_provider.dart'; // For streak
+
 import '../providers/latest_product_provider.dart'; // Import LatestProductProvider
 import '../providers/private_race_provider.dart'; // Import PrivateRaceProvider
 import '../../domain/models/latest_product_model.dart'; // Import LatestProductModel
@@ -23,15 +23,20 @@ import 'package:share_plus/share_plus.dart'; // Import share_plus
 import 'package:my_flutter_project/core/config/api_config.dart'; // Import ApiConfig
 import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Import HttpInterceptor
 import 'package:geolocator/geolocator.dart'; // Import Geolocator
-import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
+
 import 'package:pedometer/pedometer.dart'; // Import pedometer
 import 'package:flutter/services.dart'; // Import flutter/services
 import '../providers/race_coin_tracker_provider.dart';
 import '../widgets/earn_coin_widget.dart'; // Popup için
 import '../providers/race_provider.dart'; // For cheatKickedStateProvider
 import '../widgets/cheated_race.dart'; // For CheatedRaceDialogContent
+import 'help_screen.dart';
+import 'profile_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'dart:convert'; // Import jsonEncode
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
 
 // Change to ConsumerStatefulWidget
 class HomePage extends ConsumerStatefulWidget {
@@ -43,10 +48,12 @@ class HomePage extends ConsumerStatefulWidget {
 
 // Create State class
 class _HomePageState extends ConsumerState<HomePage> {
+  bool _permissionsRequested = false;
+
   @override
   void initState() {
     super.initState();
-    _checkAndRequestPermissionsSequentially();
+    _checkPermissionsStatus();
 
     // Check for cheat kicked status when HomePage initializes and listen for changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -66,6 +73,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         _showCheatKickedDialog();
       }
     });
+  }
+
+  Future<void> _checkPermissionsStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    _permissionsRequested = prefs.getBool('permissionsRequested') ?? false;
+
+    if (!_permissionsRequested) {
+      await _checkAndRequestPermissionsSequentially();
+      prefs.setBool('permissionsRequested', true);
+    }
   }
 
   void _showCheatKickedDialog() {
@@ -119,32 +136,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         final notificationRequest = await Permission.notification.request();
 
         // Kullanıcıya bilgi ver (opsiyonel)
-        if (notificationRequest.isPermanentlyDenied) {
-          if (mounted) {
-            // Eğer kullanıcı kalıcı olarak reddettiyse
-            showDialog(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Bildirim İzni Gerekli'),
-                content: const Text(
-                    'Bildirim izni olmadan size etkinlikleriniz hakkında haber veremeyiz. Lütfen ayarlardan izin verin.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('Kapat'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      openAppSettings();
-                      Navigator.of(ctx).pop();
-                    },
-                    child: const Text('Ayarlara Git'),
-                  ),
-                ],
-              ),
-            );
-          }
-        }
       } else {
         print('Ana Sayfa - Android bildirim izni zaten var');
       }
@@ -220,73 +211,21 @@ class _HomePageState extends ConsumerState<HomePage> {
         print('Ana Sayfa - iOS konum izni alındı: $permission');
       }
     } else {
-      // For Android: Request Permission.location first to show the standard system dialog.
+      // For Android: Request Permission.location which handles "While using the app"
       final status = await Permission.location.status;
-      print('Ana Sayfa - Android konum izin durumu (Genel): $status');
+      print('Ana Sayfa - Android konum izin durumu: $status');
 
       // Define the critical permission dialog details for races
-      const String criticalDialogTitle = 'Her Zaman Konum İzni Gerekli';
-      const String criticalDialogContent =
-          'Yarışlara kesintisiz katılabilmek ve aktivite verilerinizi doğru bir şekilde kaydedebilmek için Movliq\'in konumunuza \'Her Zaman\' erişmesi gerekmektedir. Lütfen uygulama ayarlarından konum iznini \'Her zaman izin ver\' olarak güncelleyiniz.';
 
       if (!status.isGranted && !status.isLimited) {
         final requestedStatus = await Permission.location.request();
         print(
-            'Ana Sayfa - Android izin istenen durum (Genel): $requestedStatus');
+            'Ana Sayfa - Android izin istenen durum (Uygulamayı Kullanırken): $requestedStatus');
 
-        if (requestedStatus.isPermanentlyDenied) {
-          if (mounted) {
-            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
-          }
-        } else if (requestedStatus.isDenied) {
-          print(
-              'Ana Sayfa - Android konum izni (Genel) reddedildi ancak kalıcı değil.');
-          if (mounted) {
-            _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
-          }
-        }
-        // If permission granted here, proceed to check for 'Always'
-      }
-
-      // After the initial request (or if already granted), check current general status again
-      // to decide if we should proceed to request 'Always'.
-      final currentGeneralLocationStatus = await Permission.location.status;
-      if (currentGeneralLocationStatus.isGranted ||
-          currentGeneralLocationStatus.isLimited) {
-        print(
-            'Ana Sayfa - Android konum izni (Genel) verilmiş veya kısıtlı. Şimdi "Always" kontrol ediliyor.');
-
-        final alwaysStatus = await Permission.locationAlways.status;
-        print(
-            'Ana Sayfa - Android "Always" konum izin durumu kontrol ediliyor: $alwaysStatus');
-
-        if (!alwaysStatus.isGranted) {
-          print(
-              'Ana Sayfa - "Genel/Kullanımda" izni var, ancak "Always" izni yok. "Always" izni isteniyor.');
-          // Requesting locationAlways typically opens settings directly on modern Android.
-          final requestedAlwaysStatus =
-              await Permission.locationAlways.request();
-          print(
-              'Ana Sayfa - Android "Always" izin talep sonucu: $requestedAlwaysStatus');
-
-          // After the request, check the status again.
-          // If still not granted (denied or permanently denied), show the dialog.
-          final finalAlwaysStatus = await Permission.locationAlways.status;
-          if (!finalAlwaysStatus.isGranted) {
-            if (mounted) {
-              _showSettingsDialog(criticalDialogTitle, criticalDialogContent);
-            }
-          } else {
-            print('Ana Sayfa - Android "Always" konum izni şimdi verildi.');
-          }
-        } else {
-          print('Ana Sayfa - Android "Always" konum izni zaten verilmiş.');
-        }
+        // If permission granted here, it's "While using the app" or "Always"
       } else {
-        // This means general location was not granted even after an attempt (if made).
-        // The dialogs for denied/permanentlyDenied for the initial request should have been shown.
         print(
-            'Ana Sayfa - Genel konum izni hala verilmemiş, bu nedenle "Always" istenemiyor/kontrol edilemiyor.');
+            'Ana Sayfa - Android konum izni (Uygulamayı Kullanırken veya Her Zaman) zaten verilmiş.');
       }
     }
   }
@@ -302,13 +241,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         final requestedStatus = await Permission.activityRecognition.request();
         print(
             'Ana Sayfa - Android aktivite izin istenen durum: $requestedStatus');
-
-        if (requestedStatus.isDenied || requestedStatus.isPermanentlyDenied) {
-          if (mounted) {
-            _showSettingsDialog('Aktivite İzni Gerekli',
-                'Adımlarınızı sayabilmek için aktivite izni gereklidir.');
-          }
-        }
       } else {
         print('Ana Sayfa - Android aktivite izni zaten verilmiş.');
       }
@@ -353,29 +285,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   // Health Kit izni için özel dialog (iOS)
 
   // Dialog to show if permission is denied (Consolidated for Settings)
-  void _showSettingsDialog(String title, String content) {
-    if (!mounted) return; // Check again before showing dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text('$content Lütfen uygulama ayarlarından bu izni verin.'),
-        actions: [
-          TextButton(
-            child: const Text('Ayarları Aç'),
-            onPressed: () {
-              openAppSettings(); // Open app settings
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: const Text('İptal'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _shareAppLink() async {
     const String playStoreLink =
@@ -403,9 +312,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             'Tek kullanımlık paylaşım ödülü APIsi başarıyla çağrıldı ve coin verildi.');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text(
-                    'Paylaşımın için teşekkürler! Coinlerin hesabına eklendi!')),
+            SnackBar(
+              content: Text(
+                'Paylaşımın için teşekkürler! Coinlerin hesabına eklendi!',
+                style: GoogleFonts.bangers(),
+              ),
+            ),
           );
           ref.invalidate(
               userDataProvider); // Coin miktarını UI'da yenilemek için
@@ -542,31 +454,28 @@ class _HomePageState extends ConsumerState<HomePage> {
                           horizontal: 16.0, vertical: 12.0),
                       child: Row(
                         children: [
-                          // Profile picture - Simpler error/loading handling
-                          UserProfileAvatar(
-                            imageUrl: userData?.profilePictureUrl,
-                            radius: 24,
+                          GestureDetector(
+                            onTap: () {
+                              // Set the selectedTabProvider to the index of ProfileScreen (4)
+                              ref.read(selectedTabProvider.notifier).state = 4;
+                              // No need to push TabsScreen again, as HomePage is already within it.
+                            },
+                            child: UserProfileAvatar(
+                              imageUrl: userData?.profilePictureUrl,
+                              radius: 24,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           // Welcome Text - Simpler error/loading handling
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Hoşgeldiniz',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[400],
-                                ),
-                              ),
-                              Text(
-                                userData?.userName ??
+                              FontWidget(
+                                text: userData?.userName ??
                                     'Kullanıcı', // Display name or default
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                                styleType: TextStyleType.bodyLarge,
+                                color: Colors.white,
+                                fontSize: 16,
                               ),
                             ],
                           ),
@@ -574,16 +483,31 @@ class _HomePageState extends ConsumerState<HomePage> {
                           // Icons Row
                           Row(
                             children: [
-                              // Notification Icon (Placeholder)
-                              Stack(
-                                alignment: Alignment.topRight,
-                                children: [
-                                  Icon(Icons.notifications_outlined,
-                                      color: Colors.white, size: 26),
-                                  // Add badge if needed
-                                ],
+                              Image.asset(
+                                'assets/icons/alev.png',
+                                width: 20,
+                                height: 20,
                               ),
-                              const SizedBox(width: 12),
+
+                              const SizedBox(width: 4),
+                              userStreakAsync.maybeWhen(
+                                data: (streak) => FontWidget(
+                                  text: streak.toString(),
+                                  styleType: TextStyleType.bodyLarge,
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                                // Show '-' or loading indicator for non-data states
+                                orElse: () => const FontWidget(
+                                  text: '-',
+                                  styleType: TextStyleType.bodyLarge,
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
+
+                              const SizedBox(width: 4),
+
                               // Coin Icon & Count
                               Image.asset(
                                 'assets/images/mCoin.png',
@@ -591,35 +515,33 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 height: 25,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                userCoins?.toStringAsFixed(2) ??
+                              FontWidget(
+                                text: userCoins?.toStringAsFixed(2) ??
                                     '0.00', // Format to 2 decimal places
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14),
+                                styleType: TextStyleType.bodyLarge,
+                                color: Colors.white,
+                                fontSize: 14,
                               ),
-                              const SizedBox(width: 12),
-                              // Streak Icon & Count - Simpler error/loading
-                              const Icon(Icons.local_fire_department,
-                                  color: Colors.deepOrangeAccent, size: 22),
-                              const SizedBox(width: 4),
-                              userStreakAsync.maybeWhen(
-                                data: (streak) => Text(
-                                  streak.toString(),
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14),
-                                ),
-                                // Show '-' or loading indicator for non-data states
-                                orElse: () => const Text(
-                                  '-',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14),
-                                ),
+
+                              Stack(
+                                alignment: Alignment.topRight,
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  HelpScreen()));
+                                    },
+                                    icon: Image.asset(
+                                      'assets/icons/info.png',
+                                      width: 20,
+                                      height: 20,
+                                    ),
+                                  ),
+                                  // Add badge if needed
+                                ],
                               ),
                             ],
                           ),
@@ -682,13 +604,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                                         color: Colors.black.withOpacity(0.2),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      child: const Text(
-                                        'NEW',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 10,
-                                        ),
+                                      child: FontWidget(
+                                        text: 'NEW',
+                                        styleType: TextStyleType.titleSmall,
+                                        color: Colors.white,
+                                        fontSize: 10,
                                       ),
                                     ),
                                   ),
@@ -698,16 +618,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 Positioned(
                                   top: 0,
                                   right: 0,
-                                  child: Text(
-                                    index == 0
+                                  child: FontWidget(
+                                    text: index == 0
                                         ? '1/5'
                                         : (index == 1
                                             ? 'Daily'
                                             : 'Weekly'), // Example content variation
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                    ),
+                                    styleType: TextStyleType.bodySmall,
+                                    color: Colors.white70,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ],
@@ -728,25 +647,28 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.group_add_outlined,
-                              color: Color(0xFFC4FF62), size: 30),
+                          Image.asset(
+                            'assets/icons/invitefriend.png',
+                            width: 30,
+                            height: 30,
+                          ),
                           const SizedBox(width: 16),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Arkadaşını Davet Et',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16),
+                                FontWidget(
+                                  text: 'Arkadaşını Davet Et',
+                                  styleType: TextStyleType.titleLarge,
+                                  color: Colors.white,
+                                  fontSize: 16,
                                 ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Her arkadaşın için 500 mPara',
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 12),
+                                const SizedBox(height: 4),
+                                FontWidget(
+                                  text: 'Arkadaşını Davet Et, 150 mCoin Kazan',
+                                  styleType: TextStyleType.bodyLarge,
+                                  color: Colors.grey,
+                                  fontSize: 12,
                                 ),
                               ],
                             ),
@@ -760,12 +682,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 borderRadius: BorderRadius.circular(10.0),
                               ),
                             ),
-                            child: const Text('Davet Et'),
+                            child: FontWidget(
+                              text: 'Davet Et',
+                              styleType: TextStyleType.titleSmall,
+                              color: Colors.black,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 60),
 
                     // --- Ready to Race Text ---
                     Padding(
@@ -773,21 +700,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                           horizontal: 16.0, vertical: 8.0), // Keep padding
                       child: Column(
                         children: [
-                          const Text(
-                            'Yarışa hazır mısın?',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18),
+                          FontWidget(
+                            text: 'Harekete geçmek İçİn hazır mısın?',
+                            styleType: TextStyleType.titleLarge,
+                            color: Colors.white,
+                            fontSize: 18,
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'Kardiyoyu eğlenceli hale getirin! Canlı bir yarışa katılmak ve benzersiz ödüller kazanmak için hemen tıklayın!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: Colors.grey[400], fontSize: 14),
-                          ),
                           const SizedBox(height: 4),
                         ],
                       ),
@@ -799,6 +718,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       child: AnimatedCentralButton(),
                     ),
 
+                    /*
+
                     // --- Available Products Section ---
                     Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -808,12 +729,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'Alınabilir Ürünler',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold),
+                              FontWidget(
+                                text: 'Alınabİlİr Ürünler',
+                                styleType: TextStyleType.titleMedium,
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
                               TextButton(
                                 onPressed: () {
@@ -821,9 +742,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   ref.read(selectedTabProvider.notifier).state =
                                       1;
                                 },
-                                child: const Text(
-                                  'Mağaza >',
-                                  style: TextStyle(color: Color(0xFFC4FF62)),
+                                child: FontWidget(
+                                  text: 'Mağaza >',
+                                  styleType: TextStyleType.bodyLarge,
+                                  color: Color(0xFFC4FF62),
                                 ),
                               ),
                             ],
@@ -835,10 +757,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                             child: latestProductsAsync.when(
                               data: (products) {
                                 if (products.isEmpty) {
-                                  return const Center(
-                                    child: Text(
-                                      'Gösterilecek ürün bulunamadı.',
-                                      style: TextStyle(color: Colors.white70),
+                                  return Center(
+                                    child: FontWidget(
+                                      text: 'Gösterilecek ürün bulunamadı.',
+                                      styleType: TextStyleType.bodyLarge,
+                                      color: Colors.white70,
                                     ),
                                   );
                                 }
@@ -881,11 +804,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   return Center(
                                     child: Padding(
                                       padding: const EdgeInsets.all(8.0),
-                                      child: SelectableText(
-                                        'Ürünler yüklenemedi: $error',
-                                        style: const TextStyle(
-                                            color: Colors.redAccent),
-                                        textAlign: TextAlign.center,
+                                      child: FontWidget(
+                                        text: 'Ürünler yüklenemedi.',
+                                        styleType: TextStyleType.bodyLarge,
+                                        color: Colors.redAccent,
                                       ),
                                     ),
                                   );
@@ -896,6 +818,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ],
                       ),
                     ),
+
+                    */
 
                     // --- Special Races Section (Horizontal Scroll) ---
                     /*Padding(
@@ -1037,11 +961,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     return Center(
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
-                                        child: SelectableText(
-                                          'Özel yarışlar yüklenemedi: $error',
-                                          style: const TextStyle(
-                                              color: Colors.redAccent),
-                                          textAlign: TextAlign.center,
+                                        child: FontWidget(
+                                          text: 'Özel yarışlar yüklenemedi: $error',
+                                          styleType: TextStyleType.bodyLarge,
+                                          color: Colors.redAccent,
                                         ),
                                       ),
                                     );
@@ -1239,13 +1162,11 @@ class _ProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    product.name, // Use product name
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14),
-                    maxLines: 1,
+                  FontWidget(
+                    text: product.name, // Use product name
+                    styleType: TextStyleType.titleSmall,
+                    color: Colors.white,
+                    fontSize: 14,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
@@ -1257,12 +1178,11 @@ class _ProductCard extends StatelessWidget {
                         height: 16,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        product.price.toString(), // Use product price
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14),
+                      FontWidget(
+                        text: product.price.toString(), // Use product price
+                        styleType: TextStyleType.bodySmall,
+                        color: Colors.white,
+                        fontSize: 14,
                       ),
                     ],
                   ),

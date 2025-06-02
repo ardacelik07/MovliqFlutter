@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart'; // Import services
-
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 import 'active_screen.dart';
 import '../providers/user_profile_provider.dart';
 
@@ -18,10 +19,7 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
 
   // Define colors (similar to HeightScreen)
   static const Color primaryColor = Color(0xFF7BB027);
-  static const Color darkGreenColor = Color(0xFF476C17);
-  static const Color inputBgColor = Color.fromARGB(255, 235, 235, 235);
   static const Color labelColor = Color.fromARGB(255, 222, 222, 222);
-  static const Color inputTextColor = Colors.black;
   static const Color unitLabelColor = Color.fromARGB(255, 222, 222, 222);
   static const Color buttonTextColor = Color(0xFF9FD545);
 
@@ -33,13 +31,6 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Enable edge-to-edge
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-    ));
-
     return Scaffold(
       backgroundColor: primaryColor,
       body: Container(
@@ -72,13 +63,13 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                   const SizedBox(height: 30),
 
                   // Title
-                  const Text(
-                    "What's your weight?",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: labelColor,
-                    ),
+                  FontWidget(
+                    text: "Kilonuz nedir?",
+                    styleType:
+                        TextStyleType.titleMedium, // Adjusted for Bangers
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
@@ -89,7 +80,8 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 120, // Adjust width as needed
+                        width: 120,
+                        height: 120, // Adjust width as needed
                         child: TextFormField(
                           controller: _weightController,
                           textAlign: TextAlign.center,
@@ -98,10 +90,22 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                             FilteringTextInputFormatter.digitsOnly
                           ],
                           style: const TextStyle(
+                              // Keep direct TextStyle for TextFormField
+                              fontFamily:
+                                  'Bangers', // Explicitly use Bangers if needed here
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Color.fromARGB(255, 255, 255, 255)),
-                          decoration: _inputDecoration(),
+                          decoration: _inputDecoration().copyWith(
+                            suffixText: 'kg',
+                            suffixStyle: TextStyle(
+                              // Keep direct TextStyle for suffixStyle
+                              fontFamily:
+                                  'Bangers', // Explicitly use Bangers if needed here
+                              color: unitLabelColor,
+                              fontSize: 16,
+                            ),
+                          ),
                           validator: (value) {
                             if (value?.isEmpty ?? true) return '';
                             final weight = double.tryParse(value!);
@@ -111,13 +115,6 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                             return null;
                           },
                         ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8.0),
-                        // Always display 'kg' now
-                        child: Text('kg',
-                            style:
-                                TextStyle(color: unitLabelColor, fontSize: 16)),
                       ),
                     ],
                   ),
@@ -171,7 +168,7 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                               weight: weightInKg,
                             );
 
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (context) => const ActiveScreen()),
@@ -183,7 +180,12 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                         );
                       }
                     },
-                    child: const Text('Devam Et'),
+                    child: FontWidget(
+                        text: 'Devam Et',
+                        styleType: TextStyleType.labelLarge,
+                        color: buttonTextColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                   ),
                   SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
                 ],

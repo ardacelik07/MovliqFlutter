@@ -1,10 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart'; // For date formatting
+import '../widgets/font_widget.dart';
 
-import '../../domain/models/user_data_model.dart';
 import '../providers/user_data_provider.dart';
+import '../widgets/error_display_widget.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // Enum definitions matching the visual choices
 // It's better practice to use enums for discrete choices.
@@ -51,20 +52,25 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
   // Map database values to enums and vice-versa if needed
   // Example: Map integer values from UserDataModel to enums
   GenderChoice? _mapGenderFromString(String? genderString) {
-    if (genderString == 'Kadın') return GenderChoice.female;
-    if (genderString == 'Erkek') return GenderChoice.male;
-    if (genderString == 'Diğer') return GenderChoice.other;
+    if (genderString == null) return null;
+    final String lowerGenderString = genderString.toLowerCase();
+    if (lowerGenderString == 'female' || lowerGenderString == 'kadın')
+      return GenderChoice.female;
+    if (lowerGenderString == 'male' || lowerGenderString == 'erkek')
+      return GenderChoice.male;
+    if (lowerGenderString == 'other' || lowerGenderString == 'diğer')
+      return GenderChoice.other;
     return null;
   }
 
   String? _mapGenderToString(GenderChoice? choice) {
     switch (choice) {
       case GenderChoice.female:
-        return 'Kadın';
+        return 'Female'; // Save as English
       case GenderChoice.male:
-        return 'Erkek';
+        return 'Male'; // Save as English
       case GenderChoice.other:
-        return 'Diğer';
+        return 'Other'; // Save as English
       default:
         return null;
     }
@@ -178,8 +184,8 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Kullanıcı verisi bulunamadı!',
-                style: TextStyle(color: _backgroundColor)),
+            content:
+                ErrorDisplayWidget(errorObject: 'Kullanıcı verisi bulunamadı!'),
             backgroundColor: _accentColor,
           ),
         );
@@ -209,8 +215,11 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Profil başarıyla güncellendi!',
-              style: TextStyle(color: _backgroundColor)),
+          content: FontWidget(
+            text: 'Profil başarıyla güncellendi!',
+            styleType: TextStyleType.labelLarge,
+            color: _backgroundColor,
+          ),
           backgroundColor: _accentColor,
         ),
       );
@@ -219,8 +228,8 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       final error = ref.read(userDataProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Güncelleme hatası: ${error ?? "Bilinmeyen hata"}',
-              style: TextStyle(color: _textColor)),
+          content: ErrorDisplayWidget(
+              errorObject: 'Güncelleme hatası: Bilinmeyen hata'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -232,8 +241,12 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: Text('Kişisel Bilgiler',
-            style: TextStyle(color: _textColor, fontWeight: FontWeight.bold)),
+        title: FontWidget(
+          text: 'Kişisel Bilgiler',
+          styleType: TextStyleType.labelLarge,
+          color: _textColor,
+          fontWeight: FontWeight.bold,
+        ),
         backgroundColor: _backgroundColor, // Match background
         elevation: 0, // No shadow
         iconTheme: IconThemeData(color: _accentColor), // Back button color
@@ -312,7 +325,6 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
               ],
             ),
             const SizedBox(height: 20),
-
             _buildLabel('Aktiflik Seviyesi'),
             _buildToggleChipGroup<ActivityLevelChoice>(
               selectedValue: _selectedActivityLevel,
@@ -332,14 +344,15 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
               },
               expandToFill: false,
             ),
+
             const SizedBox(height: 20),
 
             _buildLabel('Mekan Tercihi'),
             _buildToggleChipGroup<LocationPreferenceChoice>(
               selectedValue: _selectedLocationPreference,
               options: {
-                LocationPreferenceChoice.indoor: '       Indoor       ',
-                LocationPreferenceChoice.outdoor: '       Outdoor       ',
+                LocationPreferenceChoice.indoor: 'Indoor',
+                LocationPreferenceChoice.outdoor: 'Outdoor',
               },
               icons: {
                 LocationPreferenceChoice.indoor: Icons.fitness_center,
@@ -374,11 +387,11 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
                           strokeWidth: 3,
                           color: _backgroundColor), // Thicker stroke
                     )
-                  : const Text(
-                      'Değişiklikleri Kaydet',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold), // Bold text
+                  : FontWidget(
+                      text: 'Değişiklikleri Kaydet',
+                      styleType: TextStyleType.labelLarge,
+                      fontWeight: FontWeight.bold, // Bold text
+                      color: Colors.black,
                     ),
             ),
           ],
@@ -392,13 +405,12 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: _labelColor,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
+      child: FontWidget(
+        text: text,
+        styleType: TextStyleType.labelLarge,
+        color: _labelColor,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
@@ -414,12 +426,17 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
       // Changed from TextFormField
       controller: controller,
       keyboardType: keyboardType,
-      style: TextStyle(color: _textColor, fontSize: 15),
+      style: GoogleFonts.boogaloo(
+        color: _textColor,
+        fontSize: 15,
+      ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: _secondaryTextColor.withOpacity(0.7)),
+        hintStyle: GoogleFonts.boogaloo(
+            color: _secondaryTextColor.withOpacity(0.7), fontSize: 15),
         suffixText: suffixText,
-        suffixStyle: TextStyle(color: _secondaryTextColor, fontSize: 14),
+        suffixStyle:
+            GoogleFonts.boogaloo(color: _secondaryTextColor, fontSize: 14),
         filled: true,
         fillColor: _cardColor, // Use card color for background
         contentPadding:
@@ -458,17 +475,16 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              _selectedBirthday == null
+            FontWidget(
+              text: _selectedBirthday == null
                   ? 'gg.aa.yyyy' // Placeholder like in image
                   : DateFormat('dd.MM.yyyy')
                       .format(_selectedBirthday!), // Format like image
-              style: TextStyle(
-                color: _selectedBirthday == null
-                    ? _secondaryTextColor.withOpacity(0.7)
-                    : _textColor,
-                fontSize: 15,
-              ),
+              styleType: TextStyleType.labelLarge,
+              color: _selectedBirthday == null
+                  ? _secondaryTextColor.withOpacity(0.7)
+                  : _textColor,
+              fontSize: 15,
             ),
             Icon(Icons.calendar_today_outlined, color: _accentColor, size: 20),
           ],
@@ -546,7 +562,7 @@ class _UpdateUserInfoScreenState extends ConsumerState<UpdateUserInfoScreen> {
         },
         backgroundColor: _cardColor,
         selectedColor: _accentColor,
-        labelStyle: TextStyle(
+        labelStyle: GoogleFonts.bangers(
           color: isSelected ? _backgroundColor : _textColor,
           fontSize: 14,
           fontWeight: FontWeight.w500,

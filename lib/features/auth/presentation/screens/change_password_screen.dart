@@ -7,6 +7,8 @@ import '../../../../core/config/api_config.dart'; // API yapılandırmasını im
 // Provider importları (varsayılan)
 import '../providers/auth_provider.dart';
 import '../providers/user_data_provider.dart';
+import '../widgets/font_widget.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -66,9 +68,30 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       });
       return;
     }
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       setState(() {
-        _errorMessage = 'Yeni şifre en az 6 karakter olmalıdır.';
+        _errorMessage = 'Yeni şifre en az 8 karakter olmalıdır.';
+        _isLoading = false;
+      });
+      return;
+    }
+    if (!RegExp(r'(?=.*[A-Z])').hasMatch(newPassword)) {
+      setState(() {
+        _errorMessage = 'Yeni şifre en az bir büyük harf içermelidir.';
+        _isLoading = false;
+      });
+      return;
+    }
+    if (!RegExp(r'(?=.*[a-z])').hasMatch(newPassword)) {
+      setState(() {
+        _errorMessage = 'Yeni şifre en az bir küçük harf içermelidir.';
+        _isLoading = false;
+      });
+      return;
+    }
+    if (!RegExp(r'(?=.*[0-9])').hasMatch(newPassword)) {
+      setState(() {
+        _errorMessage = 'Yeni şifre en az bir rakam içermelidir.';
         _isLoading = false;
       });
       return;
@@ -126,8 +149,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         if (response.statusCode == 200 || response.statusCode == 204) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Şifre başarıyla değiştirildi!',
-                  style: TextStyle(color: _backgroundColor)),
+              content: FontWidget(
+                text: 'Şifre başarıyla değiştirildi!',
+                styleType: TextStyleType.labelLarge,
+                color: _backgroundColor,
+              ),
               backgroundColor: _accentColor,
             ),
           );
@@ -136,7 +162,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           String errorMsg = 'Şifre değiştirilirken bir hata oluştu.';
           try {
             final responseBody = jsonDecode(response.body);
-            print('API Error Response: ${response.body}');
+
             if (responseBody is Map && responseBody.containsKey('message')) {
               errorMsg = responseBody['message'];
             } else if (responseBody is Map &&
@@ -151,8 +177,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   'Sunucu hatası (${response.statusCode}). Lütfen tekrar deneyin.';
             }
           } catch (e) {
-            print('Error parsing API error response: $e');
-            print('Raw API Error Response: ${response.body}');
             errorMsg = 'Sunucudan geçersiz yanıt alındı.';
           }
           setState(() {
@@ -161,7 +185,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         }
       }
     } catch (e) {
-      print('Network or other error during password change: $e');
       if (mounted) {
         setState(() {
           _errorMessage = 'Bağlantı hatası veya beklenmedik bir sorun oluştu.';
@@ -179,8 +202,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: Text('Şifre Değiştir',
-            style: TextStyle(color: _textColor, fontWeight: FontWeight.bold)),
+        title: FontWidget(
+          text: 'Şifre Değiştir',
+          styleType: TextStyleType.labelLarge,
+          color: _textColor,
+          fontWeight: FontWeight.bold,
+        ),
         backgroundColor: _backgroundColor,
         elevation: 0,
         iconTheme: IconThemeData(color: _accentColor),
@@ -199,7 +226,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // Mevcut Şifre Alanı (UI'da kalabilir, doğrulaması kaldırılabilir)
               _buildPasswordField(
                 controller: _currentPasswordController,
-                hintText: 'Mevcut şifrenizi girin', // Kullanıcıya bilgi amaçlı
+                hintText: 'Mevcut şifrenizi girin.', // Kullanıcıya bilgi amaçlı
                 obscureText: _obscureCurrentPassword,
                 onToggleVisibility: () {
                   setState(
@@ -210,7 +237,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // Yeni Şifre Alanı
               _buildPasswordField(
                 controller: _newPasswordController,
-                hintText: 'Yeni şifrenizi girin',
+                hintText: 'Yeni şifrenizi girin.',
                 obscureText: _obscureNewPassword,
                 onToggleVisibility: () {
                   setState(() => _obscureNewPassword = !_obscureNewPassword);
@@ -220,7 +247,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // Yeni Şifre Tekrar Alanı
               _buildPasswordField(
                 controller: _confirmPasswordController,
-                hintText: 'Yeni şifrenizi tekrar girin',
+                hintText: 'Yeni şifrenizi tekrar girin.',
                 obscureText: _obscureConfirmPassword,
                 onToggleVisibility: () {
                   setState(
@@ -229,17 +256,19 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               ),
               const SizedBox(height: 24),
               // Şifre Gerekliliği
-              _buildPasswordRequirement(
-                  'Şifreniz en az:', ['6 karakter uzunluğunda']),
+              _buildPasswordRequirement('Şifreniz şunları içermelidir:',
+                  ['8 karakter uzunluğunda, büyük harf, küçük harf, rakam.']),
               const SizedBox(height: 24),
               // Hata Mesajı
               if (_errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: Center(
-                    child: Text(
-                      _errorMessage,
-                      style: TextStyle(color: _errorColor, fontSize: 14),
+                    child: FontWidget(
+                      text: _errorMessage,
+                      styleType: TextStyleType.labelLarge,
+                      color: _errorColor,
+                      fontSize: 14,
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -263,10 +292,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 3, color: _backgroundColor),
                       )
-                    : const Text(
-                        'Şifreyi Değiştir',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                    : FontWidget(
+                        text: 'Şifreyi Değiştir',
+                        styleType: TextStyleType.labelLarge,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: _backgroundColor,
                       ),
               ),
             ],
@@ -285,10 +316,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     return TextField(
       controller: controller,
       obscureText: obscureText,
-      style: TextStyle(color: _textColor, fontSize: 15),
+      style: GoogleFonts.boogaloo(color: _textColor, fontSize: 15),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: _secondaryTextColor.withOpacity(0.7)),
+        hintStyle:
+            GoogleFonts.boogaloo(color: _secondaryTextColor.withOpacity(0.7)),
         filled: true,
         fillColor: _cardColor,
         contentPadding:
@@ -323,10 +355,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-              color: _labelColor, fontSize: 14, fontWeight: FontWeight.w500),
+        FontWidget(
+          text: title,
+          styleType: TextStyleType.labelLarge,
+          color: _labelColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
         ),
         const SizedBox(height: 8),
         ...requirements.map(
@@ -337,8 +371,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 Icon(Icons.check_circle_outline,
                     color: _secondaryTextColor, size: 18),
                 const SizedBox(width: 8),
-                Text(req,
-                    style: TextStyle(color: _secondaryTextColor, fontSize: 14)),
+                FontWidget(
+                  text: req,
+                  styleType: TextStyleType.labelLarge,
+                  color: _secondaryTextColor,
+                  fontSize: 14,
+                ),
               ],
             ),
           ),

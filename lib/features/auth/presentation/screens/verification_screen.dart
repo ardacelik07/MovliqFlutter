@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
-
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'filter_screen2.dart';
@@ -103,9 +103,6 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
         );
       }
 
-      print(
-          '📍 Konum alındı: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}');
-
       // Google Places API (Keep existing logic for now, consider security later)
       final apiKey = 'AIzaSyA79Tf7SPoGXrwx5WupR6G-67te9UGabLA';
       final radius = 1000;
@@ -116,22 +113,13 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
           '&keyword=fitness,spor,gym,salon'
           '&key=$apiKey';
 
-      print('🔍 Google Places API isteği gönderiliyor: $url');
-      print('📐 Gerçek filtreleme için kullanılacak yarıçap: $radius metre');
-
       final response = await http.get(Uri.parse(url));
-      print('📩 API yanıt status kodu: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print(
-            '🔍 API yanıt: ${response.body.substring(0, min(500, response.body.length))}...');
         final status = data['status'];
         if (status == 'REQUEST_DENIED') {
-          print('⚠️ API yetkilendirme hatası: ${data['error_message']}');
           // DEVELOPMENT ONLY: Bypass API error
-          print(
-              '⚠️ GEÇİCİ ÇÖZÜM: API doğrulaması atlanıyor, KONUM başarılı kabul ediliyor');
           setState(() {
             _locationVerified = true; // Mark as verified for dev
           });
@@ -139,9 +127,6 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
         }
 
         final results = data['results'] as List;
-        print('📊 API status: ${data['status']}');
-        print(
-            '🏋️ API tarafından döndürülen fitness salonu sayısı: ${results.length}');
 
         bool foundNearby = false;
         for (final gym in results) {
@@ -156,34 +141,24 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
 
           if (distance <= radius) {
             foundNearby = true;
-            print(
-                '✅ KABUL EDİLDİ: "${gym['name']}" - Mesafe: ${distance.toStringAsFixed(2)} m');
             break; // Found one, no need to check others
-          } else {
-            print(
-                '❌ REDDEDİLDİ: "${gym['name']}" - Mesafe: ${distance.toStringAsFixed(2)} m');
-          }
+          } else {}
         }
 
         if (foundNearby) {
           setState(() {
             _locationVerified = true;
           });
-          print('✅ Konum doğrulandı!');
         } else {
-          print('❌ Belirtilen yarıçap içinde fitness salonu bulunamadı!');
           setState(() {
             _errorMessageLocation =
                 'Yakın çevrede (${radius}m içinde) bir fitness salonu bulunamadı.';
           });
         }
       } else {
-        print(
-            '❌ API isteği başarısız! Status: ${response.statusCode}, Body: ${response.body}');
         throw Exception('Places API isteği başarısız: ${response.statusCode}');
       }
     } catch (e) {
-      print('🚨 Konum doğrulama hatası: $e');
       setState(() {
         _errorMessageLocation = 'Konum doğrulama hatası: ${e.toString()}';
         _locationVerified = false; // Ensure verification fails on error
@@ -216,7 +191,6 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
 
       if (image == null) {
         // Don't throw exception, just return as user cancelled
-        print('Fotoğraf çekme iptal edildi.');
         if (mounted) {
           setState(() {
             _isVerifying = false;
@@ -237,12 +211,9 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
         if (!result) {
           _errorMessagePhoto =
               'Koşu bandı tespit edilemedi. Lütfen tekrar deneyin.';
-        } else {
-          print('✅ Fotoğraf doğrulandı!');
-        }
+        } else {}
       });
     } catch (e) {
-      print('🚨 Fotoğraf doğrulama hatası: $e');
       setState(() {
         _errorMessagePhoto = 'Fotoğraf doğrulama hatası: ${e.toString()}';
         _photoVerified = false; // Ensure verification fails on error
@@ -285,8 +256,6 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        print(
-            '🔍 Vision API yanıtı (kısmi): ${jsonResponse.toString().substring(0, min(300, jsonResponse.toString().length))}...');
 
         final objectAnnotations =
             jsonResponse['responses'][0]['localizedObjectAnnotations'] as List?;
@@ -305,8 +274,6 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
             detectedLabels.add(label['description'].toString().toLowerCase());
           }
         }
-        print('🔭 Tespit edilen nesneler: $detectedObjects');
-        print('🏷️ Tespit edilen etiketler: $detectedLabels');
 
         final runningMachineKeywords = {
           'treadmill',
@@ -318,18 +285,14 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
         // Check if any keyword exists in detected objects or labels
         if (detectedObjects.any(runningMachineKeywords.contains) ||
             detectedLabels.any(runningMachineKeywords.contains)) {
-          print('✅ Vision API: Koşu bandı tespit edildi!');
           return true;
         }
 
-        print('❌ Vision API: Koşu bandı tespit edilemedi');
         return false;
       } else {
-        print('❌ Vision API isteği başarısız! Status: ${response.statusCode}');
         throw Exception('Vision API isteği başarısız: ${response.statusCode}');
       }
     } catch (e) {
-      print('🚨 Vision API hatası: $e');
       rethrow; // Rethrow to be caught in _verifyWithPhoto
     }
   }
@@ -346,7 +309,6 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
 
     // Check if both are verified AFTER the attempts
     if (_locationVerified && _photoVerified) {
-      print('✅✅ Her iki doğrulama da tamamlandı. Yönlendiriliyor...');
       // Navigate only if both are successful
       if (mounted) {
         Navigator.pushReplacement(
@@ -393,8 +355,8 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Konum Doğrulama',
-            style: TextStyle(color: Colors.white)),
+        title: Text('Konum Doğrulama',
+            style: GoogleFonts.bangers(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
@@ -403,15 +365,15 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("İç Mekan Koşusu için Doğrulama",
-                  style: TextStyle(
+              Text("İç Mekan Koşusu için Doğrulama",
+                  style: GoogleFonts.bangers(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white)),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                   "Lütfen aşağıdaki adımları tamamlayarak bir fitness salonunda olduğunuzu doğrulayın.",
-                  style: TextStyle(fontSize: 14, color: Colors.grey)),
+                  style: GoogleFonts.bangers(fontSize: 14, color: Colors.grey)),
               const SizedBox(height: 32),
 
               // Step 1: Location Verification
@@ -433,7 +395,8 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                   padding: const EdgeInsets.only(
                       top: 8.0, left: 58), // Indent error message
                   child: Text(_errorMessageLocation,
-                      style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      style:
+                          GoogleFonts.bangers(color: Colors.red, fontSize: 12)),
                 ),
               const SizedBox(height: 16),
 
@@ -455,7 +418,8 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                   padding: const EdgeInsets.only(
                       top: 8.0, left: 58), // Indent error message
                   child: Text(_errorMessagePhoto,
-                      style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      style:
+                          GoogleFonts.bangers(color: Colors.red, fontSize: 12)),
                 ),
 
               const Spacer(), // Pushes button to bottom
@@ -502,7 +466,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                           ),
                         )
                       : Text(buttonText,
-                          style: const TextStyle(
+                          style: GoogleFonts.bangers(
                               fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
@@ -552,14 +516,14 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title,
-                        style: const TextStyle(
+                        style: GoogleFonts.bangers(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white)),
                     const SizedBox(height: 4),
                     Text(description,
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey)),
+                        style: GoogleFonts.bangers(
+                            fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ),

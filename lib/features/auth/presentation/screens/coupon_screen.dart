@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/coupon_model.dart';
 import '../providers/coupon_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CouponScreen extends ConsumerWidget {
   const CouponScreen({super.key});
@@ -12,18 +13,12 @@ class CouponScreen extends ConsumerWidget {
     final AsyncValue<List<CouponModel>> couponsAsyncValue =
         ref.watch(couponProvider);
 
-    // Hata ayıklama mesajları
-    print('🎫 CouponScreen: Provider durumu: ${couponsAsyncValue}');
     if (couponsAsyncValue is AsyncData) {
-      print(
-          '📋 CouponScreen: Kupon sayısı: ${couponsAsyncValue.value?.length}');
-    } else if (couponsAsyncValue is AsyncError) {
-      print('❌ CouponScreen: Provider hatası: ${couponsAsyncValue.error}');
-    }
+    } else if (couponsAsyncValue is AsyncError) {}
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kuponlarım'),
+        title: Text('Kuponlarım', style: GoogleFonts.bangers()),
         backgroundColor: Colors.grey[900], // Apply dark background
         foregroundColor: Colors.white, // Make title/icon white
         iconTheme: const IconThemeData(
@@ -53,15 +48,15 @@ class CouponScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.local_activity_outlined,
-                            color: Colors.white54,
-                            size: 64,
+                          Image.asset(
+                            'assets/images/couponicon.png',
+                            height: 64,
+                            width: 64,
                           ),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'Henüz kuponunuz bulunmamaktadır.',
-                            style: TextStyle(
+                            style: GoogleFonts.bangers(
                                 color: Colors.white70), // Apply light grey text
                           ),
                           const SizedBox(height: 8),
@@ -76,7 +71,7 @@ class CouponScreen extends ConsumerWidget {
                                   .read(couponProvider.notifier)
                                   .refreshCoupons();
                             },
-                            child: const Text('Yenile'),
+                            child: Text('Yenile', style: GoogleFonts.bangers()),
                           ),
                         ],
                       ),
@@ -115,20 +110,20 @@ class CouponScreen extends ConsumerWidget {
                         SelectableText.rich(
                           TextSpan(
                             text: 'API Hatası: \n',
-                            style: const TextStyle(
+                            style: GoogleFonts.bangers(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold), // White text
                             children: <TextSpan>[
                               TextSpan(
                                 text: error.toString(),
-                                style: const TextStyle(
+                                style: GoogleFonts.bangers(
                                     color: Colors.redAccent,
                                     fontWeight:
                                         FontWeight.normal), // Brighter red
                               ),
                             ],
                           ),
-                          style: const TextStyle(
+                          style: GoogleFonts.bangers(
                               color: Colors
                                   .white), // Ensure base error text is white
                           textAlign: TextAlign.center,
@@ -143,7 +138,8 @@ class CouponScreen extends ConsumerWidget {
                             // Provider'ı yenile
                             ref.read(couponProvider.notifier).refreshCoupons();
                           },
-                          child: const Text('Tekrar Dene'),
+                          child:
+                              Text('Tekrar Dene', style: GoogleFonts.bangers()),
                         ),
                       ],
                     ),
@@ -181,7 +177,7 @@ class _CouponCard extends StatelessWidget {
                 children: [
                   Text(
                     coupon.productName, // Using productName as per API
-                    style: const TextStyle(
+                    style: GoogleFonts.bangers(
                       color: Colors.white, // White text
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -192,7 +188,7 @@ class _CouponCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     coupon.acquiredCouponCode,
-                    style: const TextStyle(
+                    style: GoogleFonts.bangers(
                       color: Color(0xFFC4FF62),
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -201,7 +197,7 @@ class _CouponCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Kalan Süre: ${coupon.remainingTimeFormatted}',
-                    style: const TextStyle(
+                    style: GoogleFonts.bangers(
                       color: Colors.white70, // Light grey text
                       fontSize: 12,
                     ),
@@ -218,8 +214,9 @@ class _CouponCard extends StatelessWidget {
                 Clipboard.setData(
                     ClipboardData(text: coupon.acquiredCouponCode));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Kupon kodu kopyalandı!'),
+                  SnackBar(
+                    content: Text('Kupon kodu kopyalandı!',
+                        style: GoogleFonts.bangers()),
                     duration: Duration(seconds: 1),
                     // Optional: Dark SnackBar style
                     // backgroundColor: Colors.grey[700],

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'home_page.dart';
 import '../screens/tabs.dart';
+import '../../../onboarding/presentation/screens/guiding_main_screen.dart';
 
 import '../providers/user_profile_provider.dart';
 import '../providers/user_data_provider.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
+import '../widgets/error_display_widget.dart';
 
 class FinishScreen extends ConsumerStatefulWidget {
   const FinishScreen({super.key});
@@ -41,19 +44,23 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
         },
         error: (error, stack) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${error.toString()}')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: ${error.toString()}')),
+            );
+          }
         },
-        data: (_) {
+        data: (_) async {
           setState(() => _isLoading = false);
           // Fetch user data and reset tab before navigating
-          ref.read(userDataProvider.notifier).fetchUserData();
-          ref.read(selectedTabProvider.notifier).state = 0; // YENI DEGISIKLER
+          await ref.read(userDataProvider.notifier).fetchUserData();
+          if (!mounted) return;
+          ref.read(selectedTabProvider.notifier).state = 0;
+          // TabsScreen yerine GuidingMainScreen'e yönlendir
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const TabsScreen(),
+              builder: (context) => const GuidingMainScreen(),
             ),
           );
         },
@@ -90,13 +97,12 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
                   height: 300,
                 ),
                 const SizedBox(height: 60),
-                const Text(
-                  "Nerede koşmayı tercih edersin?",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: titleColor, // Change text color to white
-                  ),
+                FontWidget(
+                  text: "Nerede koşmayı tercih edersin?",
+                  styleType: TextStyleType.titleMedium, // Adjusted for Bangers
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: titleColor, // Change text color to white
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
@@ -141,7 +147,12 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
                       : _handleComplete,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Tamamla'),
+                      : FontWidget(
+                          text: 'Tamamla',
+                          styleType: TextStyleType.labelLarge,
+                          color: buttonTextColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
                 ),
               ],
             ),
@@ -193,13 +204,12 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
               size: 32,
             ),
             const SizedBox(height: 12),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: titleColor, // Use dynamic title color
-              ),
+            FontWidget(
+              text: title,
+              styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: titleColor, // Use dynamic title color
             ),
           ],
         ),
@@ -222,7 +232,12 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
           currentProfile.height <= 0 ||
           currentProfile.weight <= 0 ||
           currentProfile.activityLevel.isEmpty) {
-        throw Exception('Please complete all required fields');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Lütfen tüm zorunlu alanları doldurun.')),
+        );
+        // Hata durumunda işlemi durdur
+        return;
       }
 
       // Son tercihi güncelle
@@ -231,7 +246,14 @@ class _FinishScreenState extends ConsumerState<FinishScreen> {
           );
 
       // Profili kaydet
+      // Bu işlem ref.listen içinde zaten navigasyonu tetikleyecek.
+      // Bu yüzden buradaki await'ten sonra ayrıca navigasyon yapmaya gerek yok.
       await ref.read(userProfileProvider.notifier).saveProfile();
+
+      // Kullanıcı verilerini yenileme ve navigasyon ref.listen içinde yapılacak.
+      // await ref.read(userDataProvider.notifier).fetchUserData();
+      // ref.listen zaten başarılı saveProfile sonrası fetchUserData çağırıyor,
+      // bu satır _handleComplete akışında navigasyon öncesi garantiliyor.
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

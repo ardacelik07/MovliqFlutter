@@ -9,6 +9,8 @@ import '../providers/activity_stats_provider.dart';
 import '../../domain/models/activity_stats_model.dart';
 import '../../domain/models/activity_model.dart' as activity_model;
 import '../providers/user_data_provider.dart';
+
+import '../widgets/font_widget.dart';
 // import '../widgets/network_error_widget.dart'; // Bu import muhtemelen kullanılmıyor, kontrol edilebilir.
 
 // Aktivite tipine göre yarış sonuçlarını çekmek için provider
@@ -41,7 +43,6 @@ final raceResultsProvider =
           'Yarış sonuçları getirilirken hata: ${response.statusCode}');
     }
   } catch (e) {
-    debugPrint('Yarış sonuçları provider hatası: $e');
     return [];
   }
 });
@@ -105,6 +106,40 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
   String _selectedType = 'indoor'; // Varsayılan olarak indoor seçili
   String _selectedPeriod = 'weekly'; // Varsayılan olarak haftalık
 
+  // Asset paths (Ensure these are correct and match your assets folder)
+  static const String _treadmillImage = 'assets/icons/indoor.png';
+  static const String _outdoorImage = 'assets/icons/outdoor.png';
+  static const String _flameIcon = 'assets/icons/alev.png';
+  static const String _locationIcon = 'assets/icons/location.png';
+  static const String _stepsIcon = 'assets/icons/steps.png';
+
+  // Helper widget for individual metrics (flame, location, shoe)
+  Widget _buildNewRaceMetricItem({
+    required String assetPath,
+    required String valueText,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.asset(
+          assetPath,
+          width: 32,
+          height: 32,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.error, color: Colors.red, size: 32),
+        ),
+        const SizedBox(height: 4),
+        FontWidget(
+          text: valueText,
+          styleType: TextStyleType.labelLarge,
+          color: Colors.white,
+          fontSize: 12,
+        ),
+      ],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -150,13 +185,11 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
           backgroundColor: Colors
               .transparent, // Arkaplanı transparan yap veya _darkBackgroundColor
           foregroundColor: Colors.white, // İkon ve başlık rengi
-          title: const Text(
-            'Koşu Geçmişim', // Başlığı güncelle
-            style: TextStyle(
-              fontSize: 20, // Biraz küçültülebilir
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+          title: FontWidget(
+            text: 'Koşu Geçmişim', // Başlığı güncelle
+            styleType: TextStyleType.titleMedium,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
           centerTitle: false, // Başlığı sola al
           leading: IconButton(
@@ -175,18 +208,6 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
               Navigator.pop(context);
             },
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.filter_list,
-                  color: Colors.white), // Filtre ikonu
-              onPressed: () {
-                // TODO: Filtreleme menüsü veya dialog gösterilebilir
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Filtre özelliği eklenecek.')),
-                );
-              },
-            ),
-          ],
         ),
         body: Padding(
           // Tüm body için yatay padding
@@ -212,17 +233,6 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
               const SizedBox(
                   height: 20), // Periyot filtreleri ile liste arasına boşluk
 
-              // Sonuçlar başlığı (Opsiyonel)
-              // const Text(
-              //   'Aktiviteler',
-              //   style: TextStyle(
-              //     color: Colors.white,
-              //     fontSize: 18,
-              //     fontWeight: FontWeight.w600,
-              //   ),
-              // ),
-              // const SizedBox(height: 10),
-
               // Sonuçlar listesi
               Expanded(
                 child: activitiesAsync.when(
@@ -230,6 +240,10 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
                     if (activities.isEmpty) {
                       return _buildEmptyState(); // Boş durum widget'ı
                     }
+
+                    // Aktiviteleri yeniden eskiye doğru sırala (startTime alanına göre)
+                    activities
+                        .sort((a, b) => b.startTime.compareTo(a.startTime));
 
                     // ListView.separated ile ayraç ekle
                     return ListView.separated(
@@ -270,7 +284,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         Expanded(
           child: _buildTypeButton(
             title: 'İç Mekan',
-            icon: Icons.fitness_center, // İkon örneği
+            assetPath: _treadmillImage, // Use asset path
             value: 'indoor',
             isSelected: _selectedType == 'indoor',
           ),
@@ -279,7 +293,7 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         Expanded(
           child: _buildTypeButton(
             title: 'Dış Mekan',
-            icon: Icons.directions_run, // İkon örneği
+            assetPath: _outdoorImage, // Use asset path
             value: 'outdoor',
             isSelected: _selectedType == 'outdoor',
           ),
@@ -290,7 +304,8 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
 
   Widget _buildTypeButton({
     required String title,
-    required IconData icon,
+    String? assetPath, // Made assetPath optional
+    IconData? icon, // Keep IconData for potential future use or fallback
     required String value,
     required bool isSelected,
   }) {
@@ -310,19 +325,34 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.black : Colors.white.withOpacity(0.8),
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.black : Colors.white,
-                fontSize: 15,
+            if (assetPath != null) ...[
+              Image.asset(
+                assetPath,
+                width: 40, // Adjust size as needed
+                height: 40, // Adjust size as needed
+                color:
+                    isSelected ? Colors.black : Colors.white.withOpacity(0.8),
+                errorBuilder: (context, error, stackTrace) => Icon(
+                    icon ?? Icons.error,
+                    color: isSelected
+                        ? Colors.black
+                        : Colors.white.withOpacity(0.8),
+                    size: 20), // Fallback icon
               ),
+            ] else if (icon != null) ...[
+              Icon(
+                icon,
+                color:
+                    isSelected ? Colors.black : Colors.white.withOpacity(0.8),
+                size: 20,
+              ),
+            ],
+            const SizedBox(width: 8),
+            FontWidget(
+              text: title,
+              styleType: TextStyleType.labelLarge,
+              color: isSelected ? Colors.black : Colors.white,
+              fontSize: 15,
             ),
           ],
         ),
@@ -359,16 +389,19 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'İstatistikler yüklenemedi.',
-                  style: TextStyle(color: Colors.white70),
+                FontWidget(
+                  text: 'İstatistikler yüklenemedi.',
+                  styleType: TextStyleType.labelSmall,
+                  color: Colors.white70,
                   textAlign: TextAlign.center,
                 ),
-                Text(
-                  error.toString().length > 50
+                FontWidget(
+                  text: error.toString().length > 50
                       ? '${error.toString().substring(0, 50)}...'
                       : error.toString(),
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                  styleType: TextStyleType.labelSmall,
+                  color: Colors.redAccent,
+                  fontSize: 12,
                   textAlign: TextAlign.center,
                 ),
                 // Buton çok yer kaplamasın diye kaldırılabilir veya küçültülebilir
@@ -448,23 +481,13 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start, // Sola yasla
         mainAxisAlignment: MainAxisAlignment.center, // Ortala
         children: [
-          Text(
-            period, // "Bu Hafta", "Bu Ay", "Bu Yıl"
-            style: const TextStyle(
-              color: _secondaryTextColor, // Gri renk
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
           const SizedBox(height: 1),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white, // Beyaz renk
-              fontSize: 22, // Daha büyük font
-              fontWeight: FontWeight.bold,
-            ),
-            maxLines: 1,
+          FontWidget(
+            text: value,
+            styleType: TextStyleType.labelLarge,
+            color: Colors.white, // Beyaz renk
+            fontSize: 32, // Daha büyük font
+            fontWeight: FontWeight.bold,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 1), // Yüksekliği 2'den 1'e düşür
@@ -472,16 +495,12 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
           FittedBox(
             fit: BoxFit.scaleDown, // Metni yalnızca gerekirse küçültür
             alignment: Alignment.centerLeft, // Metni sola hizala
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: _primaryAccentColor, // Yeşil renk
-                fontSize: 12, // Orijinal font boyutu (FittedBox küçültebilir)
-                fontWeight: FontWeight.w500,
-              ),
-              maxLines: 1, // Tek satırda kalmasını sağla (opsiyonel)
-              overflow:
-                  TextOverflow.ellipsis, // Taşma durumunda ... (opsiyonel)
+            child: FontWidget(
+              text: label,
+              styleType: TextStyleType.labelLarge,
+              color: _primaryAccentColor, // Yeşil renk
+              fontSize: 12, // Orijinal font boyutu (FittedBox küçültebilir)
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -519,13 +538,11 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
           color: isSelected ? _primaryAccentColor : _lightGrayColor,
           borderRadius: BorderRadius.circular(20), // Daha yuvarlak
         ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.black : Colors.white,
-            fontSize: 14,
-          ),
+        child: FontWidget(
+          text: title,
+          styleType: TextStyleType.labelLarge,
+          color: isSelected ? Colors.black : Colors.white,
+          fontSize: 14,
         ),
       ),
     );
@@ -533,157 +550,132 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
 
   // Aktivite Kartı (Yeni Tasarım)
   Widget _buildActivityCard(ActivityModel activity) {
-    // Kullanıcının boyunu almak için userDataProvider'ı izle
-    final userData = ref.watch(userDataProvider).value;
-    final double? userHeightCm = userData?.height;
-
-    // Tarih ve saat formatı
+    final bool isIndoor = activity.roomType == 'indoor';
     final startTime = activity.startTime;
-    final formattedDateTime =
-        '${startTime.day} ${_getMonthName(startTime.month)} ${startTime.year}  ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
+    final formattedDate =
+        '${startTime.day} ${_getMonthName(startTime.month)} ${startTime.year} - ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
 
-    // Süre formatı
-    final duration = activity.duration; // duration'ın int olduğu varsayıldı
-    final formattedDuration = '$duration Dakika';
+    String rankText = '-';
+    if (activity.rank != null) {
+      rankText = '${activity.rank}.Sıra';
+    }
 
-    // Rank
-    final rank = activity.rank ?? 0;
-    final rankText = rank > 0 ? '$rank. Sıra' : '-';
+    final calories = activity.calories;
+    final caloriesStr = calories?.toInt().toString() ?? '0';
 
-    // Ana metrik (Adım sayısı veya Mesafe)
-    final steps = activity.steps; // Adım sayısını al
-    final distance = activity.distancekm; // Mesafeyi al
-    final bool isOutdoor = activity.roomType == 'outdoor';
+    final int currentSteps = activity.steps ?? 0;
+    final stepsStr = currentSteps.toString();
 
-    String primaryMetricText = '-'; // Varsayılan olarak tire göster
-    String secondaryMetricText = ''; // İkincil metrik başlangıçta boş
-    String estimatedDistanceText = ''; // İç mekan için tahmini mesafe
+    // Determine distance text: actual or estimated for indoor
+    String distanceTextForCard;
+    final actualDistanceKm = activity.distancekm;
+    final actualDistanceStr =
+        actualDistanceKm != null ? actualDistanceKm.toStringAsFixed(2) : '0.00';
 
-    if (isOutdoor) {
-      // Dış Mekan: Ana metrik Mesafe, ikincil metrik Adım
-      primaryMetricText = '${(distance ?? 0.0).toStringAsFixed(2)} km';
-      if (steps != null && steps > 0) {
-        // Adım varsa göster
-        secondaryMetricText = '$steps Adım';
+    if (isIndoor) {
+      final userData = ref.watch(userDataProvider).value;
+      final double? userHeightCm = userData?.height;
+      if (userHeightCm != null && userHeightCm > 0 && currentSteps > 0) {
+        final double stepLengthMeters = userHeightCm * 0.00414;
+        final double estimatedDistanceKm =
+            (currentSteps * stepLengthMeters) / 1000.0;
+        distanceTextForCard = ' ~${estimatedDistanceKm.toStringAsFixed(2)} km';
+      } else {
+        distanceTextForCard =
+            '$actualDistanceStr km'; // Fallback to actual (likely 0.00 km for indoor)
       }
     } else {
-      // İç Mekan: Ana metrik Adım
-      if (steps != null && steps >= 0) {
-        primaryMetricText = '$steps Adım';
-        // Tahmini mesafeyi hesapla (boy bilgisi varsa)
-        if (userHeightCm != null && userHeightCm > 0 && steps > 0) {
-          final double stepLengthMeters = userHeightCm * 0.00414;
-          final double estimatedDistanceKm =
-              (steps * stepLengthMeters) / 1000.0;
-          estimatedDistanceText =
-              ' ~${estimatedDistanceKm.toStringAsFixed(2)} km'; // Yaklaşık işareti ve format
-        }
-      }
+      distanceTextForCard =
+          '$actualDistanceStr km'; // For outdoor, always use actual distance
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      margin: const EdgeInsets.only(bottom: 0),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardBackgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        color: _cardBackgroundColor, // Using the screen's card background color
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Top Row: Date/Time, Duration, and Calories
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                formattedDateTime,
-                style: const TextStyle(
-                  fontSize: 12, // Biraz daha küçük
-                  color: _secondaryTextColor, // Gri renk
+          Image.asset(
+            isIndoor ? _treadmillImage : _outdoorImage,
+            width: 80,
+            height: 80,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade800,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ),
-              // Duration and Calories together
-              Row(
-                mainAxisSize: MainAxisSize.min, // Prevent taking full width
-                children: [
-                  if (activity.calories != null && activity.calories! > 0) ...[
-                    Icon(Icons.local_fire_department_outlined,
-                        color: Colors.orangeAccent, size: 14),
-                    SizedBox(width: 4),
-                    Text(
-                      '${activity.calories!.toStringAsFixed(0)} kcal', // Show calories
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.orangeAccent, // Orange color for calories
-                      ),
+                child: Icon(
+                  isIndoor ? Icons.fitness_center : Icons.terrain,
+                  color: Colors.white54,
+                  size: 40,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    FontWidget(
+                      text: isIndoor ? 'İç Mekan' : 'Dış Mekan',
+                      styleType: TextStyleType.labelLarge,
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                    SizedBox(width: 8), // Space between calories and duration
-                  ],
-                  Text(
-                    formattedDuration,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    FontWidget(
+                      text:
+                          rankText, // Display rank text (will be '-' if rank is not found)
+                      styleType: TextStyleType.labelLarge,
+                      color: Colors.white,
+                      fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: _primaryAccentColor, // Yeşil renk
                     ),
-                  ),
-                ],
-              )
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          // Middle: Main Metric (Steps) and Optional Distance
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                primaryMetricText, // Hesaplanan ana metriği göster
-                style: const TextStyle(
-                  fontSize: 24, // Daha büyük
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  ],
                 ),
-              ),
-              if (secondaryMetricText.isNotEmpty) ...[
-                // İkincil metrik varsa göster (sadece outdoor için adım)
-                const SizedBox(width: 8),
-                Text(
-                  secondaryMetricText,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color:
-                        _secondaryTextColor, // Outdoor mesafesi için gri renk
-                  ),
+                const SizedBox(height: 4),
+                FontWidget(
+                  text: formattedDate,
+                  styleType: TextStyleType.labelLarge,
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.end, // Align metrics to the start
+                  children: [
+                    _buildNewRaceMetricItem(
+                      assetPath: _flameIcon,
+                      valueText: '$caloriesStr kcal',
+                    ),
+                    const SizedBox(width: 20), // Consistent spacing
+                    _buildNewRaceMetricItem(
+                      assetPath: _locationIcon,
+                      valueText:
+                          distanceTextForCard, // Use the determined distance text
+                    ),
+                    const SizedBox(width: 20), // Consistent spacing
+                    _buildNewRaceMetricItem(
+                      assetPath: _stepsIcon,
+                      valueText: stepsStr,
+                    ),
+                  ],
                 ),
               ],
-              if (estimatedDistanceText.isNotEmpty) ...[
-                // İç mekan tahmini mesafesini göster
-                const SizedBox(width: 8),
-                Text(
-                  estimatedDistanceText,
-                  style: const TextStyle(
-                    fontSize: 14, // Adım/Mesafe ile aynı boyutta
-                    fontWeight: FontWeight.w500,
-                    color: _secondaryTextColor, // Benzer bir renk stili
-                  ),
-                ),
-              ],
-            ],
-          ),
-
-          const SizedBox(height: 4),
-
-          // Bottom: Rank
-          Text(
-            rankText,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600, // Biraz daha kalın
-              color: _primaryAccentColor, // Yeşil renk
             ),
           ),
         ],
@@ -705,30 +697,31 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
               color: _secondaryTextColor, // Gri renk
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Veriler yüklenirken bir hata oluştu.',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+            FontWidget(
+              text: 'Veriler yüklenirken bir hata oluştu.',
+              styleType: TextStyleType.labelSmall,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            SelectableText(
-              error.toString(), // Hata mesajını seçilebilir yap
-              style: const TextStyle(
-                color: _secondaryTextColor,
-                fontSize: 13,
-              ),
+            FontWidget(
+              text: error.toString(), // Hata mesajını seçilebilir yap
+              styleType: TextStyleType.labelSmall,
+              color: _secondaryTextColor,
+              fontSize: 13,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _fetchActivities,
               icon: const Icon(Icons.refresh, color: Colors.black),
-              label: const Text('Tekrar Dene',
-                  style: TextStyle(color: Colors.black)),
+              label: FontWidget(
+                text: 'Tekrar Dene',
+                styleType: TextStyleType.labelSmall,
+                color: Colors.black,
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primaryAccentColor, // Yeşil buton
                 foregroundColor: Colors.black,
@@ -754,18 +747,17 @@ class _RaceResultsScreenState extends ConsumerState<RaceResultsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Image.asset(
-            'assets/images/movliqonlylogo.png', // Logo yolu doğru mu?
+            'assets/images/logo.png', // Logo yolu doğru mu?
             width: 80,
             height: 80,
             color: _secondaryTextColor.withOpacity(0.5), // Rengi soluklaştır
           ),
           const SizedBox(height: 16),
-          Text(
-            'Bu filtre için sonuç bulunamadı',
-            style: TextStyle(
-              color: _secondaryTextColor, // Gri renk
-              fontSize: 16,
-            ),
+          FontWidget(
+            text: 'Bu filtre için sonuç bulunamadı',
+            styleType: TextStyleType.labelSmall,
+            color: _secondaryTextColor, // Gri renk
+            fontSize: 16,
           ),
         ],
       ),

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb;
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:flutter/foundation.dart';
@@ -15,7 +15,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../widgets/earn_coin_widget.dart';
 import '../screens/tabs.dart';
 import './record_stats_screen.dart';
-import 'package:flutter/services.dart'; // Import for SystemUiOverlayStyle
+import 'package:flutter/services.dart';
+import 'dart:typed_data';
+import 'package:google_fonts/google_fonts.dart';
+import '../widgets/error_display_widget.dart';
+import '../widgets/permission_widget.dart';
 
 class RecordScreen extends ConsumerStatefulWidget {
   const RecordScreen({super.key});
@@ -32,237 +36,50 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
-  // Timer related properties
   int _seconds = 0;
   Timer? _timer;
-  Timer? _calorieCalculationTimer; // Added for dedicated calorie calculation
+  Timer? _calorieCalculationTimer;
   double _distance = 0.0;
   int _calories = 0;
   double _pace = 0.0;
   DateTime? _startTime;
 
-  // Selected activity type
   String _activityType = 'Running';
 
-  // Google Maps related properties
-  GoogleMapController? _mapController;
-  Position? _currentPosition;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
-  List<LatLng> _routeCoordinates = [];
-  bool _hasLocationPermission = false;
-  StreamSubscription<Position>? _positionStreamSubscription;
+  mb.MapboxMap? _mapboxMap;
+  mb.PointAnnotationManager? _pointAnnotationManager;
+  mb.PolylineAnnotationManager? _polylineAnnotationManager;
+  List<mb.Point> _mapboxRouteCoordinates = [];
+  mb.Point? _currentMapboxPoint;
+  mb.PointAnnotation? _currentLocationMarker;
+  Uint8List? _maleMarkerIcon;
+  Uint8List? _femaleMarkerIcon;
 
-  // Pedometer related properties
+  bool _hasLocationPermission = false;
+
   int _steps = 0;
   int _initialSteps = 0;
   StreamSubscription<StepCount>? _stepCountSubscription;
   bool _hasPedometerPermission = false;
 
-  // Hareketsiz durumdaki kalori hesaplaması için değişkenler
   double _lastDistance = 0.0;
   int _lastSteps = 0;
   DateTime? _lastCalorieCalculationTime;
 
-  // Add state for map style and the style JSON itself
-  bool _isMapStyleSet = false;
-  final String _darkMapStyleJson = '''
-[
-  {
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#212121"
-      }
-    ]
-  },
-  {
-    "elementType": "labels.icon",
-    "stylers": [
-      {
-        "visibility": "on"
-      }
-    ]
-  },
-  {
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "elementType": "labels.text.stroke",
-    "stylers": [
-      {
-        "color": "#212121"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative.country",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#9e9e9e"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative.land_parcel",
-    "stylers": [
-      {
-        "visibility": "off"
-      }
-    ]
-  },
-  {
-    "featureType": "administrative.locality",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#bdbdbd"
-      }
-    ]
-  },
-  {
-    "featureType": "poi",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#181818"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#616161"
-      }
-    ]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "labels.text.stroke",
-    "stylers": [
-      {
-        "color": "#1b1b1b"
-      }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry.fill",
-    "stylers": [
-      {
-        "color": "#2c2c2c"
-      }
-    ]
-  },
-  {
-    "featureType": "road",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#8a8a8a"
-      }
-    ]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#373737"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#3c3c3c"
-      }
-    ]
-  },
-  {
-    "featureType": "road.highway.controlled_access",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#4e4e4e"
-      }
-    ]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#616161"
-      }
-    ]
-  },
-  {
-    "featureType": "transit",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#757575"
-      }
-    ]
-  },
-  {
-    "featureType": "water",
-    "elementType": "geometry",
-    "stylers": [
-      {
-        "color": "#000000"
-      }
-    ]
-  },
-  {
-    "featureType": "water",
-    "elementType": "labels.text.fill",
-    "stylers": [
-      {
-        "color": "#3d3d3d"
-      }
-    ]
-  }
-]
-''';
-
-  static const CameraPosition _initialCameraPosition = CameraPosition(
-    target: LatLng(41.0082, 28.9784), // İstanbul koordinatları (varsayılan)
-    zoom: 15,
+  final mb.CameraOptions _initialCameraOptions = mb.CameraOptions(
+    center: mb.Point(coordinates: mb.Position(28.9784, 41.0082)),
+    zoom: 12.0,
   );
+
+  geo.Position? _currentGeoPosition;
+  StreamSubscription<geo.Position>? _positionStreamSubscriptionGeo;
 
   @override
   void initState() {
     super.initState();
+    _loadMarkerImage();
+    _checkPermissions();
+
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -278,382 +95,430 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         }
       });
 
-    // İzinleri başlat - hafif bir gecikmeyle (ekranın önce yüklenmesine izin ver)
     Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
-        _initPermissions();
+        _checkAndRequestPermissionsSequentially();
       }
     });
+
+    // Listen to userDataProvider for gender changes
+    // Ensure this is called after _pointAnnotationManager and _mapboxMap are potentially initialized.
+    // It might be better to set up this listener after _onMapCreated or _onStyleLoaded.
+    // For now, we'll add a null check for managers.
+    ref.listenManual(userDataProvider, (previous, next) {
+      final prevGender = previous?.value?.gender;
+      final String? nextGender = next.value?.gender;
+
+      // Check if gender actually changed or became available
+      if (prevGender != nextGender && nextGender != null) {
+        if (_pointAnnotationManager != null && _mapboxMap != null) {
+          // Ensure map and manager are ready
+          // Call async function without awaiting, or make listener async if needed
+          _updateMarkerIconForGenderChange();
+        } else {}
+      }
+    });
+  }
+
+  Future<void> _checkPermissions() async {
+    // Check the status of the required permissions
+    PermissionStatus locationStatus = await Permission.location.status;
+    await Permission.notification.status;
+    PermissionStatus activityStatus =
+        await Permission.activityRecognition.status;
+
+    // If any permission is denied, show the PermissionWidget
+    if (Platform.isAndroid) {
+      if (locationStatus.isDenied || activityStatus.isDenied) {
+        setState(() {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return const PermissionWidget();
+            },
+          );
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _timer?.cancel();
-    _calorieCalculationTimer?.cancel(); // Cancel new timer
-    _positionStreamSubscription?.cancel();
+    _calorieCalculationTimer?.cancel();
+    _positionStreamSubscriptionGeo?.cancel();
     _stepCountSubscription?.cancel();
-    _mapController?.dispose();
+    _mapboxMap?.dispose();
     super.dispose();
   }
 
-  // --- ADDED: Method to handle finishing recording and hiding stats screen ---
   void _finishRecordingAndHideStats() {
-    _finishRecording(); // Call the existing finish logic
+    _finishRecording();
     if (mounted) {
       setState(() {
-        _showStatsScreen = false; // Hide stats screen, go back to map view
+        _showStatsScreen = false;
       });
     }
   }
-  // --- END OF ADDED METHOD ---
 
-  // Tüm izinleri başlatan fonksiyon
-  Future<void> _initPermissions() async {
-    print('RecordScreen - İzin kontrolü başlatılıyor...');
+  Future<void> _loadMarkerImage() async {
+    try {
+      final ByteData maleByteData =
+          await rootBundle.load('assets/images/mapbox.png');
+      _maleMarkerIcon = maleByteData.buffer.asUint8List();
 
-    // --- Bildirim İzni İsteği (Android 13+) ---
-    if (Platform.isAndroid) {
-      // Cihazın SDK versiyonunu almak için device_info_plus gerekebilir,
-      // ancak permission_handler genellikle bunu kendi içinde yönetir.
-      // Direkt olarak izni isteyebiliriz.
-      final notificationStatus = await Permission.notification.request();
-      print('Bildirim İzin Durumu: $notificationStatus');
-      if (notificationStatus.isPermanentlyDenied) {
-        // Kullanıcı kalıcı olarak reddettiyse ayarlara yönlendirme gösterilebilir.
-        // _showSettingsDialog("Bildirim İzni", "Uygulamanın bildirim gönderebilmesi için izin gereklidir.");
-      } else if (notificationStatus.isDenied) {
-        // Kullanıcı reddettiyse, belki bir açıklama gösterilebilir.
-        print('Bildirim izni reddedildi.');
+      final ByteData femaleByteData =
+          await rootBundle.load('assets/icons/locaitonwomen.webp');
+      _femaleMarkerIcon = femaleByteData.buffer.asUint8List();
+
+      if (mounted) {
+        setState(() {});
+        // If a marker already exists and icons just loaded, try to update it
+        if (_currentLocationMarker != null && _pointAnnotationManager != null) {
+          await _updateMarkerIconForGenderChange();
+        }
       }
-    }
-    // --- Bildirim İzni İsteği Bitişi ---
+    } catch (e) {}
+  }
 
-    // Konum servislerinin açık olup olmadığını kontrol et
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  Future<void> _checkAndRequestPermissionsSequentially() async {
+    // Önce bildirim iznini iste (en kritik olmayan)
+
+    // Sonra konum iznini iste
+    await _checkAndRequestLocationPermission();
+
+    // En son aktivite iznini iste
+    if (mounted) {
+      await _checkAndRequestActivityPermission();
+    }
+    if (mounted) {
+      setState(() {}); // Refresh UI if needed after permission checks
+    }
+  }
+
+  Future<void> _checkAndRequestLocationPermission() async {
+    bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Konum servisleri kapalıysa, kullanıcıyı uyar
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Lütfen konum servislerini açın'),
+            content: ErrorDisplayWidget(
+                errorObject: 'Lütfen konum servislerini açın.'),
             duration: Duration(seconds: 3),
           ),
         );
+        // Consider guiding the user to settings if they don't enable it.
+        await geo.Geolocator.openLocationSettings();
       }
-      // Konum servislerini açma isteği göster
-      await Geolocator.openLocationSettings();
+      setState(() {
+        _hasLocationPermission = false;
+      });
       return;
     }
 
-    // Önce izinleri kontrol et - zaten verilmişse istemek zorunda kalma
     if (Platform.isIOS) {
-      // iOS için Geolocator ile izin kontrolü
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.always ||
-          permission == LocationPermission.whileInUse) {
+      geo.LocationPermission permission =
+          await geo.Geolocator.checkPermission();
+
+      if (permission == geo.LocationPermission.deniedForever) {
+        if (mounted) {
+          // _showPermissionPermanentlyDeniedDialog('Konum'); // ÇAĞRI KALDIRILDI
+        }
+        setState(() {
+          _hasLocationPermission = false;
+        });
+      } else if (permission == geo.LocationPermission.whileInUse ||
+          permission == geo.LocationPermission.always) {
         setState(() {
           _hasLocationPermission = true;
         });
-        await _getCurrentLocation(); // Hemen konum almaya başla
+        await _getCurrentLocation(); // Try to get location if permission granted
       } else {
-        await _checkLocationPermission(); // İzin yoksa iste
+        // If permission is denied (but not forever), we don't request it.
+        // The user needs to grant it manually via settings.
+        setState(() {
+          _hasLocationPermission = false;
+        });
       }
     } else {
-      // Android için Permission.locationAlways ile kontrol
-      final status = await Permission.locationAlways.status;
-      if (status.isGranted) {
+      // Android
+      final status = await Permission.location.status;
+
+      if (!status.isGranted && !status.isLimited) {
+        // final requestedStatus = await Permission.location.request(); // İZİN İSTEĞİ KALDIRILDI
+
+        // if (requestedStatus.isPermanentlyDenied) {
+        if (status.isPermanentlyDenied) {
+          // Check current status for permanent denial
+          if (mounted) {
+            // _showPermissionPermanentlyDeniedDialog('Konum'); // ÇAĞRI KALDIRILDI
+          }
+          setState(() {
+            _hasLocationPermission = false;
+          });
+          // } else if (requestedStatus.isGranted || requestedStatus.isLimited) {
+          //   setState(() {
+          //     _hasLocationPermission = true;
+          //   });
+          //   await _getCurrentLocation();
+        } else {
+          // If permission is denied (but not forever), we don't request it.
+          setState(() {
+            _hasLocationPermission = false;
+          });
+        }
+      } else {
         setState(() {
           _hasLocationPermission = true;
         });
-        await _getCurrentLocation(); // Hemen konum almaya başla
-      } else {
-        await _checkLocationPermission(); // İzin yoksa iste
+        await _getCurrentLocation();
       }
     }
-
-    // Aktivite izinlerini de kontrol et
-    await _checkActivityPermission();
   }
 
-  // Aktivite izinlerini kontrol eden fonksiyon
-  Future<void> _checkActivityPermission() async {
-    // Platform-specific permission checks
+  Future<void> _checkAndRequestActivityPermission() async {
     if (Platform.isAndroid) {
-      // Android'de adım sayar iznini kontrol et
-      if (await Permission.activityRecognition.request().isGranted) {
+      final status = await Permission.activityRecognition.status;
+      if (!status.isGranted) {
+        if (status.isPermanentlyDenied) {
+          if (mounted) {}
+          setState(() {
+            _hasPedometerPermission = false;
+          });
+        } else {
+          // Request permission if not permanently denied and not already granted
+
+          if (status.isGranted) {
+            setState(() {
+              _hasPedometerPermission = true;
+            });
+            _initPedometer();
+          } else {
+            setState(() {
+              _hasPedometerPermission = false;
+            });
+            if (status.isPermanentlyDenied && mounted) {}
+          }
+        }
+      } else {
         setState(() {
           _hasPedometerPermission = true;
         });
         _initPedometer();
       }
     } else if (Platform.isIOS) {
-      // iOS için pedometer'ı her koşulda başlatmayı deneyelim
-      setState(() {
-        _hasPedometerPermission = true;
-      });
-
-      try {
-        // Pedometer'ı başlatmayı dene
+      if (mounted) {
+        setState(() {
+          _hasPedometerPermission = true;
+        });
+        // _hasPedometerPermission true olduğu için _initPedometer içindeki kontrol geçecek
+        // ve adım sayar başlatılmaya çalışılacaktır.
         _initPedometer();
-
-        // Sensör iznini kontrol et ve iste
-        final sensorStatus = await Permission.sensors.request();
-        print('RecordScreen - iOS sensör izin durumu: $sensorStatus');
-
-        // HealthKit izinlerinin verilip verilmediğini kontrol etmek için
-        // adım sayma stream'ini dinlemeye başla ve 3 saniye bekle
-        bool stepsAvailable = false;
-        final subscription = Pedometer.stepCountStream.listen((step) {
-          print('RecordScreen - Adım algılandı: ${step.steps}');
-          stepsAvailable = true;
-          // Eğer adım algılanırsa, artık Health izni var demektir
-          setState(() {
-            _hasPedometerPermission = true;
-          });
-        }, onError: (error) {
-          print('RecordScreen - Adım algılama hatası: $error');
-        });
-
-        // 3 saniye bekle, eğer bu sürede step eventi gelmezse:
-        await Future.delayed(const Duration(seconds: 3));
-        subscription.cancel();
-
-        // Eğer adım bilgisi alınamadıysa ve daha önce dialog gösterilmediyse Health app'e yönlendir
-        if (!stepsAvailable && mounted) {}
-      } catch (e) {
-        print('RecordScreen - Pedometer başlatma hatası: $e');
-        // Hata durumunda dialog göster
-        if (mounted) {}
       }
     }
   }
 
-  // Health Kit izni için özel dialog (iOS)
-
-  // Konum izinlerini kontrol eden fonksiyon
-  Future<void> _checkLocationPermission() async {
-    print('RecordScreen - Konum izni kontrolü başlatılıyor...');
-
-    if (Platform.isIOS) {
-      // iOS için: Geolocator'ı doğrudan kullan (daha iyi çalışıyor)
-      LocationPermission permission = await Geolocator.checkPermission();
-      print('RecordScreen - iOS konum izni durumu: $permission');
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        print('RecordScreen - iOS konum izni istendikten sonra: $permission');
-      }
-
-      // LocationPermission.whileInUse ve LocationPermission.always her ikisi de yeterli
-      setState(() {
-        _hasLocationPermission = permission == LocationPermission.whileInUse ||
-            permission == LocationPermission.always;
-      });
-
-      print('RecordScreen - iOS konum izni var mı?: $_hasLocationPermission');
-
-      if (_hasLocationPermission) {
-        // İzin varsa konumu al
-        await _getCurrentLocation();
-      } else if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {}
-    } else {
-      // Android için: Permission.locationAlways kullanmaya devam et
-      final status = await Permission.locationAlways.status;
-      print('RecordScreen - Android konum izni durumu: $status');
-
-      // Eğer izin henüz verilmemişse iste
-      if (!status.isGranted && !status.isLimited) {
-        final requestedStatus = await Permission.locationAlways.request();
-        print(
-            'RecordScreen - Android izin istendikten sonra: $requestedStatus');
-
-        setState(() {
-          _hasLocationPermission =
-              requestedStatus.isGranted || requestedStatus.isLimited;
-        });
-
-        if (!_hasLocationPermission &&
-            (requestedStatus.isDenied ||
-                requestedStatus.isPermanentlyDenied)) {}
-      } else {
-        setState(() {
-          _hasLocationPermission = true;
-        });
-      }
-
-      print(
-          'RecordScreen - Android konum izni var mı?: $_hasLocationPermission');
-
-      if (_hasLocationPermission) {
-        // İzin varsa konumu al
-        await _getCurrentLocation();
-      }
-    }
-  }
-
-  // Kullanıcı izin vermediğinde gösterilecek dialog (Opsiyonel)
-
-  // Mevcut konumu al ve haritayı oraya taşı
   Future<void> _getCurrentLocation() async {
     try {
-      print('Konum alınıyor...');
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+      geo.Position position = await geo.Geolocator.getCurrentPosition(
+          desiredAccuracy: geo.LocationAccuracy.high);
 
-      print('Konum alındı: ${position.latitude}, ${position.longitude}');
+      _currentGeoPosition = position;
+      _currentMapboxPoint = mb.Point(
+          coordinates: mb.Position(position.longitude, position.latitude));
 
-      setState(() {
-        _currentPosition = position;
+      if (_currentLocationMarker != null &&
+          _pointAnnotationManager != null &&
+          _currentMapboxPoint != null) {
+        try {
+          _currentLocationMarker!.geometry = _currentMapboxPoint!;
+          await _pointAnnotationManager!.update(_currentLocationMarker!);
+        } catch (e) {}
+      } else if (_currentMapboxPoint != null &&
+          _pointAnnotationManager != null) {
+        if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
+          await _loadMarkerImage();
+        }
+        final Uint8List? selectedMarkerIconBytes = _getCurrentMarkerIconBytes();
 
-        // Haritaya mevcut konum için marker ekle
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position: LatLng(position.latitude, position.longitude),
-            infoWindow: const InfoWindow(title: 'Konumunuz'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
+        if (selectedMarkerIconBytes == null) {
+          return;
+        }
+
+        try {
+          _currentLocationMarker = await _pointAnnotationManager!.create(
+            mb.PointAnnotationOptions(
+              geometry: _currentMapboxPoint!,
+              image: selectedMarkerIconBytes,
+              iconSize:
+                  selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
+            ),
+          );
+        } catch (e) {}
+      }
+
+      if (_mapboxMap != null && _currentMapboxPoint != null) {
+        await _mapboxMap!.flyTo(
+          mb.CameraOptions(
+            center: _currentMapboxPoint!,
+            zoom: 17.0,
           ),
+          mb.MapAnimationOptions(duration: 1500, startDelay: 0),
         );
+      }
 
-        // Rota listesine başlangıç noktası olarak ekle
-        _routeCoordinates.add(LatLng(position.latitude, position.longitude));
-      });
+      if (mounted) {
+        setState(() {});
+      }
 
-      // Harita varsa kamerayı kullanıcının konumuna getir
-      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-          LatLng(position.latitude, position.longitude), 18));
+      if (!_isRecording &&
+          _mapboxRouteCoordinates.isEmpty &&
+          _currentMapboxPoint != null) {
+        _mapboxRouteCoordinates.add(_currentMapboxPoint!);
+      }
     } catch (e) {
-      print('Konum alınamadı: $e');
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
-  // Konum takibini başlat
   void _startLocationTracking() {
     if (!_hasLocationPermission) {
-      _checkLocationPermission();
+      _checkAndRequestLocationPermission();
       return;
     }
 
     try {
-      print('Konum takibi başlatılıyor...');
-
-      // --- Platforma Özel LocationSettings ---
-      LocationSettings locationSettings;
-
+      geo.LocationSettings locationSettings;
       if (Platform.isAndroid) {
-        locationSettings = AndroidSettings(
-          accuracy: LocationAccuracy.high,
+        locationSettings = geo.AndroidSettings(
+          accuracy: geo.LocationAccuracy.high,
           distanceFilter: 5,
-          // intervalDuration: const Duration(seconds: 10), // Optional
-          foregroundNotificationConfig: const ForegroundNotificationConfig(
+          foregroundNotificationConfig: const geo.ForegroundNotificationConfig(
               notificationText:
                   "Movliq aktivitenizi kaydederken konumunuzu takip ediyor.",
               notificationTitle: "Movliq Kayıt Devam Ediyor",
               enableWakeLock: true,
-              notificationIcon: AndroidResource(
-                  name: 'launcher_icon', defType: 'mipmap') // App icon
-              ),
+              notificationIcon: geo.AndroidResource(
+                  name: 'launcher_icon', defType: 'mipmap')),
         );
       } else if (Platform.isIOS) {
-        locationSettings = AppleSettings(
-          accuracy: LocationAccuracy.high,
-          activityType: ActivityType.fitness, // Specify activity type
+        locationSettings = geo.AppleSettings(
+          accuracy: geo.LocationAccuracy.high,
+          activityType: geo.ActivityType.fitness,
           distanceFilter: 5,
-          pauseLocationUpdatesAutomatically:
-              false, // Prevent iOS from pausing updates
-          showBackgroundLocationIndicator:
-              true, // Show blue indicator bar on iOS
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
         );
       } else {
-        // Default settings for other platforms
-        locationSettings = const LocationSettings(
-          accuracy: LocationAccuracy.high,
+        locationSettings = const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.high,
           distanceFilter: 5,
         );
       }
-      // --- Platforma Özel LocationSettings Bitişi ---
 
-      // En az 5 metrede bir konum güncellemesi al
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        // Güncellenmiş locationSettings'i kullan
+      _positionStreamSubscriptionGeo = geo.Geolocator.getPositionStream(
         locationSettings: locationSettings,
-      ).listen((Position position) {
-        print('Konum güncellendi: ${position.latitude}, ${position.longitude}');
+      ).listen((geo.Position position) {
         if (mounted && _isRecording && !_isPaused) {
-          // Only update if recording and not paused
+          final newMapboxPoint = mb.Point(
+              coordinates: mb.Position(position.longitude, position.latitude));
+
           setState(() {
-            // Eski konum varsa, iki nokta arasındaki mesafeyi hesapla
-            if (_currentPosition != null) {
-              double newDistance = Geolocator.distanceBetween(
-                _currentPosition!.latitude,
-                _currentPosition!.longitude,
+            if (_currentGeoPosition != null) {
+              double newDistance = geo.Geolocator.distanceBetween(
+                _currentGeoPosition!.latitude,
+                _currentGeoPosition!.longitude,
                 position.latitude,
                 position.longitude,
               );
-
-              // Kilometre cinsine çevirip toplam mesafeye ekle
               _distance += newDistance / 1000;
             }
 
-            _currentPosition = position;
+            _currentGeoPosition = position;
+            _currentMapboxPoint = newMapboxPoint;
+            _mapboxRouteCoordinates.add(newMapboxPoint);
 
-            // Rota listesine yeni konum ekle
-            LatLng newPosition = LatLng(position.latitude, position.longitude);
-            _routeCoordinates.add(newPosition);
+            if (_pointAnnotationManager != null &&
+                _currentLocationMarker != null) {
+              _pointAnnotationManager
+                  ?.update(_currentLocationMarker!..geometry = newMapboxPoint)
+                  .then((_) {});
+            } else if (_pointAnnotationManager != null &&
+                _currentLocationMarker == null) {
+              final Uint8List? selectedMarkerIconBytes =
+                  _getCurrentMarkerIconBytes();
+              if (selectedMarkerIconBytes != null) {
+                _pointAnnotationManager
+                    ?.create(mb.PointAnnotationOptions(
+                  geometry: newMapboxPoint,
+                  image: selectedMarkerIconBytes,
+                  iconSize: selectedMarkerIconBytes == _femaleMarkerIcon
+                      ? 0.20
+                      : 0.15,
+                ))
+                    .then((annotation) {
+                  _currentLocationMarker = annotation;
+                }).catchError((e) {});
+              }
+            }
 
-            // Marker pozisyonunu güncelle
-            _markers = {
-              Marker(
-                markerId: const MarkerId('currentLocation'),
-                position: newPosition,
-                infoWindow: const InfoWindow(title: 'Konumunuz'),
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen),
-              )
-            };
+            if (_polylineAnnotationManager != null &&
+                _mapboxRouteCoordinates.length > 1) {
+              _polylineAnnotationManager?.deleteAll().catchError((e) {});
+              _polylineAnnotationManager
+                  ?.create(mb.PolylineAnnotationOptions(
+                    geometry: mb.LineString(
+                        coordinates: _mapboxRouteCoordinates
+                            .map((p) => p.coordinates)
+                            .toList()),
+                    lineColor: const Color(0xFFC4FF62).value,
+                    lineWidth: 5.0,
+                  ))
+                  .catchError((e) {});
+            }
 
-            // Polyline'ı güncelle
-            _polylines = {
-              Polyline(
-                polylineId: const PolylineId('route'),
-                points: _routeCoordinates,
-                color: const Color(0xFFC4FF62),
-                width: 5,
-              )
-            };
-
-            // Harita varsa kamerayı kullanıcının konumuna getir
-            _mapController?.animateCamera(CameraUpdate.newLatLng(newPosition));
+            _mapboxMap?.flyTo(mb.CameraOptions(center: newMapboxPoint),
+                mb.MapAnimationOptions(duration: 500));
           });
         }
-      }, onError: (e) {
-        print('Konum takibi hatası: $e');
-      });
-    } catch (e) {
-      print('Konum takibi başlatma hatası: $e');
-    }
+      }, onError: (e) {});
+    } catch (e) {}
   }
 
-  // Konum takibini durdur
   void _stopLocationTracking() {
-    _positionStreamSubscription?.cancel();
-    _positionStreamSubscription = null;
+    _positionStreamSubscriptionGeo?.cancel();
+    _positionStreamSubscriptionGeo = null;
   }
 
   void _toggleRecording() {
     if (_isRecording) {
-      // Finishing recording
       _finishRecording();
     } else {
-      // Starting recording
       _startRecording();
     }
   }
 
   void _startRecording() {
+    // Ensure permissions before starting, _hasLocationPermission is key
+    if (!_hasLocationPermission) {
+      _checkAndRequestLocationPermission(); // Re-request if not granted
+      // Optionally, show a message to the user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Lütfen konum iznini verdikten sonra tekrar deneyin.')));
+      }
+      return;
+    }
+    if (!_hasPedometerPermission && (Platform.isAndroid || Platform.isIOS)) {
+      _checkAndRequestActivityPermission(); // Re-request if not granted
+      if (mounted) {}
+      // Allow recording to start without pedometer, but steps might be 0.
+    }
+
     setState(() {
       _isRecording = true;
       _isPaused = false;
@@ -664,53 +529,43 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _seconds = 0;
       _calories = 0;
       _pace = 0.0;
-      _routeCoordinates = [];
-      _polylines = {};
-      _lastCalorieCalculationTime = null; // Reset for new calculation cycle
-
+      _mapboxRouteCoordinates = [];
+      _polylineAnnotationManager?.deleteAll().catchError((e) {});
+      if (_currentLocationMarker != null) {
+        _pointAnnotationManager
+            ?.delete(_currentLocationMarker!)
+            .catchError((e) {});
+        _currentLocationMarker = null;
+      }
+      _lastCalorieCalculationTime = null;
       _pulseController.forward();
-
-      // Start main timer for seconds and pace
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (!_isPaused && _isRecording) {
           setState(() {
             _seconds++;
-            // REMOVED: Calorie calculation moved to its own timer
-            // if (_seconds % 10 == 0) {
-            //   _calculateCalories();
-            // }
             _pace = _seconds > 0 ? (_distance / (_seconds / 3600.0)) : 0;
           });
         }
       });
-
-      _initializeCalorieCalculation(); // Initialize dedicated calorie timer
-
-      // Start GPS tracking
+      _initializeCalorieCalculation();
       _startLocationTracking();
-      // Start pedometer if permission granted
       if (_hasPedometerPermission) {
         _initPedometer();
       }
     });
-    // Notify the state provider
     ref
         .read(recordStateProvider.notifier)
         .startRecording(_forceStopAndResetActivity);
   }
 
   void _finishRecording() {
-    // Save final values before resetting
     final int finalDuration = _seconds;
     final double finalDistance = _distance;
-    // Ensure final calorie calculation happens if needed, or use current _calories
-    // For simplicity, we use the _calories as updated by the periodic timer.
     final int finalCalories = _calories;
     final int finalSteps = _steps;
     final int averageSpeed = _pace.toInt();
     final DateTime recordStartTime = _startTime ?? DateTime.now();
 
-    // Create and submit the record request
     _submitRecordData(
       duration: finalDuration,
       distance: finalDistance,
@@ -722,49 +577,35 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
     setState(() {
       _isRecording = false;
+      _isPaused = false;
       _pulseController.stop();
       _pulseController.reset();
 
-      // Stop timers
       _timer?.cancel();
-      _calorieCalculationTimer?.cancel(); // Stop calorie timer
-
-      // Stop GPS tracking
+      _calorieCalculationTimer?.cancel();
       _stopLocationTracking();
 
-      // Reset activity data
       _seconds = 0;
       _distance = 0.0;
       _calories = 0;
       _pace = 0.0;
       _steps = 0;
+      _initialSteps = 0;
       _startTime = null;
+      _lastCalorieCalculationTime = null;
 
-      // Clear map route data
-      _routeCoordinates = [];
-      _polylines = {};
+      _mapboxRouteCoordinates = [];
+      _polylineAnnotationManager?.deleteAll().catchError((e) {});
 
-      // Clear markers except current location
-      if (_currentPosition != null) {
-        _markers = {
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position:
-                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-            infoWindow: const InfoWindow(title: 'Konumunuz'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
-          )
-        };
-      } else {
-        _markers = {};
+      if (_currentLocationMarker != null) {
+        _pointAnnotationManager?.delete(_currentLocationMarker!).catchError(
+              (e) {},
+            );
       }
 
-      // Get current location again and center map on it
       _getCurrentLocation();
     });
 
-    // Notify the state provider
     ref.read(recordStateProvider.notifier).stopRecording();
   }
 
@@ -786,92 +627,66 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     );
 
     try {
-      // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Aktiviteniz kaydediliyor...'),
           duration: Duration(seconds: 2),
+          backgroundColor: Colors.grey,
         ),
       );
 
-      // Submit data to backend
       ref.read(recordSubmissionProvider(recordRequest).future).then(
         (response) async {
-          // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Aktivite başarıyla kaydedildi!'),
               backgroundColor: Colors.green,
             ),
           );
-          print("💰 Coins fetched after successful activity record.");
 
-          // --- YENİ EKLENEN KISIM: Coin kazanma isteği ---
           try {
-            // Provider artık doğrudan double döndürüyor
             final double earnedAmount =
                 await ref.read(recordEarnCoinProvider(distance).future);
 
-            print("🪙 Coin Kazanma İsteği Sonucu (double): $earnedAmount");
-
             if (earnedAmount > 0 && mounted) {
-              // Popup'ı göstermek için yeni fonksiyonu çağır (double ile)
               _showCoinPopup(context, earnedAmount);
             }
-          } catch (coinError) {
-            print("🪙 Coin Kazanma İsteği Hatası: $coinError");
-            // Hata durumunda kullanıcıya bilgi verilebilir (opsiyonel)
-            // ScaffoldMessenger.of(context).showSnackBar(
-            //   SnackBar(
-            //     content: Text('Coin kazanılırken bir hata oluştu: ${coinError.toString()}'),
-            //     backgroundColor: Colors.orange,
-            //   ),
-            // );
-          }
-          // --- Coin kazanma isteği sonu ---
+          } catch (coinError) {}
         },
         onError: (error) {
-          // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Aktivite kaydedilemedi: ${error.toString()}'),
-              backgroundColor: Colors.red,
+              content:
+                  ErrorDisplayWidget(errorObject: 'Aktivite kaydedilemedi'),
             ),
           );
         },
       );
     } catch (e) {
-      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          content: ErrorDisplayWidget(errorObject: e),
         ),
       );
     }
   }
 
-  // Duraklatma/devam etme fonksiyonu
   void _togglePause() {
     setState(() {
       _isPaused = !_isPaused;
 
       if (_isPaused) {
-        // Pause recording
         _pulseController.stop();
-        _calorieCalculationTimer?.cancel(); // Pause calorie timer
+        _calorieCalculationTimer?.cancel();
         _stopLocationTracking();
-        _stepCountSubscription?.pause(); // Pause pedometer
+        _stepCountSubscription?.pause();
       } else {
-        // Resume recording
         _pulseController.forward();
-        _initializeCalorieCalculation(); // Resume calorie timer
-        // Resume location tracking
+        _initializeCalorieCalculation();
         _startLocationTracking();
-        _stepCountSubscription?.resume(); // Resume pedometer
+        _stepCountSubscription?.resume();
       }
     });
-    // recordStateProvider'a dokunmuyoruz, kayıt hala aktif (sadece duraklatıldı).
   }
 
   void _selectActivityType(String type) {
@@ -880,7 +695,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         _activityType = type;
       });
     } else {
-      // Maybe show a snackbar that activity can't be changed while recording
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Kayıt sırasında aktivite türü değiştirilemez'),
@@ -898,20 +712,19 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  // Helper method for building stat columns
   Widget _buildStatColumn(String value, String label) {
     return Column(
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             fontSize: 10,
             color: Colors.grey,
           ),
@@ -920,19 +733,17 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     );
   }
 
-  // Helper method for building stat displays with icon
   Widget _buildStat({
-    required IconData icon,
+    required String iconAsset,
     required String value,
     required String unit,
-    required Color iconColor,
   }) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: iconColor,
-          size: 26,
+        Image.asset(
+          iconAsset,
+          width: 26,
+          height: 26,
         ),
         const SizedBox(width: 8),
         Column(
@@ -940,7 +751,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           children: [
             Text(
               value,
-              style: const TextStyle(
+              style: GoogleFonts.bangers(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -948,7 +759,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
             ),
             Text(
               unit,
-              style: const TextStyle(
+              style: GoogleFonts.bangers(
                 fontSize: 16,
                 color: Color.fromARGB(137, 255, 255, 255),
               ),
@@ -963,62 +774,30 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent, // Make status bar transparent
-        statusBarIconBrightness: Brightness
-            .light, // Icons on status bar (time, wifi, etc.) should be light
-        systemNavigationBarColor: const Color(
-            0xFF121212), // Match background color or make transparent
-        systemNavigationBarIconBrightness: Brightness
-            .light, // Icons on navigation bar (back, home, etc.) should be light
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: const Color(0xFF121212),
+        systemNavigationBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
         body: Stack(
           children: [
-            // --- Map Area --- Conditional visibility
             if (!(_isRecording && _showStatsScreen))
               Stack(
                 children: [
-                  Container(
-                      color: Colors.black), // Background to prevent white flash
+                  Container(color: Colors.black),
                   _hasLocationPermission
-                      ? AnimatedOpacity(
-                          opacity: _isMapStyleSet ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: GoogleMap(
-                            mapType: MapType.normal,
-                            initialCameraPosition: _initialCameraPosition,
-                            myLocationEnabled: true,
-                            myLocationButtonEnabled: false,
-                            zoomControlsEnabled: false,
-                            compassEnabled: true,
-                            markers: _markers,
-                            polylines: _polylines,
-                            onMapCreated:
-                                (GoogleMapController controller) async {
-                              _mapController = controller;
-                              try {
-                                print("Applying dark map style...");
-                                await _mapController
-                                    ?.setMapStyle(_darkMapStyleJson);
-                                print("Dark map style applied successfully.");
-                                if (mounted) {
-                                  setState(() {
-                                    _isMapStyleSet = true;
-                                  });
-                                }
-                              } catch (e) {
-                                print("Error applying map style: $e");
-                                if (mounted) {
-                                  setState(() {
-                                    _isMapStyleSet = true;
-                                  });
-                                }
-                              }
-                              if (_hasLocationPermission && mounted) {
-                                await _getCurrentLocation();
-                              }
-                            },
-                          ),
+                      ? mb.MapWidget(
+                          key: const ValueKey("mapbox_map_record"),
+                          styleUri: mb.MapboxStyles.STANDARD,
+                          cameraOptions: (_currentMapboxPoint != null)
+                              ? mb.CameraOptions(
+                                  center: _currentMapboxPoint!, zoom: 17.0)
+                              : _initialCameraOptions,
+                          onMapCreated: _onMapCreated,
+                          onScrollListener: null,
+                          onTapListener: null,
+                          onStyleLoadedListener: _onStyleLoadedListener,
                         )
                       : Container(
                           color: Colors.grey[850],
@@ -1029,9 +808,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                 const Icon(Icons.location_off,
                                     size: 48, color: Colors.grey),
                                 const SizedBox(height: 16),
-                                const Text(
+                                Text(
                                   'Konum izni gerekiyor',
-                                  style: TextStyle(
+                                  style: GoogleFonts.bangers(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.grey,
@@ -1039,12 +818,20 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                 ),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
-                                  onPressed: _initPermissions,
+                                  onPressed:
+                                      _checkAndRequestPermissionsSequentially,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFC4FF62),
                                     foregroundColor: Colors.black,
                                   ),
-                                  child: const Text('İzin Ver'),
+                                  child: Text(
+                                    'İzin Ver',
+                                    style: GoogleFonts.bangers(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1052,10 +839,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                         ),
                 ],
               ),
-            // UI Elementleri
             _showStatsScreen
                 ? Column(
-                    // If stats screen, Column directly in Stack (no SafeArea here)
                     children: [
                       Expanded(
                         child: RecordStatsScreen(
@@ -1070,17 +855,53 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                               _showStatsScreen = false;
                             });
                           },
-                          onFinishRecording:
-                              _finishRecordingAndHideStats, // Ensure this is passed
+                          onFinishRecording: _finishRecordingAndHideStats,
                         ),
                       ),
                     ],
                   )
                 : SafeArea(
-                    // If map view, wrap its content in SafeArea
                     child: Column(
                       children: [
-                        // Original layout when _showStatsScreen is false (map view)
+                        if (!_isRecording && !_showStatsScreen)
+                          Container(
+                            margin: const EdgeInsets.only(
+                                bottom: 8.0, left: 16.0, right: 16.0, top: 8.0),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 6.0, horizontal: 12.0),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 0, 0, 0)
+                                  .withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(16.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildActivityTypeButton(
+                                    'Koşu',
+                                    Icons.directions_run,
+                                    _activityType == 'Running',
+                                    () => _selectActivityType('Running')),
+                                _buildActivityTypeButton(
+                                    'Yürüyüş',
+                                    Icons.directions_walk,
+                                    _activityType == 'Walking',
+                                    () => _selectActivityType('Walking')),
+                                _buildActivityTypeButton(
+                                    'Bisiklet',
+                                    Icons.directions_bike,
+                                    _activityType == 'Cycling',
+                                    () => _selectActivityType('Cycling')),
+                              ],
+                            ),
+                          ),
                         if (_isRecording && !_showStatsScreen)
                           Container(
                             margin: const EdgeInsets.symmetric(
@@ -1103,22 +924,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'Running time',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color:
-                                            Color.fromARGB(248, 255, 255, 255),
-                                      ),
-                                    ),
-                                  ],
+                                  children: [],
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   _formatTime(_seconds),
-                                  style: const TextStyle(
+                                  style: GoogleFonts.bangers(
                                     fontSize: 32,
                                     fontWeight: FontWeight.bold,
                                     color: Color.fromARGB(221, 255, 255, 255),
@@ -1130,29 +941,25 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                       MainAxisAlignment.spaceEvenly,
                                   children: [
                                     _buildStat(
-                                      icon: Icons.directions_run,
+                                      iconAsset: 'assets/icons/location.png',
                                       value: _distance.toStringAsFixed(2),
                                       unit: 'km',
-                                      iconColor: Colors.orange,
                                     ),
                                     _buildStat(
-                                      icon: Icons.local_fire_department,
+                                      iconAsset: 'assets/icons/alev.png',
                                       value: _calories.toString(),
                                       unit: 'kcal',
-                                      iconColor: Colors.red,
                                     ),
                                     const SizedBox(width: 8),
                                     _buildStat(
-                                      icon: Icons.do_not_step_outlined,
+                                      iconAsset: 'assets/icons/steps.png',
                                       value: _steps.toString(),
                                       unit: 'steps',
-                                      iconColor: Colors.green,
                                     ),
                                     _buildStat(
-                                      icon: Icons.bolt,
+                                      iconAsset: 'assets/icons/speed.png',
                                       value: _pace.toStringAsFixed(1),
                                       unit: 'km/hr',
-                                      iconColor: Colors.blue,
                                     ),
                                   ],
                                 ),
@@ -1234,9 +1041,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                                     ),
                                                     child: Text(
                                                       _isRecording
-                                                          ? 'Finish'
-                                                          : 'Record',
-                                                      style: const TextStyle(
+                                                          ? 'Bitir'
+                                                          : 'Başla',
+                                                      style:
+                                                          GoogleFonts.bangers(
                                                         color: Colors.white,
                                                         fontSize: 14,
                                                         fontWeight:
@@ -1302,9 +1110,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                                 ),
                                                 child: Text(
                                                   _isPaused
-                                                      ? 'Resume'
-                                                      : 'Pause',
-                                                  style: const TextStyle(
+                                                      ? 'Devam Et'
+                                                      : 'Durdur',
+                                                  style: GoogleFonts.bangers(
                                                     color: Colors.white,
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.bold,
@@ -1317,61 +1125,13 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                       ),
                                   ],
                                 ),
-                                if (!_isRecording && !_showStatsScreen)
-                                  Container(
-                                    margin: const EdgeInsets.only(
-                                        bottom: 16.0,
-                                        left: 16.0,
-                                        right: 16.0,
-                                        top: 8.0),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 6.0, horizontal: 12.0),
-                                    decoration: BoxDecoration(
-                                      color: const Color.fromARGB(255, 0, 0, 0)
-                                          .withOpacity(0.9),
-                                      borderRadius: BorderRadius.circular(16.0),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      children: [
-                                        _buildActivityTypeButton(
-                                            'Running',
-                                            Icons.directions_run,
-                                            _activityType == 'Running',
-                                            () =>
-                                                _selectActivityType('Running')),
-                                        _buildActivityTypeButton(
-                                            'Walking',
-                                            Icons.directions_walk,
-                                            _activityType == 'Walking',
-                                            () =>
-                                                _selectActivityType('Walking')),
-                                        _buildActivityTypeButton(
-                                            'Cycling',
-                                            Icons.directions_bike,
-                                            _activityType == 'Cycling',
-                                            () =>
-                                                _selectActivityType('Cycling')),
-                                      ],
-                                    ),
-                                  ),
                               ],
                             ),
                           ),
                       ],
                     ),
                   ),
-            // Konum butonu (Sağ Alt)
-            if (_hasLocationPermission &&
-                !(_isRecording && _showStatsScreen)) // Show only on map view
+            if (_hasLocationPermission && !(_isRecording && _showStatsScreen))
               Positioned(
                 right: 16,
                 bottom: 140,
@@ -1383,9 +1143,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                   child: const Icon(Icons.my_location),
                 ),
               ),
-            // İstatistik/Harita geçiş butonu (Sol Alt)
-            if (_isRecording &&
-                !_showStatsScreen) // Show only when recording AND map is visible
+            if (_isRecording && !_showStatsScreen)
               Positioned(
                 left: 16,
                 bottom: 140,
@@ -1403,10 +1161,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                       _showStatsScreen ? Icons.map_outlined : Icons.bar_chart),
                 ),
               ),
-          ], // This is the closing bracket for the main Stack's children
-        ), // This is the closing bracket for the main Stack
-      ), // This is the closing bracket for the Scaffold
-    ); // This is the closing bracket for the AnnotatedRegion
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildActivityTypeButton(
@@ -1431,7 +1189,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
+            style: GoogleFonts.bangers(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               color: isSelected
@@ -1444,101 +1202,71 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     );
   }
 
-  // Adım sayar başlatma fonksiyonu
   void _initPedometer() {
-    _stepCountSubscription?.cancel(); // Cancel any existing subscription
+    // Ensure we have permission before initializing
 
-    print('RecordScreen - Pedometer başlatılıyor...');
+    _stepCountSubscription?.cancel();
 
     try {
-      // Sensörleri uyandırmak için kısa bir bekleme ekle
       Future.delayed(const Duration(milliseconds: 100), () {
         _stepCountSubscription =
             Pedometer.stepCountStream.listen((StepCount event) {
-          print('RecordScreen - Adım olayı alındı: ${event.steps}');
-
           if (!mounted || !_isRecording || _isPaused) {
-            print(
-                'RecordScreen - Adım kaydedilmedi: kayıt aktif değil veya duraklatılmış');
             return;
           }
 
           setState(() {
-            // İlk adım sayısını kaydetmek için _initialSteps'i kullan
             if (_initialSteps == 0 && event.steps > 0) {
               _initialSteps = event.steps;
-              _steps = 0; // Başlangıçta adımları sıfırla
-              print('RecordScreen - Başlangıç adımları: $_initialSteps');
+              _steps = 0;
             } else if (_initialSteps > 0) {
-              // Sadece initialSteps ayarlandıktan sonra adımları hesapla
               _steps = event.steps - _initialSteps;
               if (_steps < 0) {
-                _steps = 0; // Negatif adıma düşmesini engelle (cihaz reset vb.)
+                _steps = 0;
               }
-              print(
-                  'RecordScreen - Güncel adım: ${event.steps}, Başlangıç: $_initialSteps, Hesaplanan: $_steps');
             }
           });
         }, onError: (error) {
-          print('RecordScreen - Adım sayar hatası: $error');
+          if (Platform.isIOS) {}
+        }, onDone: () {});
 
-          // iOS için özel hata mesajı
-          if (Platform.isIOS) {
-            print(
-                'RecordScreen - iOS için Health Kit izni tekrar kontrol ediliyor');
-          }
-        }, onDone: () {
-          print('RecordScreen - Adım sayar stream kapandı');
-        });
-
-        // Eğer stream başlatıldı, ancak 5 saniye içinde veri gelmezse tekrar başlat
         Future.delayed(const Duration(seconds: 5), () {
           if (mounted && _isRecording && _initialSteps == 0) {
-            print(
-                'RecordScreen - 5 saniye içinde adım verisi gelmedi, stream yeniden başlatılıyor');
             _stepCountSubscription?.cancel();
-            _initPedometer(); // Tekrar dene
+            _initPedometer();
           }
         });
       });
     } catch (e) {
-      print('RecordScreen - Pedometer başlatma hatası: $e');
-      // Hata durumunda kullanıcıya bilgi verme
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Adım sayar başlatılırken hata: $e'),
-            backgroundColor: Colors.red,
+            content: ErrorDisplayWidget(
+                errorObject: "Adım sayar başlatılırken hata"),
           ),
         );
       }
     }
   }
 
-  // --- YENİ YARDIMCI FONKSİYON: Coin Kazanma Popup'ı ---
   void _showCoinPopup(BuildContext context, double coins) {
-    // Zaten bir dialog açık mı kontrol et (isteğe bağlı, çift popup engelleme)
     if (ModalRoute.of(context)?.isCurrent ?? false) {
       showDialog(
         context: context,
-        barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) {
           return EarnCoinPopup(
             earnedCoin: coins,
             onGoHomePressed: () {
-              Navigator.of(dialogContext).pop(); // Önce popup'ı kapat
-              // Ana sayfaya (Tab 0) yönlendir
+              Navigator.of(dialogContext).pop();
               ref.read(selectedTabProvider.notifier).state = 0;
-              print("Ana sayfaya yönlendirildi (Tab 0).");
             },
           );
         },
       );
     }
   }
-  // --- Coin popup fonksiyonu sonu ---
 
-  // New method to initialize the dedicated calorie calculation timer
   void _initializeCalorieCalculation() {
     _calorieCalculationTimer?.cancel();
     _calorieCalculationTimer =
@@ -1552,7 +1280,6 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     });
   }
 
-  // Updated calorie calculation method (adapted from RaceProvider)
   void _calculateCalories() {
     final now = DateTime.now();
 
@@ -1561,14 +1288,14 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _lastSteps = _steps;
       _lastCalorieCalculationTime = now;
       setState(() {
-        _calories = 0; // Initialize calories if it's the first calculation
+        _calories = 0;
       });
       return;
     }
 
     final elapsedSeconds =
         now.difference(_lastCalorieCalculationTime!).inSeconds;
-    if (elapsedSeconds < 4) return; // Match RaceProvider's check (for 5s timer)
+    if (elapsedSeconds < 4) return;
 
     final distanceDifference = _distance - _lastDistance;
     final stepsDifference = _steps - _lastSteps;
@@ -1578,10 +1305,10 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
         : 0;
 
     final userData = ref.read(userDataProvider).value;
-    double weightKg = 70.0; // Default weight
-    double heightCm = 170.0; // Default height
-    int ageYears = 25; // Default age
-    String gender = 'male'; // Default gender
+    double weightKg = 70.0;
+    double heightCm = 170.0;
+    int ageYears = 25;
+    String gender = 'male';
 
     if (userData != null) {
       weightKg = (userData.weight != null && userData.weight! > 0)
@@ -1594,79 +1321,55 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           ? userData.age!
           : ageYears;
       gender = userData.gender?.toLowerCase() == 'female' ? 'female' : 'male';
-      debugPrint(
-          'RecordScreen Calorie Calc - User Data: Weight=$weightKg, Height=$heightCm, Age=$ageYears, Gender=$gender');
-    } else {
-      debugPrint('RecordScreen Calorie Calc - Using default user data.');
     }
 
-    double bmr; // Basal Metabolic Rate (Mifflin-St Jeor)
+    double bmr;
     if (gender == 'female') {
       bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) - 161;
     } else {
-      // male or default
       bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * ageYears) + 5;
     }
-    if (bmr < 0) bmr = 0; // Ensure BMR is not negative
-    debugPrint(
-        'RecordScreen Calorie Calc - Calculated BMR (per day): ${bmr.toStringAsFixed(2)}');
+    if (bmr < 0) bmr = 0;
 
-    double metValue; // Metabolic Equivalent of Task
+    double metValue;
     if (!isMoving) {
-      metValue = 1.0; // Resting MET
+      metValue = 1.0;
     } else {
-      // Determine MET based on activity type and pace (assuming outdoor/GPS-based)
       if (_activityType == 'Running' || _activityType == 'Walking') {
         if (currentPaceKmH < 3.2) {
           metValue = 2.0;
-        } // ~2.0 mph (Slow walking)
-        else if (currentPaceKmH < 4.8) {
+        } else if (currentPaceKmH < 4.8) {
           metValue = 3.0;
-        } // ~3.0 mph (Moderate walking)
-        else if (currentPaceKmH < 6.4) {
+        } else if (currentPaceKmH < 6.4) {
           metValue = 3.8;
-        } // ~4.0 mph (Very brisk walking)
-        else if (currentPaceKmH < 8.0) {
+        } else if (currentPaceKmH < 8.0) {
           metValue = 8.3;
-        } // ~5.0 mph (Light jog)
-        else if (currentPaceKmH < 9.7) {
+        } else if (currentPaceKmH < 9.7) {
           metValue = 9.8;
-        } // ~6.0 mph (Moderate run)
-        else if (currentPaceKmH < 11.3) {
+        } else if (currentPaceKmH < 11.3) {
           metValue = 11.0;
-        } // ~7.0 mph
-        else if (currentPaceKmH < 12.9) {
+        } else if (currentPaceKmH < 12.9) {
           metValue = 11.8;
-        } // ~8.0 mph
-        else if (currentPaceKmH < 14.5) {
+        } else if (currentPaceKmH < 14.5) {
           metValue = 12.8;
-        } // ~9.0 mph
-        else if (currentPaceKmH < 16.0) {
+        } else if (currentPaceKmH < 16.0) {
           metValue = 14.5;
-        } // ~10.0 mph
-        else if (currentPaceKmH < 17.5) {
+        } else if (currentPaceKmH < 17.5) {
           metValue = 16.0;
-        } // ~11.0 mph
-        else {
+        } else {
           metValue = 19.0;
-        } // ~12.0 mph+
-        debugPrint(
-            'RecordScreen Calorie Calc ($_activityType based on GPS) - MET: $metValue, Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+        }
       } else if (_activityType == 'Cycling') {
         if (currentPaceKmH < 16.0)
-          metValue = 4.0; // Leisurely cycling
+          metValue = 4.0;
         else if (currentPaceKmH < 20.0)
-          metValue = 6.8; // Moderate cycling
+          metValue = 6.8;
         else if (currentPaceKmH < 24.0)
           metValue = 8.0;
         else
-          metValue = 10.0; // Faster cycling
-        debugPrint(
-            'RecordScreen Calorie Calc (Cycling based on GPS) - MET: $metValue, Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+          metValue = 10.0;
       } else {
-        metValue = 5.0; // Default generic MET for other types
-        debugPrint(
-            'RecordScreen Calorie Calc (Unknown Activity: $_activityType) - Default MET: $metValue, Pace: ${currentPaceKmH.toStringAsFixed(2)} km/h');
+        metValue = 5.0;
       }
     }
 
@@ -1678,20 +1381,13 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _calories += newCalories;
     });
 
-    debugPrint(
-        'RecordScreen 🔥 Kalori hesaplandı (Yeni): +$newCalories kal (Toplam: $_calories) - BMR: ${bmr.toStringAsFixed(0)}, MET: $metValue, Hız: ${currentPaceKmH.toStringAsFixed(2)} km/h, Aktivite: $_activityType');
-
-    // Update last check values
     _lastDistance = _distance;
     _lastSteps = _steps;
     _lastCalorieCalculationTime = now;
   }
 
-  // Aktiviteyi zorla durdur ve sıfırla
   void _forceStopAndResetActivity() {
     if (!mounted) return;
-
-    debugPrint('RecordScreen: _forceStopAndResetActivity çağrıldı.');
     setState(() {
       _isRecording = false;
       _isPaused = false;
@@ -1701,11 +1397,11 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
 
       _timer?.cancel();
       _timer = null;
+      _calorieCalculationTimer?.cancel();
       _stopLocationTracking();
       _stepCountSubscription?.cancel();
       _stepCountSubscription = null;
 
-      // Aktivite verilerini sıfırla
       _seconds = 0;
       _distance = 0.0;
       _calories = 0;
@@ -1715,25 +1411,145 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       _startTime = null;
       _lastCalorieCalculationTime = null;
 
-      // Harita rota verilerini temizle
-      _routeCoordinates = [];
-      _polylines = {};
-
-      // Markerları temizle (mevcut konum hariç)
-      if (_currentPosition != null) {
-        _markers = {
-          Marker(
-            markerId: const MarkerId('currentLocation'),
-            position:
-                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-            infoWindow: const InfoWindow(title: 'Konumunuz'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
-          )
-        };
-      } else {
-        _markers = {};
+      _mapboxRouteCoordinates = [];
+      _polylineAnnotationManager?.deleteAll().catchError((e) {});
+      if (_currentLocationMarker != null) {
+        _pointAnnotationManager
+            ?.delete(_currentLocationMarker!)
+            .catchError((e) {});
+        _currentLocationMarker = null;
       }
+      _currentMapboxPoint = null;
+      _currentGeoPosition = null;
+      _mapboxMap?.flyTo(
+          _initialCameraOptions, mb.MapAnimationOptions(duration: 1000));
     });
+  }
+
+  void _onMapCreated(mb.MapboxMap mapboxMap) async {
+    _mapboxMap = mapboxMap;
+  }
+
+  void _onStyleLoadedListener(dynamic data) async {
+    if (_mapboxMap == null || !mounted) {
+      return;
+    }
+
+    try {
+      _pointAnnotationManager =
+          await _mapboxMap!.annotations.createPointAnnotationManager();
+    } catch (e) {}
+
+    try {
+      _polylineAnnotationManager =
+          await _mapboxMap!.annotations.createPolylineAnnotationManager();
+    } catch (e) {}
+
+    if (!mounted) {
+      return;
+    }
+
+    if (_isRecording) {
+      // Restore polyline
+      if (_polylineAnnotationManager != null &&
+          _mapboxRouteCoordinates.length > 1) {
+        _polylineAnnotationManager!
+            .deleteAll()
+            .then((_) {
+              return _polylineAnnotationManager!
+                  .create(mb.PolylineAnnotationOptions(
+                geometry: mb.LineString(
+                    coordinates: _mapboxRouteCoordinates
+                        .map((p) => p.coordinates)
+                        .toList()),
+                lineColor: const Color(0xFFC4FF62).value,
+                lineWidth: 5.0,
+              ));
+            })
+            .then((_) {})
+            .catchError((e) {});
+      } else {}
+
+      // Restore current location marker
+      if (_currentMapboxPoint != null && _pointAnnotationManager != null) {
+        if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
+          await _loadMarkerImage();
+          if (!mounted) return;
+        }
+
+        final Uint8List? selectedMarkerIconBytes = _getCurrentMarkerIconBytes();
+
+        if (selectedMarkerIconBytes != null) {
+          _pointAnnotationManager!
+              .create(
+            mb.PointAnnotationOptions(
+              geometry: _currentMapboxPoint!,
+              image: selectedMarkerIconBytes,
+              iconSize:
+                  selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
+            ),
+          )
+              .then((newMarker) {
+            if (mounted) {
+              _currentLocationMarker = newMarker;
+            }
+          }).catchError((e) {});
+        } else {}
+      } else {}
+    } else {
+      // Not recording
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _getCurrentLocation();
+        } else {}
+      });
+    }
+  }
+
+  Uint8List? _getCurrentMarkerIconBytes() {
+    final userData = ref.read(userDataProvider).value;
+    final String? genderFromProvider = userData?.gender;
+
+    // Default to 'male' if gender is null, not available, or not 'female'
+    final String effectiveGender =
+        (genderFromProvider?.toLowerCase() == 'female') ? 'female' : 'male';
+
+    if (effectiveGender == 'female' && _femaleMarkerIcon != null) {
+      return _femaleMarkerIcon;
+    }
+    return _maleMarkerIcon;
+  }
+
+  // Function to update marker icon, typically called when gender changes or icons load late.
+  Future<void> _updateMarkerIconForGenderChange() async {
+    // Ensure point manager and a current point are available
+    if (_pointAnnotationManager == null || _currentMapboxPoint == null) {
+      return;
+    }
+
+    // If a current marker exists, delete it first
+    if (_currentLocationMarker != null) {
+      try {
+        await _pointAnnotationManager!.delete(_currentLocationMarker!);
+        _currentLocationMarker = null; // Nullify after deletion
+      } catch (e) {}
+    } else {}
+
+    final Uint8List? newIconBytes =
+        _getCurrentMarkerIconBytes(); // Get the latest icon based on current gender and loaded icons
+
+    if (newIconBytes != null) {
+      try {
+        _currentLocationMarker = await _pointAnnotationManager!.create(
+          mb.PointAnnotationOptions(
+            geometry: _currentMapboxPoint!, // Use the current map point
+            image: newIconBytes,
+            iconSize: newIconBytes == _femaleMarkerIcon
+                ? 0.20
+                : 0.15, // Dynamic icon size
+          ),
+        );
+      } catch (e) {}
+    } else {}
   }
 }

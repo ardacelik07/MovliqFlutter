@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class NetworkErrorWidget extends StatelessWidget {
   final VoidCallback onRetry;
@@ -35,7 +36,8 @@ class NetworkErrorWidget extends StatelessWidget {
             const SizedBox(height: 24.0),
             Text(
               displayTitle, // Use displayTitle
-              style: theme.textTheme.headlineSmall?.copyWith(
+              style: GoogleFonts.bangers(
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.white, // Ensure title is visible on black bg
               ),
@@ -44,7 +46,8 @@ class NetworkErrorWidget extends StatelessWidget {
             const SizedBox(height: 8.0),
             Text(
               displayMessage, // Use displayMessage
-              style: theme.textTheme.bodyLarge?.copyWith(
+              style: GoogleFonts.bangers(
+                fontSize: 16,
                 color: Colors.grey[400], // Lighter grey for better visibility
               ),
               textAlign: TextAlign.center,
@@ -59,7 +62,10 @@ class NetworkErrorWidget extends StatelessWidget {
                 foregroundColor: Colors.black, // Text on primary
                 padding: const EdgeInsets.symmetric(
                     horizontal: 32.0, vertical: 12.0),
-                textStyle: theme.textTheme.labelLarge,
+                textStyle: GoogleFonts.bangers(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               child: const Text('Tekrar Dene'),
             ),

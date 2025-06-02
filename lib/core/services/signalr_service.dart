@@ -17,8 +17,6 @@ class ContinuousRetryPolicy implements IRetryPolicy {
 
   @override
   int? nextRetryDelayInMilliseconds(RetryContext retryContext) {
-    debugPrint(
-        '[SignalR Retry] Attempting reconnect. Attempt: ${retryContext.previousRetryCount + 1}, Elapsed: ${retryContext.elapsedMilliseconds}ms. Reason: ${retryContext.retryReason}');
     return retryIntervalMilliseconds; // Her zaman belirlenen aralığı döndür
   }
 }
@@ -111,8 +109,6 @@ class SignalRService {
   String? get connectionId => _currentConnectionId;
 
   Future<void> resetConnection() async {
-    debugPrint('SignalR bağlantısını sıfırlama başlatılıyor...');
-
     // Önce mevcut bağlantıyı kapat
     if (_hubConnection != null) {
       try {
@@ -127,10 +123,7 @@ class SignalRService {
         // We don't off stateStream, onreconnecting, onreconnected as they are part of the client library management
 
         await _hubConnection!.stop();
-        debugPrint('Mevcut SignalR bağlantısı kapatıldı');
-      } catch (e) {
-        debugPrint('Bağlantı kapatma hatası: $e');
-      }
+      } catch (e) {}
     }
 
     // Tüm değişkenleri sıfırla
@@ -144,8 +137,6 @@ class SignalRService {
     // Clear data from streams (optional, or let them be if UI handles empty states)
     // _leaderboardController.add([]);
     // ... etc for other data streams
-
-    debugPrint('SignalR bağlantısı tamamen sıfırlandı');
   }
 
   Future<void> connect() async {
@@ -153,7 +144,6 @@ class SignalRService {
         (_hubConnection!.state == HubConnectionState.Connected ||
             _hubConnection!.state == HubConnectionState.Connecting ||
             _hubConnection!.state == HubConnectionState.Reconnecting)) {
-      debugPrint('SignalR zaten bağlı, bağlanıyor veya yeniden bağlanıyor.');
       return;
     }
 
@@ -172,13 +162,14 @@ class SignalRService {
     final String token = tokenJson;
 
     try {
-      final hubUrl =
-          'http://movliq.mehmetalicakir.tr:5000/racehub'; // Use ApiConfig
+      final hubUrl = 'https://backend.movliq.com/racehub'; // Use ApiConfig
 
       _hubConnection = HubConnectionBuilder()
           .withUrl(hubUrl,
               options: HttpConnectionOptions(
                 accessTokenFactory: () async => token,
+                skipNegotiation: true,
+                transport: HttpTransportType.WebSockets,
                 // logger: Logger("SignalRClient"), // Optional: for detailed logging
                 //logMessageContent: true,
               ))
@@ -191,7 +182,6 @@ class SignalRService {
 
       // Listen to connection state changes
       _hubConnection!.stateStream.listen((state) {
-        debugPrint('[SignalR] Connection State Changed: $state');
         _isConnected = (state == HubConnectionState.Connected);
         _currentConnectionId = _hubConnection?.connectionId;
         if (!_connectionStateController.isClosed) {
@@ -201,7 +191,6 @@ class SignalRService {
 
       // Listen to specific reconnection events
       _hubConnection!.onreconnecting(({error}) {
-        debugPrint('[SignalR] Reconnecting... Error: ${error?.toString()}');
         _isConnected = false; // Update status
         if (!_reconnectingController.isClosed) {
           _reconnectingController.add(error);
@@ -209,7 +198,6 @@ class SignalRService {
       });
 
       _hubConnection!.onreconnected(({connectionId}) {
-        debugPrint('[SignalR] Reconnected. New Connection ID: $connectionId');
         _isConnected = true; // Update status
         _currentConnectionId = connectionId;
         if (!_reconnectedController.isClosed) {
@@ -232,10 +220,7 @@ class SignalRService {
 
       await _hubConnection!.start();
       // _isConnected will be set by the stateStream listener
-      debugPrint(
-          'SignalR bağlantısı başlatıldı. Durum: ${_hubConnection?.state}');
     } catch (e) {
-      debugPrint('SignalR bağlantı hatası: $e');
       _isConnected = false;
       _currentConnectionId = null;
       if (!_connectionStateController.isClosed) {
@@ -252,9 +237,6 @@ class SignalRService {
       // Explicitly stop, which should prevent automatic reconnections for this instance.
       await _hubConnection!.stop();
       // State will be updated by the stateStream listener to Disconnected
-      debugPrint('SignalR bağlantısı istemci tarafından kapatıldı.');
-    } else {
-      debugPrint('SignalR bağlantısı zaten null, kapatma işlemi atlandı.');
     }
     _isConnected = false;
     _currentConnectionId = null;
@@ -270,11 +252,8 @@ class SignalRService {
     }
 
     try {
-      debugPrint('📡 SignalR: JoinRoom çağrısı yapılıyor - roomId: $roomId');
       await _hubConnection!.invoke('JoinRoom', args: [roomId]);
-      debugPrint('✅ SignalR: JoinRoom çağrısı başarılı - roomId: $roomId');
     } catch (e) {
-      debugPrint('❌ SignalR: JoinRoom çağrısı başarısız - hata: $e');
       rethrow;
     }
   }
@@ -285,9 +264,8 @@ class SignalRService {
 
     try {
       await _hubConnection!.invoke('LeaveRoom', args: [roomId]);
-      debugPrint('Yarış odasından ayrılındı: $roomId');
     } catch (e) {
-      debugPrint('Yarış odasından ayrılma hatası: $e');
+      rethrow;
     }
   }
 
@@ -297,10 +275,8 @@ class SignalRService {
 
     try {
       await _hubConnection!.invoke('LeaveRoomDuringRace', args: [roomId]);
-      debugPrint(
-          'Yarış esnasında odadan ayrılındı: $roomId (istatistikler sıfırlandı)');
     } catch (e) {
-      debugPrint('Yarış esnasında odadan ayrılma hatası: $e');
+      rethrow;
     }
   }
 
@@ -312,39 +288,25 @@ class SignalRService {
     try {
       await _hubConnection!
           .invoke('UpdateLocation', args: [roomId, distance, steps, calories]);
-      debugPrint(
-          'Konum güncellendi: ${distance.toStringAsFixed(2)} km, $steps adım, $calories kalori');
     } catch (e) {
-      debugPrint('Konum güncelleme hatası: $e');
+      rethrow;
     }
   }
 
   // Liderlik tablosu güncellemelerini işleyen metod
   void _handleLeaderboardUpdated(List<Object?>? arguments) {
-    debugPrint(
-        '[SignalR Handler] _handleLeaderboardUpdated CALLED with arguments: $arguments');
     if (arguments == null || arguments.isEmpty) {
-      debugPrint(
-          '[SignalR Handler] _handleLeaderboardUpdated - Arguments are null or empty. Returning.');
       return;
     }
 
     try {
       final List<dynamic> leaderboardData = arguments[0] as List<dynamic>;
-      debugPrint(
-          '[SignalR Handler] _handleLeaderboardUpdated - Raw leaderboardData: $leaderboardData');
       final participants = leaderboardData
           .map((item) => RaceParticipant.fromJson(item as Map<String, dynamic>))
           .toList();
 
       _leaderboardController.add(participants);
-      debugPrint(
-          '[SignalR Handler] _handleLeaderboardUpdated - SUCCESS: ${participants.length} participants added to stream.');
-    } catch (e, stackTrace) {
-      debugPrint(
-          '[SignalR Handler] _handleLeaderboardUpdated - ERROR processing leaderboard: $e');
-      debugPrint('[SignalR Handler] Stack Trace: $stackTrace');
-    }
+    } catch (e, stackTrace) {}
   }
 
   // Yarış başlayacak olayını işleyen metod
@@ -360,22 +322,12 @@ class SignalRService {
         'countdownSeconds': countdownSeconds,
         'isRaceAlreadyStarted': false,
       });
-
-      debugPrint(
-          '[SignalRService] Normal yarış başlıyor! Oda: $roomId, Geri Sayım: $countdownSeconds saniye');
-    } catch (e) {
-      debugPrint('[SignalRService] Yarış başlama olayı işleme hatası: $e');
-    }
+    } catch (e) {}
   }
 
   // Yarışın bittiğini işleyen metod
   void _handleRaceEnded(List<Object?>? arguments) {
-    debugPrint(
-        'SignalR: RaceEnded olayı alındı: ${arguments?.toString() ?? "null"}');
-
     if (arguments == null || arguments.isEmpty) {
-      debugPrint(
-          'SignalR: RaceEnded olayı boş argümanlarla geldi, varsayılan oda ID (0) kullanılacak');
       // Boş argüman gelse bile olayı tetikle (varsayılan oda ID 0)
       _raceEndedController.add(0);
       return;
@@ -384,9 +336,7 @@ class SignalRService {
     try {
       final int roomId = arguments[0] as int;
       _raceEndedController.add(roomId);
-      debugPrint('SignalR: Yarış bitti! Oda ID: $roomId');
     } catch (e) {
-      debugPrint('SignalR: Yarış bitme olayı işleme hatası: $e');
       // Hata olsa bile olayı tetikle (varsayılan oda ID)
       _raceEndedController.add(0);
     }
@@ -399,10 +349,7 @@ class SignalRService {
     try {
       final String username = arguments[0] as String;
       _userJoinedController.add(username);
-      debugPrint('Kullanıcı katıldı: $username');
-    } catch (e) {
-      debugPrint('Kullanıcı katılma olayı işleme hatası: $e');
-    }
+    } catch (e) {}
   }
 
   // Kullanıcı ayrıldı olayını işleyen metod
@@ -412,10 +359,7 @@ class SignalRService {
     try {
       final String username = arguments[0] as String;
       _userLeftController.add(username);
-      debugPrint('Kullanıcı ayrıldı: $username');
-    } catch (e) {
-      debugPrint('Kullanıcı ayrılma olayı işleme hatası: $e');
-    }
+    } catch (e) {}
   }
 
   // Konum güncellendi olayını işleyen metod
@@ -432,28 +376,18 @@ class SignalRService {
         'distance': distance,
         'steps': steps,
       });
-
-      debugPrint('Konum güncellendi: $email, $distance m, $steps adım');
-    } catch (e) {
-      debugPrint('Konum güncelleme olayı işleme hatası: $e');
-    }
+    } catch (e) {}
   }
 
   // Yeni eklenen metod - Oda katılımcılarını işleyen metod
   void _handleRoomParticipants(List<Object?>? arguments) {
-    debugPrint('🔍 SignalR RoomParticipants - Olay Tetiklendi');
-    debugPrint('📝 Gelen Raw Arguments: $arguments');
-
     if (arguments == null || arguments.isEmpty) {
-      debugPrint(
-          '⚠️ HATA: RoomParticipants boş veya null arguments ile geldi!');
       _roomParticipantsController.add([]); // Boş liste gönder
       return;
     }
 
     try {
       final List<dynamic> participantsData = arguments[0] as List<dynamic>;
-      debugPrint('📋 Ham Katılımcı Verisi: $participantsData');
 
       final List<RoomParticipant> participants = [];
 
@@ -472,17 +406,8 @@ class SignalRService {
         }
       }
 
-      debugPrint(
-          '👥 İşlenmiş Katılımcılar: ${participants.map((p) => p.userName).join(", ")}');
-      debugPrint('📊 Toplam Katılımcı Sayısı: ${participants.length}');
-
       _roomParticipantsController.add(participants);
-      debugPrint('✅ RoomParticipants Stream başarıyla güncellendi!');
     } catch (e, stackTrace) {
-      debugPrint('❌ RoomParticipants İşleme HATASI: $e');
-      debugPrint(
-          '📍 Hata Detayı - Arguments[0] Tipi: ${arguments[0]?.runtimeType}');
-      debugPrint('🔍 Stack Trace: $stackTrace');
       _roomParticipantsController.add([]); // Hata durumunda boş liste gönder
     }
   }
@@ -495,8 +420,6 @@ class SignalRService {
       final int roomId = data['RoomId'] as int;
       final double remainingTimeSeconds =
           (data['RemainingTimeSeconds'] as num).toDouble();
-      debugPrint(
-          '[SignalR] RaceAlreadyStarted received for Room: $roomId, Remaining: $remainingTimeSeconds');
       // Potentially forward this to a specific stream if UI needs to react, e.g., by joining the race directly
       // For now, RaceNotifier would typically handle the state transition if it tries to join and gets this.
       // This could also be used to directly trigger race start logic in RaceNotifier if appropriate.
@@ -506,9 +429,7 @@ class SignalRService {
         'remainingTimeSeconds': remainingTimeSeconds, // Pass remaining time
         'isRaceAlreadyStarted': true
       });
-    } catch (e) {
-      debugPrint('_handleRaceAlreadyStarted işleme hatası: $e');
-    }
+    } catch (e) {}
   }
 
   // Handler for RaceFinished (when trying to join/rejoin a finished race)
@@ -516,7 +437,6 @@ class SignalRService {
     // This is similar to _handleRaceEnded, but specifically for join attempts.
     // It might carry different data or imply a different UI action (e.g., show results, navigate away).
     _handleRaceEnded(arguments); // Reuse existing logic for now
-    debugPrint('[SignalR] RaceFinished (on join attempt) received.');
     _raceStartingController.close();
     _roomParticipantsController.close();
     // Close new controllers
@@ -527,7 +447,6 @@ class SignalRService {
 
   // Servis dispose edildiğinde kaynakları temizle
   void dispose() {
-    debugPrint('[SignalRService] dispose çağrıldı.');
     disconnect(); // Ensure connection is stopped
     _leaderboardController.close();
     _raceStartedController.close();
@@ -541,6 +460,5 @@ class SignalRService {
     _connectionStateController.close();
     _reconnectedController.close();
     _reconnectingController.close();
-    debugPrint('[SignalRService] tüm stream controllerlar kapatıldı.');
   }
 }

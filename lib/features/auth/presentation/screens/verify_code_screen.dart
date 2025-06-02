@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/config/api_config.dart';
 import 'reset_password_screen.dart'; // Sonraki ekran
@@ -68,14 +69,12 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         if (mounted) {
           // TODO: Hata Snackbar'ını etkinleştir
           // showErrorSnackbar(context, errorMessage);
-          print('API Hatası: $errorMessage'); // Geçici print
         }
       }
     } catch (e) {
       if (mounted) {
         // TODO: Hata Snackbar'ını etkinleştir
         // showErrorSnackbar(context, 'Bir ağ hatası oluştu: ${e.toString()}');
-        print('Ağ Hatası: ${e.toString()}'); // Geçici print
       }
     } finally {
       if (mounted) {
@@ -99,8 +98,8 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       backgroundColor: primaryColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Şifremi Unuttum',
-            style: TextStyle(color: Colors.white)),
+        title: Text('Şifremi Unuttum',
+            style: GoogleFonts.bangers(color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -142,14 +141,14 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                     // Code Field
                     TextFormField(
                       controller: _codeController,
-                      style: const TextStyle(color: inputColor),
+                      style: GoogleFonts.bangers(color: inputColor),
                       keyboardType:
                           TextInputType.number, // Genellikle kodlar numeriktir
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(
                         hintText: 'E-posta Adresinize Gelen Kodu Giriniz',
-                        hintStyle:
-                            const TextStyle(color: labelColor, fontSize: 14),
+                        hintStyle: GoogleFonts.bangers(
+                            color: labelColor, fontSize: 14),
                         filled: true,
                         fillColor: textFieldBgColor,
                         border: OutlineInputBorder(
@@ -182,7 +181,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        textStyle: const TextStyle(
+                        textStyle: GoogleFonts.bangers(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -197,7 +196,9 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                                 strokeWidth: 3,
                               ),
                             )
-                          : const Text('Doğrula'),
+                          : Text('Doğrula',
+                              style: GoogleFonts.bangers(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(height: 40),
                   ],

@@ -99,7 +99,6 @@ class UserActivityNotifier
         throw Exception('Veriler alınamadı. Hata kodu: ${response.statusCode}');
       }
     } catch (e, stack) {
-      debugPrint('Aktivite verileri alınırken hata: $e');
       state = AsyncValue.error(e, stack);
     }
   }

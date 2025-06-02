@@ -22,6 +22,9 @@ import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException;
 import 'dart:io' show SocketException;
 import 'update_user_info_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -110,7 +113,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       return spots;
     } catch (e) {
-      debugPrint('Aktivite verisi işlenirken hata: $e');
       // Hata durumunda varsayılan veri döndür
       return [
         const FlSpot(0, 0),
@@ -249,10 +251,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             'Yarış sonuçları getirilirken hata: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Yarış sonuçları provider hatası: $e');
       return [];
     }
   });
+
+  // Asset paths (adjust if necessary)
+  static const String _treadmillImage = 'assets/icons/indoor.png';
+  static const String _outdoorImage = 'assets/icons/outdoor.png';
+  static const String _flameIcon = 'assets/icons/alev.png';
+  static const String _locationIcon = 'assets/icons/location.png';
+  static const String _stepsIcon = 'assets/icons/steps.png';
+
+  // New helper widget for individual metrics (flame, location, shoe)
+  Widget _buildNewRaceMetricItem({
+    required String assetPath,
+    required String valueText,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.asset(
+          assetPath,
+          width: 32, // Adjusted size based on image
+          height: 32, // Adjusted size based on image
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.error, color: Colors.red, size: 32),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          valueText,
+          style: GoogleFonts.bangers(color: Colors.white, fontSize: 12),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -293,22 +326,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       userData), // Use existing widget, size adjusted within
                               const SizedBox(height: 12), // Boşluk
                               // Kullanıcı adı
-                              Text(
-                                userData.fullName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22, // Increased font size
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              FontWidget(
+                                text: userData.fullName,
+                                styleType: TextStyleType.titleMedium,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(height: 4), // Boşluk
+                              const SizedBox(height: 4),
                               // Kullanıcı tag'i
-                              Text(
-                                '@${userData.userName}',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 16, // Increased font size
-                                ),
+                              FontWidget(
+                                text: '@${userData.userName}',
+                                styleType: TextStyleType.bodyMedium,
+                                color: Colors.white.withOpacity(0.7),
                               ),
                             ],
                           ),
@@ -368,14 +397,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        FontWidget(
                           // Title aligned left
-                          'Haftalık Performans',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18, // Slightly larger
-                            fontWeight: FontWeight.bold,
-                          ),
+                          text: 'Haftalık Performans',
+                          styleType: TextStyleType.titleMedium,
+                          color: Colors.white,
                         ),
                         const SizedBox(height: 16),
 
@@ -685,13 +711,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Son Yarışlar',
-                              style: TextStyle(
-                                fontSize: 18, // Match performance title size
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                            FontWidget(
+                              text: 'Son Yarışlar',
+                              styleType: TextStyleType.titleMedium,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                             TextButton(
                               onPressed: () {
@@ -719,9 +743,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 visualDensity:
                                     VisualDensity.compact, // Make it tighter
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Tümünü Gör', // Changed text slightly
-                                style: TextStyle(
+                                style: GoogleFonts.bangers(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -747,9 +771,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 30),
                                     alignment: Alignment.center,
-                                    child: const Text(
+                                    child: Text(
                                       'Henüz yarış kaydınız bulunmuyor.',
-                                      style: TextStyle(
+                                      style: GoogleFonts.bangers(
                                           color: Colors.white54, fontSize: 14),
                                     ),
                                   );
@@ -757,175 +781,160 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                                 // Display the 3 most recent races
                                 return Column(
-                                  children: races.take(3).map((race) {
+                                  children: races.take(3).map((raceData) {
                                     final startTime =
-                                        DateTime.parse(race['startTime']);
-                                    // Format date as: 28 Mar, 2025 - 20:51
+                                        DateTime.parse(raceData['startTime']);
                                     final formattedDate =
                                         '${startTime.day} ${_getMonthName(startTime.month)}, ${startTime.year} - ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
-                                    final distanceStr = race['distancekm']
-                                        ?.toStringAsFixed(
-                                            2); // Keep 2 decimal places for KM
-                                    final stepsStr =
-                                        race['steps']?.toString() ??
-                                            '0'; // Handle null steps
+
+                                    final distanceKm =
+                                        raceData['distancekm'] as num?;
+                                    final distanceStr = distanceKm != null
+                                        ? distanceKm.toStringAsFixed(2)
+                                        : '0.00';
+
+                                    final steps = raceData['steps'] as int?;
+                                    final stepsStr = steps?.toString() ?? '0';
+
+                                    final calories =
+                                        raceData['calories'] as num?;
+                                    final caloriesStr =
+                                        calories?.toInt().toString() ?? '0';
+
                                     final isIndoor =
-                                        race['roomType'] == 'indoor';
-                                    final rank = race['rank'];
+                                        raceData['roomType'] == 'indoor';
+                                    String distanceTextForCard;
+                                    if (isIndoor &&
+                                        userHeightCm != null &&
+                                        userHeightCm > 0 &&
+                                        steps != null) {
+                                      final double stepLengthMeters =
+                                          userHeightCm * 0.00414;
+                                      final double estimatedDistanceKm =
+                                          (steps * stepLengthMeters) / 1000.0;
+                                      distanceTextForCard =
+                                          ' ~${estimatedDistanceKm.toStringAsFixed(2)} km';
+                                    } else {
+                                      distanceTextForCard = '$distanceStr km';
+                                    }
+
+                                    final rank = raceData['rank'] as int?;
                                     String rankText = '-';
                                     if (rank != null && rank > 0) {
-                                      rankText = '$rank. Sıra';
-                                    }
-                                    String estimatedIndoorDistanceText = '';
-                                    if (isIndoor) {
-                                      final int currentSteps =
-                                          int.tryParse(stepsStr) ?? 0;
-                                      if (userHeightCm != null &&
-                                          userHeightCm > 0 &&
-                                          currentSteps > 0) {
-                                        final double stepLengthMeters =
-                                            userHeightCm * 0.00414;
-                                        final double estimatedDistanceKm =
-                                            (currentSteps * stepLengthMeters) /
-                                                1000.0;
-                                        estimatedIndoorDistanceText =
-                                            ' ~${estimatedDistanceKm.toStringAsFixed(2)} km';
-                                      }
+                                      rankText = '$rank.Sıra';
                                     }
 
                                     return Container(
-                                      margin: const EdgeInsets.only(
-                                          bottom: 10), // Spacing between items
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 12),
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
                                         color: const Color(
-                                            0xFF2A2A2A), // Darker item background
-                                        borderRadius: BorderRadius.circular(12),
+                                            0xFF2A2A2A), // Dark card background from image
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
-                                          // Icon
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF93C53E)
-                                                  .withOpacity(
-                                                      0.15), // Subtle green background
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              isIndoor
-                                                  ? Icons
-                                                      .directions_run // Running icon for indoor
-                                                  : Icons
-                                                      .terrain_outlined, // Mountain icon for outdoor
-                                              color: const Color(0xFF93C53E),
-                                              size: 22,
-                                            ),
+                                          Image.asset(
+                                            isIndoor
+                                                ? _treadmillImage
+                                                : _outdoorImage,
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.contain,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              return Container(
+                                                width: 80,
+                                                height: 80,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade800,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Icon(
+                                                  isIndoor
+                                                      ? Icons.fitness_center
+                                                      : Icons.terrain,
+                                                  color: Colors.white54,
+                                                  size: 40,
+                                                ),
+                                              );
+                                            },
                                           ),
-                                          const SizedBox(width: 12),
-                                          // Middle section (Type, Date)
+                                          const SizedBox(width: 16),
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
                                               children: [
-                                                Text(
-                                                  isIndoor
-                                                      ? 'İç Mekan'
-                                                      : 'Dış Mekan',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      isIndoor
+                                                          ? 'İç Mekan'
+                                                          : 'Dış Mekan',
+                                                      style:
+                                                          GoogleFonts.bangers(
+                                                        color: Colors.white,
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      rankText,
+                                                      style:
+                                                          GoogleFonts.bangers(
+                                                        color: Colors.white,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  formattedDate, // Use the new format
-                                                  style: TextStyle(
-                                                    fontSize:
-                                                        12, // Smaller date font
+                                                  formattedDate,
+                                                  style: GoogleFonts.bangers(
                                                     color: Colors.white
-                                                        .withOpacity(
-                                                            0.6), // Dimmer date
+                                                        .withOpacity(0.7),
+                                                    fontSize: 12,
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 12),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  children: [
+                                                    _buildNewRaceMetricItem(
+                                                      assetPath: _flameIcon,
+                                                      valueText:
+                                                          '$caloriesStr kcal',
+                                                    ),
+                                                    const SizedBox(width: 20),
+                                                    _buildNewRaceMetricItem(
+                                                      assetPath: _locationIcon,
+                                                      valueText:
+                                                          distanceTextForCard,
+                                                    ),
+                                                    const SizedBox(width: 20),
+                                                    _buildNewRaceMetricItem(
+                                                      assetPath: _stepsIcon,
+                                                      valueText:
+                                                          stepsStr, // As per image, no "steps" unit
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          // Right section (Rank, Distance/Steps, Calories)
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                rankText, // Display rank text
-                                                style: TextStyle(
-                                                  color: Colors.white
-                                                      .withOpacity(0.8),
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                  height:
-                                                      6), // Metrikler için biraz daha boşluk
-
-                                              // Dış Mekan ise Mesafeyi Göster
-                                              if (!isIndoor)
-                                                _buildRaceMetricItem(
-                                                    Icons
-                                                        .directions_run_outlined,
-                                                    '$distanceStr km',
-                                                    Colors.blueAccent),
-                                              // İç Mekan ise Tahmini Mesafeyi Göster
-                                              if (isIndoor &&
-                                                  estimatedIndoorDistanceText
-                                                      .isNotEmpty)
-                                                Padding(
-                                                  padding: EdgeInsets.only(
-                                                      top: !isIndoor ? 0 : 0,
-                                                      bottom: isIndoor ? 2 : 0),
-                                                  child: _buildRaceMetricItem(
-                                                      Icons.alt_route,
-                                                      estimatedIndoorDistanceText
-                                                          .replaceFirst(
-                                                              ' ~ ', '~ '),
-                                                      Colors.purpleAccent),
-                                                ),
-
-                                              // Adım Sayısını her zaman göster (mesafe altına veya tek başına)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    top: 2.0),
-                                                child: _buildRaceMetricItem(
-                                                    Icons
-                                                        .directions_walk_outlined,
-                                                    '$stepsStr Adım',
-                                                    Colors.greenAccent),
-                                              ),
-
-                                              // Kalori (varsa göster)
-                                              if (race['calories'] != null &&
-                                                  race['calories'] > 0) ...[
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          top: 2.0),
-                                                  child: _buildRaceMetricItem(
-                                                      Icons
-                                                          .local_fire_department_outlined,
-                                                      '${race['calories']} kcal',
-                                                      Colors.orangeAccent),
-                                                ),
-                                              ],
-                                            ],
                                           ),
                                         ],
                                       ),
@@ -949,7 +958,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       vertical: 30.0),
                                   child: Text(
                                     'Yarışlar yüklenemedi.', // Simpler error message
-                                    style: const TextStyle(
+                                    style: GoogleFonts.bangers(
                                         color: Colors.redAccent),
                                   ),
                                 ),
@@ -989,19 +998,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildFilterButton(String typeKey, bool isSelected) {
-    String buttonText;
+    Widget buttonText;
     switch (typeKey.toLowerCase()) {
       case 'indoor':
-        buttonText = 'İç Mekan';
+        buttonText = FontWidget(
+          text: 'İç Mekan',
+          styleType: TextStyleType.bodyLarge,
+        );
         break;
       case 'outdoor':
-        buttonText = 'Dış Mekan';
+        buttonText = FontWidget(
+          text: 'Dış Mekan',
+          styleType: TextStyleType.bodyLarge,
+        );
         break;
       case 'record':
-        buttonText = 'Kayıt'; // Assuming 'Record' maps to 'Kayıt'
+        buttonText = FontWidget(
+          text: 'Kayıt',
+          styleType: TextStyleType.bodyLarge,
+        );
         break;
       default:
-        buttonText = typeKey;
+        buttonText = FontWidget(
+          text: typeKey,
+          styleType: TextStyleType.bodyLarge,
+        );
     }
 
     return GestureDetector(
@@ -1015,17 +1036,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               : const Color(0xFF3A3A3A), // Updated colors
           borderRadius: BorderRadius.circular(20), // More rounded corners
         ),
-        child: Text(
-          buttonText,
-          style: TextStyle(
-            color: isSelected
-                ? Colors.black
-                : Colors.white, // Black text on selected
-            fontSize: 14, // Slightly larger text
-            fontWeight:
-                isSelected ? FontWeight.bold : FontWeight.w500, // Adjust weight
-          ),
-        ),
+        child: buttonText,
       ),
     );
   }
@@ -1058,7 +1069,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return streakAsync.when(
           data: (streakCount) {
             return _buildStatIcon(
-              icon: Icons.local_fire_department_outlined, // Use outlined icon
+              //icon: Icons.local_fire_department_outlined, // Use outlined icon
+              iconWidget: Image.asset(
+                'assets/icons/alev.png',
+                width: 24,
+                height: 24,
+              ),
               value: streakCount.toString(),
               label: 'Günlük Seri',
               iconColor:
@@ -1081,15 +1097,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           color: Colors.white54, strokeWidth: 2),
                     )),
                 const SizedBox(height: 8),
-                const Text('',
-                    style: TextStyle(
+                Text('',
+                    style: GoogleFonts.bangers(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors
                             .transparent)), // Placeholder for value alignment
                 const SizedBox(height: 4),
                 Text('Günlük Seri',
-                    style: TextStyle(
+                    style: GoogleFonts.bangers(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 12,
                         fontWeight: FontWeight.w500)),
@@ -1113,6 +1129,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildStatIcon({
     IconData? icon,
     Widget? iconWidget,
+    TextStyle? style,
     required String value,
     required String label,
     required Color iconColor,
@@ -1139,7 +1156,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
+            style: GoogleFonts.bangers(
               color: Colors.white,
               fontSize: 18, // Slightly smaller value text
               fontWeight: FontWeight.bold,
@@ -1148,7 +1165,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
+            style: GoogleFonts.bangers(
               color: Colors.white.withOpacity(0.7),
               fontSize: 12, // Standard label size
               fontWeight: FontWeight.w500,
@@ -1181,18 +1198,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildStatIcon(
-              icon: Icons.home_outlined, // Use outlined icon
+              iconWidget: Image.asset(
+                'assets/icons/indoor.png',
+                width: 24,
+                height: 24,
+              ),
               value: userRanks?.indoorRank.toString() ?? "-",
-              label: 'İç', // Label from image
+              label: 'İç Mekan', // Label from image
               iconColor: const Color(0xFF93C53E), // Green icon
               backgroundColor:
                   const Color(0xFF93C53E).withOpacity(0.15), // Green background
             ),
             _buildStatIcon(
-              icon: Icons
-                  .terrain_outlined, // Use outlined icon (closer to mountain)
+              iconWidget: Image.asset(
+                'assets/icons/outdoor.png',
+                width: 24,
+                height: 24,
+              ),
               value: userRanks?.outdoorRank.toString() ?? "-",
-              label: 'Dış', // Label from image
+              label: 'Dış Mekan', // Label from image
               iconColor: const Color(0xFF93C53E), // Green icon
               backgroundColor:
                   const Color(0xFF93C53E).withOpacity(0.15), // Green background
@@ -1228,39 +1252,62 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // Determine the value and label for the middle stat based on activeType
     final String middleValue;
     final String middleLabel;
-    final IconData middleIcon;
+    final IconData? middleIcon;
+    Widget? middleIconImage;
 
     if (_activeType == 'indoor') {
       middleValue = '${estimatedKm.toStringAsFixed(2)} km';
       middleLabel = 'Tahmini Mesafe';
-      middleIcon = Icons.timeline; // Or Icons.straighten
+      middleIconImage = Image.asset(
+        'assets/icons/location.png',
+        width: 24,
+        height: 24,
+      ); // Or Icons.straighten
     } else {
       // Outdoor or Record
       middleValue = '${totalDistanceKm.toStringAsFixed(2)} km';
       middleLabel = 'Toplam Mesafe';
-      middleIcon = Icons.route_outlined; // Route icon for outdoor distance
+      middleIconImage = Image.asset(
+        'assets/icons/location.png',
+        width: 24,
+        height: 24,
+      ); // Or Icons.straighten
     }
 
     return Padding(
       padding: const EdgeInsets.symmetric(
           horizontal: 16.0, vertical: 10.0), // Add vertical padding
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment:
+            MainAxisAlignment.spaceBetween, // Distribute space equally
         children: [
-          _buildSummaryStatItem(
-            icon: Icons.directions_run,
+          _buildStatIcon(
+            iconWidget: Image.asset(
+              'assets/icons/steps.png',
+              width: 24,
+              height: 24,
+            ),
             value: totalSteps.toString(),
             label: 'Toplam Adım',
+            style: GoogleFonts.bangers(
+                color: Colors.white,
+                fontSize: 18, // Slightly larger
+                fontWeight: FontWeight.bold),
             iconColor: const Color(0xFF93C53E),
           ),
-          _buildSummaryStatItem(
-            icon: middleIcon, // Use dynamic icon
+          _buildStatIcon(
+            iconWidget: middleIconImage, // Use dynamic icon
             value: middleValue, // Use dynamic value
             label: middleLabel, // Use dynamic label
             iconColor: const Color(0xFF93C53E),
           ),
-          _buildSummaryStatItem(
-            icon: Icons.local_fire_department_outlined,
+          _buildStatIcon(
+            //icon: Icons.local_fire_department_outlined,
+            iconWidget: Image.asset(
+              'assets/icons/alev.png',
+              width: 24,
+              height: 24,
+            ),
             value: '$totalCalories kcal',
             label: 'Toplam Kalori',
             iconColor: const Color(0xFFFFA000), // Orange for calories
@@ -1284,7 +1331,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(
+          style: GoogleFonts.bangers(
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -1293,7 +1340,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.bangers(
             color: Colors.white.withOpacity(0.7),
             fontSize: 12,
           ),
@@ -1302,27 +1349,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  // Yardımcı metod: Yarış metriklerini satır olarak oluşturur
-  Widget _buildRaceMetricItem(
-      IconData icon, String text, Color iconColorToIgnore,
-      {double iconSize = 14, double textSize = 12}) {
-    return Row(
-      mainAxisSize:
-          MainAxisSize.min, // Row'un içeriği kadar yer kaplamasını sağlar
-      mainAxisAlignment: MainAxisAlignment.end, // Sağa yaslar
-      children: [
-        Icon(icon,
-            color: Colors.white, size: iconSize), // İkon rengi her zaman beyaz
-        const SizedBox(width: 5), // İkon ve metin arası boşluk
-        Text(
-          text,
-          style: TextStyle(
-              color: Colors.white,
-              fontSize: textSize,
-              fontWeight: FontWeight.w500), // Metin rengi her zaman beyaz
-        ),
-      ],
-    );
+  void onProfilePhotoChange() async {
+    if (Platform.isIOS) {
+      await _checkAndRequestCameraPermission();
+    }
+    // Proceed with photo change if permission is granted
+  }
+
+  Future<void> _checkAndRequestCameraPermission() async {
+    final status = await Permission.camera.status;
+    if (!status.isGranted) {
+      final result = await Permission.camera.request();
+      if (result.isGranted) {
+        // Camera permission granted
+      } else {
+        // Camera permission denied
+      }
+    }
   }
 }
 
@@ -1346,23 +1389,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
   Future<void> _selectAndUploadProfileImage(
       BuildContext context, WidgetRef ref) async {
     try {
-      final source = await showDialog<ImageSource>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Profil Fotoğrafı'),
-          content: const Text('Fotoğraf kaynağını seçin'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, ImageSource.gallery),
-              child: const Text('Galeri'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, ImageSource.camera),
-              child: const Text('Kamera'),
-            ),
-          ],
-        ),
-      );
+      final source = await _showImageSourceDialog(context);
 
       if (source == null) return;
 
@@ -1436,8 +1463,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse(
-          'http://movliq.mehmetalicakir.tr:5000/api/User/upload-profile-picture'),
+      Uri.parse('https://backend.movliq.com/api/User/upload-profile-picture'),
     );
 
     request.headers.addAll({
@@ -1480,19 +1506,36 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
 
         // Get the latest user data, falling back to initial widget data if needed
         final UserDataModel currentUserData = userDataAsync.maybeWhen(
-          data: (userData) => userData ?? widget.userData,
+          data: (userDataFromProvider) =>
+              userDataFromProvider ??
+              widget.userData, // Use provider data if available
           orElse: () => widget.userData,
         );
 
         final profileUrl = currentUserData.profilePictureUrl;
+        final gender =
+            currentUserData.gender; // Get gender from currentUserData
+
+        // Define default asset paths
+        const String defaultManPhoto = 'assets/images/defaultmanphoto.png';
+        const String defaultWomanPhoto =
+            'assets/images/defaultwomenphoto.png'; // Make sure asset name is correct
+
+        String selectedDefaultImageAsset;
+        if (gender?.toLowerCase() == 'female') {
+          selectedDefaultImageAsset = defaultWomanPhoto;
+        } else {
+          selectedDefaultImageAsset =
+              defaultManPhoto; // Default to man if gender is male, null, or other
+        }
 
         // Determine the image provider
         final ImageProvider imageProvider = _localImageFile != null
             ? FileImage(_localImageFile!) // Show local file if selected
             : (profileUrl != null && profileUrl.isNotEmpty
                 ? NetworkImage(profileUrl) // Use NetworkImage directly
-                : const AssetImage(
-                    'assets/images/runningman.png')); // Fallback asset
+                : AssetImage(
+                    selectedDefaultImageAsset)); // Use gender-specific fallback asset
 
         const double imageSize = 100; // Increased size
         const double cameraIconSize = 30; // Size of the camera icon circle
@@ -1527,7 +1570,6 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                   backgroundImage: imageProvider,
                   onBackgroundImageError: (exception, stackTrace) {
                     // Handle background image error if needed, though errorBuilder is primary
-                    debugPrint("BackgroundImage Error: $exception");
                   },
                   child: _isUploading
                       ? Container(
@@ -1548,58 +1590,6 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                           ),
                         )
                       : null, // No child when not uploading
-                  // Fallback for when backgroundImage fails (e.g., invalid URL, network issue)
-                  // Note: This might not be reached if AssetImage is the fallback in imageProvider
-                  // Consider using a custom Image widget inside if more control is needed.
-                  // Example using Image.network with errorBuilder (more robust):
-                  /*
-                     child: ClipOval(
-                       child: Image(
-                         image: imageProvider,
-                         key: _imageKey, // Key for Image widget if used directly
-                         width: imageSize,
-                         height: imageSize,
-                         fit: BoxFit.cover,
-                         gaplessPlayback: true, // Prevents flicker on image update
-                         errorBuilder: (context, error, stackTrace) {
-                           debugPrint('Profile image load error: $error');
-                           return Container( // Fallback placeholder
-                             width: imageSize,
-                             height: imageSize,
-                             decoration: BoxDecoration(
-                               shape: BoxShape.circle,
-                               color: Colors.grey.shade700, // Darker placeholder
-                             ),
-                             child: Icon(
-                               Icons.person_outline, // Outlined icon
-                               color: Colors.white70,
-                               size: imageSize * 0.6, // Adjust icon size relative to circle
-                             ),
-                           );
-                         },
-                         loadingBuilder: (context, child, loadingProgress) {
-                           if (loadingProgress == null) return child; // Image loaded
-                           return Container( // Placeholder during loading
-                             width: imageSize,
-                             height: imageSize,
-                             decoration: BoxDecoration(
-                               shape: BoxShape.circle,
-                               color: Colors.grey.shade800,
-                             ),
-                             child: Center(
-                               child: CircularProgressIndicator(
-                                 value: loadingProgress.expectedTotalBytes != null
-                                     ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                     : null,
-                                 color: const Color(0xFF93C53E),
-                                 strokeWidth: 2,
-                               ),
-                             ),
-                           );
-                         },
-                       ),
-                     ),
-                     */
                 ),
               ),
               // Camera Icon (Styled as per image)
@@ -1630,6 +1620,45 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
           ),
         );
       },
+    );
+  }
+
+  Future<ImageSource?> _showImageSourceDialog(BuildContext context) {
+    return showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E), // Dark background for dialog
+        title: FontWidget(
+          text: 'Profil Fotoğrafı',
+          styleType: TextStyleType.titleMedium,
+          color: Colors.white, // Explicitly white
+          fontWeight: FontWeight.bold,
+        ),
+        content: FontWidget(
+          text: 'Fotoğraf kaynağını seçin',
+          styleType: TextStyleType.bodyMedium,
+          color: Colors.white70, // Explicitly white70 for content
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            child: FontWidget(
+              text: 'Galeri',
+              styleType: TextStyleType.labelLarge, // Button text
+              color: const Color(0xFFC4FF62), // Accent color for actions
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+            child: FontWidget(
+              text: 'Kamera',
+              styleType: TextStyleType.labelLarge, // Button text
+              color: const Color(0xFFC4FF62), // Accent color for actions
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }

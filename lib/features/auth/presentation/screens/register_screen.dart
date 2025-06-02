@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../widgets/auth_text_field.dart';
 import '../../presentation/providers/auth_provider.dart';
 import 'welcome_screen.dart';
 import 'package:flutter/services.dart';
 import 'login_input_screen.dart';
+import '../widgets/error_display_widget.dart';
+import '../widgets/font_widget.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -31,48 +32,37 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarDividerColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
-      statusBarIconBrightness: Brightness.light,
-    ));
+    const Color primaryColor = Color(0xFF7BB027);
+    const Color textFieldBackgroundColor = Color(0xFF333333);
+    const Color hintTextColor = Color(0xFFBDBDBD);
+    const Color textColor = Colors.white;
+    const Color buttonColor = Color(0xFFC4FF62);
+    const Color buttonTextColor = Colors.black;
 
     ref.listen(authProvider, (previous, next) {
       next.whenOrNull(
-        loading: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Hesap oluşturuluyor...')),
-          );
-        },
+        loading: () {},
         error: (error, _) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Hata: ${error.toString()}')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: ErrorDisplayWidget(errorObject: error),
+              ),
+            );
+          }
         },
         data: (token) {
           if (token != null) {
-            print('Registration successful! Token: $token');
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (context) => const WelcomeScreen(),
               ),
             );
-          } else {
-            print("register failed");
-          }
+          } else {}
         },
       );
     });
-
-    const Color primaryColor = Color(0xFF7BB027);
-    const Color textFieldBackgroundColor = Color(0xFF333333);
-    const Color hintTextColor = Color(0xFFBDBDBD);
-    const Color textColor = Colors.white;
-    const Color buttonColor = Color(0xFFC4FF62);
 
     return Scaffold(
       backgroundColor: primaryColor,
@@ -102,14 +92,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
-                  const SizedBox(height: 30),
-                  const Text(
-                    'Yeni Hesap Oluştur',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  const SizedBox(height: 10),
+                  FontWidget(
+                    text: 'Yeni Hesap Oluştur',
+                    styleType: TextStyleType.titleLarge,
+                    color: textColor,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
                     textAlign: TextAlign.left,
                   ),
                   const SizedBox(height: 20),
@@ -120,13 +109,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 40),
                   TextFormField(
                     controller: _emailController,
-                    style: const TextStyle(color: textColor),
+                    style: const TextStyle(
+                      color: textColor,
+                      fontSize: 16,
+                    ),
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'E-posta Adresi',
-                      hintStyle: const TextStyle(color: hintTextColor),
+                      hintStyle:
+                          const TextStyle(color: hintTextColor, fontSize: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -147,13 +140,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
-                    style: const TextStyle(color: textColor),
+                    style: const TextStyle(
+                      color: textColor,
+                      fontSize: 16,
+                    ),
                     obscureText: _obscurePassword1,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'Parola Oluştur',
-                      hintStyle: const TextStyle(color: hintTextColor),
+                      hintStyle:
+                          const TextStyle(color: hintTextColor, fontSize: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -178,22 +175,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       if (value?.isEmpty ?? true) {
                         return 'Lütfen bir parola oluşturun';
                       }
-                      if (value!.length < 6) {
-                        return 'Parola en az 6 karakter olmalı';
+                      if (value!.length < 8) {
+                        return 'Parola en az 8 karakter olmalı';
+                      }
+                      if (!RegExp(r'(?=.*[A-Z])').hasMatch(value)) {
+                        return 'Parola en az bir büyük harf içermeli';
+                      }
+                      if (!RegExp(r'(?=.*[a-z])').hasMatch(value)) {
+                        return 'Parola en az bir küçük harf içermeli';
+                      }
+                      if (!RegExp(r'(?=.*[0-9])').hasMatch(value)) {
+                        return 'Parola en az bir rakam içermeli';
                       }
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  FontWidget(
+                    text:
+                        ' Parola en az 8 karakter, büyük harf, küçük harf ve rakam içermelidir.',
+                    styleType: TextStyleType.bodySmall,
+                    color: textColor.withOpacity(0.7),
+                    fontSize: 12,
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _confirmPasswordController,
-                    style: const TextStyle(color: textColor),
+                    style: const TextStyle(
+                      color: textColor,
+                      fontSize: 16,
+                    ),
                     obscureText: _obscurePassword2,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color.fromARGB(195, 0, 0, 0),
                       hintText: 'Parolayı Tekrarla',
-                      hintStyle: const TextStyle(color: hintTextColor),
+                      hintStyle:
+                          const TextStyle(color: hintTextColor, fontSize: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -228,13 +246,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: buttonColor,
-                      foregroundColor: Colors.black,
+                      foregroundColor: buttonTextColor,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     onPressed: () {
                       if (_formKey.currentState?.validate() ?? false) {
@@ -244,15 +260,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             );
                       }
                     },
-                    child: const Text('Hesabımı Oluştur'),
+                    child: ref.watch(authProvider).maybeWhen(
+                          loading: () => const CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.black),
+                          ),
+                          orElse: () => FontWidget(
+                            text: 'Hesabımı Oluştur',
+                            styleType: TextStyleType.bodyLarge,
+                            color: buttonTextColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                   ),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        'Zaten bir hesabın var mı? ',
-                        style: TextStyle(color: textColor, fontSize: 14),
+                      FontWidget(
+                        text: 'Zaten bir hesabın var mı? ',
+                        styleType: TextStyleType.bodyMedium,
+                        color: textColor,
                       ),
                       TextButton(
                         onPressed: () {
@@ -267,13 +295,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
-                          'Giriş Yap',
-                          style: TextStyle(
-                            color: buttonColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: FontWidget(
+                          text: 'Giriş Yap',
+                          styleType: TextStyleType.bodyMedium,
+                          color: buttonColor,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],

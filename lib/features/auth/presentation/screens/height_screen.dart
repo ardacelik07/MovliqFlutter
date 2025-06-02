@@ -4,6 +4,8 @@ import 'package:flutter/services.dart'; // Import services
 
 import 'weight_screen.dart';
 import '../providers/user_profile_provider.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 class HeightScreen extends ConsumerStatefulWidget {
   const HeightScreen({super.key});
@@ -23,20 +25,13 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
 
   // Define colors at class level
   static const Color primaryColor = Color(0xFF7BB027);
-  static const Color darkGreenColor = Color(0xFF476C17);
-  static const Color inputBgColor =
-      Color.fromARGB(255, 235, 235, 235); // Light greyish white
+
   static const Color labelColor =
       Color.fromARGB(255, 222, 222, 222); // Light label color
-  static const Color inputTextColor = Colors.black;
+
   static const Color unitLabelColor =
       Color.fromARGB(255, 222, 222, 222); // Light color for ft/in/cm labels
-  static const Color chipSelectedColor =
-      Color(0xFFC4FF62); // Bright green for selected chip
-  static const Color chipUnselectedColor =
-      Color.fromARGB(255, 235, 235, 235); // Light grey for unselected
-  static const Color chipSelectedTextColor = Colors.black;
-  static const Color chipUnselectedTextColor = Colors.black54;
+
   static const Color buttonTextColor = Color(0xFF9FD545);
 
   @override
@@ -53,13 +48,6 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Enable edge-to-edge
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-    ));
-
     return Scaffold(
       backgroundColor: primaryColor,
       body: Container(
@@ -86,19 +74,18 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                   SizedBox(height: MediaQuery.of(context).padding.top + 20),
                   // Image
                   Image.asset(
-                    'assets/images/uzunluk.png',
+                    'assets/images/height.png',
                     height: MediaQuery.of(context).size.height * 0.4,
                   ),
                   const SizedBox(height: 30),
 
                   // Title
-                  const Text(
-                    "What's your height?",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: labelColor,
-                    ),
+                  FontWidget(
+                    text: "Boyunuz nedir?",
+                    styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
@@ -109,7 +96,8 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 120, // Width for cm input
+                        width: 120,
+                        height: 120, // Width for cm input
                         child: TextFormField(
                           controller: _cmController, // Use cm controller
                           textAlign: TextAlign.center,
@@ -117,11 +105,23 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly
                           ],
-                          style: const TextStyle(
+                          style: TextStyle(
+                              // Use TextStyle for TextFormField style
+                              fontFamily:
+                                  'Bangers', // Match FontWidget's Bangers style
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Color.fromARGB(255, 255, 255, 255)),
-                          decoration: _inputDecoration(),
+                          decoration: _inputDecoration().copyWith(
+                            suffixText: 'cm',
+                            suffixStyle: TextStyle(
+                              // Use TextStyle for suffixStyle
+                              fontFamily:
+                                  'Bangers', // Match FontWidget's Bangers style
+                              color: unitLabelColor,
+                              fontSize: 16,
+                            ),
+                          ),
                           validator: (value) {
                             if (value?.isEmpty ?? true)
                               return ''; // Use form level validation
@@ -131,12 +131,6 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                             return null;
                           },
                         ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8.0),
-                        child: Text('cm',
-                            style:
-                                TextStyle(color: unitLabelColor, fontSize: 16)),
                       ),
                     ],
                   ),
@@ -198,7 +192,7 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                               height: heightInCm,
                             );
 
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (context) => const WeightScreen()),
@@ -211,7 +205,12 @@ class _HeightScreenState extends ConsumerState<HeightScreen> {
                         );
                       }
                     },
-                    child: const Text('Devam Et'),
+                    child: FontWidget(
+                        text: 'Devam Et',
+                        styleType: TextStyleType.labelLarge,
+                        color: buttonTextColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
                   ),
                   SizedBox(
                       height: MediaQuery.of(context).padding.bottom +

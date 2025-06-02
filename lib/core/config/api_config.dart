@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'http://movliq.mehmetalicakir.tr:5000/api';
+  static const String baseUrl = 'https://backend.movliq.com/api';
   //static const String baseUrl = 'http://10.0.2.2:8080/api';
   //static const String baseUrl = 'http://192.168.1.106:8080/api';
 
@@ -49,9 +49,24 @@ class ApiConfig {
   static const String matchPrivateRoomEndpoint =
       '$baseUrl/RaceRoom/match-room-private';
 
+  // Endpoint for starting a created race room
+  static const String startCreatedRoomEndpoint = '$baseUrl/RaceRoom/start-race';
+
+  // Endpoint for creating a custom race room
+  static const String createRaceRoomEndpoint =
+      '$baseUrl/RaceRoom/create-custom-room';
+
+  // Endpoint for joining a race room with a code
+  static const String joinRoomWithCodeEndpoint =
+      '$baseUrl/RaceRoom/join-room-with-code';
+
   // Coin kazanma endpoint'i
   static const String userRecordEarnCoinEndpoint =
       '$baseUrl/UserResults/user-record-earn-coin';
+
+  // Endpoint to increment product traffic
+  static String incrementProductTrafficEndpoint(int productId) =>
+      '$baseUrl/Products/$productId/increment-traffic';
 
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',

@@ -13,9 +13,11 @@ import 'package:my_flutter_project/features/auth/presentation/providers/product_
 import 'package:my_flutter_project/features/auth/presentation/providers/user_data_provider.dart'; // UserDataProvider eklendi
 import './product_view_screen.dart'; // ProductViewScreen import edildi
 // Add imports for NetworkErrorWidget and specific exceptions
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
 import '../widgets/network_error_widget.dart';
 import 'package:http/http.dart' show ClientException; // Specific import
 import 'dart:io' show SocketException; // Specific import
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
 
 // StoreScreen ConsumerStatefulWidget olarak değiştirildi
 class StoreScreen extends ConsumerStatefulWidget {
@@ -76,6 +78,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
         ref.watch(userDataProvider);
 
     return Scaffold(
+      key: _refreshIndicatorKey,
       backgroundColor: darkBackground,
       // Wrap the main content area with productsAsync.when
       body: productsAsync.when(
@@ -102,13 +105,13 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'Mağaza',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: lightTextColor,
-                                ),
+                              FontWidget(
+                                text: 'Mağaza',
+                                styleType: TextStyleType
+                                    .titleLarge, // Adjusted for Bangers
+
+                                fontWeight: FontWeight.bold,
+                                color: lightTextColor,
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -128,14 +131,15 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                     ),
                                     const SizedBox(width: 4),
                                     userDataAsync.when(
-                                      data: (userData) => Text(
-                                        userData?.coins?.toStringAsFixed(2) ??
+                                      data: (userData) => FontWidget(
+                                        text: userData?.coins
+                                                ?.toStringAsFixed(2) ??
                                             '0.00',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: lightTextColor,
-                                        ),
+                                        styleType: TextStyleType
+                                            .bodyLarge, // Adjusted for Bangers
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: lightTextColor,
                                       ),
                                       loading: () => const SizedBox(
                                         width: 25,
@@ -149,7 +153,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                         if (err is SocketException ||
                                             err is ClientException) {
                                           return const Tooltip(
-                                            message: 'Network Error',
+                                            message: 'Bağlantı hatası',
                                             child: Icon(
                                               Icons.signal_wifi_off_rounded,
                                               color: Colors.red,
@@ -174,13 +178,6 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            'Arda\'nın direttiği yazı burada yer alacak.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: greyTextColor,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -189,27 +186,32 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                     SizedBox(
                       height: 170, // Adjust height for the slider area
                       child: PageView.builder(
-                        controller:
-                            _pageController, // Use the defined controller
+                        controller: PageController(
+                            viewportFraction:
+                                1), // Shows parts of adjacent pages
                         padEnds: false, // Don't add padding at the ends
-                        itemCount: 3, // Placeholder count for demonstration
+                        itemCount: 1, // Placeholder count for demonstration
                         itemBuilder: (context, index) {
+                          // Define the image path based on the index
+                          final imagePaths = [
+                            'assets/images/storereward.png',
+                          ];
+                          // Use modulo in case itemCount changes later, although currently it's 3
+                          final imagePath =
+                              imagePaths[index % imagePaths.length];
+
                           return Container(
                             margin: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
+                                horizontal: 30.0,
                                 vertical:
-                                    8.0), // Add horizontal margin between cards
+                                    1.0), // Add horizontal margin between cards
+                            padding: const EdgeInsets.all(20.0),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20.0),
-                              // Apply gradient background from image
-                              gradient: LinearGradient(
-                                colors: [
-                                  limeGreen.withOpacity(
-                                      0.8), // Adjust opacity as needed
-                                  limeGreen.withOpacity(0.5),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                              image: DecorationImage(
+                                image: AssetImage(imagePath),
+                                fit: BoxFit
+                                    .fill, // Make image cover the container
                               ),
                               boxShadow: [
                                 BoxShadow(
@@ -219,13 +221,34 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                 ),
                               ],
                             ),
+                            child: Stack(
+                              children: [
+                                // NEW Tag (Only for the first item in this example)
+                                if (index == 0)
+                                  Positioned(
+                                    top: 0,
+                                    left: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  ),
+                                // Level Number (Placeholder - varies by index)
+
+                                // Progress Indicator (Placeholder - varies by index)
+                              ],
+                            ),
                           );
                         },
                       ),
                     ),
 
                     // Carousel Indicator Dots (remains the same)
-                    Center(
+                    /*Center(
                       child: Padding(
                         padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
                         child: SmoothPageIndicator(
@@ -242,6 +265,9 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                         ),
                       ),
                     ),
+                    */
+                    const SizedBox(height: 20),
+                    /*
 
                     // Special Offer Card (uses movliqProductAsync, NO specific error handling here)
                     movliqProductAsync.when(
@@ -257,6 +283,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                               ),
                             );
                           },
+                          
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 12),
                             padding:
@@ -272,6 +299,7 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                 ),
                               ],
                             ),
+                            
                             child: Row(
                               crossAxisAlignment:
                                   CrossAxisAlignment.start, // Align items top
@@ -291,13 +319,13 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                             chipSelectedBackground, // Lime green background
                                         borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: const Text(
-                                        'Bu Aya Özel',
-                                        style: TextStyle(
-                                          color: darkTextColor, // Black text
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
+                                      child: FontWidget(
+                                        text: 'Bu Aya Özel',
+                                        styleType: TextStyleType
+                                            .bodyMedium, // Adjusted for Bangers
+                                        color: darkTextColor, // Black text
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
                                       ),
                                     ),
                                     // Image
@@ -324,6 +352,8 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                     ),
                                   ],
                                 ),
+
+                               
                                 const SizedBox(
                                     width:
                                         12), // Reduced space between left and right columns
@@ -335,22 +365,20 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       // Product Title
-                                      Text(
-                                        product.name,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: lightTextColor,
-                                        ),
+                                      FontWidget(
+                                        text: product.name,
+                                        styleType: TextStyleType
+                                            .bodyLarge, // Adjusted for Bangers
+                                        fontWeight: FontWeight.bold,
+                                        color: lightTextColor,
                                       ),
                                       const SizedBox(height: 4),
                                       // Product Description
-                                      Text(
-                                        product.description,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: greyTextColor,
-                                        ),
+                                      FontWidget(
+                                        text: product.description,
+                                        styleType: TextStyleType
+                                            .bodyMedium, // Adjusted for Bangers
+                                        color: greyTextColor,
                                         maxLines: 3,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -364,14 +392,13 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                                         children: [
                                           Row(
                                             children: [
-                                              Text(
-                                                product.price
+                                              FontWidget(
+                                                text: product.price
                                                     .toStringAsFixed(0),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14,
-                                                  color: limeGreen,
-                                                ),
+                                                styleType: TextStyleType
+                                                    .bodyMedium, // Adjusted for Bangers
+                                                fontWeight: FontWeight.bold,
+                                                color: limeGreen,
                                               ),
                                               const SizedBox(width: 4),
                                               Image.asset(
@@ -411,28 +438,47 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                           color: cardBackground,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Center(
-                            child: Text('Özel ürün yüklenemedi.',
-                                style: TextStyle(color: Colors.redAccent))),
+                        child: Center(
+                            child: FontWidget(
+                                text: 'Özel ürün yüklenemedi.',
+                                styleType: TextStyleType
+                                    .bodyMedium, // Adjusted for Bangers
+                                color: Colors.redAccent)),
+                      ),
+                    ), */
+
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: FontWidget(
+                        text: 'Alışverİş',
+                        styleType:
+                            TextStyleType.titleSmall, // Adjusted for Bangers
+                        textAlign: TextAlign.center,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: lightTextColor,
                       ),
                     ),
 
-                    const SizedBox(height: 20),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Text(
-                        'Alışveriş',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
+                    const SizedBox(height: 40),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: FontWidget(
+                          text:
+                              '🎁 Çok Yakında: Kazandığın coin’lerle süper ödüllerin kilidini açmaya hazır mısın? Şimdilik yarış, kazan, biriktir. 🎯\nMağaza çok yakında açılıyor!',
+                          styleType:
+                              TextStyleType.titleSmall, // Adjusted for Bangers
+                          textAlign: TextAlign.center,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: lightTextColor,
+                          color: limeGreen,
                         ),
                       ),
                     ),
-
                     // Products Grid (uses products from the main data block)
-                    _buildProductGrid(products),
+                    //_buildProductGrid(products),
 
                     // Bottom padding
                     const SizedBox(height: 20),
@@ -475,11 +521,13 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
             : products.where((p) => p.category == 'All').toList();
 
     if (filteredProducts.isEmpty) {
-      return const Center(
+      return Center(
         heightFactor: 3.0,
-        child: Text(
-          'No products found in this category.',
-          style: TextStyle(color: lightTextColor, fontSize: 16),
+        child: FontWidget(
+          text: 'No products found in this category.',
+          styleType: TextStyleType.bodyLarge, // Adjusted for Bangers
+          color: lightTextColor,
+          fontSize: 16,
         ),
       );
     }
@@ -573,13 +621,11 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: lightTextColor,
-                  ),
+                FontWidget(
+                  text: title,
+                  styleType: TextStyleType.bodyMedium, // Adjusted for Bangers
+                  fontWeight: FontWeight.bold,
+                  color: lightTextColor,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -589,13 +635,12 @@ class StoreScreenState extends ConsumerState<StoreScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          price,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: limeGreen,
-                          ),
+                        FontWidget(
+                          text: price,
+                          styleType:
+                              TextStyleType.bodyMedium, // Adjusted for Bangers
+                          fontWeight: FontWeight.bold,
+                          color: limeGreen,
                         ),
                         const SizedBox(width: 4),
                         Image.asset(

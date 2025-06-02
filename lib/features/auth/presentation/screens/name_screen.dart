@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart'; // Import services
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 import '../providers/user_profile_provider.dart';
-
+import '../widgets/error_display_widget.dart';
 import 'age_gender_screen.dart';
 
 class NameScreen extends ConsumerStatefulWidget {
@@ -17,6 +19,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false; // Added isLoading state
 
   @override
   void dispose() {
@@ -27,13 +30,6 @@ class _NameScreenState extends ConsumerState<NameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Enable edge-to-edge
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-    ));
-
     // Define colors based on the image
     const Color primaryColor = Color(0xFF7BB027); // Green color from the image
     const Color darkGreenColor =
@@ -81,9 +77,12 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     controller: _nameController,
                     style: const TextStyle(color: inputColor),
                     decoration: InputDecoration(
-                      hintText: 'What is your name?',
-                      hintStyle:
-                          const TextStyle(color: labelColor, fontSize: 14),
+                      hintText: 'İsminiz nedir?',
+                      hintStyle: TextStyle(
+                        fontFamily: 'Bangers',
+                        color: labelColor,
+                        fontSize: 16,
+                      ),
                       filled: true,
                       fillColor: textFieldBgColor,
                       border: OutlineInputBorder(
@@ -95,7 +94,7 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     ),
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Please enter your name';
+                        return 'İsminizi giriniz';
                       }
                       return null;
                     },
@@ -106,9 +105,12 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     controller: _usernameController,
                     style: const TextStyle(color: inputColor),
                     decoration: InputDecoration(
-                      hintText: 'What is your prefer username?',
-                      hintStyle:
-                          const TextStyle(color: labelColor, fontSize: 14),
+                      hintText: 'Tercih ettiğiniz kullanıcı adı nedir?',
+                      hintStyle: TextStyle(
+                        fontFamily: 'Bangers',
+                        color: labelColor,
+                        fontSize: 14,
+                      ),
                       filled: true,
                       fillColor: textFieldBgColor,
                       border: OutlineInputBorder(
@@ -122,11 +124,11 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                     ),
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Please enter a username';
+                        return 'Kullanıcı adınızı giriniz';
                       }
                       // Basic username validation (no spaces, etc.) - enhance if needed
                       if (value!.contains(' ')) {
-                        return 'Username cannot contain spaces';
+                        return 'Kullanıcı adında boşluk olamaz';
                       }
                       return null;
                     },
@@ -147,29 +149,66 @@ class _NameScreenState extends ConsumerState<NameScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState?.validate() ?? false) {
-                        // Update user profile
-                        ref.read(userProfileProvider.notifier).updateProfile(
-                              name: _nameController.text.trim(),
-                              // Prepend @ if not already present, ensure no extra @
-                              username: _usernameController.text
-                                      .trim()
-                                      .startsWith('@')
-                                  ? _usernameController.text.trim()
-                                  : '${_usernameController.text.trim()}',
-                            );
+                    onPressed: _isLoading
+                        ? null
+                        : () async {
+                            if (_formKey.currentState?.validate() ?? false) {
+                              setState(() => _isLoading = true);
+                              final String name = _nameController.text.trim();
+                              final String username =
+                                  _usernameController.text.trim();
 
-                        // Navigate to next screen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AgeGenderScreen(),
-                          ),
-                        );
-                      }
-                    },
-                    child: const Text('Devam Et'),
+                              try {
+                                // Step 1: Validate and set username via the new API
+                                await ref
+                                    .read(userProfileProvider.notifier)
+                                    .validateAndSetUsername(username);
+
+                                // Step 2: Update the name locally in the profile model
+                                // (validateAndSetUsername already updated the username in _profile object of the notifier)
+                                ref
+                                    .read(userProfileProvider.notifier)
+                                    .updateProfile(name: name);
+
+                                // Step 3: Save the entire profile (name and validated username)
+                                // using the general /User/update-profile endpoint.
+                                await ref
+                                    .read(userProfileProvider.notifier)
+                                    .saveProfile();
+
+                                if (mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const AgeGenderScreen(),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(e
+                                            .toString()
+                                            .replaceFirst("Exception: ", ""))),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isLoading = false);
+                                }
+                              }
+                            }
+                          },
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const FontWidget(
+                            text: 'Devam Et',
+                            styleType: TextStyleType.labelLarge,
+                            color: buttonTextColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16),
                   ),
                   SizedBox(
                       height: MediaQuery.of(context).padding.bottom +

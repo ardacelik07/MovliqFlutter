@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../widgets/font_widget.dart';
 
 // HelpScreen'deki global fonksiyonu kullanabiliriz veya buraya taşıyabilir/import edebiliriz.
 // Şimdilik HelpScreen'deki tanımı varsayalım veya gerekirse buraya kopyalayalım.
@@ -29,8 +30,12 @@ class PrivacyPolicyScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: Text('Gizlilik Politikası',
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        title: FontWidget(
+          text: 'Gizlilik Politikası',
+          styleType: TextStyleType.labelLarge,
+          color: textColor,
+          fontWeight: FontWeight.bold,
+        ),
         backgroundColor: backgroundColor,
         elevation: 0,
         iconTheme: IconThemeData(color: accentColor),
@@ -44,9 +49,11 @@ class PrivacyPolicyScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Verileriniz bizim için önemli. İşte nasıl koruyoruz:',
-              style: TextStyle(color: secondaryTextColor, fontSize: 15),
+            FontWidget(
+              text: 'Verileriniz bizim için önemli. İşte nasıl koruyoruz:',
+              styleType: TextStyleType.labelLarge,
+              color: secondaryTextColor,
+              fontSize: 15,
             ),
             const SizedBox(height: 24),
 
@@ -106,18 +113,23 @@ class PrivacyPolicyScreen extends ConsumerWidget {
             ),
 
             const SizedBox(height: 32),
-            Text(
-              'Detaylı bilgi için lütfen bizimle iletişime geçin',
-              style: TextStyle(color: labelColor, fontSize: 14),
+            FontWidget(
+              text: 'Detaylı bilgi için lütfen bizimle iletişime geçin',
+              styleType: TextStyleType.labelLarge,
+              color: labelColor,
+              fontSize: 14,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _launchPolicyEmail, // E-posta fonksiyonunu çağır
               icon:
                   Icon(Icons.email_outlined, color: backgroundColor, size: 20),
-              label: Text('E-posta Gönder',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: backgroundColor)),
+              label: FontWidget(
+                text: 'E-posta Gönder',
+                styleType: TextStyleType.labelLarge,
+                fontWeight: FontWeight.bold,
+                color: backgroundColor,
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentColor,
                 foregroundColor: backgroundColor,
@@ -147,19 +159,19 @@ class PrivacyPolicyScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: titleColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
+        FontWidget(
+          text: title,
+          styleType: TextStyleType.labelLarge,
+          color: titleColor,
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
         ),
         const SizedBox(height: 8),
-        Text(
-          content,
-          style:
-              TextStyle(color: secondaryTextColor, fontSize: 15, height: 1.4),
+        FontWidget(
+          text: content,
+          styleType: TextStyleType.labelLarge,
+          color: secondaryTextColor,
+          fontSize: 15,
         ),
         if (bulletPoints != null && bulletPoints.isNotEmpty)
           Padding(
@@ -169,12 +181,11 @@ class PrivacyPolicyScreen extends ConsumerWidget {
               children: bulletPoints
                   .map((point) => Padding(
                         padding: const EdgeInsets.only(bottom: 4.0),
-                        child: Text(
-                          '• $point', // Madde işareti eklendi
-                          style: TextStyle(
-                              color: secondaryTextColor,
-                              fontSize: 15,
-                              height: 1.4),
+                        child: FontWidget(
+                          text: '• $point', // Madde işareti eklendi
+                          styleType: TextStyleType.labelLarge,
+                          color: secondaryTextColor,
+                          fontSize: 15,
                         ),
                       ))
                   .toList(),

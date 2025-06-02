@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/user_data_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class EarnCoinPopup extends ConsumerWidget {
   final double earnedCoin;
@@ -38,9 +39,9 @@ class EarnCoinPopup extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min, // Fit content vertically
           children: [
             // Title
-            const Text(
+            Text(
               'Tebrikler 🎉',
-              style: TextStyle(
+              style: GoogleFonts.bangers(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -66,7 +67,7 @@ class EarnCoinPopup extends ConsumerWidget {
             // Earned Coin Text - double'ı 2 ondalık basamakla göster
             Text(
               '+${earnedCoin.toStringAsFixed(2)} M-Coin\nKazandınız', // .toInt() yerine .toStringAsFixed(2) kullanıldı
-              style: const TextStyle(
+              style: GoogleFonts.bangers(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.white, // Or light green Color(0xFFC4FF62)?
@@ -77,9 +78,9 @@ class EarnCoinPopup extends ConsumerWidget {
             const SizedBox(height: 12),
 
             // Subtitle
-            const Text(
+            Text(
               'Daha fazla yarışa katıl daha çok kazan',
-              style: TextStyle(
+              style: GoogleFonts.bangers(
                 fontSize: 16,
                 color: Colors.grey,
               ),
@@ -100,12 +101,14 @@ class EarnCoinPopup extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25.0), // Rounded corners
                 ),
-                textStyle: const TextStyle(
+                textStyle: GoogleFonts.bangers(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              child: const Text('Ana Sayfaya Dön'),
+              child: Text('Ana Sayfaya Dön',
+                  style: GoogleFonts.bangers(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
             ),
 
             // Optional: Add the "Ödüller İncelemek İster Misin?" text if needed

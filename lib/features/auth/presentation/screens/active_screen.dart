@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out
+import '../widgets/font_widget.dart'; // Added FontWidget import
 
 import 'finish_screen.dart';
 import '../providers/user_profile_provider.dart';
@@ -44,48 +46,47 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
                 Image.asset(
                   'assets/images/activity.png',
-                  height: 300,
+                  height: 250,
                 ),
-                const SizedBox(height: 40),
-                const Text(
-                  "How active are you?",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    // Change text color to white to be visible on the dark gradient
-                    color: Colors.white,
-                  ),
+                const SizedBox(height: 20),
+                FontWidget(
+                  text: "Ne kadar aktif spor yapıyorsunuz?",
+                  styleType: TextStyleType.titleMedium, // Adjusted for Bangers
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  // Change text color to white to be visible on the dark gradient
+                  color: Colors.white,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
                 // Pass the context to update text colors in options
                 _buildActivityOption(
                   context,
-                  'Beginner',
-                  'Just getting started',
+                  'Yeni Başlayan',
+                  'Yeni adımlar atmaya hazırım,harekete geçmek istiyorum',
                   Icons.directions_walk,
                   'beginner',
                 ),
                 const SizedBox(height: 16),
                 _buildActivityOption(
                   context,
-                  'Intermediate',
-                  'Regular exercise',
+                  'Orta Seviye',
+                  'Zaman zaman spor yapıyorum, daha istikrarlı olmak istiyorum',
                   Icons.favorite,
                   'intermediate',
                 ),
                 const SizedBox(height: 16),
                 _buildActivityOption(
                   context,
-                  'Advanced',
-                  'Consistent training',
+                  'İleri Seviye',
+                  'Spor hayatımın bir parçası, her gün kendimi zorlamaya hazırım',
                   Icons.fitness_center,
                   'advanced',
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF476C17),
@@ -101,14 +102,18 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
                                 activityLevel: _selectedLevel,
                               );
 
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => const FinishScreen()),
                           );
                         }
                       : null,
-                  child: const Text('Continue'),
+                  child: FontWidget(
+                      text: 'Devam Et',
+                      styleType: TextStyleType.labelLarge,
+                      color: primaryGreen,
+                      fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -165,20 +170,19 @@ class _ActiveScreenState extends ConsumerState<ActiveScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: titleColor, // Use dynamic title color
-                    ),
+                  FontWidget(
+                    text: title,
+                    styleType: TextStyleType.labelLarge, // Adjusted for Bangers
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: titleColor, // Use dynamic title color
                   ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: subtitleColor, // Use dynamic subtitle color
-                    ),
+                  FontWidget(
+                    text: subtitle,
+                    styleType:
+                        TextStyleType.labelMedium, // Adjusted for Bangers
+                    fontSize: 14,
+                    color: subtitleColor, // Use dynamic subtitle color
                   ),
                 ],
               ),

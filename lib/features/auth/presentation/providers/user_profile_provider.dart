@@ -41,6 +41,64 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
     state = AsyncValue.data(_profile);
   }
 
+  Future<void> validateAndSetUsername(String newUsername) async {
+    // This method focuses on the API call for username validation and update.
+    // NameScreen will manage its own overall loading state for the button.
+    // We can set loading for the provider state if specific parts of UI listen to it.
+    final previousState =
+        state; // Keep previous state in case of failure to revert if needed.
+    state = const AsyncValue.loading();
+
+    try {
+      final response = await HttpInterceptor.put(
+        Uri.parse(
+            '${ApiConfig.baseUrl}/User/update-username'), // Your new endpoint
+        body: jsonEncode({'NewUsername': newUsername}),
+      );
+
+      if (response.statusCode == 200) {
+        // API call was successful, username is validated and updated on the server.
+        // Update the username in the local _profile model.
+        _profile = UserProfileModel(
+          name: _profile?.name ?? '', // Keep existing name if any
+          username: newUsername, // Set the new username
+          birthDate: _profile?.birthDate ?? DateTime.now(),
+          gender: _profile?.gender ?? '',
+          height: _profile?.height ?? 0.0,
+          weight: _profile?.weight ?? 0.0,
+          activityLevel: _profile?.activityLevel ?? '',
+          runningPreference: _profile?.runningPreference ?? '',
+        );
+        state = AsyncValue.data(_profile); // Update the notifier's state
+      } else {
+        // API error (e.g., 409 Conflict for username, or other server errors)
+        String errorMessage = 'Kullanıcı adı güncellenemedi.';
+        try {
+          final responseBody = jsonDecode(response.body);
+          if (responseBody is Map && responseBody.containsKey('message')) {
+            errorMessage = responseBody['message'];
+          } else if (responseBody is String && responseBody.isNotEmpty) {
+            errorMessage = responseBody;
+          } else {
+            errorMessage =
+                'Hata ${response.statusCode}: ${response.reasonPhrase ?? 'Sunucu hatası'}';
+          }
+        } catch (_) {
+          // If parsing fails, use the raw response body or a default message
+          errorMessage =
+              response.body.isNotEmpty ? response.body : errorMessage;
+        }
+        state =
+            previousState; // Revert to previous state on specific API failure
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      state = AsyncValue.error(
+          e, StackTrace.current); // Set error state for the provider
+      rethrow; // Rethrow to be caught by NameScreen's UI logic
+    }
+  }
+
   Future<void> saveProfile() async {
     if (_profile == null) return;
 
@@ -53,16 +111,10 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
         throw Exception('No authentication token found');
       }
 
-      print('Bearer Token for update: $currentAccessToken');
-      print('Profile data to send: ${jsonEncode(_profile!.toJson())}');
-
       final response = await HttpInterceptor.put(
         Uri.parse('${ApiConfig.baseUrl}/User/update-profile'),
         body: jsonEncode(_profile!.toJson()),
       );
-
-      print('Response status for update-profile: ${response.statusCode}');
-      print('Response body for update-profile: ${response.body}');
 
       if (response.statusCode == 200) {
         state = AsyncValue.data(_profile);
@@ -74,8 +126,6 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
               responseDataMap['accessToken'] as String?;
 
           if (newApiAccessToken != null && newApiAccessToken.isNotEmpty) {
-            print(
-                '✅ New access token received from update-profile: $newApiAccessToken');
             final String? currentRefreshToken =
                 await StorageService.getRefreshToken();
 
@@ -86,27 +136,17 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfileModel?>> {
               );
               _ref.read(authProvider.notifier).state =
                   AsyncValue.data(newApiAccessToken);
-              print('✅ New access token saved. AuthProvider state updated.');
             } else {
-              print(
-                  '⚠️ New access token received, but current refresh token is missing. Tokens not fully updated.');
               _ref.read(authProvider.notifier).state =
                   AsyncValue.data(newApiAccessToken);
             }
-          } else {
-            print(
-                'ℹ️ Profile updated successfully. No new access token found in JSON response.');
-          }
-        } catch (e) {
-          print(
-              'ℹ️ Profile updated successfully. Response body was not a JSON or could not be parsed for new tokens: ${response.body}');
-        }
+          } else {}
+        } catch (e) {}
       } else {
         throw Exception(
             'Failed to update profile: ${response.statusCode} - ${response.body}');
       }
     } catch (error, stack) {
-      print('Error in saveProfile: $error');
       state = AsyncValue.error(error, stack);
     }
   }

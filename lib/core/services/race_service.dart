@@ -24,9 +24,6 @@ class RaceService {
         },
         body: jsonEncode(request.toJson()),
       );
-      print('Actual Token: $actualToken');
-      print('API Response Status: ${response.statusCode}');
-      print('API Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);

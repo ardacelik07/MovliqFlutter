@@ -1,22 +1,225 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:my_flutter_project/core/config/api_config.dart';
+import 'package:my_flutter_project/core/services/http_interceptor.dart';
 // import 'package:url_launcher/url_launcher.dart'; // E-posta için gerekebilir
+import '../widgets/font_widget.dart';
+import '../widgets/error_display_widget.dart'; // For ErrorDisplayWidget
 
-// Email gönderme fonksiyonunu widget dışında tanımla
-Future<void> _launchEmail() async {
-  // const String email = 'destek@example.com'; // TODO: Replace with actual support email
-  // final Uri emailLaunchUri = Uri(
-  //   scheme: 'mailto',
-  //   path: email,
-  //   query: 'subject=Yardım Talebi&body=Merhaba,',
-  // );
-  // try {
-  //   await launchUrl(emailLaunchUri);
-  // } catch (e) {
-  //   print('Could not launch email: $e');
-  //   // Show error to user
-  // }
-  print('Email button pressed'); // Placeholder action
+// Updated _launchEmail function to show a dialog
+Future<void> _launchEmail(BuildContext context, WidgetRef ref) async {
+  showDialog(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return _SupportEmailDialog(ref: ref);
+    },
+  );
+}
+
+class _SupportEmailDialog extends StatefulWidget {
+  final WidgetRef ref;
+  const _SupportEmailDialog({required this.ref});
+
+  @override
+  State<_SupportEmailDialog> createState() => _SupportEmailDialogState();
+}
+
+class _SupportEmailDialogState extends State<_SupportEmailDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _messageController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendSupportEmail() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final email = _emailController.text;
+      final message = _messageController.text;
+
+      try {
+        final response = await HttpInterceptor.post(
+          Uri.parse('${ApiConfig.baseUrl}/User/send-support-email'),
+          body: jsonEncode({'email': email, 'message': message}),
+        );
+
+        if (mounted) {
+          if (response.statusCode == 200) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: FontWidget(
+                  text: 'Destek mesajınız başarıyla gönderildi.',
+                  styleType: TextStyleType.bodyMedium,
+                  color: Colors.black,
+                ),
+                backgroundColor: const Color(0xFFB2FF59), // accentColor
+              ),
+            );
+            Navigator.of(context).pop(); // Close the dialog
+          } else {
+            final responseData = jsonDecode(response.body);
+            final errorMessage = responseData['message'] ??
+                'Destek mesajı gönderilirken bir hata oluştu. Kod: ${response.statusCode}';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: ErrorDisplayWidget(errorObject: errorMessage),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: ErrorDisplayWidget(errorObject: e.toString()),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color backgroundColor = Colors.grey[900]!;
+    final Color textColor = Colors.white;
+    final Color accentColor = const Color(0xFFB2FF59);
+    final Color inputFillColor = Colors.grey[800]!;
+
+    return AlertDialog(
+      backgroundColor: backgroundColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: FontWidget(
+        text: 'Destek Talebi Oluştur',
+        styleType: TextStyleType.titleMedium,
+        color: textColor,
+      ),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  labelText: 'E-posta Adresiniz',
+                  labelStyle: TextStyle(color: accentColor.withOpacity(0.7)),
+                  filled: true,
+                  fillColor: inputFillColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: accentColor),
+                  ),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Lütfen e-posta adresinizi girin.';
+                  }
+                  if (!value.contains('@') || !value.contains('.')) {
+                    return 'Lütfen geçerli bir e-posta adresi girin.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _messageController,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  labelText: 'Mesajınız',
+                  labelStyle: TextStyle(color: accentColor.withOpacity(0.7)),
+                  filled: true,
+                  fillColor: inputFillColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: accentColor),
+                  ),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 16,
+                minLines: 12,
+                keyboardType: TextInputType.multiline,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Lütfen mesajınızı girin.';
+                  }
+                  if (value.length < 10) {
+                    return 'Mesajınız en az 10 karakter olmalıdır.';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: FontWidget(
+            text: 'İptal',
+            styleType: TextStyleType.labelLarge,
+            color: accentColor,
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: accentColor,
+            foregroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          onPressed: _isLoading ? null : _sendSupportEmail,
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.black,
+                    strokeWidth: 2,
+                  ),
+                )
+              : FontWidget(
+                  text: 'Gönder',
+                  styleType: TextStyleType.labelLarge,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+        ),
+      ],
+    );
+  }
 }
 
 class HelpScreen extends ConsumerWidget {
@@ -46,33 +249,138 @@ class HelpScreen extends ConsumerWidget {
 
     final List<Map<String, dynamic>> faqs = [
       {
-        'question': 'Puanlar nasıl kazanılır?',
-        'answer': 'Puan kazanma detayları burada açıklanacak.',
-        'isExpanded': false,
-      },
-      {
-        'question': 'Yarışa nasıl katılırım?',
-        'answer': 'Yarışa katılım adımları burada yer alacak.',
-        'isExpanded': false,
-      },
-      {
-        'question': 'Kupon kodumu nasıl kullanırım?',
-        'answer': 'Kupon kodu kullanımı hakkında bilgi burada olacak.',
-        'isExpanded': false,
-      },
-      {
-        'question': 'Koşu verilerimi nasıl senkronize edebilirim?',
+        'question': 'Movliq Nedir?',
         'answer':
-            'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.',
-        'isExpanded': true, // This one is expandable
+            '''Movliq, yürüyüşü ve koşuyu oyunlaştırarak kullanıcıları gerçek zamanlı yarışlara dahil eden, adımlarını mCoin\'e ve ödüllere dönüştüren yenilikçi bir mobil uygulamadır. Sporu yalnızca fiziksel değil, aynı zamanda sosyal ve eğlenceli bir deneyime dönüştürür.
+
+• Gerçek zamanlı yürüyüş/koşu yarışları
+• Arkadaşlarla özel odalarda yarışma
+• Solo (tek başına) mod
+• Ödül sistemi ve coin kazanımı
+• Sosyal etkileşim, kültür ve motivasyon''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Neden Adımlarım ve Konumum Uygulamada Çalışmıyor?',
+        'answer':
+            '''Bunun sebebi büyük ihtimalle adım ve konum izinlerinin kapalı olmasıdır.
+Yarışlar, Solo Mod ve diğer özelliklerin düzgün çalışması için bu iki izne ihtiyaç duyuyoruz.
+
+📲 Çözüm için:
+
+Telefon ayarlarına git
+
+Uygulamalar > Movliq'i seç
+
+“Adım (hareket)” ve “Konum” izinlerini aç
+
+İzinleri açtıktan sonra uygulamayı yeniden başlat ve tekrar dene.
+Hâlâ sorun yaşıyorsan bizimle iletişime geçebilirsin! 🛠️''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Canlı Yarış Nasıl Çalışır?',
+        'answer':
+            '''Kullanıcı, uygulama üzerinden canlı yarış lobisine katılırken yarışın türünü (iç veya dış mekân) ve süresini seçer. Sistem, aynı yarış ayarlarına sahip diğer kullanıcılarla eşleştirme yapar veya kullanıcı yeni bir yarış başlatarak oda oluşturabilir.
+Tüm yarışmacılar belirlenen saatte veya “başlat” komutuyla aynı anda yarışa başlar.
+
+Yarış sonucunda;
+
+🥇 1. olan: Aldığı toplam mesafe × 3
+
+🥈 2. olan: Aldığı toplam mesafe × 2
+
+🥉 3. olan: Aldığı toplam mesafe × 1.5
+kadar mCoin kazanır.
+
+Diğer sıralamalardaki katılımcılar da aldıkları toplam mesafe kadar mCoin kazanır.
+Yani sonuncu olsan bile üzülme — yine de coin kazanırsın! 🏆''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Solo Mod',
+        'answer': '''Zaman sınırlaması olmadan kendi ritmini yakala!
+İster yürüyüş, ister koşu — Solo Mod tam sana göre!
+
+🕒 Dilediğin an başla, istediğin zaman dur
+
+📡 Adım, hız ve mesafe verilerin anlık takip edilir
+
+🗺️ Nerede olursan ol, performansını sergile
+
+🧠 Kişisel hedeflerine ulaşırken ilerlemeni kaydet
+
+🎯 Kayıt edilen her aktiviteyle mCoin kazanırsın.
+Ama unutma:
+💡 Solo Mod'da kazandığın mCoin, canlı yarışlara göre biraz daha azdır.
+Yine de her adımın ödül!
+
+🟢 Solo mod = özgürlük, esneklik ve motivasyon!''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Sadece Uygulama Değil, Bir Kültür',
+        'answer':
+            '''Movliq, sadece bir fitness uygulaması değil; kazanmak, paylaşmak ve sosyalleşmek isteyenlerin buluşma noktasıdır.
+Burada attığın her adım sadece fiziksel bir hareket değil; bir bağ kurma, bir yaşam tarzı oluşturma ve ilham verme fırsatıdır.
+Her yarış, bir bağlantı; her adım, daha aktif bir hayatın parçası!
+Movliq Kültürünün Temel Taşları:
+• Topluluk Ruhu: Birlikte hareket etmek, birlikte motive olmak
+• Paylaşmak: Kazandığını sadece kendin için değil, ilham olmak için de kullan
+• Etkileşim: Arkadaşlarını davet et, özel odalarda yarış, deneyimini paylaş
+• Motivasyon: Her gün, bir öncekinden daha iyi olmak için bir fırsat
+• Erişilebilirlik: Profesyonel atlet olman gerekmez sadece harekete geç!''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Ödül Sistemi & mCoin',
+        'answer':
+            '''Ne kadar çok hareket edersen, o kadar çok kazanırsın! mCoin, movliq evreninde hareketin karşılığıdır. Attığın her adım, çıktığın her yarış, gösterdiğin her performans sana mCoin olarak geri döner.
+Kazandığın mCoin\'leri Movliq mağazasında; kuponlara, özel kampanyalara, sürpriz hediyelere ve daha fazlasına dönüştürebilirsin.
+Nasıl Kazanırsın?
+• Canlı yarışlara katıl
+• Solo modda aktif ol
+• Günlük,haftalık,aylık hedefleri tamamla
+• Özel görevlerde başarı göster
+• Ortak havuz yarışlarında birinci ol''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Bireysel & Sosyal Deneyim',
+        'answer':
+            '''İster tek başına, ister arkadaşlarınla yarış! Movliq\'te özel yarış odaları oluşturabilir, kodla arkadaşlarını davet edebilir, toplulukla etkileşime geçebilir, birlikte motive olabilirsiniz.
+Sosyal Kullanım (Özel Odalar & Topluluk):
+• Özel yarış odaları oluşturabilir, kodla arkadaşlarını davet edebilirsin
+• Aynı anda yarışarak birlikte hareket etmenin keyfini yaşarsın
+• Grup içi sıralama ile rekabet artar, motivasyon yükselir
+• Haftalık etkinlikler, meydan okumalar ve sosyal görevlerle toplulukla bağ kurarsın
+• Paylaşım, destek ve birlikte kazanma kültürü ön plandadır''',
+        'isExpanded': true,
+      },
+      {
+        'question': 'Ortak Havuz Yarışları',
+        'answer':
+            '''Arkadaşlarınla heyecanı artırmak istiyorsan doğru yerdesin! Movliq\'te özel odalarda "ortak havuz yarışları" oluşturabilirsin.
+
+🧩 Odayı kuran kişi, yarış için bir mCoin miktarı belirler.
+👥 Katılmak isteyen arkadaşlar, belirlenen mCoin miktarına sahipse yarışa dahil olabilir.
+🏁 Yarış sonunda birinci olan kişi, o odada toplanan tüm mCoinleri kazanır!
+
+Hazırlığını iyi yap — çünkü bu yarışta ödül büyük!
+mCoin\'lerini kaptırmamak için elinden geleni yap! 😉🏃‍♂️''',
+        'isExpanded': true,
       },
     ];
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: Text('Yardım & Destek',
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        title: FontWidget(
+          text: 'Yardım & Destek',
+          styleType: TextStyleType.titleLarge,
+          color: textColor,
+          fontWeight: FontWeight.bold,
+        ),
         backgroundColor: backgroundColor,
         elevation: 0,
         iconTheme: IconThemeData(color: accentColor),
@@ -86,19 +394,26 @@ class HelpScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Sorularınız mı var? Size yardımcı olmaktan mutluluk duyarız.',
-              style: TextStyle(color: secondaryTextColor, fontSize: 15),
+            FontWidget(
+              text:
+                  'Sorularınız mı var? Size yardımcı olmaktan mutluluk duyarız.',
+              styleType: TextStyleType.labelLarge,
+              color: secondaryTextColor,
+              fontSize: 15,
             ),
             const SizedBox(height: 24),
             _buildSectionTitle('Bize Ulaşın', textColor), // Pass color
             ElevatedButton.icon(
-              onPressed: _launchEmail, // Global fonksiyonu çağır
+              onPressed: () => _launchEmail(
+                  context, ref), // Updated to call with context and ref
               icon:
                   Icon(Icons.email_outlined, color: backgroundColor, size: 20),
-              label: Text('E-posta Gönder',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: backgroundColor)),
+              label: FontWidget(
+                text: 'E-posta Gönder',
+                styleType: TextStyleType.labelLarge,
+                fontWeight: FontWeight.bold,
+                color: backgroundColor,
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentColor,
                 foregroundColor: backgroundColor,
@@ -141,9 +456,11 @@ class HelpScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
             Center(
-              child: Text(
-                'Destek taleplerinize en kısa sürede yanıt vereceğiz.',
-                style: TextStyle(color: labelColor, fontSize: 13),
+              child: FontWidget(
+                text: 'Destek taleplerinize en kısa sürede yanıt vereceğiz.',
+                styleType: TextStyleType.labelLarge,
+                color: labelColor,
+                fontSize: 13,
                 textAlign: TextAlign.center,
               ),
             ),
@@ -157,13 +474,12 @@ class HelpScreen extends ConsumerWidget {
   Widget _buildSectionTitle(String title, Color textColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-        ),
+      child: FontWidget(
+        text: title,
+        styleType: TextStyleType.labelLarge,
+        color: textColor,
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
@@ -184,9 +500,10 @@ class HelpScreen extends ConsumerWidget {
       child: ListTile(
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        title: Text(
-          question,
-          style: TextStyle(color: textColor, fontSize: 15),
+        title: FontWidget(
+          text: question,
+          styleType: TextStyleType.titleMedium,
+          color: textColor,
         ),
         trailing: Icon(Icons.arrow_forward_ios, color: accentColor, size: 16),
         onTap: () {
@@ -215,10 +532,12 @@ class HelpScreen extends ConsumerWidget {
       child: ExpansionTile(
         iconColor: accentColor,
         collapsedIconColor: accentColor,
-        title: Text(
-          question,
-          style: TextStyle(
-              color: textColor, fontSize: 15, fontWeight: FontWeight.w500),
+        title: FontWidget(
+          text: question,
+          styleType: TextStyleType.titleMedium,
+          color: textColor,
+          fontSize: 17,
+          fontWeight: FontWeight.w500,
         ),
         childrenPadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0)
@@ -226,10 +545,11 @@ class HelpScreen extends ConsumerWidget {
         tilePadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         children: <Widget>[
-          Text(
-            answer,
-            style:
-                TextStyle(color: secondaryTextColor, fontSize: 14, height: 1.4),
+          FontWidget(
+            text: answer,
+            styleType: TextStyleType.bodyLarge,
+            color: secondaryTextColor,
+            fontSize: 14,
           ),
         ],
       ),

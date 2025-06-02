@@ -7,6 +7,7 @@ import '../widgets/footer_widget.dart';
 import '../screens/register_screen.dart';
 import '../screens/login_input_screen.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../widgets/font_widget.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -28,36 +29,43 @@ class LoginScreen extends ConsumerWidget {
         children: [
           const BackgroundWidget(),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                children: [
-                  const SizedBox(height: 40),
-                  Image.asset(
-                    'assets/images/movliq_withtext.png',
-                    height: 100,
-                  ),
-                  const SizedBox(height: 60),
-                  const Text(
-                    'Move more, Earn more',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 40),
+                    Image.asset(
+                      'assets/images/movliq_withtext.png',
+                      height: 100,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 48),
-                  const Text(
-                    'Join a global running community and\nchallenge yourself every day.',
-                    style: TextStyle(
+                    const SizedBox(height: 60),
+                    FontWidget(
+                      text: 'Daha Çok Hareket,',
+                      styleType: TextStyleType.titleLarge,
+                      color: textColor,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      textAlign: TextAlign.start,
+                    ),
+                    FontWidget(
+                      text: 'Daha Çok Kazanç',
+                      styleType: TextStyleType.titleLarge,
+                      color: textColor,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      textAlign: TextAlign.start,
+                    ),
+                    const SizedBox(height: 48),
+                    FontWidget(
+                      text:
+                          'Movliq’te ödüller, fırsatlar ve eğlence; hepsi seni bir adım uzaklıkta bekliyor!',
+                      styleType: TextStyleType.bodyMedium,
                       color: secondaryTextColor,
                       fontSize: 18,
-                      height: 1.5,
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
+                    /* const SizedBox(height: 32),
                   _buildSocialButton(
                     icon: FontAwesomeIcons.google,
                     text: 'Google ile Giriş   ',
@@ -86,59 +94,58 @@ class LoginScreen extends ConsumerWidget {
                     },
                     bgColor: const Color.fromARGB(80, 255, 255, 255),
                     fgColor: const Color.fromARGB(255, 255, 255, 255),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: emailButtonBg,
-                        foregroundColor: emailButtonFg,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginInputScreen(),
+                  ),*/
+                    const SizedBox(height: 246),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: emailButtonBg,
+                          foregroundColor: emailButtonFg,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        );
-                      },
-                      child: const Text('E-posta ile Devam Et'),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginInputScreen(),
+                            ),
+                          );
+                        },
+                        child: FontWidget(
+                            text: 'E-posta İle Devam Et',
+                            styleType: TextStyleType.bodyLarge,
+                            color: emailButtonFg,
+                            fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          'Need Help?',
-                          style: TextStyle(
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () {},
+                          child: FontWidget(
+                              text: 'Need Help?',
+                              styleType: TextStyleType.bodyMedium,
                               color: Color.fromARGB(132, 255, 255, 255)),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          'Privacy Policy',
-                          style: TextStyle(
+                        const SizedBox(width: 16),
+                        TextButton(
+                          onPressed: () {},
+                          child: FontWidget(
+                              text: 'Privacy Policy',
+                              styleType: TextStyleType.bodyMedium,
                               color: Color.fromARGB(132, 255, 255, 255)),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
             ),
           ),
@@ -158,7 +165,11 @@ class LoginScreen extends ConsumerWidget {
       width: double.infinity,
       child: ElevatedButton.icon(
         icon: FaIcon(icon, size: 20, color: fgColor),
-        label: Text(text),
+        label: FontWidget(
+            text: text,
+            styleType: TextStyleType.bodyMedium,
+            color: fgColor,
+            fontWeight: FontWeight.w500),
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
@@ -166,10 +177,6 @@ class LoginScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
           ),
           alignment: Alignment.center,
         ),

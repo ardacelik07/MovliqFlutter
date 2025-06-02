@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:my_flutter_project/features/auth/domain/models/product.dart';
@@ -6,8 +7,15 @@ import 'package:flutter/services.dart'; // Clipboard için
 import 'package:url_launcher/url_launcher.dart'; // URL açmak için
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod importu
 import 'package:my_flutter_project/features/auth/presentation/providers/product_provider.dart'; // Provider importu
+// import 'package:my_flutter_project/features/auth/data/models/product_model.dart'; // Product modeli için eklendi - Removed as it might be unnecessary and path is likely incorrect
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart'; // DateFormat için eklendi
+import 'package:my_flutter_project/core/config/api_config.dart'; // Corrected import path
+import 'package:my_flutter_project/core/services/http_interceptor.dart'; // Corrected import path
+import 'package:http/http.dart'
+    as http; // Standard http package for tokenless request
+import 'package:google_fonts/google_fonts.dart';
+import 'package:my_flutter_project/features/auth/presentation/widgets/font_widget.dart';
 
 // Sabit renkleri ve stilleri tanımlayalım (StoreScreen'den alınabilir veya ortak bir yerden)
 const Color limeGreen = Color(0xFFC4FF62);
@@ -94,22 +102,29 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 // Başarı mesajı
                 children: [
                   Icon(Icons.check_circle, color: Colors.green, size: 20),
                   SizedBox(width: 8),
-                  Text('Promosyon kodu alındı.',
-                      style: TextStyle(
-                          color: Colors.green, fontWeight: FontWeight.bold)),
+                  FontWidget(
+                    text: 'Promosyon kodu alındı.',
+                    styleType: TextStyleType.bodyMedium, // Or labelLarge
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                    // Original: GoogleFonts.bangers(color: Colors.green, fontWeight: FontWeight.bold)),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
-              Text(response.productName ?? 'Ürün Adı Yok', // Null check
-                  style: const TextStyle(
-                      color: lightTextColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
+              FontWidget(
+                text: response.productName ?? 'Ürün Adı Yok', // Null check
+                styleType: TextStyleType.titleSmall, // Or titleMedium
+                color: lightTextColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                // Original: GoogleFonts.bangers(color: lightTextColor, fontSize: 18, fontWeight: FontWeight.bold)
+              ),
               const SizedBox(height: 12),
               // Kod alanı (kopyalama butonu ile)
               Container(
@@ -123,13 +138,15 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                        response.acquiredCoupon?.code ??
-                            'KOD YOK', // Null check
-                        style: const TextStyle(
-                            color: limeGreen,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
+                    FontWidget(
+                      text: response.acquiredCoupon?.code ??
+                          'KOD YOK', // Null check
+                      styleType: TextStyleType.titleSmall, // Or titleMedium
+                      color: limeGreen,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      // Original: GoogleFonts.bangers(color: limeGreen, fontSize: 18, fontWeight: FontWeight.bold)
+                    ),
                     IconButton(
                       icon: const Icon(Icons.copy, color: limeGreen, size: 20),
                       onPressed: () async {
@@ -137,9 +154,13 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                           await Clipboard.setData(ClipboardData(
                               text: response.acquiredCoupon!.code!));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Kod kopyalandı!',
-                                    style: TextStyle(color: lightTextColor)),
+                            SnackBar(
+                                content: FontWidget(
+                                  text: 'Kod kopyalandı!',
+                                  styleType: TextStyleType.bodySmall,
+                                  color: lightTextColor,
+                                  // Original: GoogleFonts.bangers(color: lightTextColor)
+                                ),
                                 backgroundColor: cardBackground),
                           );
                         }
@@ -151,15 +172,29 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text("Nasıl kullanılır?",
-                  style: TextStyle(
-                      color: greyTextColor, fontWeight: FontWeight.bold)),
+              FontWidget(
+                text: "Nasıl kullanılır?",
+                styleType: TextStyleType.bodyMedium, // Or labelLarge
+                color: greyTextColor,
+                fontWeight: FontWeight.bold,
+                // Original: GoogleFonts.bangers(color: greyTextColor, fontWeight: FontWeight.bold)
+              ),
               const SizedBox(height: 8),
-              const Text("• Promosyon kodunu kopyalayın",
-                  style: TextStyle(color: lightTextColor)),
+              FontWidget(
+                text: "• Promosyon kodunu kopyalayın",
+                styleType: TextStyleType.bodyMedium, // Or labelLarge
+                color: lightTextColor,
+                fontWeight: FontWeight.bold,
+                // Original: GoogleFonts.bangers(color: lightTextColor, fontWeight: FontWeight.bold)
+              ),
               const SizedBox(height: 4),
-              const Text("• Web sitesinde ilgili alana ekleyin",
-                  style: TextStyle(color: lightTextColor)),
+              FontWidget(
+                text: "• Web sitesinde ilgili alana ekleyin",
+                styleType: TextStyleType.bodyMedium, // Or labelLarge
+                color: lightTextColor,
+                fontWeight: FontWeight.bold,
+                // Original: GoogleFonts.bangers(color: lightTextColor, fontWeight: FontWeight.bold)
+              ),
               const SizedBox(height: 24),
               // Kodu Kopyala ve Siteye Git Butonu
               SizedBox(
@@ -169,24 +204,48 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                     final String? code = response.acquiredCoupon?.code;
                     final String? urlString = response.productUrl;
 
+                    // Increment product traffic (fire and forget)
+                    try {
+                      // Assuming widget.productId holds the current product's ID
+                      final int currentProductId = widget.productId;
+
+                      final String trafficUrl =
+                          ApiConfig.incrementProductTrafficEndpoint(
+                              currentProductId);
+                      // Use standard http.post for tokenless request
+                      final trafficIncrementResponse = await http.post(
+                        Uri.parse(trafficUrl),
+                        // No token, no custom headers, no body for this specific POST request
+                      );
+
+                      if (trafficIncrementResponse.statusCode == 200) {
+                      } else {}
+                    } catch (e) {}
+
                     if (code != null) {
                       await Clipboard.setData(ClipboardData(text: code));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Kod kopyalandı!',
-                                style: TextStyle(color: lightTextColor)),
+                        SnackBar(
+                            content: FontWidget(
+                              text: 'Kod kopyalandı!',
+                              styleType: TextStyleType.bodySmall,
+                              color: lightTextColor,
+                              // Original: GoogleFonts.bangers(color: lightTextColor)
+                            ),
                             backgroundColor: cardBackground),
                       );
                     }
 
                     // --- URL Açma Mantığı ---
                     if (urlString == null || urlString.isEmpty) {
-                      print('Error: Product URL is null or empty.');
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'Geçerli bir ürün URL\'si bulunamadı.',
-                                style: TextStyle(color: Colors.red)),
+                        SnackBar(
+                            content: FontWidget(
+                              text: 'Geçerli bir ürün URL\'si bulunamadı.',
+                              styleType: TextStyleType.bodySmall,
+                              color: Colors.red,
+                              // Original: GoogleFonts.bangers(color: Colors.red)
+                            ),
                             backgroundColor: cardBackground),
                       );
                       return;
@@ -195,48 +254,48 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                     Uri? uri;
                     try {
                       uri = Uri.parse(urlString);
-                      print(
-                          'Parsed URI: ${uri.toString()}'); // Parsed URI'yi yazdır
                     } catch (e) {
-                      print('Error parsing URI: $e');
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text('URL formatı geçersiz: $e',
-                                style: TextStyle(color: Colors.red)),
+                            content: FontWidget(
+                              text: 'URL formatı geçersiz: $e',
+                              styleType: TextStyleType.bodySmall,
+                              color: Colors.red,
+                              // Original: GoogleFonts.bangers(color: Colors.red)
+                            ),
                             backgroundColor: cardBackground),
                       );
                       return; // Parse edilemiyorsa devam etme
                     }
 
                     try {
-                      print('Checking if URL can be launched...');
                       bool canLaunch = await canLaunchUrl(uri);
-                      print(
-                          'canLaunchUrl result: $canLaunch'); // canLaunchUrl sonucunu yazdır
 
                       if (canLaunch) {
-                        print('Attempting to launch URL...');
                         await launchUrl(uri,
                             mode: LaunchMode.externalApplication);
-                        print(
-                            'launchUrl call completed.'); // Bu satır yazdırılıyor mu kontrol et
                       } else {
-                        print('URL cannot be launched.');
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                              content: Text(
-                                  'URL açılamadı: ${uri.toString()}', // Kullanılan URL'yi gösteriyor
-                                  style: TextStyle(color: Colors.red)),
+                              content: FontWidget(
+                                text:
+                                    'URL açılamadı: ${uri.toString()}', // Kullanılan URL'yi gösteriyor
+                                styleType: TextStyleType.bodySmall,
+                                color: Colors.red,
+                                // Original: GoogleFonts.bangers(color: Colors.red)
+                              ),
                               backgroundColor: cardBackground),
                         );
                       }
                     } catch (e) {
-                      print(
-                          'Error during launchUrl: $e'); // launchUrl hatasını yazdır
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text('URL açılırken hata: $e',
-                                style: TextStyle(color: Colors.red)),
+                            content: FontWidget(
+                              text: 'URL açılırken hata: $e',
+                              styleType: TextStyleType.bodySmall,
+                              color: Colors.red,
+                              // Original: GoogleFonts.bangers(color: Colors.red)
+                            ),
                             backgroundColor: cardBackground),
                       );
                     }
@@ -247,13 +306,20 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
-                    textStyle: const TextStyle(
+                    textStyle: GoogleFonts.bangers(
                         fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Kodu kopyala ve Siteye Git'),
+                      FontWidget(
+                        text: 'Kodu kopyala ve Siteye Git',
+                        styleType: TextStyleType.labelLarge,
+                        color: darkTextColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        // Original: GoogleFonts.bangers(fontSize: 16, fontWeight: FontWeight.bold)
+                      ),
                       SizedBox(width: 8),
                       Icon(Icons.arrow_forward, size: 18),
                     ],
@@ -263,12 +329,16 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
               const SizedBox(height: 16),
               // Geçerlilik süresi (Formatlama gerekebilir)
               Center(
-                  child: Text(
-                      response.acquiredCoupon?.expirationDate != null
-                          ? "Promosyon kodu ${_formatRemainingTime(DateTime.tryParse(response.acquiredCoupon!.expirationDate!))} geçerli olacak"
-                          : "Promosyon kodu süresi belirtilmemiş.",
-                      style: TextStyle(color: greyTextColor, fontSize: 12))),
-              const SizedBox(height: 10),
+                  child: FontWidget(
+                text: response.acquiredCoupon?.expirationDate != null
+                    ? "Promosyon kodu ${_formatRemainingTime(DateTime.tryParse(response.acquiredCoupon!.expirationDate!))} geçerli olacak"
+                    : "Promosyon kodu süresiz geçerli",
+                styleType: TextStyleType.bodySmall,
+                color: greyTextColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                // Original: GoogleFonts.bangers(color: greyTextColor, fontSize: 12, fontWeight: FontWeight.w600)
+              )),
             ],
           ),
         );
@@ -303,8 +373,14 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(foregroundColor: greyTextColor),
-                    child:
-                        const Text('İptal et', style: TextStyle(fontSize: 14)),
+                    child: FontWidget(
+                      text: 'İptal et',
+                      styleType: TextStyleType.bodySmall,
+                      color: greyTextColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      // Original: GoogleFonts.bangers(fontSize: 14, fontWeight: FontWeight.bold)
+                    ),
                   ),
                 ),
                 Row(
@@ -321,37 +397,38 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: Text(
-                        product.name, // Gelen product'ı kullan
-                        style: TextStyle(
-                          color: limeGreen,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
+                      child: FontWidget(
+                        text: product.name, // Gelen product'ı kullan
+                        styleType: TextStyleType.titleMedium,
+                        color: limeGreen,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        // Original: GoogleFonts.bangers(color: limeGreen, fontWeight: FontWeight.bold, fontSize: 20)
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 28),
-                const Text(
-                  'TANIM',
-                  style: TextStyle(
-                    color: greyTextColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    letterSpacing: 1.2,
-                  ),
+                FontWidget(
+                  text: 'TANIM',
+                  styleType: TextStyleType.bodySmall,
+                  color: greyTextColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+
+                  // Original: GoogleFonts.bangers(color: greyTextColor, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.2)
                 ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: SingleChildScrollView(
-                    child: Text(
-                      product.aboutProduct ?? '', // Gelen product'ı kullan
-                      style: TextStyle(
-                        color: lightTextColor,
-                        fontSize: 15,
-                        height: 1.6,
-                      ),
+                    child: FontWidget(
+                      text:
+                          product.aboutProduct ?? '', // Gelen product'ı kullan
+                      styleType: TextStyleType.bodyMedium,
+                      color: lightTextColor,
+                      fontSize: 15,
+
+                      // Original: GoogleFonts.bangers(color: lightTextColor, fontSize: 15, height: 1.6)
                     ),
                   ),
                 ),
@@ -376,9 +453,12 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text(
-                                        'Promosyon kodu alınamadı: ${e.toString()}',
-                                        style: TextStyle(color: Colors.red)),
+                                    content: FontWidget(
+                                      text: 'Promosyon kodu alınamadı',
+                                      styleType: TextStyleType.bodySmall,
+                                      color: Colors.red,
+                                      // Original: GoogleFonts.bangers(color: Colors.red)
+                                    ),
                                     backgroundColor: cardBackground),
                               );
                             } finally {
@@ -396,7 +476,7 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                           horizontal: 40, vertical: 15),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
-                      textStyle: const TextStyle(
+                      textStyle: GoogleFonts.bangers(
                           fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     child: _isPurchasing
@@ -405,7 +485,14 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                             height: 20,
                             child: CircularProgressIndicator(
                                 color: darkTextColor, strokeWidth: 3))
-                        : const Text('Promosyon Kodu Al'),
+                        : const FontWidget(
+                            text: 'Promosyon Kodu Al',
+                            styleType: TextStyleType.labelLarge,
+                            color: darkTextColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            // Original: GoogleFonts.bangers(fontSize: 16, fontWeight: FontWeight.bold)
+                          ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -431,11 +518,16 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
           icon: const Icon(Icons.arrow_back, color: lightTextColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Ürün Detayı',
-          style: TextStyle(color: lightTextColor, fontWeight: FontWeight.bold),
+        title: FontWidget(
+          text: 'Ürün Detayı',
+          styleType: TextStyleType.titleLarge,
+          color: lightTextColor,
+          fontWeight: FontWeight.bold,
+          // Original: Text('Ürün Detayı', style: TextStyle(color: lightTextColor, fontWeight: FontWeight.bold)),
         ),
         centerTitle: true,
+
+        /*
         actions: [
           // Favori butonu (product yüklendiğinde göster)
           productAsyncValue.when(
@@ -451,11 +543,8 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                 // TODO: Favori ekleme/çıkarma işlevselliği (product.id ile)
               },
             ),
-            loading: () => const SizedBox.shrink(), // Yüklenirken gösterme
-            error: (_, __) =>
-                const SizedBox.shrink(), // Hata durumunda gösterme
-          ),
-        ],
+       ],
+       */
       ),
       // Ana içerik AsyncValue.when ile yönetilir
       body: productAsyncValue.when(
@@ -543,18 +632,24 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(product.name,
-                          style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: lightTextColor)),
+                      FontWidget(
+                        text: product.name,
+                        styleType: TextStyleType.titleLarge,
+                        color: lightTextColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        // Original: GoogleFonts.bangers(fontSize: 24, color: lightTextColor, fontWeight: FontWeight.bold)
+                      ),
                       const SizedBox(height: 8),
-                      Text(
-                          'Kalan kupon adeti: ${product.stock?.toString() ?? 'Bilgi Yok'}',
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: limeGreen)),
+                      FontWidget(
+                        text:
+                            'Kalan kupon adeti: ${product.stock?.toString() ?? 'Bilgi Yok'}',
+                        styleType: TextStyleType.bodyMedium,
+                        color: limeGreen,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        // Original: GoogleFonts.bangers(fontSize: 16, color: limeGreen, fontWeight: FontWeight.bold)
+                      ),
                       const SizedBox(height: 24),
 
                       // Kullanma Süresi Kartı
@@ -566,12 +661,15 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('KULLANMA SÜRESİ',
-                                style: TextStyle(
-                                    color: darkTextColor.withOpacity(0.7),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    letterSpacing: 0.5)),
+                            FontWidget(
+                              text: 'KULLANMA SÜRESİ',
+                              styleType: TextStyleType.bodySmall,
+                              color: darkTextColor.withOpacity(0.7),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+
+                              // Original: GoogleFonts.bangers(color: darkTextColor.withOpacity(0.7), fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5)
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
@@ -579,13 +677,15 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                                     color: darkTextColor, size: 20),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                    child: Text(
-                                        _formatRemainingTime(
-                                            product.expirationDate),
-                                        style: const TextStyle(
-                                            color: darkTextColor,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold))),
+                                    child: FontWidget(
+                                  text: _formatRemainingTime(
+                                      product.expirationDate),
+                                  styleType: TextStyleType.bodyMedium,
+                                  color: darkTextColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  // Original: GoogleFonts.bangers(color: darkTextColor, fontSize: 16, fontWeight: FontWeight.bold)
+                                ))
                               ],
                             ),
                           ],
@@ -602,12 +702,15 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Özellikler',
-                                style: TextStyle(
-                                    color: darkTextColor.withOpacity(0.7),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    letterSpacing: 0.5)),
+                            FontWidget(
+                              text: 'Özellikler',
+                              styleType: TextStyleType.bodySmall,
+                              color: darkTextColor.withOpacity(0.7),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+
+                              // Original: GoogleFonts.bangers(color: darkTextColor.withOpacity(0.7), fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5)
+                            ),
                             const SizedBox(height: 12),
                             if (features.isNotEmpty)
                               Column(
@@ -621,36 +724,50 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                                               color: darkTextColor, size: 18),
                                           const SizedBox(width: 8),
                                           Expanded(
-                                              child: Text(feature,
-                                                  style: const TextStyle(
-                                                      color: darkTextColor,
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w500)))
+                                              child: FontWidget(
+                                            text: feature,
+                                            styleType: TextStyleType.bodyMedium,
+                                            color: darkTextColor,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w500,
+                                            // Original: GoogleFonts.bangers(color: darkTextColor, fontSize: 15, fontWeight: FontWeight.w500)
+                                          ))
                                         ])))
                                     .toList(),
                               )
                             else
-                              Text('Öne çıkan özellik bulunamadı.',
-                                  style: TextStyle(
-                                      color: darkTextColor.withOpacity(0.8))),
+                              FontWidget(
+                                text: 'Öne çıkan özellik bulunamadı.',
+                                styleType: TextStyleType.bodyMedium,
+                                color: darkTextColor.withOpacity(0.8),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                // Original: GoogleFonts.bangers(color: darkTextColor.withOpacity(0.8), fontSize: 15, fontWeight: FontWeight.w500)
+                              ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
 
                       // Hakkında Bölümü
-                      const Text('Hakkında',
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: lightTextColor)),
+                      FontWidget(
+                        text: 'Hakkında',
+                        styleType: TextStyleType.titleMedium,
+                        color: lightTextColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        // Original: GoogleFonts.bangers(fontSize: 20, color: lightTextColor, fontWeight: FontWeight.bold)
+                      ),
                       const SizedBox(height: 12),
-                      Text(
-                          product.aboutProduct ??
-                              'Ürün hakkında bilgi bulunamadı.',
-                          style: const TextStyle(
-                              fontSize: 15, color: greyTextColor, height: 1.5)),
+                      FontWidget(
+                        text: product.aboutProduct ??
+                            'Ürün hakkında bilgi bulunamadı.',
+                        styleType: TextStyleType.bodyMedium,
+                        color: greyTextColor,
+                        fontSize: 15,
+
+                        // Original: GoogleFonts.bangers(color: greyTextColor, fontSize: 15, height: 1.5)
+                      ),
                       // Beden Seçimi kaldırıldı
                     ],
                   ),
@@ -665,10 +782,44 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
         error: (error, stack) => Center(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Ürün detayları yüklenemedi.\nHata: ${error.toString()}',
-              style: const TextStyle(color: Colors.redAccent, fontSize: 16),
-              textAlign: TextAlign.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, color: Colors.redAccent, size: 50),
+                const SizedBox(height: 16),
+                FontWidget(
+                  text: 'Ürün detayları yüklenemedi.',
+                  styleType: TextStyleType.bodyLarge,
+                  color: Colors.redAccent,
+                  textAlign: TextAlign.center,
+                  // Original: Text('Ürün detayları yüklenemedi.', style: TextStyle(color: Colors.redAccent, fontSize: 16), textAlign: TextAlign.center)
+                ),
+                const SizedBox(height: 8),
+                FontWidget(
+                  text: error.toString(),
+                  styleType: TextStyleType.bodySmall,
+                  color: greyTextColor,
+                  textAlign: TextAlign.center,
+                  // Original: Text(error.toString(), style: TextStyle(color: greyTextColor, fontSize: 12), textAlign: TextAlign.center)
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.refresh, color: darkTextColor),
+                  label: FontWidget(
+                    text: 'Tekrar Dene',
+                    styleType: TextStyleType.labelMedium,
+                    color: darkTextColor,
+                    // Original: Text('Tekrar Dene', style: TextStyle(color: darkTextColor))
+                  ),
+                  onPressed: () => ref
+                      .read(productDetailProvider.notifier)
+                      .fetchProductDetails(widget.productId),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: limeGreen,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12)),
+                ),
+              ],
             ),
           ),
         ),
@@ -697,7 +848,7 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                       const EdgeInsets.symmetric(horizontal: 64, vertical: 15),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  textStyle: const TextStyle(
+                  textStyle: GoogleFonts.bangers(
                       fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 child: Row(
@@ -709,8 +860,15 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
                       height: 30,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                        '${NumberFormat("#,##0", "tr_TR").format(product.price)} mCoin - Hemen Al'),
+                    FontWidget(
+                      text:
+                          '${NumberFormat("#,##0", "tr_TR").format(product.price)} mCoin - Hemen Al',
+                      styleType: TextStyleType.bodyMedium,
+                      color: darkTextColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      // Original: GoogleFonts.bangers(fontSize: 16, fontWeight: FontWeight.bold)
+                    ),
                   ],
                 ),
               ),
@@ -723,41 +881,3 @@ class _ProductViewScreenState extends ConsumerState<ProductViewScreen> {
     );
   }
 }
-
-// --- API Yanıt Modelleri (product_provider.dart içine taşındı, buradan silinebilir) ---
-/*
-class AcquiredCouponResponse {
-    final AcquiredCoupon acquiredCoupon;
-    final String productName;
-    final String productUrl1;
-    final int productId;
-
-    AcquiredCouponResponse({
-      required this.acquiredCoupon,
-      required this.productName,
-      required this.productUrl1,
-      required this.productId,
-    });
-}
-
-class AcquiredCoupon {
-    final int id;
-    final String code;
-    final bool isactive;
-    final String expirationDate;
-    final int maxUses;
-    final int usesCount;
-    final String createdAt;
-
-    AcquiredCoupon({
-      required this.id,
-      required this.code,
-      required this.isactive,
-      required this.expirationDate,
-      required this.maxUses,
-      required this.usesCount,
-      required this.createdAt,
-    });
-}
-*/
-// --- Model Sonu ---

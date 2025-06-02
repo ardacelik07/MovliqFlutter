@@ -8,6 +8,9 @@ import 'update_user_info_screen.dart';
 import 'change_password_screen.dart';
 import 'help_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'package:my_flutter_project/features/auth/presentation/screens/delete_account_screen.dart';
+
+import '../widgets/font_widget.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -40,10 +43,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           icon: Icon(Icons.arrow_back_ios, color: iconColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'Ayarlar',
-          style: TextStyle(
-              color: textColor, fontSize: 18, fontWeight: FontWeight.bold),
+        title: FontWidget(
+          text: 'Ayarlar',
+          styleType: TextStyleType.titleLarge,
+          color: textColor,
+          fontWeight: FontWeight.bold,
         ),
         actions: [
           IconButton(
@@ -54,20 +58,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 context: context,
                 builder: (context) => AlertDialog(
                   backgroundColor: cardColor,
-                  title: Text('Çıkış Yap', style: TextStyle(color: textColor)),
-                  content: Text(
-                    'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
-                    style: TextStyle(color: secondaryTextColor),
+                  title: FontWidget(
+                    text: 'Çıkış Yap',
+                    styleType: TextStyleType.bodyLarge,
+                    color: textColor,
+                  ),
+                  content: FontWidget(
+                    text:
+                        'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
+                    styleType: TextStyleType.bodyLarge,
+                    color: secondaryTextColor,
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
-                      child: Text('İptal', style: TextStyle(color: iconColor)),
+                      child: FontWidget(
+                        text: 'İptal',
+                        styleType: TextStyleType.bodyLarge,
+                        color: iconColor,
+                      ),
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(true),
-                      child: Text('Çıkış Yap',
-                          style: TextStyle(color: Colors.red)),
+                      child: FontWidget(
+                        text: 'Çıkış Yap',
+                        styleType: TextStyleType.bodyLarge,
+                        color: Colors.red,
+                      ),
                     ),
                   ],
                 ),
@@ -128,81 +145,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     );
                   },
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Bildirimler', textColor),
-            _buildSettingsCard(
-              cardColor: cardColor,
-              children: [
-                _buildSwitchTile(
-                  icon: Icons.grid_view, // Görseldeki ikon
+                _buildDivider(secondaryTextColor),
+                _buildNavigationTile(
+                  icon: Icons.delete,
                   iconColor: iconColor,
-                  title: 'Yarış bildirimleri',
+                  title: 'Hesabı Sil',
                   textColor: textColor,
-                  value: _raceNotifications,
-                  onChanged: (value) {
-                    setState(() => _raceNotifications = value);
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DeleteAccountScreen(),
+                      ),
+                    );
                   },
-                  activeColor: activeSwitchColor,
-                ),
-                _buildDivider(secondaryTextColor),
-                _buildSwitchTile(
-                  icon: Icons.grid_view, // Görseldeki ikon
-                  iconColor: iconColor,
-                  title: 'Motivasyon Mesajı',
-                  textColor: textColor,
-                  value: _motivationMessages,
-                  onChanged: (value) {
-                    setState(() => _motivationMessages = value);
-                  },
-                  activeColor: activeSwitchColor,
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Hesap Bağlantıları', textColor),
-            _buildSettingsCard(
-              cardColor: cardColor,
-              children: [
-                _buildConnectedTile(
-                  // SVG yerine Icon kullanıyoruz, gerekirse SVG eklenebilir
-                  platformIcon: Icons.facebook,
-                  platformName: 'Facebook ile Bağlan',
-                  status: 'Bağlı Değil',
-                  isConnected: false,
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                  iconColor: iconColor, // Facebook için varsayılan ikon
-                  onTap: () {},
-                ),
-                _buildDivider(secondaryTextColor),
-                _buildConnectedTile(
-                  platformIcon: Icons.g_mobiledata, // Google ikonu
-                  platformName: 'Google ile Bağlan',
-                  status: 'Bağlı',
-                  isConnected: true,
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                  iconColor: iconColor,
-                  onTap: () {},
-                ),
-                _buildDivider(secondaryTextColor),
-                _buildConnectedTile(
-                  platformIcon: Icons.apple, // Apple ikonu
-                  platformName: 'Apple ile Bağlan',
-                  status: 'Bağlı Değil',
-                  isConnected: false,
-                  textColor: textColor,
-                  secondaryTextColor: secondaryTextColor,
-                  iconColor: iconColor,
-                  onTap: () {},
                 ),
               ],
             ),
 
+            /*_buildSettingsCard(
+              cardColor: cardColor,
+              children: [
+                _buildNavigationTile(
+                  icon: Icons.star, // Gizlilik ikonu
+                  iconColor: iconColor,
+                  title: 'Movliqi Puanla',
+                  textColor: textColor,
+                  onTap: () {},
+                ),
+              ],
+            ),*/
             const SizedBox(height: 24),
-            _buildSectionTitle('Gizlilik ve Destek', textColor),
+            _buildSectionTitle('Gİzlİlİk ve Destek', textColor),
             _buildSettingsCard(
               cardColor: cardColor,
               children: [
@@ -247,13 +221,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildSectionTitle(String title, Color textColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: textColor.withOpacity(0.8),
-        ),
+      child: FontWidget(
+        text: title,
+        styleType: TextStyleType.titleSmall,
+        fontWeight: FontWeight.w600,
+        color: textColor.withOpacity(0.8),
       ),
     );
   }
@@ -282,13 +254,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       leading: Icon(icon, color: iconColor, size: 24),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 15,
-          color: textColor,
-          fontWeight: FontWeight.w500,
-        ),
+      title: FontWidget(
+        text: title,
+        styleType: TextStyleType.bodyLarge,
+        color: textColor,
+        fontWeight: FontWeight.w500,
       ),
       trailing:
           Icon(Icons.arrow_forward_ios, color: Colors.grey[600], size: 16),
@@ -309,13 +279,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       leading: Icon(icon, color: iconColor, size: 24),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 15,
-          color: textColor,
-          fontWeight: FontWeight.w500,
-        ),
+      title: FontWidget(
+        text: title,
+        styleType: TextStyleType.titleMedium,
+        color: textColor,
+        fontWeight: FontWeight.w500,
       ),
       trailing: CupertinoSwitch(
         value: value,
@@ -340,23 +308,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       leading: Icon(platformIcon, color: iconColor, size: 24), // Icon widget'ı
-      title: Text(
-        platformName,
-        style: TextStyle(
-          fontSize: 15,
-          color: textColor,
-          fontWeight: FontWeight.w500,
-        ),
+      title: FontWidget(
+        text: platformName,
+        styleType: TextStyleType.bodyMedium,
+        color: textColor,
+        fontWeight: FontWeight.w500,
       ),
-      trailing: Text(
-        status,
-        style: TextStyle(
-          fontSize: 14,
-          color: isConnected
-              ? const Color(0xFFB2FF59)
-              : secondaryTextColor, // Bağlı ise yeşil, değilse gri
-          fontWeight: FontWeight.w500,
-        ),
+
+      trailing: FontWidget(
+        text: status,
+        styleType: TextStyleType.bodyMedium,
+        color: isConnected
+            ? const Color(0xFFB2FF59)
+            : secondaryTextColor, // Bağlı ise yeşil, değilse gri
+        fontWeight: FontWeight.w500,
       ),
       onTap: onTap,
     );
