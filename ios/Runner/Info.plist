@@ -34,10 +34,6 @@
 		<string>Yarışlarda performansını takip edebilmemiz için adım verilerine ihtiyacımız var. Endişelenme, bu veriler sadece senin sıralamanı oluşturmak için kullanılır.kimse konumunu göremez</string>
 		<key>NSUserNotificationUsageDescription</key>
 		<string>Yeni yarışlar, davetler ve kazandığın ödülleri sana bildirmek için bildirim izni istiyoruz. Sadece önemli şeyleri söylüyoruz, spam asla!</string>
-		<key>NSPhotoLibraryAddUsageDescription</key>
-		<string>Fotoğraflarınızı paylaşmak için galeriye erişim izni istiyoruz.</string>
-		<key>NSCameraUsageDescription</key>
-		<string>Fotoğraflarınızı paylaşmak için kamera erişim izni istiyoruz.</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UIBackgroundModes</key>
