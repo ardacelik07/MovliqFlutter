@@ -65,7 +65,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
   void initState() {
     super.initState();
     // Ensure coins are fetched if this logic is still relevant
-    // ref.read(userDataProvider.notifier).fetchCoins(); // Original line, keep if needed
+    ref.read(userDataProvider.notifier).fetchCoins(); // Original line, keep if needed
   }
 
   @override
@@ -99,6 +99,9 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUser = _getCurrentUser();
+    final coins = ref.watch(userDataProvider).value?.coins;
+    print('coins: $coins');
+
     // final bool isWinner = currentUser?.rank == 1; // This was original, can be used if needed
 
     // Sort leaderboard by rank for display, handling rank 0 (did not finish/error)

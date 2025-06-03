@@ -367,6 +367,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final userDataAsync = ref.watch(userDataProvider);
     final userStreakAsync = ref.watch(userStreakProvider);
     final latestProductsAsync = ref.watch(latestProductProvider);
+    print('userDataAsync: ${userDataAsync.value?.coins}');
 
     final trackingState = ref.watch(raceCoinTrackingProvider);
 
