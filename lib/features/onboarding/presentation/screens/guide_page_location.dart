@@ -65,7 +65,7 @@ class GuidePageLocation extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: FontWidget(
                       text:
-                          'Adım ve konum bilgilerinle yarışları doğru takip edebilir, ödülleri doğru şekilde ulaştırabiliriz. Endişelenme, verilerin bizim için çok değerli ve güvende! Bu izinler olmadan bazı keyifli özellikleri ne yazık ki sunamıyoruz.',
+                          'Adım ve konum bilgilerinle yarışları doğru takip edebilir, ödülleri doğru şekilde ulaştırabiliriz. Endişelenme, verilerin bizim için çok değerli ve güvende! Bu izinler olmadan bazı keyifli özellikleri ne yazık ki sunamıyoruz. Ekran kapalıyken de yarış verilerinin kaydedilmesini istiyorsan, konum iznini ‘Her Zaman’ olarak güncellemelisin.',
                       styleType:
                           TextStyleType.bodyLarge, // Adjusted for Poppins
                       textAlign: TextAlign.center,

@@ -274,6 +274,8 @@ Uygulamalar > Movliq'i seç
 
 “Adım (hareket)” ve “Konum” izinlerini aç
 
+Ekran kapalıyken de yarış verilerinin kaydedilmesini istiyorsan, konum iznini ‘Her Zaman’ olarak güncellemelisin.
+
 İzinleri açtıktan sonra uygulamayı yeniden başlat ve tekrar dene.
 Hâlâ sorun yaşıyorsan bizimle iletişime geçebilirsin! 🛠️''',
         'isExpanded': true,
