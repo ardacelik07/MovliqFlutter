@@ -1435,74 +1435,108 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       return;
     }
 
+    // Stash the old point manager and marker if they exist
+    final mb.PointAnnotationManager? oldPointAnnotationManager = _pointAnnotationManager;
+    final mb.PointAnnotation? markerToDelete = _currentLocationMarker;
+
+    // Immediately nullify class members to indicate they are stale or will be replaced.
+    _pointAnnotationManager = null;
+    _currentLocationMarker = null;
+    // We don't nullify _polylineAnnotationManager here as its recreation is simpler (deleteAll then create).
+
+    // Attempt to delete the stashed marker using the stashed old manager.
+    // This is critical because only the manager that created an annotation can reliably delete it.
+    if (markerToDelete != null && oldPointAnnotationManager != null) {
+      try {
+        await oldPointAnnotationManager.delete(markerToDelete);
+      } catch (e) {
+        // Log or ignore: The old manager might be in an invalid state if map was disposed.
+      }
+    }
+
+    // Re-create annotation managers
     try {
       _pointAnnotationManager =
           await _mapboxMap!.annotations.createPointAnnotationManager();
-    } catch (e) {}
+    } catch (e) {
+      _pointAnnotationManager = null; // Ensure it's null on failure
+    }
 
-    try {
-      _polylineAnnotationManager =
-          await _mapboxMap!.annotations.createPolylineAnnotationManager();
-    } catch (e) {}
+    // Re-create polyline manager
+    // It's generally safer to delete all from the new manager if it exists
+    // rather than relying on an old polyline manager instance.
+    if (_polylineAnnotationManager != null) {
+        try {
+            await _polylineAnnotationManager!.deleteAll();
+        } catch(e) {
+            _polylineAnnotationManager = null; // Force recreation if deletion fails
+        }
+    }
 
+    if (_polylineAnnotationManager == null) { // If it was null or nulled due to error
+        try {
+          _polylineAnnotationManager =
+              await _mapboxMap!.annotations.createPolylineAnnotationManager();
+        } catch (e) {
+          _polylineAnnotationManager = null; // Ensure it's null on failure
+        }
+    }
+
+    // Check mounted status again after async manager creation
     if (!mounted) {
       return;
     }
 
+    // Restore visual state based on recording status
     if (_isRecording) {
       // Restore polyline
       if (_polylineAnnotationManager != null &&
           _mapboxRouteCoordinates.length > 1) {
-        _polylineAnnotationManager!
-            .deleteAll()
-            .then((_) {
-              return _polylineAnnotationManager!
-                  .create(mb.PolylineAnnotationOptions(
-                geometry: mb.LineString(
-                    coordinates: _mapboxRouteCoordinates
-                        .map((p) => p.coordinates)
-                        .toList()),
-                lineColor: const Color(0xFFC4FF62).value,
-                lineWidth: 5.0,
-              ));
-            })
-            .then((_) {})
-            .catchError((e) {});
-      } else {}
-
-      // Restore current location marker
-      if (_currentMapboxPoint != null && _pointAnnotationManager != null) {
-        if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
-          await _loadMarkerImage();
-          if (!mounted) return;
+        try {
+           // Delete all first to ensure no duplicates from the new manager
+          await _polylineAnnotationManager!.deleteAll();
+          await _polylineAnnotationManager!.create(mb.PolylineAnnotationOptions(
+            geometry: mb.LineString(
+                coordinates: _mapboxRouteCoordinates
+                    .map((p) => p.coordinates)
+                    .toList()),
+            lineColor: const Color(0xFFC4FF62).value,
+            lineWidth: 5.0,
+          ));
+        } catch (e) {
+          // Log error
         }
+      }
 
+      // Restore current location marker. _currentLocationMarker is already null here.
+      if (_currentMapboxPoint != null && _pointAnnotationManager != null) {
         final Uint8List? selectedMarkerIconBytes = _getCurrentMarkerIconBytes();
-
         if (selectedMarkerIconBytes != null) {
-          _pointAnnotationManager!
-              .create(
-            mb.PointAnnotationOptions(
-              geometry: _currentMapboxPoint!,
-              image: selectedMarkerIconBytes,
-              iconSize:
-                  selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
-            ),
-          )
-              .then((newMarker) {
-            if (mounted) {
-              _currentLocationMarker = newMarker;
-            }
-          }).catchError((e) {});
-        } else {}
-      } else {}
-    } else {
-      // Not recording
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _getCurrentLocation();
-        } else {}
-      });
+          try {
+            _currentLocationMarker = await _pointAnnotationManager!.create(
+              mb.PointAnnotationOptions(
+                geometry: _currentMapboxPoint!,
+                image: selectedMarkerIconBytes,
+                iconSize: selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
+              ),
+            );
+          } catch (e) {
+            // Log error
+          }
+        }
+      }
+    } else { // Not recording
+      // Call _getCurrentLocation to place marker at current spot if map is ready
+      // _getCurrentLocation will handle marker creation/update.
+      // Ensure _pointAnnotationManager is available for _getCurrentLocation
+      if (_pointAnnotationManager != null) {
+          // Await _loadMarkerImage if icons are not loaded, as _getCurrentLocation might need them
+          if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
+            await _loadMarkerImage();
+             if (!mounted) return; // Check mount status after await
+          }
+          _getCurrentLocation(); // This will create a new marker if needed
+      }
     }
   }
 
