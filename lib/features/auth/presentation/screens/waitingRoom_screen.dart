@@ -26,6 +26,7 @@ import 'package:flutter/rendering.dart';
 import 'package:my_flutter_project/features/auth/presentation/widgets/leave_widget.dart'; // LeaveWidget importu
 import 'package:flutter/widgets.dart'; // WidgetsBindingObserver için
 import '../widgets/font_widget.dart'; // Added FontWidget import
+import 'package:my_flutter_project/features/auth/domain/models/user_data_model.dart'; // UserDataModel için import
 
 // Define colors from the image design
 const Color _backgroundColor = Color(0xFF121212); // Very dark background
@@ -87,6 +88,7 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
 
     // Kullanıcı adını al
     _loadUsername().then((_) {
+      // _loadUsername tamamlandıktan sonra yarış öncesi coinleri başlat
       _storeBeforeRaceCoin();
     });
 
@@ -98,6 +100,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
       }
     });
   }
+
+  // Yarış öncesi coin miktarını güvenilir bir şekilde almak ve saklamak için yeni metot
 
   Future<void> _storeBeforeRaceCoin() async {
     // userDataProvider'dan mevcut coin'i almayı dene
@@ -111,7 +115,8 @@ class _WaitingRoomScreenState extends ConsumerState<WaitingRoomScreen>
       // Eğer veri henüz yoksa veya coin null ise, kısa bir süre bekleyip tekrar dene
       // Veya fetchCoins tetiklenebilir ama bu karmaşıklaştırabilir.
       // Şimdilik sadece loglayalım.
-
+      print(
+          "🏁 RaceCoinTracker: Yarış öncesi coin alınamadı (userData null veya coin null).");
       // İsteğe bağlı: Future.delayed ile tekrar deneme eklenebilir
     }
   }

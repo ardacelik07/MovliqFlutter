@@ -49,6 +49,10 @@ class HomePage extends ConsumerStatefulWidget {
 // Create State class
 class _HomePageState extends ConsumerState<HomePage> {
   bool _permissionsRequested = false;
+  double?
+      _persistedBeforeRaceCoin; // Stores before-race coins upon race completion
+  bool _isAwaitingPostRaceCoinData =
+      false; // True if we are waiting for userDataProvider to update post-race
 
   @override
   void initState() {
@@ -360,64 +364,73 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Fetch initial data providers
     final userDataAsync = ref.watch(userDataProvider);
-    final userStreakAsync =
-        ref.watch(userStreakProvider); // Watch streak provider
-    final latestProductsAsync =
-        ref.watch(latestProductProvider); // Watch latest products
+    final userStreakAsync = ref.watch(userStreakProvider);
+    final latestProductsAsync = ref.watch(latestProductProvider);
 
-    // --- YENİ: Yarış sonrası Coin Popup Logic ---
     final trackingState = ref.watch(raceCoinTrackingProvider);
 
-    if (trackingState != null && trackingState.justFinishedRace) {
-      print("🏁 HomePage Build: Race finished flag detected.");
-      // Durumu kontrol ettikten hemen sonra temizle
-      // Bu, build sırasında state değişikliği hatasını önler
-      // ve popup'ın tekrar tekrar tetiklenmesini engeller.
-      // Kullanıcı coin verisi gelene kadar beklemeyecek,
-      // build sırasında flag'i kontrol edip temizleyeceğiz.
+    // Step 1: Detect race finish and capture necessary data from raceCoinTrackingProvider
+    if (trackingState != null &&
+        trackingState.justFinishedRace &&
+        trackingState.beforeRaceCoin != null) {
+      // Only capture and set flags if we aren't already processing a race finish.
+      // This prevents re-capturing if HomePage rebuilds for other reasons while waiting for coin data.
+      if (!_isAwaitingPostRaceCoinData) {
+        _persistedBeforeRaceCoin = trackingState.beforeRaceCoin;
+        _isAwaitingPostRaceCoinData = true;
+      }
+      // Schedule the clearing of raceCoinTrackingProvider state for after this frame.
+      // This ensures that its state (justFinishedRace) doesn't persist beyond necessary.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ref.read(raceCoinTrackingProvider.notifier).clearState();
-          print("🏁 HomePage Build: Race finished flag cleared after check.");
         }
       });
+    }
 
-      // Şimdi userData'nın durumuna bak
+    // Step 2: Process captured data when userDataProvider updates
+    if (_isAwaitingPostRaceCoinData && _persistedBeforeRaceCoin != null) {
       if (userDataAsync is AsyncData<UserDataModel?>) {
-        final currentUserData = userDataAsync.value;
-        if (currentUserData != null &&
-            currentUserData.coins != null &&
-            trackingState.beforeRaceCoin != null) {
-          final double earnedCoin =
-              currentUserData.coins! - trackingState.beforeRaceCoin!;
-          print("🏁 HomePage Build: UserData loaded. Earned Coin: $earnedCoin");
+        final double? currentUserData = userDataAsync.value?.coins;
+        print('currentUserData: $currentUserData');
+        if (currentUserData != null && currentUserData != 0.000) {
+          var coinsplus = currentUserData;
+          print('coinsplus: $coinsplus');
+          final double earnedCoin = coinsplus - _persistedBeforeRaceCoin!;
+          print('persistedBeforeRaceCoin: $_persistedBeforeRaceCoin');
+          print('currentUserData.coins: $currentUserData');
 
-          if (earnedCoin > 0.001) {
-            // Build bittikten sonra popup'ı göster
+          print('earnedCoin: $earnedCoin');
+
+          if (earnedCoin > 0.000) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 _showCoinPopup(context, earnedCoin);
               }
             });
-          } else {
-            print(
-                "🏁 HomePage Build: No significant coin difference detected.");
           }
+          // Reset flags now that we've processed this specific race finish event
+          // (either shown popup or determined no significant earning).
+          _isAwaitingPostRaceCoinData = false;
+          _persistedBeforeRaceCoin = null;
         } else {
-          print(
-              "🏁 HomePage Build: UserData not ready or coin info missing for diff calc.");
+          // userData is loaded but coins are null. This might be a temporary state or an issue.
+          // To prevent getting stuck, we reset the flags here as well.
+          // If coin data is expected to arrive in a subsequent userData update without a full reload,
+          // this might need adjustment, but typically AsyncData means the fetch cycle is complete.
+          _isAwaitingPostRaceCoinData = false;
+          _persistedBeforeRaceCoin = null;
         }
       } else if (userDataAsync is AsyncError) {
-        print(
-            "🏁 HomePage Build: Error loading UserData, cannot calculate diff.");
-      } else {
-        print(
-            "🏁 HomePage Build: UserData is loading, cannot calculate diff yet.");
+        // If userDataProvider has an error, reset flags to prevent getting stuck.
+        _isAwaitingPostRaceCoinData = false;
+        _persistedBeforeRaceCoin = null;
       }
+      // If userDataAsync is AsyncLoading, we do nothing here.
+      // The flags _isAwaitingPostRaceCoinData and _persistedBeforeRaceCoin remain set,
+      // so this block will be re-evaluated when userDataAsync provides data or an error.
     }
-    // --- Coin Popup Logic Sonu ---
 
     // Display loading indicator while user data is loading
     if (userDataAsync is AsyncLoading) {

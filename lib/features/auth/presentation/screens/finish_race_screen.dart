@@ -6,6 +6,8 @@ import 'dart:math' as math;
 import '../widgets/user_profile_avatar.dart';
 
 import '../providers/race_coin_tracker_provider.dart';
+import '../providers/user_data_provider.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 
 // Define colors from the image design
@@ -112,7 +114,7 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
     return WillPopScope(
       onWillPop: () async {
         _navigateToHomePage();
-        return false;
+        return true;
       },
       child: Scaffold(
         backgroundColor: _screenBackground,
@@ -468,6 +470,8 @@ class _FinishRaceScreenState extends ConsumerState<FinishRaceScreen> {
 
   void _navigateToHomePage() {
     ref.read(raceCoinTrackingProvider.notifier).markRaceAsFinished();
+    ref.read(userDataProvider.notifier).fetchCoins();
+
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const TabsScreen()),
       (route) => false,

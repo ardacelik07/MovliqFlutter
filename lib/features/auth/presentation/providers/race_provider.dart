@@ -544,17 +544,21 @@ class RaceNotifier extends _$RaceNotifier {
   void _initializeAntiCheatSystem() {
     _lastCheckDistance = state.currentDistance;
     _lastCheckSteps = state.currentSteps;
-    _lastCheckTime = DateTime.now();
+    _lastCheckTime = DateTime.now(); // Initialize for the first check
     state = state.copyWith(violationCount: 0);
 
-    _antiCheatTimer?.cancel();
+    _antiCheatTimer?.cancel(); // Cancel any existing timer
 
-    // Yarış başladıktan 10 saniye sonra hile kontrolünü başlat
-    Future.delayed(const Duration(seconds: 10), () {
+    // Check every 30 seconds. _checkForCheating has an internal check for elapsed time.
+    const Duration checkInterval = Duration(seconds: 30);
+    _antiCheatTimer = Timer.periodic(checkInterval, (timer) {
       if (!state.isRaceActive) {
+        timer.cancel();
+        _antiCheatTimer = null; // Clear the timer reference
         return;
       }
-
+      // _checkForCheating itself will handle the logic based on _lastCheckTime
+      // and will return if the race is not active or if _lastCheckTime is null.
       _checkForCheating();
     });
   }
