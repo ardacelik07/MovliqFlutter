@@ -460,7 +460,8 @@ class RaceNotifier extends _$RaceNotifier {
         // İç Mekan: Adım sıklığına (kadans) göre MET belirle
         double cadence = 0;
         if (elapsedSeconds > 0) {
-          cadence = stepsDifference / elapsedSeconds.toDouble();
+          // Kadansı dakika başına adım (SPM - Steps Per Minute) olarak hesapla
+          cadence = (stepsDifference / elapsedSeconds.toDouble()) * 60.0;
         }
         if (cadence <= 0) {
           metValue = 1.0; // Hareket yok veya hata
