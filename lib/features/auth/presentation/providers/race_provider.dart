@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:geolocator_apple/geolocator_apple.dart' as geo;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Yeni import - bildirimler için
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -282,13 +281,7 @@ class RaceNotifier extends _$RaceNotifier {
 
       // Konum izinleri varsa ve iç mekan yarışı değilse konum takibini başlat
       if (state.hasLocationPermission && !state.isIndoorRace) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _startLocationUpdates();
-
-          // Belirli aralıklarla konum başlatmayı tekrar dene
-          // Bu, bazı iOS cihazlarında konum takibinin kilitleme/uygulama değişiminden sonra düzgün çalışmasını sağlar
-          _schedulePeriodicLocationCheck();
-        });
+        _startLocationUpdates();
       }
     } else {
       // Android için standart başlatma stratejisi - değişiklik yok
@@ -832,36 +825,7 @@ class RaceNotifier extends _$RaceNotifier {
 
     _positionStreamSubscription?.cancel();
 
-    // iOS için ekstra kontrol - konum servislerinin açık olduğundan emin ol
-    if (Platform.isIOS) {
-      // iOS native konum takibini etkinleştir
-      _enableIOSNativeLocationTracking();
-
-      Geolocator.isLocationServiceEnabled().then((serviceEnabled) {
-        if (!serviceEnabled) {
-          state = state.copyWith(
-              errorMessage:
-                  'Konum servisleri kapalı, konum takibi yapılamıyor.');
-          return;
-        }
-
-        // Servisler açıksa izni kontrol et
-        Geolocator.checkPermission().then((permission) {
-          if (permission != LocationPermission.always &&
-              permission != LocationPermission.whileInUse) {
-            state = state.copyWith(
-                errorMessage: 'Konum izni yok, konum takibi yapılamıyor.');
-            return;
-          }
-
-          // Hem servisler açık hem de izin varsa konum takibini başlat
-          _initializeLocationStream();
-        });
-      });
-    } else {
-      // Android için direk başlat
-      _initializeLocationStream();
-    }
+    _initializeLocationStream();
   }
 
   // Konum takibi stream'ini başlatan yardımcı metot (platformdan bağımsız)
@@ -879,12 +843,9 @@ class RaceNotifier extends _$RaceNotifier {
         ),
       );
     } else if (Platform.isIOS) {
-      // iOS için özel arka plan modu etkinleştirme
-      _setIOSBackgroundLocationActive();
-
-      locationSettings = geo.AppleSettings(
-        accuracy: geo.LocationAccuracy.high,
-        activityType: geo.ActivityType.fitness,
+      locationSettings = AppleSettings(
+        accuracy: LocationAccuracy.high,
+        activityType: ActivityType.fitness,
         distanceFilter: 5,
         pauseLocationUpdatesAutomatically: false,
         showBackgroundLocationIndicator: true,
@@ -896,8 +857,8 @@ class RaceNotifier extends _$RaceNotifier {
       // iOS, Android'den farklı olarak bildirimi burada değil, uygulama içinde ayrıca göstermemiz gerekiyor
       _showIOSNotification("Movliq yarış devam ediyor", "Konum takibi aktif");
     } else {
-      locationSettings = const geo.LocationSettings(
-        accuracy: geo.LocationAccuracy.high,
+      locationSettings = const LocationSettings(
+        accuracy: LocationAccuracy.high,
         distanceFilter: 5,
       );
     }
@@ -991,9 +952,6 @@ class RaceNotifier extends _$RaceNotifier {
     if (Platform.isIOS) {
       // Bildirimler
       await _cancelIOSNotification();
-
-      // Native konum takibi
-      await _disableIOSNativeLocationTracking();
     }
   }
 
@@ -1079,100 +1037,5 @@ class RaceNotifier extends _$RaceNotifier {
         _handleRaceEnd(); // Yarış bitirme mantığını tetikle
       }
     }
-  }
-
-  // iOS için periyodik konum kontrolü zamanla
-  Timer? _locationCheckTimer;
-
-  void _schedulePeriodicLocationCheck() {
-    // Önceki timer varsa iptal et
-    _locationCheckTimer?.cancel();
-
-    // Her 15 saniyede bir konum takibini kontrol et/yenile - daha sık kontrol et
-    _locationCheckTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
-      if (!state.isRaceActive) {
-        timer.cancel();
-        _locationCheckTimer = null;
-        return;
-      }
-
-      if (Platform.isIOS &&
-          !state.isIndoorRace &&
-          state.hasLocationPermission) {
-        // Native konum takibini tekrar etkinleştir
-        _enableIOSNativeLocationTracking();
-
-        // Mevcut konum durumunu kontrol et
-        Geolocator.getCurrentPosition(
-                desiredAccuracy: geo.LocationAccuracy.high,
-                timeLimit: const Duration(seconds: 5))
-            .then((position) {})
-            .catchError((e) {
-          // Hata olursa konum takibini yeniden başlatmaya çalış
-          _startLocationUpdates();
-        });
-      }
-    });
-  }
-
-  // iOS için native konum takibini etkinleştirme metodları
-  static const _platformChannelLocation = MethodChannel('com.movliq/location');
-
-  Future<void> _enableIOSNativeLocationTracking() async {
-    if (!Platform.isIOS) return;
-
-    try {
-      await _platformChannelLocation
-          .invokeMethod('enableBackgroundLocationTracking');
-
-      // 5 saniye sonra konum izlemesinin hala aktif olduğunu kontrol et
-      Future.delayed(const Duration(seconds: 5), () {
-        if (state.isRaceActive && !state.isIndoorRace && Platform.isIOS) {
-          _checkLocationTrackingStatus();
-        }
-      });
-    } catch (e) {}
-  }
-
-  Future<void> _disableIOSNativeLocationTracking() async {
-    if (!Platform.isIOS) return;
-
-    try {
-      await _platformChannelLocation
-          .invokeMethod('disableBackgroundLocationTracking');
-    } catch (e) {}
-  }
-
-  // Yeni: Konum takibi durumunu kontrol et
-  Future<void> _checkLocationTrackingStatus() async {
-    if (!Platform.isIOS || !state.isRaceActive || state.isIndoorRace) return;
-
-    // Daha agresif bir yaklaşım - konum iznine ve servislerin açık olduğuna bakıp
-    // gerekirse location stream'i yeniden oluştur
-    try {
-      bool servicesEnabled = await Geolocator.isLocationServiceEnabled();
-      LocationPermission permission = await Geolocator.checkPermission();
-
-      if (!servicesEnabled) {
-        return;
-      }
-
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return;
-      }
-
-      // Eğer hala buradaysak, izin ve servisler tamam demektir
-      // Stream'i yeniden başlat
-      _positionStreamSubscription?.cancel();
-      _positionStreamSubscription = null;
-
-      // Kısa bir gecikme ekleyip stream'i yeniden oluştur
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (state.isRaceActive && !state.isIndoorRace) {
-          _startLocationUpdates();
-        }
-      });
-    } catch (e) {}
   }
 }
