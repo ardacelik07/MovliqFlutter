@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:geolocator_apple/geolocator_apple.dart' as geo;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Yeni import - bildirimler için
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -881,9 +882,9 @@ class RaceNotifier extends _$RaceNotifier {
       // iOS için özel arka plan modu etkinleştirme
       _setIOSBackgroundLocationActive();
 
-      locationSettings = AppleSettings(
-        accuracy: LocationAccuracy.high,
-        activityType: ActivityType.fitness,
+      locationSettings = geo.AppleSettings(
+        accuracy: geo.LocationAccuracy.high,
+        activityType: geo.ActivityType.fitness,
         distanceFilter: 5,
         pauseLocationUpdatesAutomatically: false,
         showBackgroundLocationIndicator: true,
@@ -895,8 +896,8 @@ class RaceNotifier extends _$RaceNotifier {
       // iOS, Android'den farklı olarak bildirimi burada değil, uygulama içinde ayrıca göstermemiz gerekiyor
       _showIOSNotification("Movliq yarış devam ediyor", "Konum takibi aktif");
     } else {
-      locationSettings = const LocationSettings(
-        accuracy: LocationAccuracy.high,
+      locationSettings = const geo.LocationSettings(
+        accuracy: geo.LocationAccuracy.high,
         distanceFilter: 5,
       );
     }
@@ -1103,7 +1104,7 @@ class RaceNotifier extends _$RaceNotifier {
 
         // Mevcut konum durumunu kontrol et
         Geolocator.getCurrentPosition(
-                desiredAccuracy: LocationAccuracy.high,
+                desiredAccuracy: geo.LocationAccuracy.high,
                 timeLimit: const Duration(seconds: 5))
             .then((position) {})
             .catchError((e) {
