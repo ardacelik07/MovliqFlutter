@@ -948,18 +948,18 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
                                     _buildStat(
                                       iconAsset: 'assets/icons/alev.png',
                                       value: _calories.toString(),
-                                      unit: 'kcal',
+                                      unit: 'kkal',
                                     ),
                                     const SizedBox(width: 8),
                                     _buildStat(
                                       iconAsset: 'assets/icons/steps.png',
                                       value: _steps.toString(),
-                                      unit: 'steps',
+                                      unit: 'adım',
                                     ),
                                     _buildStat(
                                       iconAsset: 'assets/icons/speed.png',
                                       value: _pace.toStringAsFixed(1),
-                                      unit: 'km/hr',
+                                      unit: 'km/sa',
                                     ),
                                   ],
                                 ),
@@ -1436,7 +1436,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     }
 
     // Stash the old point manager and marker if they exist
-    final mb.PointAnnotationManager? oldPointAnnotationManager = _pointAnnotationManager;
+    final mb.PointAnnotationManager? oldPointAnnotationManager =
+        _pointAnnotationManager;
     final mb.PointAnnotation? markerToDelete = _currentLocationMarker;
 
     // Immediately nullify class members to indicate they are stale or will be replaced.
@@ -1466,20 +1467,21 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
     // It's generally safer to delete all from the new manager if it exists
     // rather than relying on an old polyline manager instance.
     if (_polylineAnnotationManager != null) {
-        try {
-            await _polylineAnnotationManager!.deleteAll();
-        } catch(e) {
-            _polylineAnnotationManager = null; // Force recreation if deletion fails
-        }
+      try {
+        await _polylineAnnotationManager!.deleteAll();
+      } catch (e) {
+        _polylineAnnotationManager = null; // Force recreation if deletion fails
+      }
     }
 
-    if (_polylineAnnotationManager == null) { // If it was null or nulled due to error
-        try {
-          _polylineAnnotationManager =
-              await _mapboxMap!.annotations.createPolylineAnnotationManager();
-        } catch (e) {
-          _polylineAnnotationManager = null; // Ensure it's null on failure
-        }
+    if (_polylineAnnotationManager == null) {
+      // If it was null or nulled due to error
+      try {
+        _polylineAnnotationManager =
+            await _mapboxMap!.annotations.createPolylineAnnotationManager();
+      } catch (e) {
+        _polylineAnnotationManager = null; // Ensure it's null on failure
+      }
     }
 
     // Check mounted status again after async manager creation
@@ -1493,13 +1495,12 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
       if (_polylineAnnotationManager != null &&
           _mapboxRouteCoordinates.length > 1) {
         try {
-           // Delete all first to ensure no duplicates from the new manager
+          // Delete all first to ensure no duplicates from the new manager
           await _polylineAnnotationManager!.deleteAll();
           await _polylineAnnotationManager!.create(mb.PolylineAnnotationOptions(
             geometry: mb.LineString(
-                coordinates: _mapboxRouteCoordinates
-                    .map((p) => p.coordinates)
-                    .toList()),
+                coordinates:
+                    _mapboxRouteCoordinates.map((p) => p.coordinates).toList()),
             lineColor: const Color(0xFFC4FF62).value,
             lineWidth: 5.0,
           ));
@@ -1517,7 +1518,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
               mb.PointAnnotationOptions(
                 geometry: _currentMapboxPoint!,
                 image: selectedMarkerIconBytes,
-                iconSize: selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
+                iconSize:
+                    selectedMarkerIconBytes == _femaleMarkerIcon ? 0.20 : 0.15,
               ),
             );
           } catch (e) {
@@ -1525,17 +1527,18 @@ class _RecordScreenState extends ConsumerState<RecordScreen>
           }
         }
       }
-    } else { // Not recording
+    } else {
+      // Not recording
       // Call _getCurrentLocation to place marker at current spot if map is ready
       // _getCurrentLocation will handle marker creation/update.
       // Ensure _pointAnnotationManager is available for _getCurrentLocation
       if (_pointAnnotationManager != null) {
-          // Await _loadMarkerImage if icons are not loaded, as _getCurrentLocation might need them
-          if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
-            await _loadMarkerImage();
-             if (!mounted) return; // Check mount status after await
-          }
-          _getCurrentLocation(); // This will create a new marker if needed
+        // Await _loadMarkerImage if icons are not loaded, as _getCurrentLocation might need them
+        if (_maleMarkerIcon == null || _femaleMarkerIcon == null) {
+          await _loadMarkerImage();
+          if (!mounted) return; // Check mount status after await
+        }
+        _getCurrentLocation(); // This will create a new marker if needed
       }
     }
   }

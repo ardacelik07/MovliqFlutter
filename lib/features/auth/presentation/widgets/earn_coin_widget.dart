@@ -79,7 +79,7 @@ class EarnCoinPopup extends ConsumerWidget {
 
             // Subtitle
             Text(
-              'Daha fazla yarışa katıl daha çok kazan',
+              'Daha fazla hareket daha fazla kazan',
               style: GoogleFonts.bangers(
                 fontSize: 16,
                 color: Colors.grey,

@@ -917,7 +917,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                                     _buildNewRaceMetricItem(
                                                       assetPath: _flameIcon,
                                                       valueText:
-                                                          '$caloriesStr kcal',
+                                                          '$caloriesStr kkal',
                                                     ),
                                                     const SizedBox(width: 20),
                                                     _buildNewRaceMetricItem(
@@ -1308,7 +1308,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               width: 24,
               height: 24,
             ),
-            value: '$totalCalories kcal',
+            value: '$totalCalories kkal',
             label: 'Toplam Kalori',
             iconColor: const Color(0xFFFFA000), // Orange for calories
           ),

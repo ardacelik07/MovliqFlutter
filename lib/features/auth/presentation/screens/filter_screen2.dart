@@ -46,7 +46,8 @@ class __FilterScreen2State extends ConsumerState<FilterScreen2> {
                 ),
                 const SizedBox(height: 8),
                 FontWidget(
-                  text: "Ne kadar süre ve hangi modda koşmak istersin?",
+                  text:
+                      "Ne kadar süre ve hangi modda egzersiz yapmak istersin?",
                   styleType: TextStyleType.bodyMedium,
                   color: Colors.grey,
                   // Original style: GoogleFonts.bangers(fontSize: 14, color: Colors.grey)

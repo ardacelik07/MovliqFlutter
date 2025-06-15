@@ -106,7 +106,7 @@ class RecordStatsScreen extends ConsumerWidget {
                             "ORT. HIZ", formattedAvgSpeed, "KM/SA"),
                         _buildTextStatItem("ADIM", steps.toString(), "ADIM"),
                         _buildTextStatItem(
-                            "KALORİ", calories.toString(), "KCAL"),
+                            "KALORİ", calories.toString(), "KKAL"),
                       ],
                     ),
                   ],

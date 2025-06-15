@@ -345,7 +345,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                                 iconAsset:
                                     'assets/icons/alev.png', // Kalori ikonu
                                 value: raceState.currentCalories.toString(),
-                                label: 'kcal',
+                                label: 'kkal',
                               ),
                               if (!raceState.isIndoorRace)
                                 _buildStatItem(

@@ -56,7 +56,6 @@ class PrivacyPolicyScreen extends ConsumerWidget {
               fontSize: 15,
             ),
             const SizedBox(height: 24),
-
             _buildPolicySection(
               title: 'Veri Toplama',
               titleColor: titleColor,
@@ -71,7 +70,6 @@ class PrivacyPolicyScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
-
             _buildPolicySection(
               title: 'Veri Kullanımı',
               titleColor: titleColor,
@@ -86,7 +84,6 @@ class PrivacyPolicyScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
-
             _buildPolicySection(
               title: 'Üçüncü Taraflarla Paylaşım',
               titleColor: titleColor,
@@ -97,7 +94,6 @@ class PrivacyPolicyScreen extends ConsumerWidget {
               // Bu bölümde madde işareti yok
             ),
             const SizedBox(height: 24),
-
             _buildPolicySection(
               title: 'Haklarınız',
               titleColor: titleColor,
@@ -111,36 +107,6 @@ class PrivacyPolicyScreen extends ConsumerWidget {
                 'İşlemeyi sınırlandırma hakkı',
               ],
             ),
-
-            const SizedBox(height: 32),
-            FontWidget(
-              text: 'Detaylı bilgi için lütfen bizimle iletişime geçin',
-              styleType: TextStyleType.labelLarge,
-              color: labelColor,
-              fontSize: 14,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _launchPolicyEmail, // E-posta fonksiyonunu çağır
-              icon:
-                  Icon(Icons.email_outlined, color: backgroundColor, size: 20),
-              label: FontWidget(
-                text: 'E-posta Gönder',
-                styleType: TextStyleType.labelLarge,
-                fontWeight: FontWeight.bold,
-                color: backgroundColor,
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accentColor,
-                foregroundColor: backgroundColor,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
-            const SizedBox(height: 20), // Alt boşluk
           ],
         ),
       ),

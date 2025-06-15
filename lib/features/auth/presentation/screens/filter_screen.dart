@@ -64,15 +64,15 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 FontWidget(
-                  text: "Koşu Türünü Seç",
+                  text: "Aktivite Türünü Seç",
                   styleType: TextStyleType.titleLarge,
                   color: Colors.white,
                   fontSize: 26,
                 ),
                 const SizedBox(height: 40),
                 _buildOptionCard(
-                  titleLines: ["İç Mekan", "Koşusu"],
-                  description: "Spor salonu ve kapalı alanlarda koşu",
+                  titleLines: ["İç Mekan"],
+                  description: "Spor salonu ve kapalı alanlarda hareket",
                   imagePath: "assets/images/manOnRunningInside.png",
                   value: "indoor",
                   isSelected: _selectedPreference == "indoor",
@@ -81,8 +81,8 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                 ),
                 const SizedBox(height: 24),
                 _buildOptionCard(
-                  titleLines: ["Dış Mekan", "Koşusu"],
-                  description: "Park ve açık alanlarda koşu",
+                  titleLines: ["Dış Mekan"],
+                  description: "Park ve açık alanlarda hareket",
                   imagePath: "assets/images/womanRunOutside.png",
                   value: "outdoor",
                   isSelected: _selectedPreference == "outdoor",
@@ -91,8 +91,8 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                 ),
                 const SizedBox(height: 24),
                 _buildOptionCard(
-                  titleLines: ["Özel Yarış"],
-                  description: "Arkadaşlarınla yarış veya yeni odalar keşfet",
+                  titleLines: ["Özel Aktivite"],
+                  description: "Yeni odalar keşfet",
                   imagePath: "assets/images/registerpicture.png",
                   value: "private",
                   isSelected: _selectedPreference == "private",
